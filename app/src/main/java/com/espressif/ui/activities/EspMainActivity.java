@@ -407,7 +407,7 @@ public class EspMainActivity extends AppCompatActivity {
 
     private void alertForForceUpdate(String message) {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
         builder.setCancelable(false);
 
         builder.setTitle(R.string.dialog_title_new_version_available);
@@ -433,7 +433,7 @@ public class EspMainActivity extends AppCompatActivity {
 
     private void alertForNewVersion(String message) {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
         builder.setCancelable(true);
 
         builder.setTitle(R.string.dialog_title_new_version_available);
@@ -468,7 +468,7 @@ public class EspMainActivity extends AppCompatActivity {
 
     private void askForLocation() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
         builder.setCancelable(true);
         builder.setMessage(R.string.dialog_msg_for_gps);
 

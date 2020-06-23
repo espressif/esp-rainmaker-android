@@ -54,6 +54,7 @@ public class NodeDetailsActivity extends AppCompatActivity {
     private TextView txtRemoveDeviceBtn;
     private ImageView removeDeviceImage;
     private RecyclerView nodeInfoRecyclerView;
+    private TextView txtRemoveMultiDeviceInfo;
     private ContentLoadingProgressBar progressBar;
     private AlertDialog userDialog;
 
@@ -106,6 +107,7 @@ public class NodeDetailsActivity extends AppCompatActivity {
         txtRemoveDeviceBtn = findViewById(R.id.text_btn);
         removeDeviceImage = findViewById(R.id.iv_remove);
         progressBar = findViewById(R.id.progress_indicator);
+        txtRemoveMultiDeviceInfo = findViewById(R.id.tv_txt_remove);
 
         tvBack.setOnClickListener(backButtonClickListener);
         btnRemoveDevice.setOnClickListener(removeDeviceBtnClickListener);
@@ -117,6 +119,12 @@ public class NodeDetailsActivity extends AppCompatActivity {
 
         nodeDetailsAdapter = new NodeDetailsAdapter(this, nodeInfoList, nodeInfoValueList);
         nodeInfoRecyclerView.setAdapter(nodeDetailsAdapter);
+
+        if (node.getDevices() != null && node.getDevices().size() > 1) {
+            txtRemoveMultiDeviceInfo.setVisibility(View.VISIBLE);
+        } else {
+            txtRemoveMultiDeviceInfo.setVisibility(View.GONE);
+        }
     }
 
     private void setNodeInfo() {
@@ -166,7 +174,7 @@ public class NodeDetailsActivity extends AppCompatActivity {
 
     private void confirmForRemoveNode() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
         builder.setMessage(R.string.dialog_msg_delete_node);
 
         // Set up the buttons

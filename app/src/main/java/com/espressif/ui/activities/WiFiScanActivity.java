@@ -178,7 +178,7 @@ public class WiFiScanActivity extends AppCompatActivity {
 
     private void askForNetwork(final String ssid, final int authMode) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
         LayoutInflater inflater = this.getLayoutInflater();
         final View dialogView = inflater.inflate(R.layout.dialog_wifi_network, null);
         builder.setView(dialogView);
