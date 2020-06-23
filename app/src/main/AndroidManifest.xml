@@ -14,6 +14,7 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
 
     <supports-screens
         android:anyDensity="true"
@@ -81,6 +82,11 @@
         <activity
             android:name="com.espressif.ui.activities.ProvisionActivity"
             android:label="@string/title_activity_provision"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="com.espressif.ui.activities.WiFiConfigActivity"
+            android:label="@string/title_activity_wifi_config"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity

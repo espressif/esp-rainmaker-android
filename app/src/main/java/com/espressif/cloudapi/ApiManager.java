@@ -1350,7 +1350,6 @@ public class ApiManager {
                     if (response.isSuccessful()) {
 
                         String jsonResponse = response.body().string();
-                        Log.e(TAG, "onResponse Success : " + jsonResponse);
                         JSONObject jsonObject = new JSONObject(jsonResponse);
                         idToken = jsonObject.getString("idtoken");
                         accessToken = jsonObject.getString("accesstoken");
@@ -1366,6 +1365,7 @@ public class ApiManager {
                         listener.onSuccess(null);
 
                     } else {
+                        // TODO Handle 400 error case
                         listener.onFailure(new RuntimeException("Failed to get new token"));
                     }
                 } catch (IOException e) {

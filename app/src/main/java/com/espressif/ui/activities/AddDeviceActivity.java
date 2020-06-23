@@ -15,23 +15,31 @@
 package com.espressif.ui.activities;
 
 import android.Manifest;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.wifi.SupplicantState;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.SurfaceView;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 
+import com.budiyev.android.codescanner.CodeScanner;
+import com.budiyev.android.codescanner.CodeScannerView;
 import com.espressif.AppConstants;
 import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
@@ -58,32 +66,67 @@ public class AddDeviceActivity extends AppCompatActivity {
     private CardView btnAddManually;
     private TextView txtAddManuallyBtn;
 
-    private SurfaceView surfaceView;
     private AVLoadingIndicatorView loader;
-    private Intent intent;
     private ESPDevice espDevice;
     private ESPProvisionManager provisionManager;
+    //    private CameraSourcePreview cameraPreview;
+    private CodeScanner codeScanner;
+    private boolean isQrCodeDataReceived = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_device);
-        intent = new Intent();
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
         EventBus.getDefault().register(this);
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+
+//            if (cameraPreview != null) {
+//                try {
+//                    cameraPreview.start();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+
+            if (codeScanner != null && !isQrCodeDataReceived) {
+                codeScanner.startPreview();
+            }
+
+            // This condition is to get event of cancel button of "try again" popup. Because Android 10 is not giving event on cancel button click if network is not found.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && espDevice != null && espDevice.getTransportType().equals(ESPConstants.TransportType.TRANSPORT_SOFTAP)) {
+
+                String ssid = getWifiSsid();
+                Log.d(TAG, "Currently connected WiFi SSID : " + ssid);
+                Log.d(TAG, "Device Name  : " + espDevice.getDeviceName());
+                if (!TextUtils.isEmpty(ssid) && !ssid.equals(espDevice.getDeviceName())) {
+                    Log.e(TAG, "Device is not connected");
+                    finish();
+                }
+            }
+        }
+    }
+
+    /**
+     * Stops the camera.
+     */
+    @Override
     protected void onPause() {
         super.onPause();
-//        if (cameraSource != null) {
-//            try {
-//                cameraSource.release();
-//            } catch (NullPointerException ignored) {
-//            }
-//            cameraSource = null;
+//        if (cameraPreview != null) {
+//            cameraPreview.stop();
 //        }
+        if (codeScanner != null) {
+            codeScanner.stopPreview();
+        }
     }
 
     @Override
@@ -91,6 +134,12 @@ public class AddDeviceActivity extends AppCompatActivity {
 
         hideLoading();
         EventBus.getDefault().unregister(this);
+//        if (cameraPreview != null) {
+//            cameraPreview.release();
+//        }
+        if (codeScanner != null) {
+            codeScanner.releaseResources();
+        }
         super.onDestroy();
     }
 
@@ -100,7 +149,6 @@ public class AddDeviceActivity extends AppCompatActivity {
         if (provisionManager.getEspDevice() != null) {
             provisionManager.getEspDevice().disconnectDevice();
         }
-
         super.onBackPressed();
     }
 
@@ -143,13 +191,13 @@ public class AddDeviceActivity extends AppCompatActivity {
                 break;
 
             case ESPConstants.EVENT_DEVICE_DISCONNECTED:
-                Toast.makeText(AddDeviceActivity.this, "Device disconnected", Toast.LENGTH_LONG).show();
-                finish();
+//                Toast.makeText(AddDeviceActivity.this, "Device disconnected", Toast.LENGTH_LONG).show();
+                askForManualDeviceConnection();
                 break;
 
             case ESPConstants.EVENT_DEVICE_CONNECTION_FAILED:
-                Toast.makeText(AddDeviceActivity.this, "Failed to connect with device", Toast.LENGTH_LONG).show();
-                finish();
+//                Toast.makeText(AddDeviceActivity.this, "Failed to connect with device", Toast.LENGTH_LONG).show();
+                askForManualDeviceConnection();
                 break;
         }
     }
@@ -180,7 +228,10 @@ public class AddDeviceActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
 
-            setResult(RESULT_CANCELED, intent);
+            if (provisionManager.getEspDevice() != null) {
+                provisionManager.getEspDevice().disconnectDevice();
+            }
+            setResult(RESULT_CANCELED, getIntent());
             finish();
         }
     };
@@ -196,24 +247,33 @@ public class AddDeviceActivity extends AppCompatActivity {
         tvCancel.setVisibility(View.VISIBLE);
         tvCancel.setOnClickListener(cancelBtnClickListener);
 
-        surfaceView = findViewById(R.id.surfaceView);
+        CodeScannerView scannerView = findViewById(R.id.scanner_view);
+        codeScanner = new CodeScanner(this, scannerView);
+
+//        cameraPreview = findViewById(R.id.preview);
         btnAddManually = findViewById(R.id.btn_add_device_manually);
         txtAddManuallyBtn = findViewById(R.id.text_btn);
         loader = findViewById(R.id.loader);
 
         txtAddManuallyBtn.setText(R.string.btn_no_qr_code);
         btnAddManually.setOnClickListener(btnAddManuallyClickListener);
+
         initialiseDetectorsAndSources();
     }
 
     private void initialiseDetectorsAndSources() {
 
         if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
-            provisionManager.scanQRCode(this, surfaceView, qrCodeScanListener);
-            surfaceView.setVisibility(View.VISIBLE);
+            provisionManager.scanQRCode(codeScanner, qrCodeScanListener);
+//            cameraPreview.setVisibility(View.VISIBLE);
+            findViewById(R.id.scanner_view).setVisibility(View.VISIBLE);
 
+            if (codeScanner != null) {
+                codeScanner.startPreview();
+            }
         } else {
             Log.e(TAG, "All permissions are not granted.");
             askForPermissions();
@@ -230,6 +290,10 @@ public class AddDeviceActivity extends AppCompatActivity {
 
             ActivityCompat.requestPermissions(AddDeviceActivity.this, new
                     String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_ACCESS_FINE_LOCATION);
+        } else if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(AddDeviceActivity.this, new
+                    String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_ACCESS_FINE_LOCATION);
         }
     }
 
@@ -254,20 +318,40 @@ public class AddDeviceActivity extends AppCompatActivity {
                     showLoading();
                     Vibrator vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
                     vib.vibrate(50);
+                    isQrCodeDataReceived = true;
                 }
             });
         }
 
         @Override
-        public void deviceDetected(ESPDevice device) {
+        public void deviceDetected(final ESPDevice device) {
 
-            Log.d(TAG, "Device detected");
+            Log.e(TAG, "Device detected");
             espDevice = device;
-            if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                Log.e(TAG, "Location Permission not granted.");
-                return;
-            }
-            device.connectToDevice(AddDeviceActivity.this);
+
+            runOnUiThread(new Runnable() {
+
+                @Override
+                public void run() {
+
+                    if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                        Log.e(TAG, "Location Permission not granted.");
+                        return;
+                    }
+
+                    if (espDevice.getTransportType().equals(ESPConstants.TransportType.TRANSPORT_SOFTAP)
+                            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+
+                        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+
+                        if (!wifiManager.isWifiEnabled()) {
+                            alertForWiFi();
+                            return;
+                        }
+                    }
+                    device.connectToDevice();
+                }
+            });
         }
 
         @Override
@@ -287,16 +371,47 @@ public class AddDeviceActivity extends AppCompatActivity {
         }
     };
 
+    private void alertForWiFi() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        builder.setCancelable(false);
+        builder.setMessage(R.string.error_wifi_off);
+
+        // Set up the buttons
+        builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+                dialog.dismiss();
+                espDevice = null;
+                hideLoading();
+                if (codeScanner != null) {
+                    codeScanner.releaseResources();
+                    codeScanner.startPreview();
+                    provisionManager.scanQRCode(codeScanner, qrCodeScanListener);
+                }
+            }
+        });
+
+        builder.show();
+    }
+
     private void goToWiFiProvisionLanding(boolean isSec1) {
 
         finish();
-        Intent intent1 = new Intent(getApplicationContext(), ProvisionLanding.class);
+        Intent intent = new Intent(getApplicationContext(), ProvisionLanding.class);
         if (isSec1) {
-            intent1.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_TYPE_1);
+            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_TYPE_1);
         } else {
-            intent1.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_TYPE_0);
+            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_TYPE_0);
         }
-        startActivity(intent1);
+
+        if (espDevice != null) {
+            intent.putExtra(AppConstants.KEY_DEVICE_NAME, espDevice.getDeviceName());
+            intent.putExtra(AppConstants.KEY_PROOF_OF_POSSESSION, espDevice.getProofOfPossession());
+        }
+        startActivity(intent);
     }
 
     private void goToWiFiScanActivity() {
@@ -311,5 +426,57 @@ public class AddDeviceActivity extends AppCompatActivity {
         finish();
         Intent provisionIntent = new Intent(getApplicationContext(), ProvisionActivity.class);
         startActivity(provisionIntent);
+    }
+
+    private void askForManualDeviceConnection() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        builder.setCancelable(true);
+        builder.setMessage("Device connection failed. \nDo you want to connect device manually ?");
+
+        // Set up the buttons
+        builder.setPositiveButton(R.string.btn_yes, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+                dialog.dismiss();
+                if (espDevice != null) {
+                    if (espDevice.getSecurityType().equals(ESPConstants.SecurityType.SECURITY_0)) {
+                        goToWiFiProvisionLanding(false);
+                    } else {
+                        goToWiFiProvisionLanding(true);
+                    }
+                } else {
+                    finish();
+                }
+            }
+        });
+
+        builder.setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+                dialog.dismiss();
+                finish();
+            }
+        });
+
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
+    }
+
+    private String getWifiSsid() {
+
+        String ssid = null;
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        if (wifiInfo.getSupplicantState() == SupplicantState.COMPLETED) {
+
+            ssid = wifiInfo.getSSID();
+            ssid = ssid.replace("\"", "");
+        }
+        return ssid;
     }
 }

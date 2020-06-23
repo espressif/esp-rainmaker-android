@@ -27,6 +27,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -73,6 +74,11 @@ public class WiFiScanActivity extends AppCompatActivity {
         wifiAPList = new ArrayList<>();
         handler = new Handler();
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
+
+        String deviceName = provisionManager.getEspDevice().getDeviceName();
+        String wifiMsg = String.format(getString(R.string.setup_instructions), deviceName);
+        TextView tvWifiMsg = findViewById(R.id.wifi_message);
+        tvWifiMsg.setText(wifiMsg);
 
         ivRefresh.setOnClickListener(refreshClickListener);
 

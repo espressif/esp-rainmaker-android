@@ -83,7 +83,7 @@ public class ProvisionActivity extends AppCompatActivity {
         apiManager = ApiManager.getInstance(getApplicationContext());
         initViews();
 
-        Log.d(TAG, "Selected AP -" + ssidValue);
+        Log.d(TAG, "Selected AP - " + ssidValue);
         EventBus.getDefault().register(this);
         showLoading();
         doStep1();
@@ -163,6 +163,7 @@ public class ProvisionActivity extends AppCompatActivity {
 
         btnOk = findViewById(R.id.btn_ok);
         txtOkBtn = findViewById(R.id.text_btn);
+        btnOk.findViewById(R.id.iv_arrow).setVisibility(View.GONE);
 
         txtOkBtn.setText(R.string.btn_ok);
         btnOk.setOnClickListener(okBtnClickListener);
@@ -213,7 +214,7 @@ public class ProvisionActivity extends AppCompatActivity {
 
     private void provision() {
 
-        Log.d(TAG, "================== PROVISION +++++++++++++++++++++++++++++");
+        Log.d(TAG, "+++++++++++++++++++++++++++++ PROVISION +++++++++++++++++++++++++++++");
 
         provisionManager.getEspDevice().provision(ssidValue, passphraseValue, new ProvisionListener() {
 
@@ -254,6 +255,8 @@ public class ProvisionActivity extends AppCompatActivity {
 
             @Override
             public void wifiConfigApplied() {
+
+                Log.d(TAG, "WiFi Config Applied");
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -480,7 +483,7 @@ public class ProvisionActivity extends AppCompatActivity {
                 @Override
                 public void onFailure(Exception exception) {
 
-                    if (addDeviceReqCount == 5) {
+                    if (addDeviceReqCount == 7) {
 
                         runOnUiThread(new Runnable() {
 
