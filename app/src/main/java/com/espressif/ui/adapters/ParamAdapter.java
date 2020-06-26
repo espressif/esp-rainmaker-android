@@ -405,7 +405,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
     private void askForNewValue(final MyViewHolder myViewHolder, final Param param, final int position) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.AlertDialogTheme);
         LayoutInflater inflater = context.getLayoutInflater();
         final View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
         builder.setView(dialogView);

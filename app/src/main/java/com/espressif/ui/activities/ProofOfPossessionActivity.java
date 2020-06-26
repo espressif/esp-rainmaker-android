@@ -18,7 +18,9 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -70,11 +72,25 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
             etPop.setSelection(etPop.getText().length());
         }
         etPop.requestFocus();
+
+        etPop.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+
+                if (actionId == EditorInfo.IME_ACTION_GO) {
+                    nextBtnClick();
+                }
+                return false;
+            }
+        });
     }
 
     @Override
     public void onBackPressed() {
-        provisionManager.getEspDevice().disconnectDevice();
+        if (provisionManager.getEspDevice() != null) {
+            provisionManager.getEspDevice().disconnectDevice();
+        }
         super.onBackPressed();
     }
 
@@ -83,16 +99,7 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
 
-            final String pop = etPop.getText().toString();
-            Log.d(TAG, "POP : " + pop);
-            provisionManager.getEspDevice().setProofOfPossession(pop);
-            ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
-
-            if (deviceCaps.contains("wifi_scan")) {
-                goToWiFiScanListActivity();
-            } else {
-                goToProvisionActivity();
-            }
+            nextBtnClick();
         }
     };
 
@@ -101,7 +108,10 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
 
-            onBackPressed();
+            if (provisionManager.getEspDevice() != null) {
+                provisionManager.getEspDevice().disconnectDevice();
+            }
+            finish();
         }
     };
 
@@ -126,6 +136,20 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         btnNext.setOnClickListener(nextBtnClickListener);
     }
 
+    private void nextBtnClick() {
+
+        final String pop = etPop.getText().toString();
+        Log.d(TAG, "POP : " + pop);
+        provisionManager.getEspDevice().setProofOfPossession(pop);
+        ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
+
+        if (deviceCaps.contains("wifi_scan")) {
+            goToWiFiScanListActivity();
+        } else {
+            goToWiFiConfigActivity();
+        }
+    }
+
     private void goToWiFiScanListActivity() {
 
         Intent wifiListIntent = new Intent(getApplicationContext(), WiFiScanActivity.class);
@@ -133,10 +157,10 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         finish();
     }
 
-    private void goToProvisionActivity() {
+    private void goToWiFiConfigActivity() {
 
-        Intent provisionIntent = new Intent(getApplicationContext(), ProvisionActivity.class);
-        startActivity(provisionIntent);
+        Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
+        startActivity(wifiConfigIntent);
         finish();
     }
 }

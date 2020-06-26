@@ -1,16 +1,25 @@
 apply plugin: 'com.android.application'
 apply plugin: 'com.google.protobuf'
 
+def getGitHash = { ->
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', '--short', 'HEAD'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
 android {
 
-    compileSdkVersion 28
+    compileSdkVersion 29
 
     defaultConfig {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 24
-        targetSdkVersion 28
+        targetSdkVersion 29
         versionCode 6
-        versionName "2.0.0"
+        versionName "2.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -19,6 +28,7 @@ android {
             minifyEnabled false
             debuggable false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "GitHash", "\"${getGitHash()}\""
             resValue "string", "security_type", "sec1"
             resValue "string", "proof_of_possesion", "abcd1234"
             resValue "string", "user_pool_id", "your_user_pool_id"
@@ -27,6 +37,7 @@ android {
 
         debug {
             debuggable true
+            buildConfigField "String", "GitHash", "\"${getGitHash()}\""
             resValue "string", "security_type", "sec1"
             resValue "string", "proof_of_possesion", "abcd1234"
             resValue "string", "user_pool_id", "your_user_pool_id"
@@ -64,21 +75,24 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.0.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation 'com.google.android.material:material:1.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.0.0'
+
     implementation 'com.google.protobuf:protobuf-lite:3.0.1'
     implementation 'com.google.crypto.tink:tink-android:1.1.0'
-    implementation 'com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.15.2'
-    implementation 'com.squareup.retrofit2:retrofit:2.6.0'
-    implementation 'com.squareup.retrofit2:converter-gson:2.3.0'
-    implementation 'com.google.code.gson:gson:2.8.5'
-    implementation 'androidx.recyclerview:recyclerview:1.0.0'
-    implementation 'org.greenrobot:eventbus:3.1.1'
-    implementation 'com.google.android.gms:play-services-vision:19.0.0'
-    implementation 'com.github.warkiz.tickseekbar:tickseekbar:0.1.4'
-    implementation('com.amazonaws:aws-android-sdk-iot:2.15.+@aar') { transitive = true }
-    implementation('com.amazonaws:aws-android-sdk-mobile-client:2.15.+@aar') { transitive = true }
-    implementation 'com.auth0.android:jwtdecode:1.4.0'
+
     implementation 'com.wang.avi:library:2.1.3'
-    implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.0'
+    implementation 'org.greenrobot:eventbus:3.1.1'
+    implementation 'com.auth0.android:jwtdecode:1.4.0'
+    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'com.squareup.retrofit2:retrofit:2.6.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.6.0'
+    implementation 'com.budiyev.android:code-scanner:2.1.0'
+    implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.0.1'
+
+    implementation 'com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.15.2'
+    implementation 'com.github.warkiz.tickseekbar:tickseekbar:0.1.4'
+    implementation('com.amazonaws:aws-android-sdk-iot:2.15.2') { transitive = true }
+    implementation('com.amazonaws:aws-android-sdk-mobile-client:2.15.2') { transitive = true }
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.2.0'

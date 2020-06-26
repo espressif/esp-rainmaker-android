@@ -5,8 +5,6 @@
     <string name="no_internet_note">To make sure you are really connected to the device, please make sure you accept the system dialog informing you that network has no internet access.</string>
     <string name="connect_to_device_action">Connect</string>
     <string name="connected_to_device_action">Provision Network</string>
-    <string name="title_activity_provision_instructions">Provision Instructions</string>
-    <string name="setup_instructions">To complete setup of your device, please provide your Home Network\'s credentials.</string>
     <string name="ssid_hint_text">Network Name</string>
     <string name="password_hint_text">Password</string>
     <string name="provision">Provision</string>
@@ -16,8 +14,6 @@
     <string name="wifi_disconnected_text">Please check the device indicators for provisioning status.</string>
     <string name="done">Done</string>
 
-    <string name="enable_bluetooth_instructions">To provision your new device, please make sure that your Phone\'s Bluetooth is turned on and within range of your new device.</string>
-    <string name="enabled_bluetooth_instructions">To provision the device, please enter your Network credentials on the next page.</string>
     <string name="enable_bluetooth_action">Enable</string>
     <string name="enabled_bluetooth_action">Provision Network</string>
 
@@ -58,6 +54,7 @@
     <string name="error_provisioning_failed">Provisioning Failed</string>
     <string name="error_param_update">Failed to update</string>
     <string name="error_login">Fail to login</string>
+    <string name="error_wifi_off">Please turn on Wi-Fi to connect with device.</string>
 
     <!--Screen titles-->
     <string name="title_activity_provision_success">ProvisionSuccessActivity</string>
@@ -150,6 +147,7 @@
     <string name="title_activity_provision">Provision</string>
     <string name="title_activity_provisioning">Provisioning</string>
     <string name="title_activity_wifi_scan_list">Select Wi-Fi Network</string>
+    <string name="title_activity_wifi_config">Wi-Fi Configuration</string>
     <string name="title_activity_node_details">Node Details</string>
     <string name="title_activity_user_profile">User Profile</string>
 
@@ -178,6 +176,17 @@
     <string name="node_fw_version">Firmware Version</string>
     <string name="node_config_version">Config Version</string>
 
+    <!-- Instruction Strings -->
+    <string name="pop_instruction">Enter your proof of possession PIN for</string>
+    <string name="setup_instructions">To complete setup of your device %1$s, please provide your Home Network\'s credentials.</string>
+    <string name="connect_device_instruction_general">To provision your device, make sure it is turned ON. Connect your mobile phone to the Wi-Fi network with a name like PROV_XXXXXX</string>
+    <string name="connect_device_instruction_specific">To provision your device, make sure it is turned ON. Connect your mobile phone to the Wi-Fi network with the name</string>
+    <string name="password_instruction">Password should contain at least one capital letter, one special character and a number.</string>
+    <string name="forgot_password_instruction">Please enter your registered email id to reset your password.</string>
+    <string name="reset_password_instruction">Set your new password with the verification code that was sent to you.</string>
+    <string name="enable_bluetooth_instructions">To provision your new device, please make sure that your Phone\'s Bluetooth is turned on and within range of your new device.</string>
+    <string name="enabled_bluetooth_instructions">To provision the device, please enter your Network credentials on the next page.</string>
+
     <!--Other Strings-->
     <string name="read_terms_condition">I have read and agree to the Privacy Policy and Terms of Use.</string>
     <string name="login_with">Login with</string>
@@ -185,11 +194,6 @@
     <string name="forgot_password">Forgot password?</string>
     <string name="resend_code">Resend Code</string>
     <string name="connect_your_device">Connect to your device</string>
-    <string name="password_instruction">Password should contain at least one capital letter, one special character and a number.</string>
-    <string name="forgot_password_instruction">Please enter your registered email id to reset your password.</string>
-    <string name="reset_password_instruction">Set your new password with the verification code that was sent to you.</string>
-    <string name="connect_device_instruction">To provision your device, make sure it is turned ON. Connect your mobile phone to the Wi-Fi network with a name like PROV_XXXXXX</string>
-    <string name="pop_instruction">Enter your proof of possession PIN for</string>
     <string name="documentation">Documentation</string>
     <string name="privacy_policy">Privacy Policy</string>
     <string name="terms_of_use">Terms of Use</string>

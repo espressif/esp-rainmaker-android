@@ -384,7 +384,7 @@ public class SignUpFragment extends Fragment {
 
     private void showDialogMessage(String title, String body, final boolean exit) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity(), R.style.AlertDialogTheme);
         builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
 
             @Override
@@ -445,7 +445,7 @@ public class SignUpFragment extends Fragment {
 
     private void showDialogMessage(String title, String body) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity(), R.style.AlertDialogTheme);
         builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {

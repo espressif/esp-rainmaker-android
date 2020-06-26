@@ -182,7 +182,7 @@ public class ChangePasswordActivity extends AppCompatActivity {
 
     private void showDialogMessage(String title, String body, final boolean exitActivity) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
         builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
 
             @Override
