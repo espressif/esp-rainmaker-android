@@ -31,6 +31,7 @@ android {
             buildConfigField "String", "GitHash", "\"${getGitHash()}\""
             resValue "string", "security_type", "sec1"
             resValue "string", "proof_of_possesion", "abcd1234"
+            resValue "string", "aws_region", "your_aws_region"
             resValue "string", "user_pool_id", "your_user_pool_id"
             resValue "string", "client_id", "your_client_id"
         }
@@ -40,6 +41,7 @@ android {
             buildConfigField "String", "GitHash", "\"${getGitHash()}\""
             resValue "string", "security_type", "sec1"
             resValue "string", "proof_of_possesion", "abcd1234"
+            resValue "string", "aws_region", "your_aws_region"
             resValue "string", "user_pool_id", "your_user_pool_id"
             resValue "string", "client_id", "your_client_id"
         }

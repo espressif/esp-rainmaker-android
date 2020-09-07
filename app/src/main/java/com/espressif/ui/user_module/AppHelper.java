@@ -19,6 +19,7 @@ package com.espressif.ui.user_module;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoDevice;
@@ -95,7 +96,7 @@ public class AppHelper {
      * Set Your User Pools region.
      * e.g. if your user pools are in US East (N Virginia) then set cognitoRegion = Regions.US_EAST_1.
      */
-    private static final Regions cognitoRegion = Regions.US_EAST_1;
+    private static Regions cognitoRegion = Regions.US_EAST_1;
 
     // User details from the service
     private static CognitoUserSession currSession;
@@ -123,6 +124,10 @@ public class AppHelper {
 
         if (userPool == null) {
 
+            String region = context.getResources().getString(R.string.aws_region);
+            if (!TextUtils.isEmpty(region)) {
+                cognitoRegion = Regions.fromName(region);
+            }
             userPoolId = context.getResources().getString(R.string.user_pool_id);
             clientId = context.getResources().getString(R.string.client_id);
             clientSecret = "";
