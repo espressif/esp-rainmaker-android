@@ -22,6 +22,8 @@
     <string name="progress_get_status">Getting Status</string>
     <string name="progress_loading">Loading...</string>
     <string name="progress_claiming">Claiming in progress...</string>
+    <string name="progress_add_sch">Adding Schedule...</string>
+    <string name="progress_update_sch">Updating Schedule...</string>
 
     <!--Error Messages-->
     <string name="error_title">Error!</string>
@@ -36,6 +38,7 @@
     <string name="error_no_ble_device">No Bluetooth devices found!</string>
     <string name="error_ble_device_config_failed">Bluetooth device could not be configured. Please try another device.</string>
     <string name="error_device_list_not_received">Error : Device list not received</string>
+    <string name="error_schedule_not_received">Error : Schedules not received</string>
     <string name="error_email_empty">Email cannot be empty</string>
     <string name="error_invalid_email">Please enter valid email</string>
     <string name="error_password_empty">Password cannot be empty</string>
@@ -62,6 +65,8 @@
     <string name="error_claiming_start">Claim start failed</string>
     <string name="error_claiming_init">Claim init failed</string>
     <string name="error_claiming_verify">Claim verify failed</string>
+    <string name="error_schedule_name_empty">Schedule name cannot be empty</string>
+    <string name="error_invalid_schedule_name">Please enter schedule name</string>
 
     <!--Screen titles-->
     <string name="title_activity_provision_success">ProvisionSuccessActivity</string>
@@ -85,15 +90,19 @@
     <string name="app_main_desc">A sample app to showcase Cognito Identity and the SDK for Android.</string>
     <string name="powered_by_esp">Powered by ESPRESSIF</string>
     <string name="no_devices">No devices added</string>
+    <string name="no_schedules">No Schedules added</string>
     <string name="add_device_txt">You can provision a device by scanning the QR code or you can do it manually my tapping on + icon on right-top of this screen.</string>
     <string name="signup_confirm_msg">Enter verification code.</string>
     <string name="node_offline">Node Offline</string>
     <string name="status_offline">Offline</string>
     <string name="offline_at">Offline at</string>
+    <string name="no_devices_with_schedule">No devices found with schedule feature.</string>
 
     <!--Tab titles-->
     <string name="tab_login">SIGN IN</string>
     <string name="tab_sign_up">SignUp</string>
+    <string name="tab_devices">Devices</string>
+    <string name="tab_schedules">Schedules</string>
 
     <!--Hint texts-->
     <string name="hint_email">Email</string>
@@ -133,6 +142,7 @@
     <string name="btn_edit">Edit</string>
     <string name="btn_no_qr_code">I don\'t have a QR code</string>
     <string name="btn_add_device">Add Device</string>
+    <string name="btn_add_schedule">Add Schedule</string>
     <string name="btn_scan_again">Scan Again</string>
     <string name="btn_sign_out">Sign Out</string>
     <string name="btn_skip">Skip</string>
@@ -141,6 +151,7 @@
     <string name="btn_save">Save</string>
     <string name="btn_update">Update</string>
     <string name="btn_logout">Logout</string>
+    <string name="btn_done">Done</string>
 
     <!--Screen titles-->
     <string name="title_activity_devices">Devices</string>
@@ -158,6 +169,13 @@
     <string name="title_activity_node_details">Node Details</string>
     <string name="title_activity_user_profile">User Profile</string>
     <string name="title_activity_claiming">Claiming</string>
+    <string name="title_activity_add_schedule">Add Schedule</string>
+    <string name="title_activity_schedule_details">Schedule Details</string>
+    <string name="title_activity_repeat_days">Repeat</string>
+    <string name="title_activity_actions">Actions</string>
+    <string name="title_activity_schedules">Schedules</string>
+    <string name="title_activity_select_device">Select Device</string>
+    <string name="title_activity_select_actions">Select Actions</string>
 
     <!--Link texts-->
     <string name="link_documentation"><a href="https://rainmaker.espressif.com/">Documentation</a></string>
@@ -174,9 +192,12 @@
     <string name="dialog_title_forgot_password_failed">Forgot password failed</string>
     <string name="dialog_title_new_version_available">New Version is available!</string>
     <string name="dialog_title_network_info">Enter Network Information</string>
+    <string name="dialog_title_schedule_name">Enter Schedule Name</string>
     <string name="dialog_msg_for_gps">Location services are disabled. Please enable them to continue</string>
     <string name="dialog_msg_delete_node">Are you sure?</string>
     <string name="dialog_msg_device_selection">Select Device Type</string>
+    <string name="dialog_title_remove_schedule">Remove</string>
+    <string name="dialog_msg_remove_schedule">Are you sure to remove this schedule?</string>
 
     <!--Node Details-->
     <string name="node_id">Node Id</string>
@@ -218,6 +239,7 @@
     <string name="text_remove_node">By removing a node, all the associated devices will also be removed.</string>
     <string name="device_no_param">Device has no parameters</string>
     <string name="process_take_time">This may take time.</string>
+    <string name="not_set">Not set</string>
 
     <string name="prov_step_1">Sending Wi-Fi credentials</string>
     <string name="prov_step_2">Confirming Wi-Fi connection</string>
@@ -227,5 +249,23 @@
     <string name="error_prov_step_2">Failed to send Wi-Fi credentials</string>
     <string name="error_prov_step_3">Failed to configure node association</string>
     <string name="error_prov_step_4">Failed to confirm node association</string>
+
+    <string name="day_1">MON</string>
+    <string name="day_2">TUE</string>
+    <string name="day_3">WED</string>
+    <string name="day_4">THU</string>
+    <string name="day_5">FRI</string>
+    <string name="day_6">SAT</string>
+    <string name="day_7">SUN</string>
+
+    <string-array name="days">
+        <item>Sun</item>
+        <item>Sat</item>
+        <item>Fri</item>
+        <item>Thu</item>
+        <item>Wed</item>
+        <item>Tue</item>
+        <item>Mon</item>
+    </string-array>
 
 </resources>

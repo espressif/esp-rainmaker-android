@@ -30,6 +30,7 @@ public class EspNode implements Parcelable {
     private long timeStampOfStatus; // timestamp of connectivity status
     private ArrayList<Device> devices;
     private ArrayList<Param> attributes;
+    private ArrayList<Service> services;
 
     public EspNode(String id) {
         nodeId = id;
@@ -103,6 +104,14 @@ public class EspNode implements Parcelable {
         this.attributes = attributes;
     }
 
+    public ArrayList<Service> getServices() {
+        return services;
+    }
+
+    public void setServices(ArrayList<Service> services) {
+        this.services = services;
+    }
+
     protected EspNode(Parcel in) {
 
         nodeId = in.readString();
@@ -114,6 +123,7 @@ public class EspNode implements Parcelable {
         timeStampOfStatus = in.readLong();
         devices = in.createTypedArrayList(Device.CREATOR);
         attributes = in.createTypedArrayList(Param.CREATOR);
+        services = in.createTypedArrayList(Service.CREATOR);
     }
 
     public static final Creator<EspNode> CREATOR = new Creator<EspNode>() {
@@ -145,5 +155,6 @@ public class EspNode implements Parcelable {
         dest.writeLong(timeStampOfStatus);
         dest.writeTypedList(devices);
         dest.writeTypedList(attributes);
+        dest.writeTypedList(services);
     }
 }

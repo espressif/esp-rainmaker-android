@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.ui.models.EspNode;
+import com.espressif.ui.models.Schedule;
 import com.espressif.ui.user_module.AppHelper;
 
 import java.util.HashMap;
@@ -14,6 +15,7 @@ public class EspApplication extends Application {
     private static final String TAG = EspApplication.class.getSimpleName();
 
     public HashMap<String, EspNode> nodeMap;
+    public HashMap<String, Schedule> scheduleMap;
 
     @Override
     public void onCreate() {
@@ -22,5 +24,6 @@ public class EspApplication extends Application {
         AppHelper.init(this);
         ESPProvisionManager.getInstance(this);
         nodeMap = new HashMap<>();
+        scheduleMap = new HashMap<>();
     }
 }

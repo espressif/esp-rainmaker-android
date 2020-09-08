@@ -33,6 +33,24 @@ public class Param implements Parcelable {
     private boolean switchStatus;
     private String labelValue;
     private boolean isDynamicParam;
+    private boolean isSelected;
+
+    public Param(Param param) {
+
+        name = param.getName();
+        paramType = param.getParamType();
+        dataType = param.getDataType();
+        uiType = param.getUiType();
+        properties = param.getProperties();
+        minBounds = param.getMinBounds();
+        maxBounds = param.getMaxBounds();
+        stepCount = param.getStepCount();
+        sliderValue = param.getSliderValue();
+        switchStatus = param.getSwitchStatus();
+        labelValue = param.getLabelValue();
+        isDynamicParam = param.isDynamicParam();
+        isSelected = param.isSelected();
+    }
 
     public String getName() {
         return name;
@@ -130,6 +148,14 @@ public class Param implements Parcelable {
         isDynamicParam = dynamicParam;
     }
 
+    public boolean isSelected() {
+        return isSelected;
+    }
+
+    public void setSelected(boolean selected) {
+        isSelected = selected;
+    }
+
     public Param() {
     }
 
@@ -146,6 +172,7 @@ public class Param implements Parcelable {
         switchStatus = in.readByte() != 0;
         labelValue = in.readString();
         isDynamicParam = in.readByte() != 0;
+        isSelected = in.readByte() != 0;
     }
 
     public static final Creator<Param> CREATOR = new Creator<Param>() {
@@ -179,6 +206,7 @@ public class Param implements Parcelable {
         dest.writeByte((byte) (switchStatus ? 1 : 0));
         dest.writeString(labelValue);
         dest.writeByte((byte) (isDynamicParam ? 1 : 0));
+        dest.writeByte((byte) (isSelected ? 1 : 0));
     }
 
     @Override
