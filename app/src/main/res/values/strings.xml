@@ -21,6 +21,7 @@
     <string name="progress_scanning">Scanning Devices...</string>
     <string name="progress_get_status">Getting Status</string>
     <string name="progress_loading">Loading...</string>
+    <string name="progress_claiming">Claiming in progress...</string>
 
     <!--Error Messages-->
     <string name="error_title">Error!</string>
@@ -55,6 +56,12 @@
     <string name="error_param_update">Failed to update</string>
     <string name="error_login">Fail to login</string>
     <string name="error_wifi_off">Please turn on Wi-Fi to connect with device.</string>
+    <string name="error_claiming_progress">Claiming failed with error : </string>
+    <string name="error_claiming">Claiming failed. Please reboot the device and restart provisioning.</string>
+    <string name="error_claiming_not_supported">Assisted Claiming not supported for SoftAP. Cannot Proceed.</string>
+    <string name="error_claiming_start">Claim start failed</string>
+    <string name="error_claiming_init">Claim init failed</string>
+    <string name="error_claiming_verify">Claim verify failed</string>
 
     <!--Screen titles-->
     <string name="title_activity_provision_success">ProvisionSuccessActivity</string>
@@ -150,6 +157,7 @@
     <string name="title_activity_wifi_config">Wi-Fi Configuration</string>
     <string name="title_activity_node_details">Node Details</string>
     <string name="title_activity_user_profile">User Profile</string>
+    <string name="title_activity_claiming">Claiming</string>
 
     <!--Link texts-->
     <string name="link_documentation"><a href="https://rainmaker.espressif.com/">Documentation</a></string>
@@ -168,6 +176,7 @@
     <string name="dialog_title_network_info">Enter Network Information</string>
     <string name="dialog_msg_for_gps">Location services are disabled. Please enable them to continue</string>
     <string name="dialog_msg_delete_node">Are you sure?</string>
+    <string name="dialog_msg_device_selection">Select Device Type</string>
 
     <!--Node Details-->
     <string name="node_id">Node Id</string>
@@ -208,6 +217,7 @@
     <string name="confirmation_failed">Confirmation failed</string>
     <string name="text_remove_node">By removing a node, all the associated devices will also be removed.</string>
     <string name="device_no_param">Device has no parameters</string>
+    <string name="process_take_time">This may take time.</string>
 
     <string name="prov_step_1">Sending Wi-Fi credentials</string>
     <string name="prov_step_2">Confirming Wi-Fi connection</string>

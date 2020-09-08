@@ -79,4 +79,12 @@ public interface ApiInterface {
     // Remove Node
     @PUT(AppConstants.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/mapping")
     Call<ResponseBody> removeDevice(@Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body DeviceOperationRequest rawJsonString);
+
+    // Claiming initiate
+    @POST(AppConstants.CLAIM_BASE_URL + "/claim/initiate")
+    Call<ResponseBody> initiateClaiming(@Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonObject body);
+
+    // Claiming verify
+    @POST(AppConstants.CLAIM_BASE_URL + "/claim/verify")
+    Call<ResponseBody> verifyClaiming(@Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonObject body);
 }

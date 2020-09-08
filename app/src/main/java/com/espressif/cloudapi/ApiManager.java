@@ -1385,6 +1385,112 @@ public class ApiManager {
         });
     }
 
+    public void initiateClaim(JsonObject body, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Initiate Claiming...");
+
+        apiInterface.initiateClaiming(accessToken, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "onResponse code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Bundle data = new Bundle();
+                        data.putString("claim_initiate_response", jsonResponse);
+                        listener.onSuccess(data);
+
+                    } else {
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains("failure")) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString("description");
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new RuntimeException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Claim init failed"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Claim init failed"));
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onFailure(new RuntimeException("Claim init failed"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onFailure(new RuntimeException("Claim init failed"));
+            }
+        });
+    }
+
+    public void verifyClaiming(JsonObject body, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Verifying Claiming...");
+
+        apiInterface.verifyClaiming(accessToken, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Bundle data = new Bundle();
+                        data.putString("claim_verify_response", jsonResponse);
+                        listener.onSuccess(data);
+
+                    } else {
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains("failure")) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString("description");
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new RuntimeException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Claim verify failed"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Claim verify failed"));
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onFailure(new RuntimeException("Claim verify failed"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onFailure(new RuntimeException("Claim verify failed"));
+            }
+        });
+    }
+
     private Runnable stopRequestStatusPollingTask = new Runnable() {
 
         @Override

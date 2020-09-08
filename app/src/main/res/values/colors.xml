@@ -13,6 +13,7 @@
     <color name="button_default">#329AD6</color>
     <color name="color_text_on">#4CAF50</color>
     <color name="color_text_off">#CA1627</color>
+    <color name="color_err_text">#FF3B30</color>
 
     <!-- New colors -->
 
