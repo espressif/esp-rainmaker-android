@@ -15,6 +15,7 @@
 package com.espressif.ui.activities;
 
 import android.Manifest;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -27,6 +28,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
@@ -41,6 +43,9 @@ import com.espressif.rainmaker.R;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 
@@ -125,7 +130,6 @@ public class ProvisionLanding extends AppCompatActivity {
             case ESPConstants.EVENT_DEVICE_CONNECTED:
 
                 Log.e(TAG, "Device Connected Event Received");
-                ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
 
                 btnConnect.setEnabled(true);
                 btnConnect.setAlpha(1f);
@@ -133,34 +137,7 @@ public class ProvisionLanding extends AppCompatActivity {
                 progressBar.setVisibility(View.GONE);
                 arrowImage.setVisibility(View.VISIBLE);
 
-                if (!TextUtils.isEmpty(pop)) {
-
-                    provisionManager.getEspDevice().setProofOfPossession(pop);
-
-                    if (deviceCaps != null && deviceCaps.contains("wifi_scan")) {
-
-                        goToWifiScanListActivity();
-
-                    } else {
-
-                        goToWiFiConfigActivity();
-                    }
-
-                } else {
-
-                    if (deviceCaps != null && !deviceCaps.contains("no_pop") && securityType == 1) {
-
-                        goToPopActivity();
-
-                    } else if (deviceCaps != null && deviceCaps.contains("wifi_scan")) {
-
-                        goToWifiScanListActivity();
-
-                    } else {
-
-                        goToWiFiConfigActivity();
-                    }
-                }
+                checkDeviceCapabilities();
                 break;
 
             case ESPConstants.EVENT_DEVICE_CONNECTION_FAILED:
@@ -251,6 +228,69 @@ public class ProvisionLanding extends AppCompatActivity {
         hasPermissions();
     }
 
+    private void checkDeviceCapabilities() {
+
+        ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
+        String versionInfo = provisionManager.getEspDevice().getVersionInfo();
+        ArrayList<String> rmakerCaps = new ArrayList<>();
+
+        try {
+            JSONObject jsonObject = new JSONObject(versionInfo);
+            JSONObject rmakerInfo = jsonObject.optJSONObject("rmaker");
+
+            if (rmakerInfo != null) {
+
+                JSONArray rmakerCapabilities = rmakerInfo.optJSONArray("cap");
+                if (rmakerCapabilities != null) {
+                    for (int i = 0; i < rmakerCapabilities.length(); i++) {
+                        String cap = rmakerCapabilities.getString(i);
+                        rmakerCaps.add(cap);
+                    }
+                }
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Log.d(TAG, "Version Info JSON not available.");
+        }
+
+        if (rmakerCaps.size() > 0 && rmakerCaps.contains("claim")) {
+
+            // Claiming is not supported for SoftAP transport.
+            alertForClaimingNotSupported();
+
+        } else {
+
+            if (!TextUtils.isEmpty(pop)) {
+
+                provisionManager.getEspDevice().setProofOfPossession(pop);
+
+                if (deviceCaps != null && deviceCaps.contains("wifi_scan")) {
+
+                    goToWifiScanListActivity();
+
+                } else {
+
+                    goToWiFiConfigActivity();
+                }
+
+            } else {
+
+                if (deviceCaps != null && !deviceCaps.contains("no_pop") && securityType == 1) {
+
+                    goToPopActivity();
+
+                } else if (deviceCaps != null && deviceCaps.contains("wifi_scan")) {
+
+                    goToWifiScanListActivity();
+
+                } else {
+
+                    goToWiFiConfigActivity();
+                }
+            }
+        }
+    }
+
     private void goToPopActivity() {
 
         finish();
@@ -293,5 +333,28 @@ public class ProvisionLanding extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_FINE_LOCATION);
         }
+    }
+
+    private void alertForClaimingNotSupported() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        builder.setCancelable(false);
+        builder.setMessage(R.string.error_claiming_not_supported);
+
+        // Set up the buttons
+        builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+                if (provisionManager.getEspDevice() != null) {
+                    provisionManager.getEspDevice().disconnectDevice();
+                }
+                dialog.dismiss();
+                finish();
+            }
+        });
+
+        builder.show();
     }
 }

@@ -21,6 +21,7 @@ public class AppConstants {
 
     // End point names
     public static final String HANDLER_RM_USER_MAPPING = "cloud_user_assoc";
+    public static final String HANDLER_RM_CLAIM = "rmaker_claim";
 
     // Keys used to pass data between activities and to store data in SharedPreference.
     public static final String KEY_PROOF_OF_POSSESSION = "proof_of_possession";
@@ -68,14 +69,17 @@ public class AppConstants {
         EVENT_DEVICE_STATUS_UPDATE
     }
 
-    public static final String BASE_URL = "https://api.rainmaker.espressif.com";
     public static final String CURRENT_VERSION = "v1";
     public static final String PATH_SEPARATOR = "/";
     public static final String HEADER_AUTHORIZATION = "Authorization";
 
-    public static final String GITHUB_URL = "https://auth.rainmaker.espressif.com/oauth2/authorize?identity_provider=GitHub&redirect_uri=rainmaker://com.espressif.rainmaker/success&response_type=CODE&client_id=";
-    public static final String GOOGLE_URL = "https://auth.rainmaker.espressif.com/oauth2/authorize?identity_provider=Google&redirect_uri=rainmaker://com.espressif.rainmaker/success&response_type=CODE&client_id=";
+    public static final String BASE_URL = "https://api.rainmaker.espressif.com";
+    public static final String AUTH_URL = "https://auth.rainmaker.espressif.com/oauth2";
     public static final String TOKEN_URL = "https://auth.rainmaker.espressif.com/oauth2/token";
+    public static final String GITHUB_URL = AUTH_URL + PATH_SEPARATOR + "authorize?identity_provider=GitHub&redirect_uri=rainmaker://com.espressif.rainmaker/success&response_type=CODE&client_id=";
+    public static final String GOOGLE_URL = AUTH_URL + PATH_SEPARATOR + "authorize?identity_provider=Google&redirect_uri=rainmaker://com.espressif.rainmaker/success&response_type=CODE&client_id=";
+    public static final String CLAIM_BASE_URL = "https://esp-claiming.rainmaker.espressif.com";
+
     public static final String REDIRECT_URI = "rainmaker://com.espressif.rainmaker/success";
 
     public static final String DOCUMENTATION_URL = "https://rainmaker.espressif.com/";

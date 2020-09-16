@@ -52,6 +52,9 @@ import com.wang.avi.AVLoadingIndicatorView;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 
@@ -178,16 +181,7 @@ public class AddDeviceActivity extends AppCompatActivity {
             case ESPConstants.EVENT_DEVICE_CONNECTED:
 
                 Log.e(TAG, "Device Connected Event Received");
-                ArrayList<String> deviceCaps = espDevice.getDeviceCapabilities();
-
-                if (deviceCaps.contains("wifi_scan")) {
-
-                    goToWiFiScanActivity();
-
-                } else {
-
-                    goToProvisionActivity();
-                }
+                checkDeviceCapabilities();
                 break;
 
             case ESPConstants.EVENT_DEVICE_DISCONNECTED:
@@ -371,13 +365,56 @@ public class AddDeviceActivity extends AppCompatActivity {
         }
     };
 
+    private void checkDeviceCapabilities() {
+
+        String versionInfo = espDevice.getVersionInfo();
+        ArrayList<String> rmakerCaps = new ArrayList<>();
+        ArrayList<String> deviceCaps = espDevice.getDeviceCapabilities();
+
+        try {
+            JSONObject jsonObject = new JSONObject(versionInfo);
+            JSONObject rmakerInfo = jsonObject.optJSONObject("rmaker");
+
+            if (rmakerInfo != null) {
+
+                JSONArray rmakerCapabilities = rmakerInfo.optJSONArray("cap");
+                if (rmakerCapabilities != null) {
+                    for (int i = 0; i < rmakerCapabilities.length(); i++) {
+                        String cap = rmakerCapabilities.getString(i);
+                        rmakerCaps.add(cap);
+                    }
+                }
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Log.d(TAG, "Version Info JSON not available.");
+        }
+
+        if (rmakerCaps.size() > 0 && rmakerCaps.contains("claim")) {
+
+            if (espDevice.getTransportType().equals(ESPConstants.TransportType.TRANSPORT_BLE)) {
+                goToClaimingActivity();
+            } else {
+                alertForClaimingNotSupported();
+            }
+        } else {
+
+            if (deviceCaps.contains("wifi_scan")) {
+
+                goToWiFiScanActivity();
+
+            } else {
+                goToProvisionActivity();
+            }
+        }
+    }
+
     private void alertForWiFi() {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
         builder.setCancelable(false);
         builder.setMessage(R.string.error_wifi_off);
 
-        // Set up the buttons
         builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
 
             @Override
@@ -386,11 +423,42 @@ public class AddDeviceActivity extends AppCompatActivity {
                 dialog.dismiss();
                 espDevice = null;
                 hideLoading();
+
                 if (codeScanner != null) {
+
                     codeScanner.releaseResources();
                     codeScanner.startPreview();
-                    provisionManager.scanQRCode(codeScanner, qrCodeScanListener);
+
+                    if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                            && ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+
+                        provisionManager.scanQRCode(codeScanner, qrCodeScanListener);
+                    }
                 }
+            }
+        });
+
+        builder.show();
+    }
+
+    private void alertForClaimingNotSupported() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        builder.setCancelable(false);
+        builder.setMessage(R.string.error_claiming_not_supported);
+
+        builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+                if (provisionManager.getEspDevice() != null) {
+                    provisionManager.getEspDevice().disconnectDevice();
+                }
+                dialog.dismiss();
+                espDevice = null;
+                hideLoading();
+                finish();
             }
         });
 
@@ -426,6 +494,13 @@ public class AddDeviceActivity extends AppCompatActivity {
         finish();
         Intent provisionIntent = new Intent(getApplicationContext(), ProvisionActivity.class);
         startActivity(provisionIntent);
+    }
+
+    private void goToClaimingActivity() {
+
+        finish();
+        Intent claimingIntent = new Intent(getApplicationContext(), ClaimingActivity.class);
+        startActivity(claimingIntent);
     }
 
     private void askForManualDeviceConnection() {
@@ -464,7 +539,9 @@ public class AddDeviceActivity extends AppCompatActivity {
         });
 
         AlertDialog alertDialog = builder.create();
-        alertDialog.show();
+        if (!isFinishing()) {
+            alertDialog.show();
+        }
     }
 
     private String getWifiSsid() {
