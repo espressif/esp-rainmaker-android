@@ -19,6 +19,7 @@ import com.google.gson.JsonObject;
 
 import java.util.HashMap;
 
+import io.reactivex.Observable;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
@@ -75,6 +76,10 @@ public interface ApiInterface {
     // Update param value
     @PUT(AppConstants.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/params")
     Call<ResponseBody> updateParamValue(@Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query("nodeid") String nodeId, @Body JsonObject body);
+
+    // Update schedules
+    @PUT(AppConstants.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/params")
+    Observable<ResponseBody> updateSchedules(@Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query("nodeid") String nodeId, @Body JsonObject body);
 
     // Remove Node
     @PUT(AppConstants.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/mapping")

@@ -14,6 +14,7 @@
 
 package com.espressif.cloudapi;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -33,9 +34,13 @@ import com.auth0.android.jwt.JWT;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.models.Action;
+import com.espressif.ui.models.ApiResponse;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
+import com.espressif.ui.models.Schedule;
+import com.espressif.ui.models.Service;
 import com.espressif.ui.models.UpdateEvent;
 import com.espressif.ui.user_module.AppHelper;
 import com.google.gson.JsonObject;
@@ -51,8 +56,13 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
+import io.reactivex.Observable;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -78,6 +88,7 @@ public class ApiManager {
     private ApiInterface apiInterface;
     private SharedPreferences sharedPreferences;
     private static ArrayList<String> nodeIds = new ArrayList<>();
+    private static ArrayList<String> scheduleIds = new ArrayList<>();
 
     private static ApiManager apiManager;
 
@@ -280,8 +291,6 @@ public class ApiManager {
 
                             if (espApp.nodeMap == null) {
                                 espApp.nodeMap = new HashMap<>();
-                            } else {
-//                                espApp.nodeMap.clear();
                             }
 
                             String jsonResponse = response.body().string();
@@ -289,6 +298,8 @@ public class ApiManager {
                             JSONObject jsonObject = new JSONObject(jsonResponse);
                             JSONArray nodeJsonArray = jsonObject.optJSONArray("node_details");
                             nodeIds.clear();
+                            scheduleIds.clear();
+                            HashMap<String, Schedule> scheduleMap = new HashMap<>();
 
                             if (nodeJsonArray != null) {
 
@@ -327,6 +338,7 @@ public class ApiManager {
                                             }
                                             espNode.setOnline(true);
 
+                                            // Devices
                                             JSONArray devicesJsonArray = configJson.optJSONArray("devices");
                                             ArrayList<Device> devices = new ArrayList<>();
 
@@ -395,9 +407,55 @@ public class ApiManager {
                                                     devices.add(device);
                                                 }
                                             }
-
                                             espNode.setDevices(devices);
 
+                                            // Services
+                                            JSONArray servicesJsonArray = configJson.optJSONArray("services");
+                                            ArrayList<Service> services = new ArrayList<>();
+
+                                            if (servicesJsonArray != null) {
+
+                                                for (int i = 0; i < servicesJsonArray.length(); i++) {
+
+                                                    JSONObject serviceObj = servicesJsonArray.optJSONObject(i);
+                                                    Service service = new Service(nodeId);
+                                                    service.setName(serviceObj.optString("name"));
+                                                    service.setType(serviceObj.optString("type"));
+
+                                                    JSONArray paramsJson = serviceObj.optJSONArray("params");
+                                                    ArrayList<Param> params = new ArrayList<>();
+
+                                                    if (paramsJson != null) {
+
+                                                        for (int j = 0; j < paramsJson.length(); j++) {
+
+                                                            JSONObject paraObj = paramsJson.optJSONObject(j);
+                                                            Param param = new Param();
+                                                            param.setName(paraObj.optString("name"));
+                                                            param.setParamType(paraObj.optString("type"));
+                                                            param.setDataType(paraObj.optString("data_type"));
+                                                            param.setDynamicParam(true);
+                                                            params.add(param);
+
+                                                            JSONArray propertiesJson = paraObj.optJSONArray("properties");
+                                                            ArrayList<String> properties = new ArrayList<>();
+
+                                                            if (propertiesJson != null) {
+                                                                for (int k = 0; k < propertiesJson.length(); k++) {
+
+                                                                    properties.add(propertiesJson.optString(k));
+                                                                }
+                                                            }
+                                                            param.setProperties(properties);
+                                                        }
+                                                    }
+                                                    service.setParams(params);
+                                                    services.add(service);
+                                                }
+                                            }
+                                            espNode.setServices(services);
+
+                                            // Attributes
                                             JSONArray nodeAttributesJson = infoObj.optJSONArray("attributes");
                                             ArrayList<Param> nodeAttributes = new ArrayList<>();
 
@@ -412,17 +470,16 @@ public class ApiManager {
                                                     nodeAttributes.add(param);
                                                 }
                                             }
-
                                             espNode.setAttributes(nodeAttributes);
-
                                             espApp.nodeMap.put(nodeId, espNode);
                                         }
 
-                                        // Node Params
+                                        // Node Params values
                                         JSONObject paramsJson = nodeJson.optJSONObject("params");
                                         if (paramsJson != null) {
 
                                             ArrayList<Device> devices = espNode.getDevices();
+                                            JSONObject scheduleJson = paramsJson.optJSONObject("Schedule");
 
                                             for (int i = 0; i < devices.size(); i++) {
 
@@ -441,75 +498,172 @@ public class ApiManager {
                                                             continue;
                                                         }
 
-                                                        if (jsonResponse.contains(key)) {
-
-                                                            String dataType = param.getDataType();
-
-                                                            if (AppConstants.UI_TYPE_SLIDER.equalsIgnoreCase(param.getUiType())) {
-
-                                                                String labelValue = "";
-
-                                                                if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
-
-                                                                    int value = deviceJson.optInt(key);
-                                                                    labelValue = String.valueOf(value);
-                                                                    param.setLabelValue(labelValue);
-                                                                    param.setSliderValue(value);
-
-                                                                } else if (dataType.equalsIgnoreCase("float") || dataType.equalsIgnoreCase("double")) {
-
-                                                                    double value = deviceJson.optDouble(key);
-                                                                    labelValue = String.valueOf(value);
-                                                                    param.setLabelValue(labelValue);
-                                                                    param.setSliderValue(value);
-
-                                                                } else {
-
-                                                                    labelValue = deviceJson.optString(key);
-                                                                    param.setLabelValue(labelValue);
-                                                                }
-
-                                                            } else if (AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())) {
-
-                                                                boolean value = deviceJson.optBoolean(key);
-                                                                param.setSwitchStatus(value);
-
-                                                            } else {
-
-                                                                String labelValue = "";
-
-                                                                if (dataType.equalsIgnoreCase("bool") || dataType.equalsIgnoreCase("boolean")) {
-
-                                                                    boolean value = deviceJson.optBoolean(key);
-                                                                    if (value) {
-                                                                        param.setLabelValue("true");
-                                                                    } else {
-                                                                        param.setLabelValue("false");
-                                                                    }
-
-                                                                } else if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
-
-                                                                    int value = deviceJson.optInt(key);
-                                                                    labelValue = String.valueOf(value);
-                                                                    param.setLabelValue(labelValue);
-
-                                                                } else if (dataType.equalsIgnoreCase("float") || dataType.equalsIgnoreCase("double")) {
-
-                                                                    double value = deviceJson.optDouble(key);
-                                                                    labelValue = String.valueOf(value);
-                                                                    param.setLabelValue(labelValue);
-
-                                                                } else {
-
-                                                                    labelValue = deviceJson.optString(key);
-                                                                    param.setLabelValue(labelValue);
-                                                                }
-                                                            }
+                                                        if (deviceJson.has(key)) {
+                                                            setDeviceParamValue(deviceJson, devices.get(i), param);
                                                         }
                                                     }
                                                 } else {
                                                     Log.e(TAG, "Device JSON is null");
                                                 }
+                                            }
+
+                                            // Schedules
+                                            if (scheduleJson != null) {
+
+                                                JSONArray scheduleArrayJson = scheduleJson.optJSONArray("Schedules");
+
+                                                if (scheduleArrayJson != null) {
+
+                                                    for (int index = 0; index < scheduleArrayJson.length(); index++) {
+
+                                                        JSONObject schJson = scheduleArrayJson.getJSONObject(index);
+                                                        String scheduleId = schJson.optString("id");
+                                                        String key = scheduleId;
+
+                                                        if (!TextUtils.isEmpty(scheduleId)) {
+
+                                                            String name = schJson.optString("name");
+                                                            key = key + "_" + name + "_" + schJson.optBoolean("enabled");
+
+                                                            HashMap<String, Integer> triggers = new HashMap<>();
+                                                            JSONArray triggerArray = schJson.optJSONArray("triggers");
+                                                            for (int t = 0; t < triggerArray.length(); t++) {
+                                                                JSONObject triggerJson = triggerArray.optJSONObject(t);
+                                                                int days = triggerJson.optInt("d");
+                                                                int mins = triggerJson.optInt("m");
+                                                                triggers.put("d", days);
+                                                                triggers.put("m", mins);
+                                                                key = key + "_" + days + "_" + mins;
+                                                            }
+
+                                                            Schedule schedule = scheduleMap.get(key);
+                                                            if (schedule == null) {
+                                                                schedule = new Schedule();
+                                                            }
+
+                                                            schedule.setId(scheduleId);
+                                                            schedule.setName(schJson.optString("name"));
+                                                            schedule.setEnabled(schJson.optBoolean("enabled"));
+
+                                                            scheduleIds.add(key);
+                                                            schedule.setTriggers(triggers);
+                                                            Log.d(TAG, "=============== Schedule : " + schedule.getName() + " ===============");
+
+                                                            // Actions
+                                                            JSONObject actionsSchJson = schJson.optJSONObject("action");
+
+                                                            if (actionsSchJson != null) {
+
+                                                                ArrayList<Action> actions = schedule.getActions();
+                                                                if (actions == null) {
+                                                                    actions = new ArrayList<>();
+                                                                    schedule.setActions(actions);
+                                                                }
+
+                                                                for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
+
+                                                                    Device d = new Device(devices.get(deviceIndex));
+                                                                    ArrayList<Param> params = d.getParams();
+                                                                    String deviceName = d.getDeviceName();
+                                                                    JSONObject deviceAction = actionsSchJson.optJSONObject(deviceName);
+
+                                                                    if (deviceAction != null) {
+
+                                                                        Action action = null;
+                                                                        Device actionDevice = null;
+                                                                        int actionIndex = -1;
+
+                                                                        for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
+
+                                                                            Action a = actions.get(aIndex);
+                                                                            if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
+                                                                                action = actions.get(aIndex);
+                                                                                actionIndex = aIndex;
+                                                                            }
+                                                                        }
+
+                                                                        if (action == null) {
+                                                                            action = new Action();
+                                                                            action.setNodeId(nodeId);
+
+                                                                            for (int k = 0; k < devices.size(); k++) {
+
+                                                                                if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
+                                                                                    actionDevice = new Device(devices.get(k));
+                                                                                    actionDevice.setSelectedState(1);
+                                                                                    break;
+                                                                                }
+                                                                            }
+
+                                                                            if (actionDevice == null) {
+                                                                                actionDevice = new Device(nodeId);
+                                                                            }
+                                                                            action.setDevice(actionDevice);
+                                                                        } else {
+                                                                            actionDevice = action.getDevice();
+                                                                        }
+
+                                                                        ArrayList<Param> actionParams = new ArrayList<>();
+                                                                        if (params != null) {
+
+                                                                            Iterator<Param> iterator = params.iterator();
+                                                                            while (iterator.hasNext()) {
+                                                                                Param p = iterator.next();
+                                                                                actionParams.add(new Param(p));
+                                                                            }
+
+                                                                            Iterator itr = actionParams.iterator();
+
+                                                                            while (itr.hasNext()) {
+
+                                                                                Param p = (Param) itr.next();
+
+                                                                                if (!p.isDynamicParam()) {
+                                                                                    itr.remove();
+                                                                                } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
+                                                                                    itr.remove();
+                                                                                } else if (!p.getProperties().contains("write")) {
+                                                                                    itr.remove();
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        actionDevice.setParams(actionParams);
+
+                                                                        for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                                                            Param p = actionParams.get(paramIndex);
+                                                                            String paramName = p.getName();
+
+                                                                            if (deviceAction.has(paramName)) {
+
+                                                                                p.setSelected(true);
+                                                                                setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
+                                                                            }
+                                                                        }
+
+                                                                        for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                                                            if (!actionParams.get(paramIndex).isSelected()) {
+                                                                                actionDevice.setSelectedState(2); // Partially selected
+                                                                            }
+                                                                        }
+
+                                                                        if (actionIndex == -1) {
+                                                                            actions.add(action);
+                                                                        } else {
+                                                                            actions.set(actionIndex, action);
+                                                                        }
+                                                                        schedule.setActions(actions);
+
+                                                                    }
+                                                                }
+                                                            }
+                                                            scheduleMap.put(key, schedule);
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                Log.e(TAG, "Schedule JSON is null");
                                             }
                                         }
 
@@ -528,7 +682,7 @@ public class ApiManager {
 
                                                 if (espNode.isOnline() != nodeStatus) {
                                                     espNode.setOnline(nodeStatus);
-                                                    EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
+//                                                    EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                                                 }
                                             } else {
                                                 Log.e(TAG, "Connectivity object is null");
@@ -538,6 +692,7 @@ public class ApiManager {
                                 }
                             }
 
+                            espApp.scheduleMap = scheduleMap;
                             Iterator<Map.Entry<String, EspNode>> itr = espApp.nodeMap.entrySet().iterator();
 
                             // iterate and remove items simultaneously
@@ -548,6 +703,20 @@ public class ApiManager {
 
                                 if (!nodeIds.contains(key)) {
                                     itr.remove();
+                                }
+                            }
+
+                            Iterator<Map.Entry<String, Schedule>> schItr = espApp.scheduleMap.entrySet().iterator();
+
+                            // iterate and remove items simultaneously
+                            while (schItr.hasNext()) {
+
+                                Map.Entry<String, Schedule> entry = schItr.next();
+                                String key = entry.getKey();
+
+                                if (!scheduleIds.contains(key)) {
+                                    schItr.remove();
+                                    Log.e(TAG, "Remove schedule for key : " + key + " and Size : " + espApp.scheduleMap.size());
                                 }
                             }
 
@@ -566,6 +735,15 @@ public class ApiManager {
                     }
                 } else {
 
+                    if (espApp.nodeMap != null) {
+                        espApp.nodeMap.clear();
+                    }
+                    if (espApp.scheduleMap != null) {
+                        espApp.scheduleMap.clear();
+                    }
+                    nodeIds.clear();
+                    scheduleIds.clear();
+
                     if (response.body() != null) {
 
                         try {
@@ -581,6 +759,15 @@ public class ApiManager {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
+
+                if (espApp.nodeMap != null) {
+                    espApp.nodeMap.clear();
+                }
+                if (espApp.scheduleMap != null) {
+                    espApp.scheduleMap.clear();
+                }
+                nodeIds.clear();
+                scheduleIds.clear();
                 t.printStackTrace();
                 listener.onFailure(new Exception(t));
             }
@@ -606,8 +793,6 @@ public class ApiManager {
 
                             if (espApp.nodeMap == null) {
                                 espApp.nodeMap = new HashMap<>();
-                            } else {
-//                                espApp.nodeMap.clear();
                             }
 
                             String jsonResponse = response.body().string();
@@ -653,6 +838,7 @@ public class ApiManager {
                                             }
                                             espNode.setOnline(true);
 
+                                            // Devices
                                             JSONArray devicesJsonArray = configJson.optJSONArray("devices");
                                             ArrayList<Device> devices = new ArrayList<>();
 
@@ -721,9 +907,55 @@ public class ApiManager {
                                                     devices.add(device);
                                                 }
                                             }
-
                                             espNode.setDevices(devices);
 
+                                            // Services
+                                            JSONArray servicesJsonArray = configJson.optJSONArray("services");
+                                            ArrayList<Service> services = new ArrayList<>();
+
+                                            if (servicesJsonArray != null) {
+
+                                                for (int i = 0; i < servicesJsonArray.length(); i++) {
+
+                                                    JSONObject serviceObj = servicesJsonArray.optJSONObject(i);
+                                                    Service service = new Service(nodeId);
+                                                    service.setName(serviceObj.optString("name"));
+                                                    service.setType(serviceObj.optString("type"));
+
+                                                    JSONArray paramsJson = serviceObj.optJSONArray("params");
+                                                    ArrayList<Param> params = new ArrayList<>();
+
+                                                    if (paramsJson != null) {
+
+                                                        for (int j = 0; j < paramsJson.length(); j++) {
+
+                                                            JSONObject paraObj = paramsJson.optJSONObject(j);
+                                                            Param param = new Param();
+                                                            param.setName(paraObj.optString("name"));
+                                                            param.setParamType(paraObj.optString("type"));
+                                                            param.setDataType(paraObj.optString("data_type"));
+                                                            param.setDynamicParam(true);
+                                                            params.add(param);
+
+                                                            JSONArray propertiesJson = paraObj.optJSONArray("properties");
+                                                            ArrayList<String> properties = new ArrayList<>();
+
+                                                            if (propertiesJson != null) {
+                                                                for (int k = 0; k < propertiesJson.length(); k++) {
+
+                                                                    properties.add(propertiesJson.optString(k));
+                                                                }
+                                                            }
+                                                            param.setProperties(properties);
+                                                        }
+                                                    }
+                                                    service.setParams(params);
+                                                    services.add(service);
+                                                }
+                                            }
+                                            espNode.setServices(services);
+
+                                            // Attributes
                                             JSONArray nodeAttributesJson = infoObj.optJSONArray("attributes");
                                             ArrayList<Param> nodeAttributes = new ArrayList<>();
 
@@ -738,7 +970,6 @@ public class ApiManager {
                                                     nodeAttributes.add(param);
                                                 }
                                             }
-
                                             espNode.setAttributes(nodeAttributes);
 
                                             espApp.nodeMap.put(nodeId, espNode);
@@ -767,70 +998,8 @@ public class ApiManager {
                                                             continue;
                                                         }
 
-                                                        if (jsonResponse.contains(key)) {
-
-                                                            String dataType = param.getDataType();
-
-                                                            if (AppConstants.UI_TYPE_SLIDER.equalsIgnoreCase(param.getUiType())) {
-
-                                                                String labelValue = "";
-
-                                                                if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
-
-                                                                    int value = deviceJson.optInt(key);
-                                                                    labelValue = String.valueOf(value);
-                                                                    param.setLabelValue(labelValue);
-                                                                    param.setSliderValue(value);
-
-                                                                } else if (dataType.equalsIgnoreCase("float") || dataType.equalsIgnoreCase("double")) {
-
-                                                                    double value = deviceJson.optDouble(key);
-                                                                    labelValue = String.valueOf(value);
-                                                                    param.setLabelValue(labelValue);
-                                                                    param.setSliderValue(value);
-
-                                                                } else {
-
-                                                                    labelValue = deviceJson.optString(key);
-                                                                    param.setLabelValue(labelValue);
-                                                                }
-
-                                                            } else if (AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())) {
-
-                                                                boolean value = deviceJson.optBoolean(key);
-                                                                param.setSwitchStatus(value);
-
-                                                            } else {
-
-                                                                String labelValue = "";
-
-                                                                if (dataType.equalsIgnoreCase("bool") || dataType.equalsIgnoreCase("boolean")) {
-
-                                                                    boolean value = deviceJson.optBoolean(key);
-                                                                    if (value) {
-                                                                        param.setLabelValue("true");
-                                                                    } else {
-                                                                        param.setLabelValue("false");
-                                                                    }
-
-                                                                } else if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
-
-                                                                    int value = deviceJson.optInt(key);
-                                                                    labelValue = String.valueOf(value);
-                                                                    param.setLabelValue(labelValue);
-
-                                                                } else if (dataType.equalsIgnoreCase("float") || dataType.equalsIgnoreCase("double")) {
-
-                                                                    double value = deviceJson.optDouble(key);
-                                                                    labelValue = String.valueOf(value);
-                                                                    param.setLabelValue(labelValue);
-
-                                                                } else {
-
-                                                                    labelValue = deviceJson.optString(key);
-                                                                    param.setLabelValue(labelValue);
-                                                                }
-                                                            }
+                                                        if (deviceJson.has(key)) {
+                                                            setDeviceParamValue(deviceJson, devices.get(i), param);
                                                         }
                                                     }
                                                 } else {
@@ -1030,10 +1199,10 @@ public class ApiManager {
                     if (response.body() != null) {
 
                         try {
-
                             String jsonResponse = response.body().string();
                             Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
+                            JSONObject scheduleJson = jsonObject.optJSONObject("Schedule");
 
                             EspNode node = espApp.nodeMap.get(nodeId);
 
@@ -1041,6 +1210,7 @@ public class ApiManager {
 
                                 ArrayList<Device> devices = node.getDevices();
 
+                                // Node Params
                                 for (int i = 0; i < devices.size(); i++) {
 
                                     ArrayList<Param> params = devices.get(i).getParams();
@@ -1054,75 +1224,173 @@ public class ApiManager {
                                             Param param = params.get(j);
                                             String key = param.getName();
 
-                                            if (jsonResponse.contains(key)) {
-
-                                                String dataType = param.getDataType();
-
-                                                if (AppConstants.UI_TYPE_SLIDER.equalsIgnoreCase(param.getUiType())) {
-
-                                                    String labelValue = "";
-
-                                                    if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
-
-                                                        int value = deviceJson.optInt(key);
-                                                        labelValue = String.valueOf(value);
-                                                        param.setLabelValue(labelValue);
-                                                        param.setSliderValue(value);
-
-                                                    } else if (dataType.equalsIgnoreCase("float") || dataType.equalsIgnoreCase("double")) {
-
-                                                        double value = deviceJson.optDouble(key);
-                                                        labelValue = String.valueOf(value);
-                                                        param.setLabelValue(labelValue);
-                                                        param.setSliderValue(value);
-
-                                                    } else {
-
-                                                        labelValue = deviceJson.optString(key);
-                                                        param.setLabelValue(labelValue);
-                                                    }
-
-                                                } else if (AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())) {
-
-                                                    boolean value = deviceJson.optBoolean(key);
-                                                    param.setSwitchStatus(value);
-
-                                                } else {
-
-                                                    String labelValue = "";
-
-                                                    if (dataType.equalsIgnoreCase("bool") || dataType.equalsIgnoreCase("boolean")) {
-
-                                                        boolean value = deviceJson.optBoolean(key);
-                                                        if (value) {
-                                                            param.setLabelValue("true");
-                                                        } else {
-                                                            param.setLabelValue("false");
-                                                        }
-
-                                                    } else if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
-
-                                                        int value = deviceJson.optInt(key);
-                                                        labelValue = String.valueOf(value);
-                                                        param.setLabelValue(labelValue);
-
-                                                    } else if (dataType.equalsIgnoreCase("float") || dataType.equalsIgnoreCase("double")) {
-
-                                                        double value = deviceJson.optDouble(key);
-                                                        labelValue = String.valueOf(value);
-                                                        param.setLabelValue(labelValue);
-
-                                                    } else {
-
-                                                        labelValue = deviceJson.optString(key);
-                                                        param.setLabelValue(labelValue);
-                                                    }
-                                                }
+                                            if (deviceJson.has(key)) {
+                                                setDeviceParamValue(deviceJson, devices.get(i), param);
                                             }
                                         }
                                     } else {
                                         Log.e(TAG, "Device JSON is null");
                                     }
+                                }
+
+                                // Schedules
+                                if (scheduleJson != null) {
+
+                                    JSONArray scheduleArrayJson = scheduleJson.optJSONArray("Schedules");
+
+                                    if (scheduleArrayJson != null) {
+
+                                        if (espApp.scheduleMap == null) {
+                                            espApp.scheduleMap = new HashMap<>();
+                                        }
+
+                                        for (int index = 0; index < scheduleArrayJson.length(); index++) {
+
+                                            JSONObject schJson = scheduleArrayJson.getJSONObject(index);
+                                            String scheduleId = schJson.optString("id");
+                                            String key = scheduleId;
+
+                                            if (!TextUtils.isEmpty(scheduleId)) {
+
+                                                String name = schJson.optString("name");
+                                                key = key + "_" + name + "_" + schJson.optBoolean("enabled");
+
+                                                HashMap<String, Integer> triggers = new HashMap<>();
+                                                JSONArray triggerArray = schJson.optJSONArray("triggers");
+                                                for (int t = 0; t < triggerArray.length(); t++) {
+                                                    JSONObject triggerJson = triggerArray.optJSONObject(t);
+                                                    int days = triggerJson.optInt("d");
+                                                    int mins = triggerJson.optInt("m");
+                                                    triggers.put("d", days);
+                                                    triggers.put("m", mins);
+                                                    key = key + "_" + days + "_" + mins;
+                                                }
+
+                                                Schedule schedule = espApp.scheduleMap.get(key);
+                                                if (schedule == null) {
+                                                    schedule = new Schedule();
+                                                }
+
+                                                schedule.setId(scheduleId);
+                                                schedule.setName(schJson.optString("name"));
+                                                schedule.setEnabled(schJson.optBoolean("enabled"));
+                                                schedule.setTriggers(triggers);
+
+                                                // Actions
+                                                JSONObject actionsSchJson = schJson.optJSONObject("action");
+
+                                                if (actionsSchJson != null) {
+
+                                                    ArrayList<Action> actions = schedule.getActions();
+                                                    if (actions == null) {
+                                                        actions = new ArrayList<>();
+                                                        schedule.setActions(actions);
+                                                    }
+
+                                                    for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
+
+                                                        Device d = new Device(devices.get(deviceIndex));
+                                                        ArrayList<Param> params = d.getParams();
+                                                        String deviceName = d.getDeviceName();
+                                                        JSONObject deviceAction = actionsSchJson.optJSONObject(deviceName);
+
+                                                        if (deviceAction != null) {
+
+                                                            Action action = null;
+                                                            Device actionDevice = null;
+                                                            int actionIndex = -1;
+
+                                                            for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
+
+                                                                Action a = actions.get(aIndex);
+                                                                if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
+                                                                    action = actions.get(aIndex);
+                                                                    actionIndex = aIndex;
+                                                                }
+                                                            }
+
+                                                            if (action == null) {
+                                                                action = new Action();
+                                                                action.setNodeId(nodeId);
+
+                                                                for (int k = 0; k < devices.size(); k++) {
+
+                                                                    if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
+                                                                        actionDevice = new Device(devices.get(k));
+                                                                        actionDevice.setSelectedState(1);
+                                                                        break;
+                                                                    }
+                                                                }
+
+                                                                if (actionDevice == null) {
+                                                                    actionDevice = new Device(nodeId);
+                                                                }
+                                                                action.setDevice(actionDevice);
+                                                            } else {
+                                                                actionDevice = action.getDevice();
+                                                            }
+
+                                                            ArrayList<Param> actionParams = new ArrayList<>();
+                                                            if (params != null) {
+
+                                                                Iterator<Param> iterator = params.iterator();
+                                                                while (iterator.hasNext()) {
+                                                                    Param p = iterator.next();
+                                                                    actionParams.add(new Param(p));
+                                                                }
+
+                                                                Iterator itr = actionParams.iterator();
+
+                                                                while (itr.hasNext()) {
+
+                                                                    Param p = (Param) itr.next();
+
+                                                                    if (!p.isDynamicParam()) {
+                                                                        itr.remove();
+                                                                    } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
+                                                                        itr.remove();
+                                                                    } else if (!p.getProperties().contains("write")) {
+                                                                        itr.remove();
+                                                                    }
+                                                                }
+                                                            }
+                                                            actionDevice.setParams(actionParams);
+
+                                                            for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                                                Param p = actionParams.get(paramIndex);
+                                                                String paramName = p.getName();
+
+                                                                if (deviceAction.has(paramName)) {
+
+                                                                    p.setSelected(true);
+                                                                    setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
+                                                                }
+                                                            }
+
+                                                            for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                                                if (!actionParams.get(paramIndex).isSelected()) {
+                                                                    actionDevice.setSelectedState(2); // Partially selected
+                                                                }
+                                                            }
+
+                                                            if (actionIndex == -1) {
+                                                                actions.add(action);
+                                                            } else {
+                                                                actions.set(actionIndex, action);
+                                                            }
+                                                            schedule.setActions(actions);
+
+                                                        }
+                                                    }
+                                                }
+                                                espApp.scheduleMap.put(key, schedule);
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Log.d(TAG, "Schedule JSON is null");
                                 }
                             }
                             listener.onSuccess(null);
@@ -1161,7 +1429,7 @@ public class ApiManager {
                 @Override
                 public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                    Log.e(TAG, "Update Params Value, Response code : " + response.code());
+                    Log.d(TAG, "Update Params Value, Response code : " + response.code());
 
                     if (response.isSuccessful()) {
 
@@ -1169,7 +1437,7 @@ public class ApiManager {
 
                             try {
                                 String jsonResponse = response.body().string();
-                                Log.e(TAG, "onResponse Success : " + jsonResponse);
+                                Log.d(TAG, "onResponse Success : " + jsonResponse);
                                 JSONObject jsonObject = new JSONObject(jsonResponse);
                                 listener.onSuccess(null);
 
@@ -1200,6 +1468,97 @@ public class ApiManager {
         }
     }
 
+    /**
+     * This method is used to add , update or remove schedule.
+     *
+     * @param map      Map of node id and its schedule JSON data.
+     * @param listener Listener to send success or failure.
+     */
+    @SuppressLint("CheckResult")
+    public void updateSchedules(final HashMap<String, JsonObject> map, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Updating Schedule");
+        List<Observable<ApiResponse>> requests = new ArrayList<>();
+        final ArrayList<ApiResponse> responses = new ArrayList<>();
+
+        for (Map.Entry<String, JsonObject> entry : map.entrySet()) {
+
+            final String nodeId = entry.getKey();
+            JsonObject jsonBody = entry.getValue();
+
+            requests.add(
+                    apiInterface.updateSchedules(accessToken, nodeId, jsonBody)
+
+                            .map(new Function<ResponseBody, ApiResponse>() {
+
+                                @Override
+                                public ApiResponse apply(ResponseBody responseBody) throws Exception {
+
+                                    ApiResponse apiResponse = new ApiResponse();
+                                    apiResponse.responseBody = responseBody;
+                                    apiResponse.isSuccessful = true;
+                                    apiResponse.nodeId = nodeId;
+                                    return apiResponse;
+                                }
+                            })
+                            .onErrorReturn(new Function<Throwable, ApiResponse>() {
+
+                                @Override
+                                public ApiResponse apply(Throwable throwable) throws Exception {
+
+                                    ApiResponse apiResponse = new ApiResponse();
+                                    apiResponse.isSuccessful = false;
+                                    apiResponse.throwable = throwable;
+                                    apiResponse.nodeId = nodeId;
+                                    return apiResponse;
+                                }
+                            }));
+        }
+
+        Observable.merge(requests)
+                .take(requests.size())
+                .doFinally(new io.reactivex.functions.Action() {
+
+                    @Override
+                    public void run() throws Exception {
+
+                        Log.d(TAG, "Update schedule requests completed.");
+                        boolean isAllReqSuccessful = true;
+
+                        for (int i = 0; i < responses.size(); i++) {
+
+                            if (!responses.get(i).isSuccessful) {
+                                isAllReqSuccessful = false;
+                                break;
+                            }
+                        }
+
+                        if (isAllReqSuccessful) {
+                            listener.onSuccess(null);
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to update schedule for few devices"));
+                        }
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .subscribe(new Consumer<ApiResponse>() {
+
+                    @Override
+                    public void accept(ApiResponse apiResponse) throws Exception {
+
+                        Log.d(TAG, "Response : " + apiResponse.nodeId);
+                        Log.d(TAG, "Response : " + apiResponse.isSuccessful);
+                        responses.add(apiResponse);
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        Log.e("onSubscribe", "Throwable: " + throwable);
+                    }
+                });
+    }
+
+    //
     private void getAddNodeRequestStatus(final String nodeId, String requestId) {
 
         Log.d(TAG, "Get Node mapping status");
@@ -1304,6 +1663,7 @@ public class ApiManager {
         Date expiresAt = jwt.getExpiresAt();
         Calendar calendar = Calendar.getInstance();
         Date currentTIme = calendar.getTime();
+        Log.e(TAG, "Token expires At : " + expiresAt);
 
         if (currentTIme.after(expiresAt)) {
             Log.e(TAG, "Token has expired");
@@ -1314,21 +1674,56 @@ public class ApiManager {
         }
     }
 
-    public void getNewToken() {
+    public void getNewToken(final ApiResponseListener listener) {
 
         if (isOAuthLogin) {
-            getNewTokenForOAuth(new ApiResponseListener() {
+
+            getNewTokenForOAuth(listener);
+
+        } else {
+
+            AuthenticationHandler authenticationHandler = new AuthenticationHandler() {
 
                 @Override
-                public void onSuccess(Bundle data) {
+                public void onSuccess(CognitoUserSession cognitoUserSession, CognitoDevice newDevice) {
+
+                    Log.d(TAG, " -- Auth Success");
+                    AppHelper.setCurrSession(cognitoUserSession);
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putString(AppConstants.KEY_ID_TOKEN, cognitoUserSession.getIdToken().getJWTToken());
+                    editor.putString(AppConstants.KEY_ACCESS_TOKEN, cognitoUserSession.getAccessToken().getJWTToken());
+                    editor.putString(AppConstants.KEY_REFRESH_TOKEN, cognitoUserSession.getRefreshToken().getToken());
+                    editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, false);
+                    editor.apply();
+
+                    AppHelper.newDevice(newDevice);
+                    getTokenAndUserId();
+                    listener.onSuccess(null);
+                }
+
+                @Override
+                public void getAuthenticationDetails(AuthenticationContinuation authenticationContinuation, String userId) {
+                    Log.d(TAG, "getAuthenticationDetails ");
+                }
+
+                @Override
+                public void getMFACode(MultiFactorAuthenticationContinuation continuation) {
+                    Log.d(TAG, "getMFACode ");
+                }
+
+                @Override
+                public void authenticationChallenge(ChallengeContinuation continuation) {
+                    Log.d(TAG, "authenticationChallenge ");
                 }
 
                 @Override
                 public void onFailure(Exception exception) {
+                    Log.e(TAG, "onFailure ");
+                    exception.printStackTrace();
+                    listener.onFailure(exception);
                 }
-            });
+            };
 
-        } else {
             AppHelper.getPool().getUser(userName).getSessionInBackground(authenticationHandler);
         }
     }
@@ -1507,43 +1902,80 @@ public class ApiManager {
         handler.removeCallbacks(stopRequestStatusPollingTask);
     }
 
-    AuthenticationHandler authenticationHandler = new AuthenticationHandler() {
+    /**
+     * This method is used to set param value received from cloud.
+     *
+     * @param deviceJson JSON data of device params.
+     * @param device     Device object.
+     * @param param      Param object in which values to be set.
+     */
+    private void setDeviceParamValue(JSONObject deviceJson, Device device, Param param) {
 
-        @Override
-        public void onSuccess(CognitoUserSession cognitoUserSession, CognitoDevice newDevice) {
+        String dataType = param.getDataType();
+        String paramName = param.getName();
 
-            Log.d(TAG, " -- Auth Success");
-            AppHelper.setCurrSession(cognitoUserSession);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString(AppConstants.KEY_ID_TOKEN, cognitoUserSession.getIdToken().getJWTToken());
-            editor.putString(AppConstants.KEY_ACCESS_TOKEN, cognitoUserSession.getAccessToken().getJWTToken());
-            editor.putString(AppConstants.KEY_REFRESH_TOKEN, cognitoUserSession.getRefreshToken().getToken());
-            editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, false);
-            editor.apply();
+        if (AppConstants.UI_TYPE_SLIDER.equalsIgnoreCase(param.getUiType())) {
 
-            AppHelper.newDevice(newDevice);
-            getTokenAndUserId();
+            String labelValue = "";
+
+            if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
+
+                int value = deviceJson.optInt(paramName);
+                labelValue = String.valueOf(value);
+                param.setLabelValue(labelValue);
+                param.setSliderValue(value);
+
+            } else if (dataType.equalsIgnoreCase("float") || dataType.equalsIgnoreCase("double")) {
+
+                double value = deviceJson.optDouble(paramName);
+                labelValue = String.valueOf(value);
+                param.setLabelValue(labelValue);
+                param.setSliderValue(value);
+
+            } else {
+
+                labelValue = deviceJson.optString(paramName);
+                param.setLabelValue(labelValue);
+            }
+        } else if (AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())) {
+
+            boolean value = deviceJson.optBoolean(paramName);
+            param.setSwitchStatus(value);
+
+        } else {
+
+            String labelValue = "";
+
+            if (dataType.equalsIgnoreCase("bool") || dataType.equalsIgnoreCase("boolean")) {
+
+                boolean value = deviceJson.optBoolean(paramName);
+                if (value) {
+                    param.setLabelValue("true");
+                } else {
+                    param.setLabelValue("false");
+                }
+
+            } else if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
+
+                int value = deviceJson.optInt(paramName);
+                labelValue = String.valueOf(value);
+                param.setLabelValue(labelValue);
+
+            } else if (dataType.equalsIgnoreCase("float") || dataType.equalsIgnoreCase("double")) {
+
+                double value = deviceJson.optDouble(paramName);
+                labelValue = String.valueOf(value);
+                param.setLabelValue(labelValue);
+
+            } else {
+
+                labelValue = deviceJson.optString(paramName);
+                param.setLabelValue(labelValue);
+
+                if (param.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
+                    device.setUserVisibleName(labelValue);
+                }
+            }
         }
-
-        @Override
-        public void getAuthenticationDetails(AuthenticationContinuation authenticationContinuation, String userId) {
-            Log.d(TAG, "getAuthenticationDetails ");
-        }
-
-        @Override
-        public void getMFACode(MultiFactorAuthenticationContinuation continuation) {
-            Log.d(TAG, "getMFACode ");
-        }
-
-        @Override
-        public void authenticationChallenge(ChallengeContinuation continuation) {
-            Log.d(TAG, "authenticationChallenge ");
-        }
-
-        @Override
-        public void onFailure(Exception exception) {
-            Log.e(TAG, "onFailure ");
-            exception.printStackTrace();
-        }
-    };
+    }
 }

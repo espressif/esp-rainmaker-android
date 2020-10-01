@@ -23,9 +23,27 @@ public class Device implements Parcelable {
 
     private String nodeId;
     private String deviceName;
+    private String userVisibleName;
     private String deviceType;
     private String primaryParamName;
     private ArrayList<Param> params;
+    private boolean expanded;
+    private int selectedState;
+
+    public Device() {
+    }
+
+    public Device(Device device) {
+
+        nodeId = device.getNodeId();
+        deviceName = device.getDeviceName();
+        userVisibleName = device.getUserVisibleName();
+        deviceType = device.getDeviceType();
+        primaryParamName = device.getPrimaryParamName();
+        params = device.getParams();
+        expanded = device.isExpanded();
+        selectedState = device.getSelectedState();
+    }
 
     public Device(String id) {
         nodeId = id;
@@ -41,6 +59,14 @@ public class Device implements Parcelable {
 
     public void setDeviceName(String deviceName) {
         this.deviceName = deviceName;
+    }
+
+    public String getUserVisibleName() {
+        return userVisibleName;
+    }
+
+    public void setUserVisibleName(String userVisibleName) {
+        this.userVisibleName = userVisibleName;
     }
 
     public String getDeviceType() {
@@ -67,13 +93,23 @@ public class Device implements Parcelable {
         this.params = params;
     }
 
+    public int getSelectedState() {
+        return selectedState;
+    }
+
+    public void setSelectedState(int selectedState) {
+        this.selectedState = selectedState;
+    }
+
     protected Device(Parcel in) {
 
         nodeId = in.readString();
         deviceName = in.readString();
+        userVisibleName = in.readString();
         deviceType = in.readString();
         primaryParamName = in.readString();
         params = in.createTypedArrayList(Param.CREATOR);
+        selectedState = in.readInt();
     }
 
     public static final Creator<Device> CREATOR = new Creator<Device>() {
@@ -98,9 +134,11 @@ public class Device implements Parcelable {
 
         dest.writeString(nodeId);
         dest.writeString(deviceName);
+        dest.writeString(userVisibleName);
         dest.writeString(deviceType);
         dest.writeString(primaryParamName);
         dest.writeTypedList(params);
+        dest.writeInt(selectedState);
     }
 
     @Override
@@ -110,5 +148,13 @@ public class Device implements Parcelable {
                 "name = '" + deviceName + '\'' +
                 ", type ='" + deviceType + '\'' +
                 '}';
+    }
+
+    public void setExpanded(boolean expanded) {
+        this.expanded = expanded;
+    }
+
+    public boolean isExpanded() {
+        return expanded;
     }
 }

@@ -5,6 +5,19 @@ This is the official Android app for [ESP RainMaker](https://github.com/espressi
 For more details :
  - Please check the ESP RainMaker documentation [here](http://rainmaker.espressif.com/docs/get-started.html) to get started.
  - Try out this app in [Play Store](https://play.google.com/store/apps/details?id=com.espressif.rainmaker).
+ 
+## Setup
+ 
+To build this app, you will need a development machine, with Android Studio installed.
+App will also require Amazon Cognito user pool details.
+Following are the configuration fields available in `app/build.gradle`.
+
+  - `aws_region` - AWS Cognito user pool region. Default value is "us-east-1" if this field is empty or not configured.
+  - `user_pool_id` - Your user pool id.
+  - `client_id` - Your app client id.
+
+After configuring these fields, you are now ready to run this demo.
+
 
 ## Features
 
@@ -36,6 +49,19 @@ For more details :
 - Shows all static and configurable parameters of a device.
 - Adapt UI according to the parameter type like toggle for power, slider for brightness.
 - Allow user to change and monitor parameters of devices.
+
+### Scheduling
+
+Schedules allow you to automate a device by setting it to trigger an action at a given time on a specified day or days of the week.
+List of operations that are supported for scheduling :
+ 
+ - Add.
+ - Edit.
+ - Remove.
+ - Enable/disable.
+
+Schedule feature is optional but enabled by default.
+Schedule can be enabled/disabled by setting true/false value of `isScheduleSupported` field available in `app/build.gradle`.
 
 ## Supports
 

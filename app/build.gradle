@@ -18,8 +18,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 24
         targetSdkVersion 29
-        versionCode 6
-        versionName "2.0.2 - ${getGitHash()}"
+        versionCode 8
+        versionName "2.1 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -31,9 +31,10 @@ android {
             buildConfigField "String", "GitHash", "\"${getGitHash()}\""
             resValue "string", "security_type", "sec1"
             resValue "string", "proof_of_possesion", "abcd1234"
-            resValue "string", "aws_region", "your_aws_region"
+            resValue "string", "aws_region", ""
             resValue "string", "user_pool_id", "your_user_pool_id"
             resValue "string", "client_id", "your_client_id"
+            buildConfigField "boolean", "isScheduleSupported", "true"
         }
 
         debug {
@@ -41,9 +42,10 @@ android {
             buildConfigField "String", "GitHash", "\"${getGitHash()}\""
             resValue "string", "security_type", "sec1"
             resValue "string", "proof_of_possesion", "abcd1234"
-            resValue "string", "aws_region", "your_aws_region"
+            resValue "string", "aws_region", ""
             resValue "string", "user_pool_id", "your_user_pool_id"
             resValue "string", "client_id", "your_client_id"
+            buildConfigField "boolean", "isScheduleSupported", "true"
         }
     }
 
@@ -88,6 +90,10 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.5'
     implementation 'com.squareup.retrofit2:retrofit:2.6.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.6.0'
+    implementation 'com.squareup.retrofit2:adapter-rxjava2:2.5.0'
+    implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
+
+    implementation 'com.aventrix.jnanoid:jnanoid:2.0.0'
     implementation 'com.budiyev.android:code-scanner:2.1.0'
     implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.0.5'
 

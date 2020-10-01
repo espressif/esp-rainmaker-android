@@ -55,6 +55,9 @@ public class AppConstants {
     public static final String ESP_DEVICE_SENSOR = "esp.device.sensor";
     public static final String ESP_DEVICE_TEMP_SENSOR = "esp.device.temperature-sensor";
 
+    // Service Types
+    public static final String SERVICE_TYPE_SCHEDULE = "esp.service.schedule";
+
     // Param Types
     public static final String PARAM_TYPE_NAME = "esp.param.name";
     public static final String PARAM_TYPE_OUTPUT = "esp.param.output";

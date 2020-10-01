@@ -137,13 +137,23 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
+            android:name="com.espressif.ui.activities.ClaimingActivity"
+            android:label="@string/title_activity_claiming"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
             android:name="com.espressif.ui.activities.AddDeviceActivity"
             android:label="@string/title_activity_add_device"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
-            android:name="com.espressif.ui.activities.ClaimingActivity"
-            android:label="@string/title_activity_claiming"
+            android:name="com.espressif.ui.activities.AddScheduleActivity"
+            android:label="@string/title_activity_add_device"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="com.espressif.ui.activities.ScheduleActionsActivity"
+            android:label="@string/title_activity_add_device"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
 
