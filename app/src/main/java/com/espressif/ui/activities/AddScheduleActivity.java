@@ -733,10 +733,12 @@ public class AddScheduleActivity extends AppCompatActivity {
                 String actionStr = entry.getValue();
                 Gson gson = new Gson();
                 JsonObject actionsJson = gson.fromJson(actionStr, JsonObject.class);
-                scheduleJson.add("action", actionsJson);
+
+                JsonObject schJson = new Gson().fromJson(scheduleJson.toString(), JsonObject.class);
+                schJson.add("action", actionsJson);
 
                 JsonArray schArr = new JsonArray();
-                schArr.add(scheduleJson);
+                schArr.add(schJson);
 
                 JsonObject finalBody = new JsonObject();
                 finalBody.add("Schedules", schArr);
