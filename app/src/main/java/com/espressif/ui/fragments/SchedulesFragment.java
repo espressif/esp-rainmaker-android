@@ -199,7 +199,7 @@ public class SchedulesFragment extends Fragment {
 
             @Override
             public int compare(Schedule s1, Schedule s2) {
-                return s1.getName().compareTo(s2.getName());
+                return s1.getName().compareToIgnoreCase(s2.getName());
             }
         });
 

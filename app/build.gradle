@@ -18,8 +18,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 24
         targetSdkVersion 29
-        versionCode 8
-        versionName "2.1 - ${getGitHash()}"
+        versionCode 9
+        versionName "2.1.1 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
