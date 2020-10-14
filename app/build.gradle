@@ -18,8 +18,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 24
         targetSdkVersion 29
-        versionCode 9
-        versionName "2.1.1 - ${getGitHash()}"
+        versionCode 10
+        versionName "2.1.2 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -97,7 +97,7 @@ dependencies {
     implementation 'com.budiyev.android:code-scanner:2.1.0'
     implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.0.5'
 
-    implementation 'com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.15.2'
+    implementation 'com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.19.0'
     implementation 'com.github.warkiz.tickseekbar:tickseekbar:0.1.4'
     implementation('com.amazonaws:aws-android-sdk-iot:2.15.2') { transitive = true }
     implementation('com.amazonaws:aws-android-sdk-mobile-client:2.15.2') { transitive = true }

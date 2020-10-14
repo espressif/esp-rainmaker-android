@@ -48,7 +48,6 @@ import androidx.fragment.app.Fragment;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoDevice;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUser;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserAttributes;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserCodeDeliveryDetails;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserSession;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.AuthenticationContinuation;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.AuthenticationDetails;
@@ -56,6 +55,8 @@ import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.Chal
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.MultiFactorAuthenticationContinuation;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.AuthenticationHandler;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.SignUpHandler;
+import com.amazonaws.services.cognitoidentityprovider.model.CodeDeliveryDetailsType;
+import com.amazonaws.services.cognitoidentityprovider.model.SignUpResult;
 import com.espressif.AppConstants;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.rainmaker.R;
@@ -325,8 +326,7 @@ public class SignUpFragment extends Fragment {
     SignUpHandler signUpHandler = new SignUpHandler() {
 
         @Override
-        public void onSuccess(CognitoUser user, boolean signUpConfirmationState,
-                              CognitoUserCodeDeliveryDetails cognitoUserCodeDeliveryDetails) {
+        public void onSuccess(CognitoUser user, SignUpResult signUpResult) {
 
             // Check signUpConfirmationState to see if the user is already confirmed
             btnRegister.setEnabled(true);
@@ -335,13 +335,13 @@ public class SignUpFragment extends Fragment {
             progressBar.setVisibility(View.GONE);
             arrowImage.setVisibility(View.VISIBLE);
 
-            Boolean regState = signUpConfirmationState;
-            if (signUpConfirmationState) {
+            Boolean regState = signUpResult.getUserConfirmed();
+            if (regState) {
                 // User is already confirmed
                 showDialogMessage(getString(R.string.dialog_title_sign_up_success), email + " has been Confirmed", true);
             } else {
                 // User is not confirmed
-                confirmSignUp(cognitoUserCodeDeliveryDetails);
+                confirmSignUp(signUpResult.getCodeDeliveryDetails());
             }
         }
 
@@ -370,7 +370,7 @@ public class SignUpFragment extends Fragment {
         }
     }
 
-    private void confirmSignUp(CognitoUserCodeDeliveryDetails cognitoUserCodeDeliveryDetails) {
+    private void confirmSignUp(CodeDeliveryDetailsType cognitoUserCodeDeliveryDetails) {
 
         Intent intent = new Intent(getActivity(), SignUpConfirmActivity.class);
         intent.putExtra("source", "signup");
