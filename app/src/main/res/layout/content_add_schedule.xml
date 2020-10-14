@@ -111,94 +111,84 @@
 
             </RelativeLayout>
 
-            <androidx.constraintlayout.widget.ConstraintLayout
+            <LinearLayout
                 android:id="@+id/days_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="5dp"
-                android:paddingTop="@dimen/margin_8"
-                android:paddingBottom="@dimen/margin_10"
-                android:paddingEnd="5dp">
+                android:orientation="horizontal"
+                android:weightSum="7">
 
                 <TextView
                     android:id="@+id/tv_day_1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:padding="5dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:padding="@dimen/margin_10"
                     android:text="@string/day_1"
-                    android:textColor="@color/colorPrimaryDark"
-                    app:layout_constraintEnd_toStartOf="@+id/tv_day_7"
-                    app:layout_constraintHorizontal_chainStyle="spread_inside"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    android:textColor="@color/colorPrimaryDark" />
 
                 <TextView
                     android:id="@+id/tv_day_2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:padding="5dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:padding="@dimen/margin_10"
                     android:text="@string/day_2"
-                    android:textColor="@color/colorPrimaryDark"
-                    app:layout_constraintEnd_toStartOf="@+id/tv_day_3"
-                    app:layout_constraintStart_toEndOf="@+id/tv_day_1"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    android:textColor="@color/colorPrimaryDark" />
 
                 <TextView
                     android:id="@+id/tv_day_3"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:padding="5dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:padding="@dimen/margin_10"
                     android:text="@string/day_3"
-                    android:textColor="@color/colorPrimaryDark"
-                    app:layout_constraintEnd_toStartOf="@+id/tv_day_4"
-                    app:layout_constraintStart_toEndOf="@+id/tv_day_2"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    android:textColor="@color/colorPrimaryDark" />
 
                 <TextView
                     android:id="@+id/tv_day_4"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:padding="5dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:padding="@dimen/margin_10"
                     android:text="@string/day_4"
-                    android:textColor="@color/colorPrimaryDark"
-                    app:layout_constraintEnd_toStartOf="@+id/tv_day_5"
-                    app:layout_constraintStart_toEndOf="@+id/tv_day_3"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    android:textColor="@color/colorPrimaryDark" />
 
                 <TextView
                     android:id="@+id/tv_day_5"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
                     android:padding="5dp"
                     android:text="@string/day_5"
-                    android:textColor="@color/colorPrimaryDark"
-                    app:layout_constraintEnd_toStartOf="@+id/tv_day_6"
-                    app:layout_constraintStart_toEndOf="@+id/tv_day_4"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    android:textColor="@color/colorPrimaryDark" />
 
                 <TextView
                     android:id="@+id/tv_day_6"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:padding="5dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:padding="@dimen/margin_10"
                     android:text="@string/day_6"
-                    android:textColor="@color/colorPrimaryDark"
-                    app:layout_constraintEnd_toStartOf="@+id/tv_day_7"
-                    app:layout_constraintStart_toEndOf="@+id/tv_day_5"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    android:textColor="@color/colorPrimaryDark" />
 
                 <TextView
                     android:id="@+id/tv_day_7"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:padding="5dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:padding="@dimen/margin_10"
                     android:text="@string/day_7"
-                    android:textColor="@color/colorPrimaryDark"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@+id/tv_day_1"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    android:textColor="@color/colorPrimaryDark" />
 
-            </androidx.constraintlayout.widget.ConstraintLayout>
+            </LinearLayout>
 
             <View
                 android:id="@+id/divider_3"

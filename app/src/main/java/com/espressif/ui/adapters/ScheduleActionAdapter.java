@@ -15,6 +15,7 @@
 package com.espressif.ui.adapters;
 
 import android.app.Activity;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -170,11 +171,15 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
             paramRecyclerView.setLayoutManager(linearLayoutManager); // set LayoutManager to RecyclerView
         }
 
-        private void bind(Device movie) {
+        private void bind(Device device) {
 
-            boolean expanded = movie.isExpanded();
+            boolean expanded = device.isExpanded();
             paramRecyclerView.setVisibility(expanded ? View.VISIBLE : View.GONE);
-            tvDeviceName.setText(movie.getUserVisibleName());
+            if (!TextUtils.isEmpty(device.getUserVisibleName())) {
+                tvDeviceName.setText(device.getUserVisibleName());
+            } else {
+                tvDeviceName.setText(device.getDeviceName());
+            }
         }
     }
 }
