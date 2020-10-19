@@ -28,6 +28,7 @@ import android.view.WindowManager;
 import android.view.animation.LinearInterpolator;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.TimePicker;
@@ -37,7 +38,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.aventrix.jnanoid.jnanoid.NanoIdUtils;
@@ -79,7 +79,7 @@ public class AddScheduleActivity extends AppCompatActivity {
     private ImageView removeScheduleImage;
     private ContentLoadingProgressBar progressBar;
     private RelativeLayout rlSchProgress, rlAddSch;
-    private ConstraintLayout daysLayout;
+    private LinearLayout daysLayout;
     private TextView day1, day2, day3, day4, day5, day6, day7;
 
     private String scheduleName = "";
@@ -557,10 +557,15 @@ public class AddScheduleActivity extends AppCompatActivity {
 
         for (int i = 0; i < selectedDevices.size(); i++) {
 
+            String deviceName = selectedDevices.get(i).getUserVisibleName();
+
+            if (TextUtils.isEmpty(deviceName)) {
+                deviceName = selectedDevices.get(i).getDeviceName();
+            }
             if (deviceNames == null) {
-                deviceNames = selectedDevices.get(i).getUserVisibleName();
+                deviceNames = deviceName;
             } else {
-                deviceNames = deviceNames + ", " + selectedDevices.get(i).getUserVisibleName();
+                deviceNames = deviceNames + ", " + deviceName;
             }
         }
 

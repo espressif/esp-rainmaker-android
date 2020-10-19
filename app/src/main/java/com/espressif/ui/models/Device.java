@@ -109,6 +109,7 @@ public class Device implements Parcelable {
         deviceType = in.readString();
         primaryParamName = in.readString();
         params = in.createTypedArrayList(Param.CREATOR);
+        expanded = in.readByte() != 0;
         selectedState = in.readInt();
     }
 
@@ -138,6 +139,7 @@ public class Device implements Parcelable {
         dest.writeString(deviceType);
         dest.writeString(primaryParamName);
         dest.writeTypedList(params);
+        dest.writeByte((byte) (expanded ? 1 : 0));
         dest.writeInt(selectedState);
     }
 

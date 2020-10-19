@@ -60,7 +60,8 @@
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:layout_marginEnd="@dimen/margin_10"
-            android:paddingEnd="@dimen/margin_8" />
+            android:paddingEnd="@dimen/margin_8"
+            android:theme="@style/AppTheme.PurpleAccent" />
 
         <androidx.core.widget.ContentLoadingProgressBar
             android:id="@+id/sch_progress_indicator"

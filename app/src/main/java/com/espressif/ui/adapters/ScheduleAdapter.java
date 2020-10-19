@@ -17,6 +17,7 @@ package com.espressif.ui.adapters;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -87,12 +88,16 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
 
         if (actions != null && actions.size() > 0) {
             for (int i = 0; i < actions.size(); i++) {
-                if (deviceNames.length() == 0) {
-                    deviceNames.append(actions.get(i).getDevice().getUserVisibleName());
-                } else {
-                    deviceNames.append(", ");
-                    deviceNames.append(actions.get(i).getDevice().getUserVisibleName());
+
+                String deviceName = actions.get(i).getDevice().getUserVisibleName();
+                if (TextUtils.isEmpty(deviceName)) {
+                    deviceName = actions.get(i).getDevice().getDeviceName();
                 }
+
+                if (deviceNames.length() != 0) {
+                    deviceNames.append(", ");
+                }
+                deviceNames.append(deviceName);
             }
         }
         myViewHolder.tvActionDevices.setText(deviceNames);

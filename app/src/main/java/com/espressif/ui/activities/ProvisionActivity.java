@@ -336,15 +336,7 @@ public class ProvisionActivity extends AppCompatActivity {
                     @Override
                     public void run() {
 
-                        tick2.setImageResource(R.drawable.ic_error);
-                        tick2.setVisibility(View.VISIBLE);
-                        progress2.setVisibility(View.GONE);
-                        tvErrAtStep2.setVisibility(View.VISIBLE);
-                        tvErrAtStep2.setText(R.string.error_provisioning_failed);
-                        tvProvError.setVisibility(View.VISIBLE);
-                        hideLoading();
-
-                        Toast.makeText(ProvisionActivity.this, R.string.error_provisioning_failed, Toast.LENGTH_LONG).show();
+                        doStep3(false);
                     }
                 });
             }
