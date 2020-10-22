@@ -33,6 +33,7 @@ import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.NodeDetailsAdapter;
 import com.espressif.ui.models.EspNode;
@@ -217,7 +218,11 @@ public class NodeDetailsActivity extends AppCompatActivity {
             public void onFailure(Exception exception) {
                 hideLoading();
                 exception.printStackTrace();
-                Toast.makeText(NodeDetailsActivity.this, R.string.error_delete_node, Toast.LENGTH_SHORT).show();
+                if (exception instanceof CloudException) {
+                    Toast.makeText(NodeDetailsActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(NodeDetailsActivity.this, R.string.error_delete_node, Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }

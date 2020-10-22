@@ -91,6 +91,7 @@ public class DevicesFragment extends Fragment {
         tvNoDevice.setVisibility(View.GONE);
         rlNoDevices.setVisibility(View.GONE);
         recyclerView.setVisibility(View.GONE);
+        updateDeviceUi();
         ((EspMainActivity) getActivity()).setUpdateListener(updateListener);
         return root;
     }
@@ -164,17 +165,12 @@ public class DevicesFragment extends Fragment {
 
     private void updateDeviceUi() {
 
-        switch (((EspMainActivity) getActivity()).getCurrentStatus()) {
+        switch (espApp.getCurrentStatus()) {
 
-            case NOT_RECEIVED:
-                break;
-
+            case FETCHING_DATA:
             case GET_DATA_SUCCESS:
-                updateUiOnSuccess(false);
-                break;
-
             case GET_DATA_FAILED:
-                updateUiOnFailure();
+                updateUiOnSuccess(false);
                 break;
 
             case DATA_REFRESHING:

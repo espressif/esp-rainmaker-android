@@ -31,7 +31,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
-import com.espressif.cloudapi.ApiManager;
+import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.EspDeviceActivity;
@@ -47,13 +47,13 @@ import java.util.Calendar;
 public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.MyViewHolder> {
 
     private Context context;
-    private ApiManager apiManager;
+    private NetworkApiManager networkApiManager;
     private ArrayList<Device> deviceList;
 
     public EspDeviceAdapter(Context context, ArrayList<Device> deviceList) {
         this.context = context;
         this.deviceList = deviceList;
-        apiManager = ApiManager.getInstance(context.getApplicationContext());
+        networkApiManager = new NetworkApiManager(context.getApplicationContext());
     }
 
     @Override
@@ -202,7 +202,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.MyVi
                                 jsonParam.addProperty(param.getName(), !status);
                                 body.add(device.getDeviceName(), jsonParam);
 
-                                apiManager.updateParamValue(device.getNodeId(), body, new ApiResponseListener() {
+                                networkApiManager.updateParamValue(device.getNodeId(), body, new ApiResponseListener() {
 
                                     @Override
                                     public void onSuccess(Bundle data) {
@@ -257,7 +257,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.MyVi
                                 body.add(device.getDeviceName(), jsonParam);
 
                                 final boolean finalIsOn1 = finalIsOn;
-                                apiManager.updateParamValue(device.getNodeId(), body, new ApiResponseListener() {
+                                networkApiManager.updateParamValue(device.getNodeId(), body, new ApiResponseListener() {
 
                                     @Override
                                     public void onSuccess(Bundle data) {
@@ -311,37 +311,54 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.MyVi
 
         if (node != null && !node.isOnline()) {
 
-            myViewHolder.llOffline.setVisibility(View.VISIBLE);
             myViewHolder.ivDeviceStatus.setImageResource(R.drawable.ic_output_disable);
             myViewHolder.ivDeviceStatus.setOnClickListener(null);
-            String offlineText = context.getString(R.string.status_offline);
-            myViewHolder.tvOffline.setText(offlineText);
 
-            if (node.getTimeStampOfStatus() != 0) {
+            if (espApp.getCurrentStatus().equals(EspApplication.GetDataStatus.GET_DATA_SUCCESS)
+                    || espApp.getCurrentStatus().equals(EspApplication.GetDataStatus.DATA_REFRESHING)) {
 
-                Calendar calendar = Calendar.getInstance();
-                int day = calendar.get(Calendar.DATE);
-
-                calendar.setTimeInMillis(node.getTimeStampOfStatus());
-                int offlineDay = calendar.get(Calendar.DATE);
-
-                if (day == offlineDay) {
-
-                    SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
-                    String time = formatter.format(calendar.getTime());
-                    offlineText = context.getString(R.string.offline_at) + " " + time;
-
-                } else {
-
-                    SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yy, HH:mm");
-                    String time = formatter.format(calendar.getTime());
-                    offlineText = context.getString(R.string.offline_at) + " " + time;
-                }
+                myViewHolder.llOffline.setVisibility(View.VISIBLE);
+                myViewHolder.ivOffline.setVisibility(View.VISIBLE);
+                String offlineText = context.getString(R.string.status_offline);
                 myViewHolder.tvOffline.setText(offlineText);
+                myViewHolder.tvOffline.setTextColor(context.getColor(R.color.colorAccent));
+
+                if (node.getTimeStampOfStatus() != 0) {
+
+                    Calendar calendar = Calendar.getInstance();
+                    int day = calendar.get(Calendar.DATE);
+
+                    calendar.setTimeInMillis(node.getTimeStampOfStatus());
+                    int offlineDay = calendar.get(Calendar.DATE);
+
+                    if (day == offlineDay) {
+
+                        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
+                        String time = formatter.format(calendar.getTime());
+                        offlineText = context.getString(R.string.offline_at) + " " + time;
+
+                    } else {
+
+                        SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yy, HH:mm");
+                        String time = formatter.format(calendar.getTime());
+                        offlineText = context.getString(R.string.offline_at) + " " + time;
+                    }
+                    myViewHolder.tvOffline.setText(offlineText);
+                }
+
+            } else {
+                myViewHolder.llOffline.setVisibility(View.INVISIBLE);
             }
         } else {
-
             myViewHolder.llOffline.setVisibility(View.INVISIBLE);
+        }
+
+        String nodeId = device.getNodeId();
+        if (espApp.mDNSDeviceMap.containsKey(nodeId)) {
+            myViewHolder.llOffline.setVisibility(View.VISIBLE);
+            myViewHolder.ivOffline.setVisibility(View.GONE);
+            myViewHolder.tvOffline.setText(R.string.local_device_text);
+            myViewHolder.tvOffline.setTextColor(context.getColor(R.color.colorPrimaryDark));
         }
 
         // implement setOnClickListener event on item view.
@@ -370,7 +387,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.MyVi
 
         // init the item view's
         TextView tvDeviceName, tvStringValue, tvOffline;
-        ImageView ivDevice, ivDeviceStatus;
+        ImageView ivDevice, ivDeviceStatus, ivOffline;
         LinearLayout llOffline;
 
         public MyViewHolder(View itemView) {
@@ -380,6 +397,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.MyVi
             tvDeviceName = itemView.findViewById(R.id.tv_device_name);
             ivDevice = itemView.findViewById(R.id.iv_device);
             llOffline = itemView.findViewById(R.id.ll_offline);
+            ivOffline = itemView.findViewById(R.id.iv_offline);
             tvOffline = itemView.findViewById(R.id.tv_offline);
             ivDeviceStatus = itemView.findViewById(R.id.iv_on_off);
             tvStringValue = itemView.findViewById(R.id.tv_string);

@@ -32,6 +32,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUser;
 import com.espressif.AppConstants;
+import com.espressif.EspDatabase;
 import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.rainmaker.R;
@@ -110,6 +111,7 @@ public class UserProfileActivity extends AppCompatActivity {
                 SharedPreferences.Editor editor = sharedPreferences.edit();
                 editor.clear();
                 editor.apply();
+                EspDatabase.getInstance(getApplicationContext()).getNodeDao().deleteAll();
                 if (((EspApplication) getApplicationContext()).nodeMap != null) {
                     ((EspApplication) getApplicationContext()).nodeMap.clear();
                 }

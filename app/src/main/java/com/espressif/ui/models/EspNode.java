@@ -17,20 +17,67 @@ package com.espressif.ui.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.Ignore;
+import androidx.room.PrimaryKey;
+
+import com.espressif.AppConstants;
+
 import java.util.ArrayList;
 
+@Entity(tableName = AppConstants.NODE_TABLE)
 public class EspNode implements Parcelable {
 
+    @PrimaryKey
+    @NonNull
     private String nodeId;
+
+    @Ignore
     private String configVersion;
+
+    @Ignore
     private String nodeName;
+
+    @Ignore
     private String fwVersion;
+
+    @Ignore
     private String nodeType;
+
+    @Ignore
     private boolean isOnline;
+
+    @Ignore
     private long timeStampOfStatus; // timestamp of connectivity status
+
+    @Ignore
     private ArrayList<Device> devices;
+
+    @Ignore
     private ArrayList<Param> attributes;
+
+    @Ignore
     private ArrayList<Service> services;
+
+    @Ignore
+    private boolean isAvailableLocally;
+
+    @Ignore
+    private String ipAddress;
+
+    @Ignore
+    private int port;
+
+    @ColumnInfo(name = "config_data")
+    private String configData;
+
+    @ColumnInfo(name = "param_data")
+    private String paramData;
+
+    public EspNode() {
+    }
 
     public EspNode(String id) {
         nodeId = id;
@@ -38,6 +85,10 @@ public class EspNode implements Parcelable {
 
     public String getNodeId() {
         return nodeId;
+    }
+
+    public void setNodeId(String nodeId) {
+        this.nodeId = nodeId;
     }
 
     public String getConfigVersion() {
@@ -112,6 +163,46 @@ public class EspNode implements Parcelable {
         this.services = services;
     }
 
+    public boolean isAvailableLocally() {
+        return isAvailableLocally;
+    }
+
+    public void setAvailableLocally(boolean availableLocally) {
+        isAvailableLocally = availableLocally;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
+    }
+
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public String getConfigData() {
+        return configData;
+    }
+
+    public void setConfigData(String configData) {
+        this.configData = configData;
+    }
+
+    public String getParamData() {
+        return paramData;
+    }
+
+    public void setParamData(String paramData) {
+        this.paramData = paramData;
+    }
+
     protected EspNode(Parcel in) {
 
         nodeId = in.readString();
@@ -124,6 +215,11 @@ public class EspNode implements Parcelable {
         devices = in.createTypedArrayList(Device.CREATOR);
         attributes = in.createTypedArrayList(Param.CREATOR);
         services = in.createTypedArrayList(Service.CREATOR);
+        isAvailableLocally = in.readByte() != 0;
+        ipAddress = in.readString();
+        port = in.readInt();
+        configData = in.readString();
+        paramData = in.readString();
     }
 
     public static final Creator<EspNode> CREATOR = new Creator<EspNode>() {
@@ -156,5 +252,10 @@ public class EspNode implements Parcelable {
         dest.writeTypedList(devices);
         dest.writeTypedList(attributes);
         dest.writeTypedList(services);
+        dest.writeByte((byte) (isAvailableLocally ? 1 : 0));
+        dest.writeString(ipAddress);
+        dest.writeInt(port);
+        dest.writeString(configData);
+        dest.writeString(paramData);
     }
 }

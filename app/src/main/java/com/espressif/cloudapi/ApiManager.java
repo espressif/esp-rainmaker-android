@@ -25,6 +25,7 @@ import android.util.Log;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoDevice;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserSession;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.AuthenticationContinuation;
+import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.AuthenticationDetails;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.ChallengeContinuation;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.MultiFactorAuthenticationContinuation;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.AuthenticationHandler;
@@ -33,6 +34,8 @@ import com.auth0.android.jwt.DecodeException;
 import com.auth0.android.jwt.JWT;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
+import com.espressif.EspDatabase;
+import com.espressif.JsonDataParser;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Action;
 import com.espressif.ui.models.ApiResponse;
@@ -40,7 +43,6 @@ import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Schedule;
-import com.espressif.ui.models.Service;
 import com.espressif.ui.models.UpdateEvent;
 import com.espressif.ui.user_module.AppHelper;
 import com.google.gson.JsonObject;
@@ -57,6 +59,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import io.reactivex.Observable;
@@ -86,6 +89,7 @@ public class ApiManager {
     private EspApplication espApp;
     private Handler handler;
     private ApiInterface apiInterface;
+    private EspDatabase espDatabase;
     private SharedPreferences sharedPreferences;
     private static ArrayList<String> nodeIds = new ArrayList<>();
     private static ArrayList<String> scheduleIds = new ArrayList<>();
@@ -104,6 +108,7 @@ public class ApiManager {
         this.context = context;
         handler = new Handler();
         espApp = (EspApplication) context.getApplicationContext();
+        espDatabase = EspDatabase.getInstance(context);
         apiInterface = ApiClient.getClient(context).create(ApiInterface.class);
         sharedPreferences = context.getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
         getTokenAndUserId();
@@ -125,7 +130,6 @@ public class ApiManager {
                         if (response.isSuccessful()) {
 
                             String jsonResponse = response.body().string();
-                            Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
                             idToken = jsonObject.getString("id_token");
                             accessToken = jsonObject.getString("access_token");
@@ -143,7 +147,24 @@ public class ApiManager {
                             listener.onSuccess(null);
 
                         } else {
-                            listener.onFailure(new RuntimeException("Failed to login"));
+
+                            String jsonErrResponse = response.errorBody().string();
+                            Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                            if (jsonErrResponse.contains("failure")) {
+
+                                JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                                String err = jsonObject.optString("description");
+
+                                if (!TextUtils.isEmpty(err)) {
+                                    listener.onFailure(new CloudException(err));
+                                } else {
+                                    listener.onFailure(new RuntimeException("Failed to login"));
+                                }
+
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to login"));
+                            }
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -157,6 +178,7 @@ public class ApiManager {
                 @Override
                 public void onFailure(Call<ResponseBody> call, Throwable t) {
                     t.printStackTrace();
+                    listener.onFailure(new Exception(t));
                 }
             });
         } catch (Exception e) {
@@ -217,11 +239,12 @@ public class ApiManager {
 
                         Log.d(TAG, "Get Supported Versions, Response code  : " + response.code());
 
-                        if (response.isSuccessful()) {
+                        try {
 
-                            if (response.body() != null) {
+                            if (response.isSuccessful()) {
 
-                                try {
+                                if (response.body() != null) {
+
                                     String jsonResponse = response.body().string();
                                     Log.e(TAG, "onResponse Success : " + jsonResponse);
                                     JSONObject jsonObject = new JSONObject(jsonResponse);
@@ -241,20 +264,37 @@ public class ApiManager {
                                     bundle.putStringArrayList("supported_versions", supportedVersions);
                                     listener.onSuccess(bundle);
 
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                    listener.onFailure(e);
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                    listener.onFailure(e);
+                                } else {
+                                    Log.e(TAG, "Response received : null");
+                                    listener.onFailure(new RuntimeException("Failed to get Supported Versions"));
                                 }
-                            } else {
-                                Log.e(TAG, "Response received : null");
-                                listener.onFailure(new RuntimeException("Failed to get Supported Versions"));
-                            }
 
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to get Supported Versions"));
+                            } else {
+
+                                String jsonErrResponse = response.errorBody().string();
+                                Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                                if (jsonErrResponse.contains("failure")) {
+
+                                    JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                                    String err = jsonObject.optString("description");
+
+                                    if (!TextUtils.isEmpty(err)) {
+                                        listener.onFailure(new CloudException(err));
+                                    } else {
+                                        listener.onFailure(new RuntimeException("Failed to get Supported Versions"));
+                                    }
+
+                                } else {
+                                    listener.onFailure(new RuntimeException("Failed to get Supported Versions"));
+                                }
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            listener.onFailure(e);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            listener.onFailure(e);
                         }
                     }
 
@@ -283,11 +323,11 @@ public class ApiManager {
 
                 Log.d(TAG, "Get Nodes, Response code : " + response.code());
 
-                if (response.isSuccessful()) {
+                try {
 
-                    if (response.body() != null) {
+                    if (response.isSuccessful()) {
 
-                        try {
+                        if (response.body() != null) {
 
                             if (espApp.nodeMap == null) {
                                 espApp.nodeMap = new HashMap<>();
@@ -299,6 +339,8 @@ public class ApiManager {
                             JSONArray nodeJsonArray = jsonObject.optJSONArray("node_details");
                             nodeIds.clear();
                             scheduleIds.clear();
+                            espDatabase.getNodeDao().deleteAll();
+                            Log.d(TAG, "Delete all nodes from local storage.");
                             HashMap<String, Schedule> scheduleMap = new HashMap<>();
 
                             if (nodeJsonArray != null) {
@@ -325,152 +367,15 @@ public class ApiManager {
                                         JSONObject configJson = nodeJson.optJSONObject("config");
                                         if (configJson != null) {
 
-                                            espNode.setConfigVersion(configJson.optString("config_version"));
-
-                                            JSONObject infoObj = configJson.optJSONObject("info");
-
-                                            if (infoObj != null) {
-                                                espNode.setNodeName(infoObj.optString("name"));
-                                                espNode.setFwVersion(infoObj.optString("fw_version"));
-                                                espNode.setNodeType(infoObj.optString("type"));
+                                            // If node is available on local network then ignore configuration received from cloud.
+                                            if (!espApp.mDNSDeviceMap.containsKey(nodeId)) {
+                                                espNode = JsonDataParser.setNodeConfig(espNode, configJson);
                                             } else {
-                                                Log.d(TAG, "Info object is null");
+                                                Log.d(TAG, "Ignore config values for local node :" + nodeId);
                                             }
+
                                             espNode.setOnline(true);
-
-                                            // Devices
-                                            JSONArray devicesJsonArray = configJson.optJSONArray("devices");
-                                            ArrayList<Device> devices = new ArrayList<>();
-
-                                            if (devicesJsonArray != null) {
-
-                                                for (int i = 0; i < devicesJsonArray.length(); i++) {
-
-                                                    JSONObject deviceObj = devicesJsonArray.optJSONObject(i);
-                                                    Device device = new Device(nodeId);
-                                                    device.setDeviceName(deviceObj.optString("name"));
-                                                    device.setDeviceType(deviceObj.optString("type"));
-                                                    device.setPrimaryParamName(deviceObj.optString("primary"));
-
-                                                    JSONArray paramsJson = deviceObj.optJSONArray("params");
-                                                    ArrayList<Param> params = new ArrayList<>();
-
-                                                    if (paramsJson != null) {
-
-                                                        for (int j = 0; j < paramsJson.length(); j++) {
-
-                                                            JSONObject paraObj = paramsJson.optJSONObject(j);
-                                                            Param param = new Param();
-                                                            param.setName(paraObj.optString("name"));
-                                                            param.setParamType(paraObj.optString("type"));
-                                                            param.setDataType(paraObj.optString("data_type"));
-                                                            param.setUiType(paraObj.optString("ui_type"));
-                                                            param.setDynamicParam(true);
-                                                            params.add(param);
-
-                                                            JSONArray propertiesJson = paraObj.optJSONArray("properties");
-                                                            ArrayList<String> properties = new ArrayList<>();
-
-                                                            if (propertiesJson != null) {
-                                                                for (int k = 0; k < propertiesJson.length(); k++) {
-
-                                                                    properties.add(propertiesJson.optString(k));
-                                                                }
-                                                            }
-                                                            param.setProperties(properties);
-
-                                                            JSONObject boundsJson = paraObj.optJSONObject("bounds");
-
-                                                            if (boundsJson != null) {
-                                                                param.setMaxBounds(boundsJson.optInt("max"));
-                                                                param.setMinBounds(boundsJson.optInt("min"));
-                                                            }
-                                                        }
-                                                    }
-
-                                                    JSONArray attributesJson = deviceObj.optJSONArray("attributes");
-
-                                                    if (attributesJson != null) {
-
-                                                        for (int j = 0; j < attributesJson.length(); j++) {
-
-                                                            JSONObject attrObj = attributesJson.optJSONObject(j);
-                                                            Param param = new Param();
-                                                            param.setName(attrObj.optString("name"));
-                                                            param.setDataType(attrObj.optString("data_type"));
-                                                            param.setLabelValue(attrObj.optString("value"));
-                                                            params.add(param);
-                                                        }
-                                                    }
-
-                                                    device.setParams(params);
-                                                    devices.add(device);
-                                                }
-                                            }
-                                            espNode.setDevices(devices);
-
-                                            // Services
-                                            JSONArray servicesJsonArray = configJson.optJSONArray("services");
-                                            ArrayList<Service> services = new ArrayList<>();
-
-                                            if (servicesJsonArray != null) {
-
-                                                for (int i = 0; i < servicesJsonArray.length(); i++) {
-
-                                                    JSONObject serviceObj = servicesJsonArray.optJSONObject(i);
-                                                    Service service = new Service(nodeId);
-                                                    service.setName(serviceObj.optString("name"));
-                                                    service.setType(serviceObj.optString("type"));
-
-                                                    JSONArray paramsJson = serviceObj.optJSONArray("params");
-                                                    ArrayList<Param> params = new ArrayList<>();
-
-                                                    if (paramsJson != null) {
-
-                                                        for (int j = 0; j < paramsJson.length(); j++) {
-
-                                                            JSONObject paraObj = paramsJson.optJSONObject(j);
-                                                            Param param = new Param();
-                                                            param.setName(paraObj.optString("name"));
-                                                            param.setParamType(paraObj.optString("type"));
-                                                            param.setDataType(paraObj.optString("data_type"));
-                                                            param.setDynamicParam(true);
-                                                            params.add(param);
-
-                                                            JSONArray propertiesJson = paraObj.optJSONArray("properties");
-                                                            ArrayList<String> properties = new ArrayList<>();
-
-                                                            if (propertiesJson != null) {
-                                                                for (int k = 0; k < propertiesJson.length(); k++) {
-
-                                                                    properties.add(propertiesJson.optString(k));
-                                                                }
-                                                            }
-                                                            param.setProperties(properties);
-                                                        }
-                                                    }
-                                                    service.setParams(params);
-                                                    services.add(service);
-                                                }
-                                            }
-                                            espNode.setServices(services);
-
-                                            // Attributes
-                                            JSONArray nodeAttributesJson = infoObj.optJSONArray("attributes");
-                                            ArrayList<Param> nodeAttributes = new ArrayList<>();
-
-                                            if (nodeAttributesJson != null) {
-
-                                                for (int j = 0; j < nodeAttributesJson.length(); j++) {
-
-                                                    JSONObject attrObj = nodeAttributesJson.optJSONObject(j);
-                                                    Param param = new Param();
-                                                    param.setName(attrObj.optString("name"));
-                                                    param.setLabelValue(attrObj.optString("value"));
-                                                    nodeAttributes.add(param);
-                                                }
-                                            }
-                                            espNode.setAttributes(nodeAttributes);
+                                            espNode.setConfigData(configJson.toString());
                                             espApp.nodeMap.put(nodeId, espNode);
                                         }
 
@@ -478,33 +383,42 @@ public class ApiManager {
                                         JSONObject paramsJson = nodeJson.optJSONObject("params");
                                         if (paramsJson != null) {
 
+                                            espNode.setParamData(paramsJson.toString());
+                                            espDatabase.getNodeDao().insert(espNode);
+
                                             ArrayList<Device> devices = espNode.getDevices();
                                             JSONObject scheduleJson = paramsJson.optJSONObject("Schedule");
 
-                                            for (int i = 0; i < devices.size(); i++) {
+                                            // If node is available on local network then ignore param values received from cloud.
+                                            if (!espApp.mDNSDeviceMap.containsKey(nodeId)) {
 
-                                                ArrayList<Param> params = devices.get(i).getParams();
-                                                String deviceName = devices.get(i).getDeviceName();
-                                                JSONObject deviceJson = paramsJson.optJSONObject(deviceName);
+                                                for (int i = 0; i < devices.size(); i++) {
 
-                                                if (deviceJson != null) {
+                                                    ArrayList<Param> params = devices.get(i).getParams();
+                                                    String deviceName = devices.get(i).getDeviceName();
+                                                    JSONObject deviceJson = paramsJson.optJSONObject(deviceName);
 
-                                                    for (int j = 0; j < params.size(); j++) {
+                                                    if (deviceJson != null) {
 
-                                                        Param param = params.get(j);
-                                                        String key = param.getName();
+                                                        for (int j = 0; j < params.size(); j++) {
 
-                                                        if (!param.isDynamicParam()) {
-                                                            continue;
+                                                            Param param = params.get(j);
+                                                            String key = param.getName();
+
+                                                            if (!param.isDynamicParam()) {
+                                                                continue;
+                                                            }
+
+                                                            if (deviceJson.has(key)) {
+                                                                JsonDataParser.setDeviceParamValue(deviceJson, devices.get(i), param);
+                                                            }
                                                         }
-
-                                                        if (deviceJson.has(key)) {
-                                                            setDeviceParamValue(deviceJson, devices.get(i), param);
-                                                        }
+                                                    } else {
+                                                        Log.e(TAG, "Device JSON is null");
                                                     }
-                                                } else {
-                                                    Log.e(TAG, "Device JSON is null");
                                                 }
+                                            } else {
+                                                Log.d(TAG, "Ignore param values for local node :" + nodeId);
                                             }
 
                                             // Schedules
@@ -637,7 +551,7 @@ public class ApiManager {
                                                                             if (deviceAction.has(paramName)) {
 
                                                                                 p.setSelected(true);
-                                                                                setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
+                                                                                JsonDataParser.setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
                                                                             }
                                                                         }
 
@@ -670,7 +584,7 @@ public class ApiManager {
                                         // Node Status
                                         JSONObject statusJson = nodeJson.optJSONObject("status");
 
-                                        if (statusJson != null) {
+                                        if (statusJson != null && !espApp.mDNSDeviceMap.containsKey(nodeId)) {
 
                                             JSONObject connectivityObject = statusJson.optJSONObject("connectivity");
 
@@ -722,50 +636,46 @@ public class ApiManager {
 
                             listener.onSuccess(null);
 
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            listener.onFailure(e);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                            listener.onFailure(e);
+                        } else {
+                            Log.e(TAG, "Response received : null");
+                            listener.onFailure(new RuntimeException("Failed to get User device mapping"));
                         }
+
                     } else {
-                        Log.e(TAG, "Response received : null");
-                        listener.onFailure(new RuntimeException("Failed to get User device mapping"));
-                    }
-                } else {
 
-                    if (espApp.nodeMap != null) {
-                        espApp.nodeMap.clear();
-                    }
-                    if (espApp.scheduleMap != null) {
-                        espApp.scheduleMap.clear();
-                    }
-                    nodeIds.clear();
-                    scheduleIds.clear();
+                        nodeIds.clear();
+                        scheduleIds.clear();
 
-                    if (response.body() != null) {
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
 
-                        try {
-                            String jsonResponse = response.body().string();
-                            Log.e(TAG, "onResponse Failure : " + jsonResponse);
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                        if (jsonErrResponse.contains("failure")) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString("description");
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to get User device mapping"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to get User device mapping"));
                         }
                     }
-                    listener.onFailure(new RuntimeException("Failed to get User device mapping"));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
 
-                if (espApp.nodeMap != null) {
-                    espApp.nodeMap.clear();
-                }
-                if (espApp.scheduleMap != null) {
-                    espApp.scheduleMap.clear();
-                }
                 nodeIds.clear();
                 scheduleIds.clear();
                 t.printStackTrace();
@@ -785,11 +695,10 @@ public class ApiManager {
 
                 Log.d(TAG, "Get Node Details, Response code : " + response.code());
 
-                if (response.isSuccessful()) {
+                try {
+                    if (response.isSuccessful()) {
 
-                    if (response.body() != null) {
-
-                        try {
+                        if (response.body() != null) {
 
                             if (espApp.nodeMap == null) {
                                 espApp.nodeMap = new HashMap<>();
@@ -825,187 +734,17 @@ public class ApiManager {
                                         JSONObject configJson = nodeJson.optJSONObject("config");
                                         if (configJson != null) {
 
-                                            espNode.setConfigVersion(configJson.optString("config_version"));
-
-                                            JSONObject infoObj = configJson.optJSONObject("info");
-
-                                            if (infoObj != null) {
-                                                espNode.setNodeName(infoObj.optString("name"));
-                                                espNode.setFwVersion(infoObj.optString("fw_version"));
-                                                espNode.setNodeType(infoObj.optString("type"));
-                                            } else {
-                                                Log.d(TAG, "Info object is null");
-                                            }
-                                            espNode.setOnline(true);
-
-                                            // Devices
-                                            JSONArray devicesJsonArray = configJson.optJSONArray("devices");
-                                            ArrayList<Device> devices = new ArrayList<>();
-
-                                            if (devicesJsonArray != null) {
-
-                                                for (int i = 0; i < devicesJsonArray.length(); i++) {
-
-                                                    JSONObject deviceObj = devicesJsonArray.optJSONObject(i);
-                                                    Device device = new Device(nodeId);
-                                                    device.setDeviceName(deviceObj.optString("name"));
-                                                    device.setDeviceType(deviceObj.optString("type"));
-                                                    device.setPrimaryParamName(deviceObj.optString("primary"));
-
-                                                    JSONArray paramsJson = deviceObj.optJSONArray("params");
-                                                    ArrayList<Param> params = new ArrayList<>();
-
-                                                    if (paramsJson != null) {
-
-                                                        for (int j = 0; j < paramsJson.length(); j++) {
-
-                                                            JSONObject paraObj = paramsJson.optJSONObject(j);
-                                                            Param param = new Param();
-                                                            param.setName(paraObj.optString("name"));
-                                                            param.setParamType(paraObj.optString("type"));
-                                                            param.setDataType(paraObj.optString("data_type"));
-                                                            param.setUiType(paraObj.optString("ui_type"));
-                                                            param.setDynamicParam(true);
-                                                            params.add(param);
-
-                                                            JSONArray propertiesJson = paraObj.optJSONArray("properties");
-                                                            ArrayList<String> properties = new ArrayList<>();
-
-                                                            if (propertiesJson != null) {
-                                                                for (int k = 0; k < propertiesJson.length(); k++) {
-
-                                                                    properties.add(propertiesJson.optString(k));
-                                                                }
-                                                            }
-                                                            param.setProperties(properties);
-
-                                                            JSONObject boundsJson = paraObj.optJSONObject("bounds");
-
-                                                            if (boundsJson != null) {
-                                                                param.setMaxBounds(boundsJson.optInt("max"));
-                                                                param.setMinBounds(boundsJson.optInt("min"));
-                                                            }
-                                                        }
-                                                    }
-
-                                                    JSONArray attributesJson = deviceObj.optJSONArray("attributes");
-
-                                                    if (attributesJson != null) {
-
-                                                        for (int j = 0; j < attributesJson.length(); j++) {
-
-                                                            JSONObject attrObj = attributesJson.optJSONObject(j);
-                                                            Param param = new Param();
-                                                            param.setName(attrObj.optString("name"));
-                                                            param.setDataType(attrObj.optString("data_type"));
-                                                            param.setLabelValue(attrObj.optString("value"));
-                                                            params.add(param);
-                                                        }
-                                                    }
-
-                                                    device.setParams(params);
-                                                    devices.add(device);
-                                                }
-                                            }
-                                            espNode.setDevices(devices);
-
-                                            // Services
-                                            JSONArray servicesJsonArray = configJson.optJSONArray("services");
-                                            ArrayList<Service> services = new ArrayList<>();
-
-                                            if (servicesJsonArray != null) {
-
-                                                for (int i = 0; i < servicesJsonArray.length(); i++) {
-
-                                                    JSONObject serviceObj = servicesJsonArray.optJSONObject(i);
-                                                    Service service = new Service(nodeId);
-                                                    service.setName(serviceObj.optString("name"));
-                                                    service.setType(serviceObj.optString("type"));
-
-                                                    JSONArray paramsJson = serviceObj.optJSONArray("params");
-                                                    ArrayList<Param> params = new ArrayList<>();
-
-                                                    if (paramsJson != null) {
-
-                                                        for (int j = 0; j < paramsJson.length(); j++) {
-
-                                                            JSONObject paraObj = paramsJson.optJSONObject(j);
-                                                            Param param = new Param();
-                                                            param.setName(paraObj.optString("name"));
-                                                            param.setParamType(paraObj.optString("type"));
-                                                            param.setDataType(paraObj.optString("data_type"));
-                                                            param.setDynamicParam(true);
-                                                            params.add(param);
-
-                                                            JSONArray propertiesJson = paraObj.optJSONArray("properties");
-                                                            ArrayList<String> properties = new ArrayList<>();
-
-                                                            if (propertiesJson != null) {
-                                                                for (int k = 0; k < propertiesJson.length(); k++) {
-
-                                                                    properties.add(propertiesJson.optString(k));
-                                                                }
-                                                            }
-                                                            param.setProperties(properties);
-                                                        }
-                                                    }
-                                                    service.setParams(params);
-                                                    services.add(service);
-                                                }
-                                            }
-                                            espNode.setServices(services);
-
-                                            // Attributes
-                                            JSONArray nodeAttributesJson = infoObj.optJSONArray("attributes");
-                                            ArrayList<Param> nodeAttributes = new ArrayList<>();
-
-                                            if (nodeAttributesJson != null) {
-
-                                                for (int j = 0; j < nodeAttributesJson.length(); j++) {
-
-                                                    JSONObject attrObj = nodeAttributesJson.optJSONObject(j);
-                                                    Param param = new Param();
-                                                    param.setName(attrObj.optString("name"));
-                                                    param.setLabelValue(attrObj.optString("value"));
-                                                    nodeAttributes.add(param);
-                                                }
-                                            }
-                                            espNode.setAttributes(nodeAttributes);
-
+                                            espNode = JsonDataParser.setNodeConfig(espNode, configJson);
+                                            espNode.setConfigData(configJson.toString());
                                             espApp.nodeMap.put(nodeId, espNode);
                                         }
 
                                         // Node Params
                                         JSONObject paramsJson = nodeJson.optJSONObject("params");
                                         if (paramsJson != null) {
-
-                                            ArrayList<Device> devices = espNode.getDevices();
-
-                                            for (int i = 0; i < devices.size(); i++) {
-
-                                                ArrayList<Param> params = devices.get(i).getParams();
-                                                String deviceName = devices.get(i).getDeviceName();
-                                                JSONObject deviceJson = paramsJson.optJSONObject(deviceName);
-
-                                                if (deviceJson != null) {
-
-                                                    for (int j = 0; j < params.size(); j++) {
-
-                                                        Param param = params.get(j);
-                                                        String key = param.getName();
-
-                                                        if (!param.isDynamicParam()) {
-                                                            continue;
-                                                        }
-
-                                                        if (deviceJson.has(key)) {
-                                                            setDeviceParamValue(deviceJson, devices.get(i), param);
-                                                        }
-                                                    }
-                                                } else {
-                                                    Log.e(TAG, "Device JSON is null");
-                                                }
-                                            }
+                                            JsonDataParser.setAllParams(espApp, espNode, paramsJson);
+                                            espNode.setParamData(paramsJson.toString());
+                                            espDatabase.getNodeDao().update(espNode);
                                         }
 
                                         // Node Status
@@ -1035,29 +774,36 @@ public class ApiManager {
 
                             listener.onSuccess(null);
 
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            listener.onFailure(e);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                            listener.onFailure(e);
+                        } else {
+                            Log.e(TAG, "Response received : null");
+                            listener.onFailure(new RuntimeException("Failed to get Node Details"));
                         }
                     } else {
-                        Log.e(TAG, "Response received : null");
-                        listener.onFailure(new RuntimeException("Failed to get User device mapping"));
-                    }
-                } else {
 
-                    if (response.body() != null) {
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
 
-                        try {
-                            String jsonResponse = response.body().string();
-                            Log.e(TAG, "onResponse Failure : " + jsonResponse);
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                        if (jsonErrResponse.contains("failure")) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString("description");
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to get Node Details"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to get Node Details"));
                         }
                     }
-                    listener.onFailure(new RuntimeException("Failed to get User device mapping"));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
                 }
             }
 
@@ -1076,7 +822,8 @@ public class ApiManager {
      * @param secretKey Generated Secret Key.
      * @param listener  Listener to send success or failure.
      */
-    public void addNode(final String nodeId, String secretKey, final ApiResponseListener listener) {
+    public void addNode(final String nodeId, String secretKey,
+                        final ApiResponseListener listener) {
 
         Log.d(TAG, "Add Node, nodeId : " + nodeId);
 
@@ -1092,11 +839,10 @@ public class ApiManager {
 
                 Log.d(TAG, "Add Node, Response code : " + response.code());
 
-                if (response.isSuccessful()) {
+                try {
+                    if (response.isSuccessful()) {
 
-                    if (response.body() != null) {
-
-                        try {
+                        if (response.body() != null) {
 
                             String jsonResponse = response.body().string();
                             Log.e(TAG, "onResponse Success : " + jsonResponse);
@@ -1108,19 +854,36 @@ public class ApiManager {
                             data.putString("request_id", reqId);
                             listener.onSuccess(data);
 
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            listener.onFailure(e);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                            listener.onFailure(e);
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to add device"));
                         }
-                    } else {
-                        listener.onFailure(new RuntimeException("Failed to add device"));
-                    }
 
-                } else {
-                    listener.onFailure(new RuntimeException("Failed to add device"));
+                    } else {
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains("failure")) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString("description");
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to add device"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to add device"));
+                        }
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
                 }
             }
 
@@ -1153,25 +916,45 @@ public class ApiManager {
 
                 Log.d(TAG, "Remove Node, response code : " + response.code());
 
-                if (response.isSuccessful()) {
+                try {
+                    if (response.isSuccessful()) {
 
-                    if (response.body() != null) {
+                        if (response.body() != null) {
 
-                        try {
                             String jsonResponse = response.body().string();
                             Log.e(TAG, "onResponse Success : " + jsonResponse);
                             listener.onSuccess(null);
 
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            listener.onFailure(e);
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to delete this node."));
                         }
-                    } else {
-                        listener.onFailure(new RuntimeException("Failed to remove device"));
-                    }
 
-                } else {
-                    listener.onFailure(new RuntimeException("Failed to remove device"));
+                    } else {
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains("failure")) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString("description");
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to delete this node."));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to delete this node."));
+                        }
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
                 }
             }
 
@@ -1194,11 +977,12 @@ public class ApiManager {
 
                 Log.d(TAG, "Get Params Values, Response code : " + response.code());
 
-                if (response.isSuccessful()) {
+                try {
 
-                    if (response.body() != null) {
+                    if (response.isSuccessful()) {
 
-                        try {
+                        if (response.body() != null) {
+
                             String jsonResponse = response.body().string();
                             Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
@@ -1225,7 +1009,7 @@ public class ApiManager {
                                             String key = param.getName();
 
                                             if (deviceJson.has(key)) {
-                                                setDeviceParamValue(deviceJson, devices.get(i), param);
+                                                JsonDataParser.setDeviceParamValue(deviceJson, devices.get(i), param);
                                             }
                                         }
                                     } else {
@@ -1364,7 +1148,7 @@ public class ApiManager {
                                                                 if (deviceAction.has(paramName)) {
 
                                                                     p.setSelected(true);
-                                                                    setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
+                                                                    JsonDataParser.setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
                                                                 }
                                                             }
 
@@ -1395,19 +1179,36 @@ public class ApiManager {
                             }
                             listener.onSuccess(null);
 
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            listener.onFailure(e);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                            listener.onFailure(e);
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to get param values"));
                         }
-                    } else {
-                        listener.onFailure(new RuntimeException("Failed to Get Dynamic Params"));
-                    }
 
-                } else {
-                    listener.onFailure(new RuntimeException("Failed to Get Dynamic Params"));
+                    } else {
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains("failure")) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString("description");
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to get param values"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to get param values"));
+                        }
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
                 }
             }
 
@@ -1423,49 +1224,63 @@ public class ApiManager {
 
         Log.d(TAG, "Updating param value");
 
-        try {
-            apiInterface.updateParamValue(accessToken, nodeId, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.updateParamValue(accessToken, nodeId, body).enqueue(new Callback<ResponseBody>() {
 
-                @Override
-                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                    Log.d(TAG, "Update Params Value, Response code : " + response.code());
+                Log.d(TAG, "Update Params Value, Response code : " + response.code());
+
+                try {
 
                     if (response.isSuccessful()) {
 
                         if (response.body() != null) {
 
-                            try {
-                                String jsonResponse = response.body().string();
-                                Log.d(TAG, "onResponse Success : " + jsonResponse);
-                                JSONObject jsonObject = new JSONObject(jsonResponse);
-                                listener.onSuccess(null);
+                            String jsonResponse = response.body().string();
+                            Log.d(TAG, "onResponse Success : " + jsonResponse);
+                            JSONObject jsonObject = new JSONObject(jsonResponse);
+                            listener.onSuccess(null);
 
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                                listener.onFailure(e);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                                listener.onFailure(e);
-                            }
                         } else {
-                            listener.onFailure(new RuntimeException("Failed to update dynamic param"));
+                            listener.onFailure(new RuntimeException("Failed to update param value"));
                         }
 
                     } else {
-                        listener.onFailure(new RuntimeException("Failed to update dynamic param"));
-                    }
-                }
 
-                @Override
-                public void onFailure(Call<ResponseBody> call, Throwable t) {
-                    t.printStackTrace();
-                    listener.onFailure(new Exception(t));
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains("failure")) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString("description");
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to update param value"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to update param value"));
+                        }
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
                 }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onFailure(new Exception(t));
+            }
+        });
     }
 
     /**
@@ -1475,7 +1290,8 @@ public class ApiManager {
      * @param listener Listener to send success or failure.
      */
     @SuppressLint("CheckResult")
-    public void updateSchedules(final HashMap<String, JsonObject> map, final ApiResponseListener listener) {
+    public void updateSchedules(final HashMap<String, JsonObject> map,
+                                final ApiResponseListener listener) {
 
         Log.d(TAG, "Updating Schedule");
         List<Observable<ApiResponse>> requests = new ArrayList<>();
@@ -1703,7 +1519,9 @@ public class ApiManager {
 
                 @Override
                 public void getAuthenticationDetails(AuthenticationContinuation authenticationContinuation, String userId) {
-                    Log.d(TAG, "getAuthenticationDetails ");
+                    Log.d(TAG, "getAuthenticationDetails " + userId);
+                    Locale.setDefault(Locale.US);
+                    getUserAuthentication(authenticationContinuation, userName);
                 }
 
                 @Override
@@ -1713,7 +1531,12 @@ public class ApiManager {
 
                 @Override
                 public void authenticationChallenge(ChallengeContinuation continuation) {
-                    Log.d(TAG, "authenticationChallenge ");
+                    // Nothing to do for this app.
+                    /*
+                     * For Custom authentication challenge, implement your logic to present challenge to the
+                     * user and pass the user's responses to the continuation.
+                     */
+                    Log.d(TAG, "authenticationChallenge : " + continuation.getChallengeName());
                 }
 
                 @Override
@@ -1726,6 +1549,19 @@ public class ApiManager {
 
             AppHelper.getPool().getUser(userName).getSessionInBackground(authenticationHandler);
         }
+    }
+
+    private void getUserAuthentication(AuthenticationContinuation continuation, String username) {
+
+        Log.d(TAG, "getUserAuthentication");
+        if (username != null) {
+            userName = username;
+            AppHelper.setUser(username);
+        }
+
+        AuthenticationDetails authenticationDetails = new AuthenticationDetails(userName, "", null);
+        continuation.setAuthenticationDetails(authenticationDetails);
+        continuation.continueTask();
     }
 
     public void getNewTokenForOAuth(final ApiResponseListener listener) {
@@ -1760,8 +1596,24 @@ public class ApiManager {
                         listener.onSuccess(null);
 
                     } else {
-                        // TODO Handle 400 error case
-                        listener.onFailure(new RuntimeException("Failed to get new token"));
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains("failure")) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString("description");
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to get new token"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to get new token"));
+                        }
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -1810,7 +1662,7 @@ public class ApiManager {
                             String err = jsonObject.optString("description");
 
                             if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new RuntimeException(err));
+                                listener.onFailure(new CloudException(err));
                             } else {
                                 listener.onFailure(new RuntimeException("Claim init failed"));
                             }
@@ -1863,7 +1715,7 @@ public class ApiManager {
                             String err = jsonObject.optString("description");
 
                             if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new RuntimeException(err));
+                                listener.onFailure(new CloudException(err));
                             } else {
                                 listener.onFailure(new RuntimeException("Claim verify failed"));
                             }
@@ -1900,82 +1752,5 @@ public class ApiManager {
     public void cancelRequestStatusPollingTask() {
 
         handler.removeCallbacks(stopRequestStatusPollingTask);
-    }
-
-    /**
-     * This method is used to set param value received from cloud.
-     *
-     * @param deviceJson JSON data of device params.
-     * @param device     Device object.
-     * @param param      Param object in which values to be set.
-     */
-    private void setDeviceParamValue(JSONObject deviceJson, Device device, Param param) {
-
-        String dataType = param.getDataType();
-        String paramName = param.getName();
-
-        if (AppConstants.UI_TYPE_SLIDER.equalsIgnoreCase(param.getUiType())) {
-
-            String labelValue = "";
-
-            if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
-
-                int value = deviceJson.optInt(paramName);
-                labelValue = String.valueOf(value);
-                param.setLabelValue(labelValue);
-                param.setSliderValue(value);
-
-            } else if (dataType.equalsIgnoreCase("float") || dataType.equalsIgnoreCase("double")) {
-
-                double value = deviceJson.optDouble(paramName);
-                labelValue = String.valueOf(value);
-                param.setLabelValue(labelValue);
-                param.setSliderValue(value);
-
-            } else {
-
-                labelValue = deviceJson.optString(paramName);
-                param.setLabelValue(labelValue);
-            }
-        } else if (AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())) {
-
-            boolean value = deviceJson.optBoolean(paramName);
-            param.setSwitchStatus(value);
-
-        } else {
-
-            String labelValue = "";
-
-            if (dataType.equalsIgnoreCase("bool") || dataType.equalsIgnoreCase("boolean")) {
-
-                boolean value = deviceJson.optBoolean(paramName);
-                if (value) {
-                    param.setLabelValue("true");
-                } else {
-                    param.setLabelValue("false");
-                }
-
-            } else if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
-
-                int value = deviceJson.optInt(paramName);
-                labelValue = String.valueOf(value);
-                param.setLabelValue(labelValue);
-
-            } else if (dataType.equalsIgnoreCase("float") || dataType.equalsIgnoreCase("double")) {
-
-                double value = deviceJson.optDouble(paramName);
-                labelValue = String.valueOf(value);
-                param.setLabelValue(labelValue);
-
-            } else {
-
-                labelValue = deviceJson.optString(paramName);
-                param.setLabelValue(labelValue);
-
-                if (param.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-                    device.setUserVisibleName(labelValue);
-                }
-            }
-        }
     }
 }
