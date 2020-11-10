@@ -30,6 +30,10 @@ import androidx.cardview.widget.CardView;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.R;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 
 public class ProofOfPossessionActivity extends AppCompatActivity {
@@ -139,15 +143,52 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
     private void nextBtnClick() {
 
         final String pop = etPop.getText().toString();
-        Log.d(TAG, "POP : " + pop);
+        Log.d(TAG, "Set POP : " + pop);
         provisionManager.getEspDevice().setProofOfPossession(pop);
+        String versionInfo = provisionManager.getEspDevice().getVersionInfo();
+        ArrayList<String> rmakerCaps = new ArrayList<>();
         ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
 
-        if (deviceCaps.contains("wifi_scan")) {
-            goToWiFiScanListActivity();
-        } else {
-            goToWiFiConfigActivity();
+        try {
+            JSONObject jsonObject = new JSONObject(versionInfo);
+            JSONObject rmakerInfo = jsonObject.optJSONObject("rmaker");
+
+            if (rmakerInfo != null) {
+
+                JSONArray rmakerCapabilities = rmakerInfo.optJSONArray("cap");
+                if (rmakerCapabilities != null) {
+                    for (int i = 0; i < rmakerCapabilities.length(); i++) {
+                        String cap = rmakerCapabilities.getString(i);
+                        rmakerCaps.add(cap);
+                    }
+                }
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Log.d(TAG, "Version Info JSON not available.");
         }
+
+        if (rmakerCaps.size() > 0 && rmakerCaps.contains("claim")) {
+
+            goToClaimingActivity();
+
+        } else {
+
+            if (deviceCaps != null && deviceCaps.contains("wifi_scan")) {
+
+                goToWiFiScanListActivity();
+
+            } else {
+                goToWiFiConfigActivity();
+            }
+        }
+    }
+
+    private void goToClaimingActivity() {
+
+        Intent claimingIntent = new Intent(getApplicationContext(), ClaimingActivity.class);
+        startActivity(claimingIntent);
+        finish();
     }
 
     private void goToWiFiScanListActivity() {
