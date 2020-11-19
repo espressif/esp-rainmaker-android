@@ -10,17 +10,87 @@ def getGitHash = { ->
     return stdout.toString().trim()
 }
 
+def defaultAppName = "ESP RainMaker"
+def defaultTransport = "Both"
+def defaultSecurity = "Sec1"
+def defaultPoP = ""
+def defaultAppId = "com.espressif.rainmaker"
+
+def defaultAwsRegion = "us-east-1"
+def defaultUserPoolId = "us-east-1_kWz4M6MfD"
+def defaultClientId = "60i6kac5f9rjuetqnq5mnmaqv6"
+
+def defaultBaseUrl = "https://api.rainmaker.espressif.com"
+def defaultClaimBaseUrl = "https://esp-claiming.rainmaker.espressif.com"
+
+def defaultAuthUrl = "https://auth.rainmaker.espressif.com/oauth2"
+def defaultRedirectUri = "rainmaker://com.espressif.rainmaker/success"
+def gitHubIdentityProvider = "GitHub"
+def googleIdentityProvider = "Google"
+def gitHubUrl = defaultAuthUrl + "/authorize?identity_provider=" + gitHubIdentityProvider + "&redirect_uri=" + defaultRedirectUri + "&response_type=CODE&client_id=" + defaultClientId
+def googleUrl = defaultAuthUrl + "/authorize?identity_provider=" + googleIdentityProvider + "&redirect_uri=" + defaultRedirectUri + "&response_type=CODE&client_id=" + defaultClientId
+
+def defaultDocUrl = "https://rainmaker.espressif.com/"
+def defaultPrivacyUrl = "https://rainmaker.espressif.com/docs/privacy-policy.html"
+def defaultTermsOfUseUrl = "https://rainmaker.espressif.com/docs/terms-of-use.html"
+
+def localProperties = new Properties()
+localProperties.load(new FileInputStream(rootProject.file("local.properties")))
+
 android {
 
     compileSdkVersion 29
 
     defaultConfig {
-        applicationId "com.espressif.rainmaker"
+        applicationId localProperties.getProperty("applicationId", defaultAppId)
         minSdkVersion 23
         targetSdkVersion 29
         versionCode 13
         versionName "2.2.2 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField "String", "GitHash", "\"${getGitHash()}\""
+
+        resValue "string", "app_name", localProperties.getProperty("appName", defaultAppName)
+        buildConfigField "String", "POP", '"' + localProperties.getProperty("POP", defaultPoP) + '"'
+
+        def transport = localProperties.getProperty("transport", defaultTransport)
+        if (transport == null) {
+            throw new GradleException("Transport not found. Define transport in the local.properties file.")
+        } else if (!transport.equalsIgnoreCase("SoftAP") && !transport.equalsIgnoreCase("BLE") && !transport.equalsIgnoreCase("Both")) {
+            throw new GradleException("Invalid 'transport' value. Please check 'transport' value in local.properties file.")
+        } else {
+            buildConfigField "String", "TRANSPORT", '"' + transport + '"'
+        }
+
+        def security = localProperties.getProperty("security", defaultSecurity)
+        if (security == null) {
+            throw new GradleException("Security not found. Define security in the local.properties file.")
+        } else if (!security.equalsIgnoreCase("Sec0") && !security.equalsIgnoreCase("Sec1")) {
+            throw new GradleException("Invalid 'security' value. Please check 'security' value in local.properties file.")
+        } else {
+            buildConfigField "String", "SECURITY", '"' + security + '"'
+        }
+
+        buildConfigField "boolean", "isScheduleSupported", localProperties.getProperty("isScheduleSupported", "true")
+        buildConfigField "boolean", "isLocalControlSupported", localProperties.getProperty("isLocalControlSupported", "true")
+
+        buildConfigField "String", "AWS_REGION", '"' + localProperties.getProperty("awsRegion", defaultAwsRegion) + '"'
+        buildConfigField "String", "USER_POOL_ID", '"' + localProperties.getProperty("userPoolId", defaultUserPoolId) + '"'
+        buildConfigField "String", "CLIENT_ID", '"' + localProperties.getProperty("clientId", defaultClientId) + '"'
+
+        buildConfigField "String", "BASE_URL", '"' + localProperties.getProperty("baseUrl", defaultBaseUrl) + '"'
+        buildConfigField "String", "CLAIM_BASE_URL", '"' + localProperties.getProperty("claimBaseUrl", defaultClaimBaseUrl) + '"'
+
+        buildConfigField "String", "AUTH_URL", '"' + localProperties.getProperty("authUrl", defaultAuthUrl) + '"'
+        buildConfigField "String", "TOKEN_URL", '"' + localProperties.getProperty("authUrl") + "/token" + '"'
+        buildConfigField "String", "REDIRECT_URI", '"' + localProperties.getProperty("redirectUri", defaultRedirectUri) + '"'
+        buildConfigField "String", "GITHUB_URL", '"' + gitHubUrl + '"'
+        buildConfigField "String", "GOOGLE_URL", '"' + googleUrl + '"'
+
+        buildConfigField "String", "DOCUMENTATION_URL", '"' + localProperties.getProperty("docUrl", defaultDocUrl) + '"'
+        buildConfigField "String", "PRIVACY_URL", '"' + localProperties.getProperty("privacyUrl", defaultPrivacyUrl) + '"'
+        buildConfigField "String", "TERMS_URL", '"' + localProperties.getProperty("termsOfUseUrl", defaultTermsOfUseUrl) + '"'
     }
 
     buildTypes {
@@ -28,26 +98,10 @@ android {
             minifyEnabled false
             debuggable false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            buildConfigField "String", "GitHash", "\"${getGitHash()}\""
-            resValue "string", "security_type", "sec1"
-            resValue "string", "proof_of_possesion", "abcd1234"
-            resValue "string", "aws_region", ""
-            resValue "string", "user_pool_id", "your_user_pool_id"
-            resValue "string", "client_id", "your_client_id"
-            buildConfigField "boolean", "isScheduleSupported", "true"
-            buildConfigField "boolean", "isLocalControlSupported", "true"
         }
 
         debug {
             debuggable true
-            buildConfigField "String", "GitHash", "\"${getGitHash()}\""
-            resValue "string", "security_type", "sec1"
-            resValue "string", "proof_of_possesion", "abcd1234"
-            resValue "string", "aws_region", ""
-            resValue "string", "user_pool_id", "your_user_pool_id"
-            resValue "string", "client_id", "your_client_id"
-            buildConfigField "boolean", "isScheduleSupported", "true"
-            buildConfigField "boolean", "isLocalControlSupported", "true"
         }
     }
 
@@ -89,7 +143,7 @@ dependencies {
     implementation 'com.wang.avi:library:2.1.3'
     implementation 'org.greenrobot:eventbus:3.1.1'
     implementation 'com.auth0.android:jwtdecode:1.4.0'
-    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'com.google.code.gson:gson:2.8.6'
     implementation 'com.squareup.retrofit2:retrofit:2.6.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.6.0'
     implementation 'com.squareup.retrofit2:adapter-rxjava2:2.5.0'
@@ -108,7 +162,7 @@ dependencies {
     implementation 'android.arch.persistence.room:runtime:1.1.1'
     annotationProcessor 'android.arch.persistence.room:compiler:1.1.1'
 
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test:runner:1.2.0'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    testImplementation 'junit:junit:4.13.1'
+    androidTestImplementation 'androidx.test:runner:1.3.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
 }

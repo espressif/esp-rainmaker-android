@@ -36,6 +36,7 @@ import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.EspDatabase;
 import com.espressif.JsonDataParser;
+import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Action;
 import com.espressif.ui.models.ApiResponse;
@@ -117,10 +118,12 @@ public class ApiManager {
     public void getOAuthToken(String code, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get OAuth Token");
+        String url = BuildConfig.TOKEN_URL;
+
         try {
-            apiInterface.loginWithGithub("application/x-www-form-urlencoded",
-                    "authorization_code", context.getString(R.string.client_id), code,
-                    AppConstants.REDIRECT_URI).enqueue(new Callback<ResponseBody>() {
+            apiInterface.loginWithGithub(url, "application/x-www-form-urlencoded",
+                    "authorization_code", BuildConfig.CLIENT_ID, code,
+                    BuildConfig.REDIRECT_URI).enqueue(new Callback<ResponseBody>() {
 
                 @Override
                 public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -229,8 +232,9 @@ public class ApiManager {
     public void getSupportedVersions(final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Supported Versions");
+        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + "apiversions";
 
-        apiInterface.getSupportedVersions()
+        apiInterface.getSupportedVersions(url)
 
                 .enqueue(new Callback<ResponseBody>() {
 
@@ -315,8 +319,9 @@ public class ApiManager {
     public void getNodes(final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Nodes");
+        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes?node_details=true";
 
-        apiInterface.getNodes(accessToken).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getNodes(url, accessToken).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -687,8 +692,9 @@ public class ApiManager {
     public void getNodeDetails(String nodeId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Node Details for id : " + nodeId);
+        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes";
 
-        apiInterface.getNode(accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getNode(url, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -831,8 +837,9 @@ public class ApiManager {
         req.setNodeId(nodeId);
         req.setSecretKey(secretKey);
         req.setOperation("add");
+        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/mapping";
 
-        apiInterface.addDevice(accessToken, req).enqueue(new Callback<ResponseBody>() {
+        apiInterface.addNode(url, accessToken, req).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -908,8 +915,9 @@ public class ApiManager {
         DeviceOperationRequest req = new DeviceOperationRequest();
         req.setNodeId(nodeId);
         req.setOperation("remove");
+        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/mapping";
 
-        apiInterface.removeDevice(accessToken, req).enqueue(new Callback<ResponseBody>() {
+        apiInterface.removeNode(url, accessToken, req).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -969,8 +977,9 @@ public class ApiManager {
     public void getParamsValues(final String nodeId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Param values for node : " + nodeId);
+        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/params";
 
-        apiInterface.getParamValue(accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getParamValue(url, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1223,8 +1232,9 @@ public class ApiManager {
     public void updateParamValue(final String nodeId, JsonObject body, final ApiResponseListener listener) {
 
         Log.d(TAG, "Updating param value");
+        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/params";
 
-        apiInterface.updateParamValue(accessToken, nodeId, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.updateParamValue(url, accessToken, nodeId, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1294,6 +1304,7 @@ public class ApiManager {
                                 final ApiResponseListener listener) {
 
         Log.d(TAG, "Updating Schedule");
+        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/params";
         List<Observable<ApiResponse>> requests = new ArrayList<>();
         final ArrayList<ApiResponse> responses = new ArrayList<>();
 
@@ -1303,7 +1314,7 @@ public class ApiManager {
             JsonObject jsonBody = entry.getValue();
 
             requests.add(
-                    apiInterface.updateSchedules(accessToken, nodeId, jsonBody)
+                    apiInterface.updateSchedules(url, accessToken, nodeId, jsonBody)
 
                             .map(new Function<ResponseBody, ApiResponse>() {
 
@@ -1374,12 +1385,12 @@ public class ApiManager {
                 });
     }
 
-    //
     private void getAddNodeRequestStatus(final String nodeId, String requestId) {
 
         Log.d(TAG, "Get Node mapping status");
+        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/mapping";
 
-        apiInterface.getAddNodeRequestStatus(accessToken, requestId, true).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getAddNodeRequestStatus(url, accessToken, requestId, true).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1567,11 +1578,12 @@ public class ApiManager {
     public void getNewTokenForOAuth(final ApiResponseListener listener) {
 
         Log.d(TAG, "Get New Token For OAuth");
+        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/login";
         HashMap<String, String> body = new HashMap<>();
         body.put("user_name", userId);
         body.put("refreshtoken", refreshToken);
 
-        apiInterface.getOAuthLoginToken(body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getOAuthLoginToken(url, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1635,8 +1647,9 @@ public class ApiManager {
     public void initiateClaim(JsonObject body, final ApiResponseListener listener) {
 
         Log.d(TAG, "Initiate Claiming...");
+        String url = BuildConfig.CLAIM_BASE_URL + "/claim/initiate";
 
-        apiInterface.initiateClaiming(accessToken, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.initiateClaiming(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1688,8 +1701,9 @@ public class ApiManager {
     public void verifyClaiming(JsonObject body, final ApiResponseListener listener) {
 
         Log.d(TAG, "Verifying Claiming...");
+        String url = BuildConfig.CLAIM_BASE_URL + "/claim/verify";
 
-        apiInterface.verifyClaiming(accessToken, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.verifyClaiming(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {

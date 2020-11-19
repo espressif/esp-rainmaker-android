@@ -30,6 +30,7 @@ import retrofit2.http.Header;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Query;
+import retrofit2.http.Url;
 
 /**
  * This class represents interface for all APIs.
@@ -37,59 +38,59 @@ import retrofit2.http.Query;
 public interface ApiInterface {
 
     @FormUrlEncoded
-    @POST(AppConstants.TOKEN_URL)
-    Call<ResponseBody> loginWithGithub(@Header("Content-type") String contentType,
+    @POST
+    Call<ResponseBody> loginWithGithub(@Url String url, @Header("Content-type") String contentType,
                                        @Field("grant_type") String grant_type,
                                        @Field("client_id") String client_id,
                                        @Field("code") String code,
                                        @Field("redirect_uri") String redirect_uri);
 
     // Get Supported Versions
-    @GET(AppConstants.BASE_URL + AppConstants.PATH_SEPARATOR + "apiversions")
-    Call<ResponseBody> getSupportedVersions();
+    @GET
+    Call<ResponseBody> getSupportedVersions(@Url String url);
 
     // Do login (for GitHub / Google login)
-    @POST(AppConstants.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/login")
-    Call<ResponseBody> getOAuthLoginToken(@Body HashMap<String, String> body);
+    @POST
+    Call<ResponseBody> getOAuthLoginToken(@Url String url, @Body HashMap<String, String> body);
 
     // Get Nodes
-    @GET(AppConstants.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes?node_details=true")
-    Call<ResponseBody> getNodes(@Header(AppConstants.HEADER_AUTHORIZATION) String token);
+    @GET
+    Call<ResponseBody> getNodes(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token);
 
     // Get Node Details
-    @GET(AppConstants.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes")
-    Call<ResponseBody> getNode(@Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query("node_id") String nodeId);
+    @GET
+    Call<ResponseBody> getNode(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query("node_id") String nodeId);
 
     // Add Node
-    @PUT(AppConstants.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/mapping")
-    Call<ResponseBody> addDevice(@Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body DeviceOperationRequest rawJsonString);
+    @PUT
+    Call<ResponseBody> addNode(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body DeviceOperationRequest rawJsonString);
 
     // Get Add Node request status
-    @GET(AppConstants.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/mapping")
-    Call<ResponseBody> getAddNodeRequestStatus(@Header(AppConstants.HEADER_AUTHORIZATION) String token,
+    @GET
+    Call<ResponseBody> getAddNodeRequestStatus(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
                                                @Query("request_id") String requestId, @Query("user_request") boolean userReq);
 
     // Get param values
-    @GET(AppConstants.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/params")
-    Call<ResponseBody> getParamValue(@Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query("nodeid") String nodeId);
+    @GET
+    Call<ResponseBody> getParamValue(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query("nodeid") String nodeId);
 
     // Update param value
-    @PUT(AppConstants.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/params")
-    Call<ResponseBody> updateParamValue(@Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query("nodeid") String nodeId, @Body JsonObject body);
+    @PUT
+    Call<ResponseBody> updateParamValue(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query("nodeid") String nodeId, @Body JsonObject body);
 
     // Update schedules
-    @PUT(AppConstants.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/params")
-    Observable<ResponseBody> updateSchedules(@Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query("nodeid") String nodeId, @Body JsonObject body);
+    @PUT
+    Observable<ResponseBody> updateSchedules(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query("nodeid") String nodeId, @Body JsonObject body);
 
     // Remove Node
-    @PUT(AppConstants.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/mapping")
-    Call<ResponseBody> removeDevice(@Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body DeviceOperationRequest rawJsonString);
+    @PUT
+    Call<ResponseBody> removeNode(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body DeviceOperationRequest rawJsonString);
 
     // Claiming initiate
-    @POST(AppConstants.CLAIM_BASE_URL + "/claim/initiate")
-    Call<ResponseBody> initiateClaiming(@Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonObject body);
+    @POST
+    Call<ResponseBody> initiateClaiming(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonObject body);
 
     // Claiming verify
-    @POST(AppConstants.CLAIM_BASE_URL + "/claim/verify")
-    Call<ResponseBody> verifyClaiming(@Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonObject body);
+    @POST
+    Call<ResponseBody> verifyClaiming(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonObject body);
 }

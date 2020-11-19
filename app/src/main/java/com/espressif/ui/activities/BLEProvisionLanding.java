@@ -87,7 +87,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
     private int position = -1;
     private boolean isDeviceConnected = false, isConnecting = false;
     private ESPProvisionManager provisionManager;
-    private int securityType;
+    private String securityType;
     private boolean isScanning = false;
 
     @Override
@@ -98,7 +98,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitle(R.string.title_activity_connect_device);
         setSupportActionBar(toolbar);
-        securityType = getIntent().getIntExtra(AppConstants.KEY_SECURITY_TYPE, 0);
+        securityType = getIntent().getStringExtra(AppConstants.KEY_SECURITY_TYPE);
 
         // Use this check to determine whether BLE is supported on the device.  Then you can
         // selectively disable BLE-related features.
@@ -389,7 +389,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
             Log.d(TAG, "Version Info JSON not available.");
         }
 
-        if (deviceCaps != null && !deviceCaps.contains("no_pop") && securityType == 1) {
+        if (deviceCaps != null && !deviceCaps.contains("no_pop") && AppConstants.SECURITY_1.equalsIgnoreCase(securityType)) {
 
             goToPopActivity();
 

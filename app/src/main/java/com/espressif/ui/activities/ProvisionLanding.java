@@ -64,14 +64,13 @@ public class ProvisionLanding extends AppCompatActivity {
     private ContentLoadingProgressBar progressBar;
 
     private ESPProvisionManager provisionManager;
-    private int securityType;
-    private String deviceName, pop;
+    private String securityType, deviceName, pop;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_provision_landing);
-        securityType = getIntent().getIntExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_TYPE_1);
+        securityType = getIntent().getStringExtra(AppConstants.KEY_SECURITY_TYPE);
         deviceName = getIntent().getStringExtra(AppConstants.KEY_DEVICE_NAME);
         pop = getIntent().getStringExtra(AppConstants.KEY_PROOF_OF_POSSESSION);
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
@@ -275,7 +274,7 @@ public class ProvisionLanding extends AppCompatActivity {
 
             } else {
 
-                if (deviceCaps != null && !deviceCaps.contains("no_pop") && securityType == 1) {
+                if (deviceCaps != null && !deviceCaps.contains("no_pop") && AppConstants.SECURITY_1.equalsIgnoreCase(securityType)) {
 
                     goToPopActivity();
 
