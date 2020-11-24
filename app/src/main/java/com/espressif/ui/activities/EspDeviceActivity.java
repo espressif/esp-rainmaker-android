@@ -17,9 +17,11 @@ package com.espressif.ui.activities;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -30,19 +32,25 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
-import com.espressif.cloudapi.ApiManager;
+import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.AttrParamAdapter;
 import com.espressif.ui.adapters.ParamAdapter;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 
+import static com.espressif.EspApplication.GetDataStatus;
+
 public class EspDeviceActivity extends AppCompatActivity {
+
+    private static final String TAG = EspDeviceActivity.class.getSimpleName();
 
     private static final int NODE_DETAILS_ACTIVITY_REQUEST = 10;
     private static final int UPDATE_INTERVAL = 5000;
@@ -52,10 +60,11 @@ public class EspDeviceActivity extends AppCompatActivity {
     private RecyclerView paramRecyclerView;
     private RecyclerView attrRecyclerView;
     private SwipeRefreshLayout swipeRefreshLayout;
+    private Snackbar snackbar;
 
     private Device device;
     private EspApplication espApp;
-    private ApiManager apiManager;
+    private NetworkApiManager networkApiManager;
     private ParamAdapter paramAdapter;
     private AttrParamAdapter attrAdapter;
     private ArrayList<Param> paramList;
@@ -64,6 +73,7 @@ public class EspDeviceActivity extends AppCompatActivity {
     private ContentLoadingProgressBar progressBar;
     private boolean isNodeOnline;
     private long timeStampOfStatus;
+    private boolean isNetworkAvailable = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,24 +82,23 @@ public class EspDeviceActivity extends AppCompatActivity {
         setContentView(R.layout.activity_esp_device);
 
         espApp = (EspApplication) getApplicationContext();
-        apiManager = ApiManager.getInstance(getApplicationContext());
+        networkApiManager = new NetworkApiManager(getApplicationContext());
         device = getIntent().getParcelableExtra(AppConstants.KEY_ESP_DEVICE);
         handler = new Handler();
         isNodeOnline = espApp.nodeMap.get(device.getNodeId()).isOnline();
         timeStampOfStatus = espApp.nodeMap.get(device.getNodeId()).getTimeStampOfStatus();
-
+        snackbar = Snackbar.make(findViewById(R.id.params_parent_layout), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
         ArrayList<Param> espDeviceParams = device.getParams();
         setParamList(espDeviceParams);
 
         initViews();
-        showLoading();
-        getNodeDetails();
+        updateUi();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        startUpdateValueTask();
+        getNodeDetails();
     }
 
     @Override
@@ -100,7 +109,7 @@ public class EspDeviceActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        handler.removeCallbacks(updateValuesTask);
+        stopUpdateValueTask();
         super.onDestroy();
     }
 
@@ -221,84 +230,73 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         stopUpdateValueTask();
 
-        apiManager.getNodeDetails(device.getNodeId(), new ApiResponseListener() {
+        networkApiManager.getNodeDetails(device.getNodeId(), new ApiResponseListener() {
 
             @Override
             public void onSuccess(Bundle data) {
 
-                hideLoading();
-                swipeRefreshLayout.setRefreshing(false);
+                runOnUiThread(new Runnable() {
 
-                if (espApp.nodeMap.containsKey(device.getNodeId())) {
+                    @Override
+                    public void run() {
 
-                    ArrayList<Device> devices = espApp.nodeMap.get(device.getNodeId()).getDevices();
-                    isNodeOnline = espApp.nodeMap.get(device.getNodeId()).isOnline();
-                    timeStampOfStatus = espApp.nodeMap.get(device.getNodeId()).getTimeStampOfStatus();
-
-                    for (int i = 0; i < devices.size(); i++) {
-
-                        if (device.getDeviceName().equals(devices.get(i).getDeviceName())) {
-
-                            device = devices.get(i);
-                            ArrayList<Param> espDeviceParams = device.getParams();
-                            setParamList(espDeviceParams);
-                            updateUi();
-                            break;
-                        }
+                        isNetworkAvailable = true;
+                        hideLoading();
+                        snackbar.dismiss();
+                        swipeRefreshLayout.setRefreshing(false);
+                        updateUi();
+                        startUpdateValueTask();
                     }
-                } else {
-                    finish();
-                }
-                startUpdateValueTask();
+                });
             }
 
             @Override
             public void onFailure(Exception exception) {
 
-                exception.printStackTrace();
                 hideLoading();
                 swipeRefreshLayout.setRefreshing(false);
-                startUpdateValueTask();
+                if (exception instanceof CloudException) {
+                    Toast.makeText(EspDeviceActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(EspDeviceActivity.this, "Failed to get node details", Toast.LENGTH_SHORT).show();
+                }
+                updateUi();
             }
         });
     }
 
     private void getValues() {
 
-        apiManager.getParamsValues(device.getNodeId(), new ApiResponseListener() {
+        networkApiManager.getParamsValues(device.getNodeId(), new ApiResponseListener() {
 
             @Override
             public void onSuccess(Bundle data) {
 
-                hideLoading();
-                swipeRefreshLayout.setRefreshing(false);
+                runOnUiThread(new Runnable() {
 
-                if (espApp.nodeMap.containsKey(device.getNodeId())) {
+                    @Override
+                    public void run() {
 
-                    ArrayList<Device> devices = espApp.nodeMap.get(device.getNodeId()).getDevices();
-
-                    for (int i = 0; i < devices.size(); i++) {
-
-                        if (device.getDeviceName().equals(devices.get(i).getDeviceName())) {
-
-                            device = devices.get(i);
-                            ArrayList<Param> espDeviceParams = device.getParams();
-                            setParamList(espDeviceParams);
-                            updateUi();
-                            break;
-                        }
+                        isNetworkAvailable = true;
+                        hideLoading();
+                        swipeRefreshLayout.setRefreshing(false);
+                        updateUi();
                     }
-                } else {
-                    finish();
-                }
+                });
             }
 
             @Override
             public void onFailure(Exception exception) {
 
-                exception.printStackTrace();
+                stopUpdateValueTask();
                 hideLoading();
                 swipeRefreshLayout.setRefreshing(false);
+                if (exception instanceof CloudException) {
+                    Toast.makeText(EspDeviceActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(EspDeviceActivity.this, "Failed to get param values", Toast.LENGTH_SHORT).show();
+                }
+                updateUi();
             }
         });
     }
@@ -353,39 +351,89 @@ public class EspDeviceActivity extends AppCompatActivity {
 
     private void updateUi() {
 
+        boolean deviceFound = false;
+        if (espApp.nodeMap.containsKey(device.getNodeId())) {
+
+            ArrayList<Device> devices = espApp.nodeMap.get(device.getNodeId()).getDevices();
+            isNodeOnline = espApp.nodeMap.get(device.getNodeId()).isOnline();
+            timeStampOfStatus = espApp.nodeMap.get(device.getNodeId()).getTimeStampOfStatus();
+
+            for (int i = 0; i < devices.size(); i++) {
+
+                if (device.getDeviceName().equals(devices.get(i).getDeviceName())) {
+
+                    device = devices.get(i);
+                    deviceFound = true;
+                    break;
+                }
+            }
+
+        } else {
+            Log.e(TAG, "Node does not exist in list. It may be deleted.");
+            finish();
+            return;
+        }
+
+        if (!deviceFound) {
+            Log.e(TAG, "Device does not exist in node.");
+            finish();
+            return;
+        }
+
+        ArrayList<Param> espDeviceParams = device.getParams();
+        setParamList(espDeviceParams);
+
         if (!isNodeOnline) {
 
-            tvNodeOffline.setVisibility(View.VISIBLE);
+            if (espApp.getCurrentStatus().equals(GetDataStatus.GET_DATA_SUCCESS)) {
 
-            String offlineText = getString(R.string.offline_at);
-            tvNodeOffline.setText(offlineText);
+                tvNodeOffline.setVisibility(View.VISIBLE);
 
-            if (timeStampOfStatus != 0) {
+                if (espApp.mDNSDeviceMap.containsKey(device.getNodeId())) {
 
-                Calendar calendar = Calendar.getInstance();
-                int day = calendar.get(Calendar.DATE);
-
-                calendar.setTimeInMillis(timeStampOfStatus);
-                int offlineDay = calendar.get(Calendar.DATE);
-
-                if (day == offlineDay) {
-
-                    SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
-                    String time = formatter.format(calendar.getTime());
-                    offlineText = getString(R.string.offline_at) + " " + time;
+                    tvNodeOffline.setText(R.string.local_device_text);
 
                 } else {
 
-                    SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yy, HH:mm");
-                    String time = formatter.format(calendar.getTime());
-                    offlineText = getString(R.string.offline_at) + " " + time;
+                    String offlineText = getString(R.string.status_offline);
+                    tvNodeOffline.setText(offlineText);
+
+                    if (timeStampOfStatus != 0) {
+
+                        Calendar calendar = Calendar.getInstance();
+                        int day = calendar.get(Calendar.DATE);
+
+                        calendar.setTimeInMillis(timeStampOfStatus);
+                        int offlineDay = calendar.get(Calendar.DATE);
+
+                        if (day == offlineDay) {
+
+                            SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
+                            String time = formatter.format(calendar.getTime());
+                            offlineText = getString(R.string.offline_at) + " " + time;
+
+                        } else {
+
+                            SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yy, HH:mm");
+                            String time = formatter.format(calendar.getTime());
+                            offlineText = getString(R.string.offline_at) + " " + time;
+                        }
+                        tvNodeOffline.setText(offlineText);
+                    }
                 }
-                tvNodeOffline.setText(offlineText);
+
+            } else {
+                tvNodeOffline.setVisibility(View.INVISIBLE);
             }
 
         } else {
 
-            tvNodeOffline.setVisibility(View.GONE);
+            if (espApp.mDNSDeviceMap.containsKey(device.getNodeId())) {
+                tvNodeOffline.setVisibility(View.VISIBLE);
+                tvNodeOffline.setText(R.string.local_device_text);
+            } else {
+                tvNodeOffline.setVisibility(View.INVISIBLE);
+            }
         }
 
         paramAdapter.updateList(paramList);
@@ -421,6 +469,13 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         if (!isParamTypeNameAvailable) {
             tvTitle.setText(device.getDeviceName());
+        }
+
+        if (espApp.getCurrentStatus().equals(GetDataStatus.GET_DATA_FAILED) && !isNetworkAvailable) {
+            if (!snackbar.isShown()) {
+                snackbar = Snackbar.make(findViewById(R.id.params_parent_layout), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
+            }
+            snackbar.show();
         }
     }
 

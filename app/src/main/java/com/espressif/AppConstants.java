@@ -64,6 +64,10 @@ public class AppConstants {
     public static final String PARAM_TYPE_BRIGHTNESS = "esp.param.brightness";
     public static final String PARAM_TYPE_TEMPERATURE = "esp.param.temperature";
 
+    public static final String ESP_DATABASE_NAME = "esp_db";
+    public static final String NODE_TABLE = "node_table";
+    public static final String MDNS_SERVICE_TYPE = "_esp_local_ctrl._tcp.";
+
     public enum UpdateEventType {
 
         EVENT_DEVICE_ADDED,

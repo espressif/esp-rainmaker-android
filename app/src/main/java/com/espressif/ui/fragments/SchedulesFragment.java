@@ -91,6 +91,7 @@ public class SchedulesFragment extends Fragment {
         tvNoSchedule.setVisibility(View.GONE);
         rlNoSchedules.setVisibility(View.GONE);
         recyclerView.setVisibility(View.GONE);
+        updateScheduleUi();
         ((EspMainActivity) getActivity()).setUpdateListener(updateListener);
         return root;
     }
@@ -160,17 +161,12 @@ public class SchedulesFragment extends Fragment {
 
     private void updateScheduleUi() {
 
-        switch (((EspMainActivity) getActivity()).getCurrentStatus()) {
+        switch (espApp.getCurrentStatus()) {
 
-            case NOT_RECEIVED:
-                break;
-
+            case FETCHING_DATA:
             case GET_DATA_SUCCESS:
-                updateUiOnSuccess(false);
-                break;
-
             case GET_DATA_FAILED:
-                updateUiOnFailure();
+                updateUiOnSuccess(false);
                 break;
 
             case DATA_REFRESHING:

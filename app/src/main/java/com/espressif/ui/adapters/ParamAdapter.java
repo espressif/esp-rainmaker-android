@@ -37,7 +37,7 @@ import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.AppConstants;
-import com.espressif.cloudapi.ApiManager;
+import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.EspDeviceActivity;
@@ -55,7 +55,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
     private Activity context;
     private ArrayList<Param> params;
-    private ApiManager apiManager;
+    private NetworkApiManager networkApiManager;
     private String nodeId, deviceName;
 
     public ParamAdapter(Activity context, String nodeId, String deviceName, ArrayList<Param> deviceList) {
@@ -63,7 +63,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         this.nodeId = nodeId;
         this.deviceName = deviceName;
         this.params = deviceList;
-        apiManager = ApiManager.getInstance(context.getApplicationContext());
+        networkApiManager = new NetworkApiManager(context.getApplicationContext());
     }
 
     @Override
@@ -192,7 +192,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                             jsonParam.addProperty(param.getName(), finalProgress);
                             body.add(deviceName, jsonParam);
 
-                            apiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                            networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
 
                                 @Override
                                 public void onSuccess(Bundle data) {
@@ -272,7 +272,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                             jsonParam.addProperty(param.getName(), finalProgress);
                             body.add(deviceName, jsonParam);
 
-                            apiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                            networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
 
                                 @Override
                                 public void onSuccess(Bundle data) {
@@ -351,7 +351,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                         jsonParam.addProperty(param.getName(), isChecked);
                         body.add(deviceName, jsonParam);
 
-                        apiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                        networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
 
                             @Override
                             public void onSuccess(Bundle data) {
@@ -484,33 +484,47 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                             body.add(deviceName, jsonParam);
 
                             final boolean finalIsOn = isOn;
-                            apiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                            networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
 
                                 @Override
                                 public void onSuccess(Bundle data) {
 
-                                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                                    myViewHolder.progressBar.setVisibility(View.GONE);
+                                    context.runOnUiThread(new Runnable() {
 
-                                    if (finalIsOn) {
+                                        @Override
+                                        public void run() {
 
-                                        myViewHolder.tvLabelValue.setText("true");
-                                        params.get(position).setLabelValue("true");
+                                            myViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                            myViewHolder.progressBar.setVisibility(View.GONE);
 
-                                    } else {
-                                        myViewHolder.tvLabelValue.setText("false");
-                                        params.get(position).setLabelValue("false");
-                                    }
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                            if (finalIsOn) {
+
+                                                myViewHolder.tvLabelValue.setText("true");
+                                                params.get(position).setLabelValue("true");
+
+                                            } else {
+                                                myViewHolder.tvLabelValue.setText("false");
+                                                params.get(position).setLabelValue("false");
+                                            }
+                                            ((EspDeviceActivity) context).startUpdateValueTask();
+                                        }
+                                    });
                                 }
 
                                 @Override
                                 public void onFailure(Exception exception) {
 
-                                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                                    myViewHolder.progressBar.setVisibility(View.GONE);
-                                    myViewHolder.tvLabelValue.setText(param.getLabelValue());
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                    context.runOnUiThread(new Runnable() {
+
+                                        @Override
+                                        public void run() {
+
+                                            myViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                            myViewHolder.progressBar.setVisibility(View.GONE);
+                                            myViewHolder.tvLabelValue.setText(param.getLabelValue());
+                                            ((EspDeviceActivity) context).startUpdateValueTask();
+                                        }
+                                    });
                                 }
                             });
 
@@ -532,25 +546,37 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                     jsonParam.addProperty(param.getName(), newValue);
                     body.add(deviceName, jsonParam);
 
-                    apiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                    networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
 
                         @Override
                         public void onSuccess(Bundle data) {
 
-                            myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                            myViewHolder.progressBar.setVisibility(View.GONE);
-                            myViewHolder.tvLabelValue.setText(value);
-                            params.get(position).setLabelValue(value);
-                            ((EspDeviceActivity) context).startUpdateValueTask();
+                            context.runOnUiThread(new Runnable() {
+
+                                @Override
+                                public void run() {
+                                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    myViewHolder.progressBar.setVisibility(View.GONE);
+                                    myViewHolder.tvLabelValue.setText(value);
+                                    params.get(position).setLabelValue(value);
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+                            });
                         }
 
                         @Override
                         public void onFailure(Exception exception) {
 
-                            myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                            myViewHolder.progressBar.setVisibility(View.GONE);
-                            myViewHolder.tvLabelValue.setText(param.getLabelValue());
-                            ((EspDeviceActivity) context).startUpdateValueTask();
+                            context.runOnUiThread(new Runnable() {
+
+                                @Override
+                                public void run() {
+                                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    myViewHolder.progressBar.setVisibility(View.GONE);
+                                    myViewHolder.tvLabelValue.setText(param.getLabelValue());
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+                            });
                         }
                     });
 
@@ -561,25 +587,37 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                     jsonParam.addProperty(param.getName(), newValue);
                     body.add(deviceName, jsonParam);
 
-                    apiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                    networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
 
                         @Override
                         public void onSuccess(Bundle data) {
 
-                            myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                            myViewHolder.progressBar.setVisibility(View.GONE);
-                            myViewHolder.tvLabelValue.setText(value);
-                            params.get(position).setLabelValue(value);
-                            ((EspDeviceActivity) context).startUpdateValueTask();
+                            context.runOnUiThread(new Runnable() {
+
+                                @Override
+                                public void run() {
+                                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    myViewHolder.progressBar.setVisibility(View.GONE);
+                                    myViewHolder.tvLabelValue.setText(value);
+                                    params.get(position).setLabelValue(value);
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+                            });
                         }
 
                         @Override
                         public void onFailure(Exception exception) {
 
-                            myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                            myViewHolder.progressBar.setVisibility(View.GONE);
-                            myViewHolder.tvLabelValue.setText(param.getLabelValue());
-                            ((EspDeviceActivity) context).startUpdateValueTask();
+                            context.runOnUiThread(new Runnable() {
+
+                                @Override
+                                public void run() {
+                                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    myViewHolder.progressBar.setVisibility(View.GONE);
+                                    myViewHolder.tvLabelValue.setText(param.getLabelValue());
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+                            });
                         }
                     });
 
@@ -588,29 +626,42 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                     jsonParam.addProperty(param.getName(), value);
                     body.add(deviceName, jsonParam);
 
-                    apiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                    networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
 
                         @Override
                         public void onSuccess(Bundle data) {
 
-                            myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                            myViewHolder.progressBar.setVisibility(View.GONE);
-                            myViewHolder.tvLabelValue.setText(value);
-                            params.get(position).setLabelValue(value);
+                            context.runOnUiThread(new Runnable() {
 
-                            if (params.get(position).getParamType() != null && params.get(position).getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-                                ((EspDeviceActivity) context).setDeviceName(value);
-                            }
-                            ((EspDeviceActivity) context).startUpdateValueTask();
+                                @Override
+                                public void run() {
+
+                                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    myViewHolder.progressBar.setVisibility(View.GONE);
+                                    myViewHolder.tvLabelValue.setText(value);
+                                    params.get(position).setLabelValue(value);
+
+                                    if (params.get(position).getParamType() != null && params.get(position).getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
+                                        ((EspDeviceActivity) context).setDeviceName(value);
+                                    }
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+                            });
                         }
 
                         @Override
                         public void onFailure(Exception exception) {
 
-                            myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                            myViewHolder.progressBar.setVisibility(View.GONE);
-                            myViewHolder.tvLabelValue.setText(param.getLabelValue());
-                            ((EspDeviceActivity) context).startUpdateValueTask();
+                            context.runOnUiThread(new Runnable() {
+
+                                @Override
+                                public void run() {
+                                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    myViewHolder.progressBar.setVisibility(View.GONE);
+                                    myViewHolder.tvLabelValue.setText(param.getLabelValue());
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+                            });
                         }
                     });
                 }

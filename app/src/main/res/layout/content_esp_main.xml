@@ -8,12 +8,19 @@
     tools:context="com.espressif.ui.activities.EspMainActivity"
     tools:showIn="@layout/activity_esp_main">
 
-    <FrameLayout
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:id="@+id/frame_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/bottom_navigation_view"
-        android:layout_alignParentTop="true" />
+        android:layout_alignParentTop="true" >
+
+        <androidx.viewpager.widget.ViewPager
+            android:id="@+id/view_pager"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@id/bottom_navigation_view" />
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <androidx.core.widget.ContentLoadingProgressBar
         android:id="@+id/progress_get_nodes"
@@ -30,10 +37,5 @@
         android:layout_alignParentBottom="true"
         app:menu="@menu/menu_bottom_tabs" />
 
-    <androidx.viewpager.widget.ViewPager
-        android:id="@+id/view_pager"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_above="@id/bottom_navigation_view" />
 
 </RelativeLayout>

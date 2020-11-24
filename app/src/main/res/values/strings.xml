@@ -96,6 +96,7 @@
     <string name="status_offline">Offline</string>
     <string name="offline_at">Offline at</string>
     <string name="no_devices_with_schedule">You don\'t have any device\nthat supports this.</string>
+    <string name="local_device_text">Reachable on WLAN</string>
 
     <!--Tab titles-->
     <string name="tab_login">SIGN IN</string>
@@ -239,6 +240,8 @@
     <string name="device_no_param">Device has no parameters</string>
     <string name="process_take_time">This may take time.</string>
     <string name="not_set">Not set</string>
+    <string name="msg_fetch_data">Fetching data from cloud</string>
+    <string name="msg_no_internet">No internet connection</string>
 
     <string name="prov_step_1">Sending Wi-Fi credentials</string>
     <string name="prov_step_2">Confirming Wi-Fi connection</string>

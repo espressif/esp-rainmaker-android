@@ -24,20 +24,9 @@ import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoDevice;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserSession;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.AuthenticationContinuation;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.AuthenticationDetails;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.ChallengeContinuation;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.MultiFactorAuthenticationContinuation;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.AuthenticationHandler;
 import com.espressif.AppConstants;
-import com.espressif.cloudapi.ApiManager;
-import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.user_module.AppHelper;
-
-import java.util.Locale;
 
 public class SplashActivity extends AppCompatActivity {
 
@@ -45,10 +34,8 @@ public class SplashActivity extends AppCompatActivity {
 
     private String email;
     private String accessToken;
-    private boolean isOAuthLogin;
 
     private Handler handler;
-    private ApiManager apiManager;
     private SharedPreferences sharedPreferences;
 
     @Override
@@ -57,12 +44,9 @@ public class SplashActivity extends AppCompatActivity {
         setContentView(R.layout.activity_splash);
 
         handler = new Handler();
-        apiManager = ApiManager.getInstance(getApplicationContext());
         sharedPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
         email = sharedPreferences.getString(AppConstants.KEY_EMAIL, "");
         accessToken = sharedPreferences.getString(AppConstants.KEY_ACCESS_TOKEN, "");
-        isOAuthLogin = sharedPreferences.getBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, false);
-        AppHelper.init(getApplicationContext());
 
         Log.d(TAG, "Email : " + email);
 
@@ -72,38 +56,8 @@ public class SplashActivity extends AppCompatActivity {
 
         } else {
 
-            boolean isTokenExpired = apiManager.isTokenExpired();
-
-            if (isTokenExpired) {
-
-                if (isOAuthLogin) {
-
-                    apiManager.getTokenAndUserId();
-                    apiManager.getNewTokenForOAuth(new ApiResponseListener() {
-
-                        @Override
-                        public void onSuccess(Bundle data) {
-                            handler.postDelayed(launchHomeScreenTask, 1500);
-                        }
-
-                        @Override
-                        public void onFailure(Exception exception) {
-                            handler.postDelayed(launchLoginScreenTask, 500);
-                        }
-                    });
-
-                } else {
-
-                    AppHelper.setUser(email);
-                    AppHelper.getPool().getUser(email).getSessionInBackground(authenticationHandler);
-                }
-
-            } else {
-
-                AppHelper.setUser(email);
-                apiManager.getTokenAndUserId();
-                handler.postDelayed(launchHomeScreenTask, 1500);
-            }
+            AppHelper.setUser(email);
+            handler.postDelayed(launchHomeScreenTask, 1500);
         }
     }
 
@@ -138,71 +92,4 @@ public class SplashActivity extends AppCompatActivity {
             launchHomeScreen();
         }
     };
-
-    AuthenticationHandler authenticationHandler = new AuthenticationHandler() {
-
-        @Override
-        public void onSuccess(CognitoUserSession cognitoUserSession, CognitoDevice device) {
-
-            Log.d(TAG, " -- Auth Success");
-            AppHelper.setCurrSession(cognitoUserSession);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString(AppConstants.KEY_EMAIL, email);
-            editor.putString(AppConstants.KEY_ID_TOKEN, cognitoUserSession.getIdToken().getJWTToken());
-            editor.putString(AppConstants.KEY_ACCESS_TOKEN, cognitoUserSession.getAccessToken().getJWTToken());
-            editor.putString(AppConstants.KEY_REFRESH_TOKEN, cognitoUserSession.getRefreshToken().getToken());
-            editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, false);
-            editor.apply();
-
-            AppHelper.newDevice(device);
-            apiManager.getTokenAndUserId();
-            launchHomeScreen();
-        }
-
-        @Override
-        public void getAuthenticationDetails(AuthenticationContinuation authenticationContinuation, String username) {
-
-            Log.d(TAG, "getAuthenticationDetails");
-            Locale.setDefault(Locale.US);
-            getUserAuthentication(authenticationContinuation, username);
-        }
-
-        @Override
-        public void getMFACode(MultiFactorAuthenticationContinuation multiFactorAuthenticationContinuation) {
-            // Nothing to do here
-            Log.d(TAG, "getMFACode");
-        }
-
-        @Override
-        public void onFailure(Exception e) {
-
-            Log.e(TAG, "onFailure");
-            e.printStackTrace();
-            launchLoginScreen();
-        }
-
-        @Override
-        public void authenticationChallenge(ChallengeContinuation continuation) {
-
-            // Nothing to do for this app.
-            /*
-             * For Custom authentication challenge, implement your logic to present challenge to the
-             * user and pass the user's responses to the continuation.
-             */
-            Log.d(TAG, "authenticationChallenge : " + continuation.getChallengeName());
-        }
-    };
-
-    private void getUserAuthentication(AuthenticationContinuation continuation, String username) {
-
-        Log.d(TAG, "getUserAuthentication");
-        if (username != null) {
-            email = username;
-            AppHelper.setUser(username);
-        }
-
-        AuthenticationDetails authenticationDetails = new AuthenticationDetails(email, "", null);
-        continuation.setAuthenticationDetails(authenticationDetails);
-        continuation.continueTask();
-    }
 }

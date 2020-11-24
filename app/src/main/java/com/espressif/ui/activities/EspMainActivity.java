@@ -34,14 +34,18 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager.widget.ViewPager;
 
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
+import com.espressif.EspDatabase;
+import com.espressif.JsonDataParser;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.mdns.mDNSApiManager;
+import com.espressif.mdns.mDNSDevice;
+import com.espressif.mdns.mDNSManager;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.HomeScreenPagerAdapter;
@@ -52,13 +56,18 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.UpdateEvent;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.snackbar.Snackbar;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Map;
+
+import static com.espressif.EspApplication.GetDataStatus;
 
 public class EspMainActivity extends AppCompatActivity {
 
@@ -66,9 +75,6 @@ public class EspMainActivity extends AppCompatActivity {
 
     private static final int REQUEST_LOCATION = 1;
 
-    private GetDataStatus currentStatus = GetDataStatus.NOT_RECEIVED;
-
-    private ContentLoadingProgressBar progressBar;
     private BottomNavigationView bottomNavigationView;
     private ViewPager viewPager;
     private TextView tvTitle;
@@ -78,6 +84,7 @@ public class EspMainActivity extends AppCompatActivity {
     private Fragment scheduleFragment;
     private MenuItem prevMenuItem;
     private HomeScreenPagerAdapter pagerAdapter;
+    private Snackbar snackbar;
 
     private ApiManager apiManager;
     private EspApplication espApp;
@@ -85,12 +92,7 @@ public class EspMainActivity extends AppCompatActivity {
     private ArrayList<Device> devices;
     private ArrayList<Schedule> schedules;
 
-    public enum GetDataStatus {
-        NOT_RECEIVED,
-        GET_DATA_SUCCESS,
-        GET_DATA_FAILED,
-        DATA_REFRESHING
-    }
+    private mDNSManager mdnsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,10 +103,24 @@ public class EspMainActivity extends AppCompatActivity {
         devices = new ArrayList<>();
         schedules = new ArrayList<>();
         espApp = (EspApplication) getApplicationContext();
+
+        apiManager = ApiManager.getInstance(getApplicationContext());
+
+        if (BuildConfig.isLocalControlSupported) {
+            mdnsManager = mDNSManager.getInstance(getApplicationContext(), AppConstants.MDNS_SERVICE_TYPE, listener);
+            mdnsManager.initializeNsd();
+        }
         initViews();
 
-        showLoading();
-        apiManager = ApiManager.getInstance(getApplicationContext());
+        snackbar = Snackbar.make(findViewById(R.id.frame_container), R.string.msg_fetch_data, Snackbar.LENGTH_INDEFINITE);
+        snackbar.show();
+
+        loadDataFromLocalStorage();
+
+        if (BuildConfig.isLocalControlSupported) {
+            startLocalDeviceDiscovery();
+        }
+
         getSupportedVersions();
     }
 
@@ -114,26 +130,10 @@ public class EspMainActivity extends AppCompatActivity {
 
         EventBus.getDefault().register(this);
 
-        if (apiManager.isTokenExpired()) {
-
-            apiManager.getNewToken(new ApiResponseListener() {
-
-                @Override
-                public void onSuccess(Bundle data) {
-                    getNodes();
-                }
-
-                @Override
-                public void onFailure(Exception exception) {
-                    exception.printStackTrace();
-                    currentStatus = GetDataStatus.GET_DATA_FAILED;
-                    hideLoading();
-                    updateUi();
-                }
-            });
-
-        } else if (!currentStatus.equals(GetDataStatus.NOT_RECEIVED)) {
+        if (!espApp.getCurrentStatus().equals(GetDataStatus.FETCHING_DATA)) {
             getNodes();
+        } else {
+            updateUi();
         }
     }
 
@@ -149,7 +149,9 @@ public class EspMainActivity extends AppCompatActivity {
         if (updateListenerArrayList != null) {
             updateListenerArrayList.clear();
         }
-
+        if (BuildConfig.isLocalControlSupported) {
+            mdnsManager.stopDiscovery();
+        }
         super.onDestroy();
     }
 
@@ -162,12 +164,11 @@ public class EspMainActivity extends AppCompatActivity {
 
             case EVENT_DEVICE_ADDED:
             case EVENT_DEVICE_REMOVED:
-                showLoading();
-                getNodes();
+                refreshDeviceList();
                 break;
 
             case EVENT_DEVICE_STATUS_UPDATE:
-                if (!currentStatus.equals(GetDataStatus.NOT_RECEIVED)) {
+                if (!espApp.getCurrentStatus().equals(GetDataStatus.FETCHING_DATA)) {
                     updateUi();
                 }
                 break;
@@ -246,12 +247,17 @@ public class EspMainActivity extends AppCompatActivity {
         updateListenerArrayList.remove(updateListener);
     }
 
+    public void refreshDeviceList() {
+
+        espApp.setCurrentStatus(GetDataStatus.DATA_REFRESHING);
+        getNodes();
+    }
+
     private void initViews() {
 
         tvTitle = findViewById(R.id.esp_toolbar_title);
         ivAddDevice = findViewById(R.id.btn_add_device);
         ivUserProfile = findViewById(R.id.btn_user_profile);
-        progressBar = findViewById(R.id.progress_get_nodes);
         bottomNavigationView = findViewById(R.id.bottom_navigation_view);
         viewPager = findViewById(R.id.view_pager);
 
@@ -314,6 +320,134 @@ public class EspMainActivity extends AppCompatActivity {
         viewPager.setAdapter(pagerAdapter);
     }
 
+    private void loadDataFromLocalStorage() {
+
+        EspDatabase espDatabase = EspDatabase.getInstance(getApplicationContext());
+        ArrayList<EspNode> nodeList = (ArrayList<EspNode>) espDatabase.getNodeDao().getNodesFromStorage();
+        Log.d(TAG, "Node list from Local storage : " + nodeList.size());
+        devices.clear();
+
+        for (int nodeIndex = 0; nodeIndex < nodeList.size(); nodeIndex++) {
+
+            EspNode node = nodeList.get(nodeIndex);
+
+            if (node != null) {
+
+                String configData = node.getConfigData();
+                String paramData = node.getParamData();
+
+                try {
+                    node = JsonDataParser.setNodeConfig(node, new JSONObject(configData));
+                    JSONObject paramsJson = new JSONObject(paramData);
+                    JsonDataParser.setAllParams(espApp, node, paramsJson);
+                    espApp.nodeMap.put(node.getNodeId(), node);
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // Set all devices offline
+        for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
+
+            String key = entry.getKey();
+            EspNode node = entry.getValue();
+
+            if (node != null) {
+                node.setOnline(false);
+                ArrayList<Device> espDevices = node.getDevices();
+                devices.addAll(espDevices);
+            }
+        }
+        Log.d(TAG, "Device list size from local storage : " + devices.size());
+    }
+
+    private void updateUi() {
+
+        switch (espApp.getCurrentStatus()) {
+
+            case FETCHING_DATA:
+                if (devices.size() > 0) {
+                    ivAddDevice.setVisibility(View.VISIBLE);
+                } else {
+                    ivAddDevice.setVisibility(View.GONE);
+                }
+                break;
+
+            case GET_DATA_SUCCESS:
+                snackbar.dismiss();
+                if (viewPager.getCurrentItem() == 0) {
+
+                    devices.clear();
+
+                    for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
+
+                        String key = entry.getKey();
+                        EspNode node = entry.getValue();
+
+                        if (node != null) {
+                            ArrayList<Device> espDevices = node.getDevices();
+                            devices.addAll(espDevices);
+                        }
+                    }
+
+                    if (devices.size() > 0) {
+
+                        ivAddDevice.setVisibility(View.VISIBLE);
+
+                    } else {
+                        ivAddDevice.setVisibility(View.GONE);
+                    }
+                } else if (viewPager.getCurrentItem() == 1) {
+
+                    schedules.clear();
+
+                    for (Map.Entry<String, Schedule> entry : espApp.scheduleMap.entrySet()) {
+
+                        String key = entry.getKey();
+                        Schedule schedule = entry.getValue();
+
+                        if (schedule != null) {
+                            schedules.add(schedule);
+                        }
+                    }
+
+                    if (schedules.size() > 0) {
+
+                        ivAddDevice.setVisibility(View.VISIBLE);
+
+                    } else {
+                        ivAddDevice.setVisibility(View.GONE);
+                    }
+                }
+                break;
+
+            case GET_DATA_FAILED:
+
+                TextView tvSnackbarText = snackbar.getView().findViewById(com.google.android.material.R.id.snackbar_text);
+                tvSnackbarText.setText(R.string.msg_no_internet);
+
+                if (!snackbar.isShown()) {
+                    snackbar = Snackbar.make(findViewById(R.id.frame_container), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
+                    snackbar.show();
+                }
+                break;
+        }
+
+        if (updateListenerArrayList != null) {
+            for (UiUpdateListener listener : updateListenerArrayList) {
+                listener.updateUi();
+            }
+        }
+    }
+
+    private void startLocalDeviceDiscovery() {
+        if (espApp.nodeMap.size() > 0) {
+            mdnsManager.discoverServices();
+        }
+    }
+
     private void getSupportedVersions() {
 
         apiManager.getSupportedVersions(new ApiResponseListener() {
@@ -352,8 +486,8 @@ public class EspMainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Exception exception) {
-                hideLoading();
-                currentStatus = GetDataStatus.GET_DATA_FAILED;
+
+                espApp.setCurrentStatus(GetDataStatus.GET_DATA_FAILED);
                 updateUi();
             }
         });
@@ -366,9 +500,11 @@ public class EspMainActivity extends AppCompatActivity {
         return version;
     }
 
-    public void refreshDeviceList() {
+    private void getNodes() {
 
-        currentStatus = GetDataStatus.DATA_REFRESHING;
+        if (BuildConfig.isLocalControlSupported) {
+            startLocalDeviceDiscovery();
+        }
 
         if (apiManager.isTokenExpired()) {
 
@@ -377,36 +513,30 @@ public class EspMainActivity extends AppCompatActivity {
                 @Override
                 public void onSuccess(Bundle data) {
 
-                    getNodes();
+                    getNodesFromCloud();
                 }
 
                 @Override
                 public void onFailure(Exception exception) {
                     exception.printStackTrace();
-                    currentStatus = GetDataStatus.GET_DATA_FAILED;
-                    hideLoading();
+                    espApp.setCurrentStatus(GetDataStatus.GET_DATA_FAILED);
                     updateUi();
                 }
             });
 
         } else {
-            getNodes();
+            getNodesFromCloud();
         }
     }
 
-    public GetDataStatus getCurrentStatus() {
-        return currentStatus;
-    }
-
-    private void getNodes() {
+    private void getNodesFromCloud() {
 
         apiManager.getNodes(new ApiResponseListener() {
 
             @Override
             public void onSuccess(Bundle data) {
 
-                currentStatus = GetDataStatus.GET_DATA_SUCCESS;
-                hideLoading();
+                espApp.setCurrentStatus(GetDataStatus.GET_DATA_SUCCESS);
                 updateUi();
             }
 
@@ -414,76 +544,10 @@ public class EspMainActivity extends AppCompatActivity {
             public void onFailure(Exception exception) {
 
                 exception.printStackTrace();
-                currentStatus = GetDataStatus.GET_DATA_FAILED;
-                hideLoading();
+                espApp.setCurrentStatus(GetDataStatus.GET_DATA_FAILED);
                 updateUi();
             }
         });
-    }
-
-    private void updateUi() {
-
-        switch (currentStatus) {
-
-            case GET_DATA_SUCCESS:
-                if (viewPager.getCurrentItem() == 0) {
-
-                    devices.clear();
-
-                    for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
-
-                        String key = entry.getKey();
-                        EspNode node = entry.getValue();
-
-                        if (node != null) {
-                            ArrayList<Device> espDevices = node.getDevices();
-                            devices.addAll(espDevices);
-                        }
-                    }
-                    Log.d(TAG, "Device list size : " + devices.size());
-
-                    if (devices.size() > 0) {
-
-                        ivAddDevice.setVisibility(View.VISIBLE);
-
-                    } else {
-                        ivAddDevice.setVisibility(View.GONE);
-                    }
-
-                } else if (viewPager.getCurrentItem() == 1) {
-
-                    schedules.clear();
-
-                    for (Map.Entry<String, Schedule> entry : espApp.scheduleMap.entrySet()) {
-
-                        String key = entry.getKey();
-                        Schedule schedule = entry.getValue();
-
-                        if (schedule != null) {
-                            schedules.add(schedule);
-                        }
-                    }
-                    Log.d(TAG, "Schedules size : " + schedules.size());
-
-                    if (schedules.size() > 0) {
-
-                        ivAddDevice.setVisibility(View.VISIBLE);
-
-                    } else {
-                        ivAddDevice.setVisibility(View.GONE);
-                    }
-                }
-                break;
-
-            case GET_DATA_FAILED:
-                break;
-        }
-
-        if (updateListenerArrayList != null) {
-            for (UiUpdateListener listener : updateListenerArrayList) {
-                listener.updateUi();
-            }
-        }
     }
 
     private void goToAddDeviceActivity() {
@@ -608,17 +672,101 @@ public class EspMainActivity extends AppCompatActivity {
         return result;
     }
 
-    private void showLoading() {
-
-        progressBar.setVisibility(View.VISIBLE);
-    }
-
-    private void hideLoading() {
-        progressBar.setVisibility(View.GONE);
-    }
-
     public interface UiUpdateListener {
 
         void updateUi();
     }
+
+    mDNSManager.mDNSEvenListener listener = new mDNSManager.mDNSEvenListener() {
+
+        @Override
+        public void deviceFound(final mDNSDevice dnsDevice) {
+
+            Log.e(TAG, "deviceFound on local network");
+            final String url = "http://" + dnsDevice.getIpAddr() + ":" + dnsDevice.getPort();
+            final String path = "esp_local_ctrl/control";
+            final mDNSApiManager dnsMsgHelper = new mDNSApiManager(getApplicationContext());
+
+            dnsMsgHelper.getPropertyCount(url, path, new ApiResponseListener() {
+
+                @Override
+                public void onSuccess(Bundle data) {
+
+                    if (data != null) {
+
+                        int count = data.getInt("property_count", 0);
+                        dnsDevice.setPropertyCount(count);
+
+                        dnsMsgHelper.getPropertyValues(url, path, count, new ApiResponseListener() {
+
+                            @Override
+                            public void onSuccess(Bundle data) {
+
+                                if (data != null) {
+
+                                    String configData = data.getString("config");
+                                    String paramsData = data.getString("params");
+
+                                    Log.d(TAG, "Config data : " + configData);
+                                    Log.d(TAG, "Params data : " + paramsData);
+
+                                    if (!TextUtils.isEmpty(configData)) {
+
+                                        JSONObject configJson = null;
+                                        try {
+                                            configJson = new JSONObject(configData);
+                                        } catch (JSONException e) {
+                                            e.printStackTrace();
+                                        }
+
+                                        boolean isDeviceFound = false;
+                                        EspNode localNode = JsonDataParser.setNodeConfig(null, configJson);
+                                        EspNode node = espApp.nodeMap.get(localNode.getNodeId());
+
+                                        if (node != null) {
+                                            Log.e(TAG, "Found node " + localNode.getNodeId() + " on local network.");
+                                            isDeviceFound = true;
+                                            localNode.setAvailableLocally(true);
+                                            localNode.setIpAddress(dnsDevice.getIpAddr());
+                                            localNode.setPort(dnsDevice.getPort());
+                                            localNode.setOnline(true);
+                                            espApp.mDNSDeviceMap.put(localNode.getNodeId(), dnsDevice);
+                                        }
+
+                                        if (!TextUtils.isEmpty(paramsData) && isDeviceFound) {
+
+                                            JSONObject paramsJson = null;
+                                            try {
+                                                paramsJson = new JSONObject(paramsData);
+                                            } catch (JSONException e) {
+                                                e.printStackTrace();
+                                            }
+                                            JsonDataParser.setAllParams(espApp, localNode, paramsJson);
+                                            espApp.nodeMap.put(localNode.getNodeId(), localNode);
+                                            runOnUiThread(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    updateUi();
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(Exception exception) {
+                                // Nothing to do
+                            }
+                        });
+                    }
+                }
+
+                @Override
+                public void onFailure(Exception exception) {
+                    // Nothing to do
+                }
+            });
+        }
+    };
 }

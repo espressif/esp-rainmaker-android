@@ -50,6 +50,15 @@ After configuring these fields, you are now ready to run this demo.
 - Adapt UI according to the parameter type like toggle for power, slider for brightness.
 - Allow user to change and monitor parameters of devices.
 
+### Local Control
+
+- App uses ESP Local Control(esp_local_ctrl) component in ESP-IDF and Network Service Discovery APIs to search and manage user devices on local network.
+- This feature allows user to control their ESP devices over local network by communicating over Wi-Fi + HTTP.
+- Local Control ensures your devices are reachable even when your internet connection is poor or there is no internet over connected Wi-Fi.
+
+This feature is optional but enabled by default.
+This feature can be enabled/disabled by setting true/false value of `isLocalControlSupported` field available in `app/build.gradle`.
+
 ### Scheduling
 
 Schedules allow you to automate a device by setting it to trigger an action at a given time on a specified day or days of the week.
