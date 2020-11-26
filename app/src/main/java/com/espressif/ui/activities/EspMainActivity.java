@@ -425,6 +425,15 @@ public class EspMainActivity extends AppCompatActivity {
 
             case GET_DATA_FAILED:
 
+                for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
+
+                    EspNode node = entry.getValue();
+
+                    if (node != null && !espApp.mDNSDeviceMap.containsKey(node.getNodeId())) {
+                        node.setOnline(false);
+                    }
+                }
+
                 TextView tvSnackbarText = snackbar.getView().findViewById(com.google.android.material.R.id.snackbar_text);
                 tvSnackbarText.setText(R.string.msg_no_internet);
 

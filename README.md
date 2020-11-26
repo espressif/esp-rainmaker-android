@@ -74,7 +74,7 @@ Schedule can be enabled/disabled by setting true/false value of `isScheduleSuppo
 
 ## Supports
 
-- Supports Android 7.0 (API level 24) and above.  
+- Supports Android 6.0 (API level 23) and above.  
 
 ## License
 
