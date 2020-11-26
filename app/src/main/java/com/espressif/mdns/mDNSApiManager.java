@@ -35,8 +35,8 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
-import espressif.Constants;
-import espressif.EspLocalCtrl;
+import rm_local_ctrl.Constants;
+import rm_local_ctrl.EspLocalCtrl;
 
 public class mDNSApiManager {
 
