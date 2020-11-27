@@ -43,6 +43,7 @@ public class AppConstants {
     // UI Types of Device
     public static final String UI_TYPE_TOGGLE = "esp.ui.toggle";
     public static final String UI_TYPE_SLIDER = "esp.ui.slider";
+    public static final String UI_TYPE_HUE_SLIDER = "esp.ui.hue-slider";
 
     // ESP Device Types
     public static final String ESP_DEVICE_SWITCH = "esp.device.switch";

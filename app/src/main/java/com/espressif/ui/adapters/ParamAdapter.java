@@ -40,6 +40,7 @@ import com.espressif.AppConstants;
 import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.PaletteBar;
 import com.espressif.ui.activities.EspDeviceActivity;
 import com.espressif.ui.models.Param;
 import com.google.gson.JsonObject;
@@ -66,6 +67,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         networkApiManager = new NetworkApiManager(context.getApplicationContext());
     }
 
+    @NonNull
     @Override
     public MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
 
@@ -102,6 +104,9 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                 }
             }
 
+        } else if (AppConstants.UI_TYPE_HUE_SLIDER.equalsIgnoreCase(param.getUiType())) {
+
+            displayPalette(myViewHolder, param, position);
         } else if (AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())) {
 
             String dataType = param.getDataType();
@@ -128,6 +133,49 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
     public void updateList(ArrayList<Param> updatedDeviceList) {
         params = updatedDeviceList;
         notifyDataSetChanged();
+    }
+
+    private void displayPalette(MyViewHolder myViewHolder, final Param param, final int position) {
+        ((EspDeviceActivity) context).stopUpdateValueTask();
+        myViewHolder.rvPalette.setVisibility(View.VISIBLE);
+        myViewHolder.tvSliderName.setVisibility(View.GONE);
+        myViewHolder.intSlider.setVisibility(View.GONE);
+        myViewHolder.tvLabelPalette.setText(param.getName());
+        myViewHolder.paletteBar.setColor((int) param.getSliderValue());
+        myViewHolder.paletteBar.setThumbCircleRadius(17);
+        myViewHolder.paletteBar.setTrackMarkHeight(10);
+        if (param.getProperties().contains("write")) {
+
+            if (((EspDeviceActivity) context).isNodeOnline()) {
+
+                myViewHolder.paletteBar.setEnabled(true);
+                myViewHolder.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
+                    @Override
+                    public void onColorSelected(int colorInt) {
+
+                        JsonObject jsonParam = new JsonObject();
+                        JsonObject body = new JsonObject();
+
+                        jsonParam.addProperty(param.getName(), colorInt);
+                        body.add(deviceName, jsonParam);
+                        networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+
+                            @Override
+                            public void onSuccess(Bundle data) {
+                                ((EspDeviceActivity) context).startUpdateValueTask();
+                            }
+
+                            @Override
+                            public void onFailure(Exception exception) {
+                                ((EspDeviceActivity) context).startUpdateValueTask();
+                            }
+                        });
+                    }
+                });
+            } else {
+                myViewHolder.paletteBar.setEnabled(false);
+            }
+        }
     }
 
     private void displaySlider(final MyViewHolder myViewHolder, final Param param, final int position) {
@@ -221,7 +269,6 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                     }
                 });
             }
-
         } else {
 
             myViewHolder.intSlider.setVisibility(View.GONE);
@@ -686,10 +733,11 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         // init the item view's
         TickSeekBar intSlider, floatSlider;
         SwitchCompat toggleSwitch;
-        TextView tvSliderName, tvSwitchName, tvSwitchStatus, tvLabelName, tvLabelValue;
-        RelativeLayout rvUiTypeSlider, rvUiTypeSwitch, rvUiTypeLabel;
+        TextView tvSliderName, tvSwitchName, tvSwitchStatus, tvLabelName, tvLabelValue, tvLabelPalette;
+        RelativeLayout rvUiTypeSlider, rvUiTypeSwitch, rvUiTypeLabel, rvPalette;
         TextView btnEdit;
         ContentLoadingProgressBar progressBar;
+        PaletteBar paletteBar;
 
         public MyViewHolder(View itemView) {
             super(itemView);
@@ -703,11 +751,14 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
             tvSwitchStatus = itemView.findViewById(R.id.tv_switch_status);
             tvLabelName = itemView.findViewById(R.id.tv_label_name);
             tvLabelValue = itemView.findViewById(R.id.tv_label_value);
+            tvLabelPalette = itemView.findViewById(R.id.palette_name);
             btnEdit = itemView.findViewById(R.id.btn_edit);
             progressBar = itemView.findViewById(R.id.progress_indicator);
             rvUiTypeSlider = itemView.findViewById(R.id.rl_card_slider);
             rvUiTypeSwitch = itemView.findViewById(R.id.rl_card_switch);
             rvUiTypeLabel = itemView.findViewById(R.id.rl_card_label);
+            rvPalette = itemView.findViewById(R.id.rl_card_palette);
+            paletteBar = itemView.findViewById(R.id.rl_palette);
         }
     }
 }
