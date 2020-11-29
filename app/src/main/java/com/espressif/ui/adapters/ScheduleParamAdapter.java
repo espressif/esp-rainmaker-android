@@ -37,6 +37,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.AppConstants;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.PaletteBar;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
 import com.warkiz.tickseekbar.OnSeekChangeListener;
@@ -131,7 +132,10 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
                 }
             }
 
-        } else if (AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())) {
+        }else if(AppConstants.UI_TYPE_HUE_SLIDER.equalsIgnoreCase(param.getUiType())){
+            displayPalette(myViewHolder, param);
+        }
+        else if (AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())) {
 
             String dataType = param.getDataType();
 
@@ -160,6 +164,26 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         // to perform recycler view delete animations
         // NOTE: don't call notifyDataSetChanged()
         notifyItemRemoved(position);
+    }
+
+    private void displayPalette(MyViewHolder myViewHolder, final Param param) {
+        myViewHolder.rvPalette.setVisibility(View.VISIBLE);
+        myViewHolder.tvSliderName.setVisibility(View.GONE);
+        myViewHolder.intSlider.setVisibility(View.GONE);
+        myViewHolder.tvLabelPalette.setText(param.getName());
+        myViewHolder.paletteBar.setColor((int) param.getSliderValue());
+        myViewHolder.paletteBar.setThumbCircleRadius(12);
+        myViewHolder.paletteBar.setTrackMarkHeight(6);
+        if (param.getProperties().contains("write")) {
+
+            myViewHolder.paletteBar.setEnabled(true);
+            myViewHolder.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
+                @Override
+                public void onColorSelected(int colorHue) {
+                    param.setSliderValue(colorHue);
+                }
+            });
+        }
     }
 
     private void displaySlider(final MyViewHolder myViewHolder, final Param param) {
@@ -439,11 +463,12 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         // init the item view's
         TickSeekBar intSlider, floatSlider;
         SwitchCompat toggleSwitch;
-        TextView tvSliderName, tvSwitchName, tvSwitchStatus, tvLabelName, tvLabelValue;
-        RelativeLayout rvUiTypeSlider, rvUiTypeSwitch, rvUiTypeLabel;
+        TextView tvSliderName, tvSwitchName, tvSwitchStatus, tvLabelName, tvLabelValue, tvLabelPalette;
+        RelativeLayout rvUiTypeSlider, rvUiTypeSwitch, rvUiTypeLabel, rvPalette;
         TextView btnEdit;
         ContentLoadingProgressBar progressBar;
         AppCompatCheckBox cbParamSelect;
+        PaletteBar paletteBar;
 
         public MyViewHolder(View itemView) {
             super(itemView);
@@ -457,12 +482,15 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
             tvSwitchStatus = itemView.findViewById(R.id.tv_switch_status);
             tvLabelName = itemView.findViewById(R.id.tv_label_name);
             tvLabelValue = itemView.findViewById(R.id.tv_label_value);
+            tvLabelPalette = itemView.findViewById(R.id.palette_name);
             btnEdit = itemView.findViewById(R.id.btn_edit);
             progressBar = itemView.findViewById(R.id.progress_indicator);
             cbParamSelect = itemView.findViewById(R.id.cb_param_select);
             rvUiTypeSlider = itemView.findViewById(R.id.rl_card_slider);
             rvUiTypeSwitch = itemView.findViewById(R.id.rl_card_switch);
             rvUiTypeLabel = itemView.findViewById(R.id.rl_card_label);
+            rvPalette = itemView.findViewById(R.id.rl_card_palette);
+            paletteBar = itemView.findViewById(R.id.rl_palette);
         }
     }
 }

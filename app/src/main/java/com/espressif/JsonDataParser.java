@@ -48,7 +48,7 @@ public class JsonDataParser {
         String dataType = param.getDataType();
         String paramName = param.getName();
 
-        if (AppConstants.UI_TYPE_SLIDER.equalsIgnoreCase(param.getUiType())) {
+        if (AppConstants.UI_TYPE_SLIDER.equalsIgnoreCase(param.getUiType()) || AppConstants.UI_TYPE_HUE_SLIDER.equalsIgnoreCase(param.getUiType())) {
 
             String labelValue = "";
 
