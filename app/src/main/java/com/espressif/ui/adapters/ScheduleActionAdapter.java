@@ -81,14 +81,14 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
         switch (device.getSelectedState()) {
             case 0:
                 holder.ivDeviceSelect.setChecked(false);
-                holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_checkbox_unchecked);
+                holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_fluent_checkbox_unchecked);
                 break;
             case 1:
                 holder.ivDeviceSelect.setChecked(true);
-                holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_checkbox_checked);
+                holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_fluent_checkbox_checked_filled);
                 break;
             case 2:
-                holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_checkbox_indeterminate);
+                holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_fluent_checkbox_indeterminate);
                 break;
         }
 
@@ -129,11 +129,11 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
                 switch (selectedState) {
                     case 0:
                         holder.ivDeviceSelect.setChecked(false);
-                        holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_checkbox_unchecked);
+                        holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_fluent_checkbox_unchecked);
                         break;
                     case 1:
                         holder.ivDeviceSelect.setChecked(true);
-                        holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_checkbox_checked);
+                        holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_fluent_checkbox_checked_filled);
                         break;
                 }
                 ArrayList<Param> deviceParams = d.getParams();

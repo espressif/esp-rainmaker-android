@@ -15,16 +15,20 @@
 package com.espressif.ui.activities;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.espressif.AppConstants;
@@ -74,6 +78,20 @@ public class ProvisionActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_provision);
 
+        Window window = ProvisionActivity.this.getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        window.setStatusBarColor(ContextCompat.getColor(ProvisionActivity.this,R.color.color_actionbar_bg));
+        int currentNightMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        switch (currentNightMode){
+            case Configuration.UI_MODE_NIGHT_NO:
+                window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                break;
+            case Configuration.UI_MODE_NIGHT_YES:
+                window.getDecorView().setSystemUiVisibility(window.getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                break;
+        }
+
         Intent intent = getIntent();
         ssidValue = intent.getStringExtra(AppConstants.KEY_SSID);
         passphraseValue = intent.getStringExtra(AppConstants.KEY_PASSWORD);
@@ -110,13 +128,13 @@ public class ProvisionActivity extends AppCompatActivity {
         switch (event.getEventType()) {
 
             case EVENT_DEVICE_ADDED:
-                tick4.setImageResource(R.drawable.ic_checkbox_on);
+                tick4.setImageResource(R.drawable.ic_fluent_checkmark_circle_filled);
                 tick4.setVisibility(View.VISIBLE);
                 progress4.setVisibility(View.GONE);
                 break;
 
             case EVENT_ADD_DEVICE_TIME_OUT:
-                tick4.setImageResource(R.drawable.ic_error);
+                tick4.setImageResource(R.drawable.ic_fluent_error_circle);
                 tick4.setVisibility(View.VISIBLE);
                 progress4.setVisibility(View.GONE);
                 tvErrAtStep4.setVisibility(View.VISIBLE);
@@ -179,7 +197,7 @@ public class ProvisionActivity extends AppCompatActivity {
 
     private void doStep2() {
 
-        tick1.setImageResource(R.drawable.ic_checkbox_on);
+        tick1.setImageResource(R.drawable.ic_fluent_checkmark_circle_filled);
         tick1.setVisibility(View.VISIBLE);
         progress1.setVisibility(View.GONE);
         tick2.setVisibility(View.GONE);
@@ -189,9 +207,9 @@ public class ProvisionActivity extends AppCompatActivity {
     private void doStep3(boolean isSuccessInStep2) {
 
         if (isSuccessInStep2) {
-            tick2.setImageResource(R.drawable.ic_checkbox_on);
+            tick2.setImageResource(R.drawable.ic_fluent_checkmark_circle_filled);
         } else {
-            tick2.setImageResource(R.drawable.ic_alert);
+            tick2.setImageResource(R.drawable.ic_fluent_error_circle);
         }
 
         tick2.setVisibility(View.VISIBLE);
@@ -205,7 +223,7 @@ public class ProvisionActivity extends AppCompatActivity {
     private void doStep4() {
 
         hideLoading();
-        tick3.setImageResource(R.drawable.ic_checkbox_on);
+        tick3.setImageResource(R.drawable.ic_fluent_checkmark_circle_filled);
         tick3.setVisibility(View.VISIBLE);
         progress3.setVisibility(View.GONE);
         tick4.setVisibility(View.GONE);
@@ -242,7 +260,7 @@ public class ProvisionActivity extends AppCompatActivity {
                     @Override
                     public void run() {
 
-                        tick1.setImageResource(R.drawable.ic_error);
+                        tick1.setImageResource(R.drawable.ic_fluent_error_circle);
                         tick1.setVisibility(View.VISIBLE);
                         progress1.setVisibility(View.GONE);
                         tvErrAtStep2.setVisibility(View.VISIBLE);
@@ -273,7 +291,7 @@ public class ProvisionActivity extends AppCompatActivity {
                     @Override
                     public void run() {
 
-                        tick1.setImageResource(R.drawable.ic_error);
+                        tick1.setImageResource(R.drawable.ic_fluent_error_circle);
                         tick1.setVisibility(View.VISIBLE);
                         progress1.setVisibility(View.GONE);
                         tvErrAtStep2.setVisibility(View.VISIBLE);
@@ -345,7 +363,7 @@ public class ProvisionActivity extends AppCompatActivity {
 
     private void displayFailureAtStep2() {
 
-        tick2.setImageResource(R.drawable.ic_error);
+        tick2.setImageResource(R.drawable.ic_fluent_error_circle);
         tick2.setVisibility(View.VISIBLE);
         progress2.setVisibility(View.GONE);
         tvErrAtStep2.setVisibility(View.VISIBLE);
@@ -387,7 +405,7 @@ public class ProvisionActivity extends AppCompatActivity {
                     @Override
                     public void run() {
 
-                        tick1.setImageResource(R.drawable.ic_error);
+                        tick1.setImageResource(R.drawable.ic_fluent_error_circle);
                         tick1.setVisibility(View.VISIBLE);
                         progress1.setVisibility(View.GONE);
                         tvErrAtStep1.setVisibility(View.VISIBLE);
@@ -423,7 +441,7 @@ public class ProvisionActivity extends AppCompatActivity {
                 @Override
                 public void run() {
 
-                    tick1.setImageResource(R.drawable.ic_error);
+                    tick1.setImageResource(R.drawable.ic_fluent_error_circle);
                     tick1.setVisibility(View.VISIBLE);
                     progress1.setVisibility(View.GONE);
                     tvErrAtStep1.setVisibility(View.VISIBLE);
@@ -482,7 +500,7 @@ public class ProvisionActivity extends AppCompatActivity {
                             @Override
                             public void run() {
 
-                                tick3.setImageResource(R.drawable.ic_error);
+                                tick3.setImageResource(R.drawable.ic_fluent_error_circle);
                                 tick3.setVisibility(View.VISIBLE);
                                 progress3.setVisibility(View.GONE);
                                 tvErrAtStep3.setVisibility(View.VISIBLE);

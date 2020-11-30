@@ -16,12 +16,15 @@ package com.espressif.ui.activities;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -33,6 +36,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 
 import com.espressif.AppConstants;
 import com.espressif.provisioning.ESPConstants;
@@ -41,6 +45,7 @@ import com.espressif.provisioning.WiFiAccessPoint;
 import com.espressif.provisioning.listeners.WiFiScanListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.WiFiListAdapter;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
@@ -61,6 +66,21 @@ public class WiFiScanActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_wifi_scan_list);
+
+        Window window = WiFiScanActivity.this.getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        window.setStatusBarColor(ContextCompat.getColor(WiFiScanActivity.this,R.color.color_actionbar_bg));
+        int currentNightMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        switch (currentNightMode){
+            case Configuration.UI_MODE_NIGHT_NO:
+                window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                break;
+            case Configuration.UI_MODE_NIGHT_YES:
+                window.getDecorView().setSystemUiVisibility(window.getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                break;
+        }
+
         Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitle(R.string.title_activity_wifi_scan_list);
         setSupportActionBar(toolbar);
@@ -189,8 +209,8 @@ public class WiFiScanActivity extends AppCompatActivity {
         final View dialogView = inflater.inflate(R.layout.dialog_wifi_network, null);
         builder.setView(dialogView);
 
-        final EditText etSsid = dialogView.findViewById(R.id.et_ssid);
-        final EditText etPassword = dialogView.findViewById(R.id.et_password);
+        final TextInputEditText etSsid = dialogView.findViewById(R.id.et_ssid);
+        final TextInputEditText etPassword = dialogView.findViewById(R.id.et_password);
 
         if (ssid.equals(getString(R.string.join_other_network))) {
 
@@ -214,8 +234,8 @@ public class WiFiScanActivity extends AppCompatActivity {
                     String networkName = etSsid.getText().toString();
 
                     if (TextUtils.isEmpty(networkName)) {
-
-                        etSsid.setError(getString(R.string.error_ssid_empty));
+                        TextInputLayout ssidLayout = dialogView.findViewById(R.id.layout_ssid);
+                        ssidLayout.setError(getString(R.string.error_ssid_empty));
 
                     } else {
 

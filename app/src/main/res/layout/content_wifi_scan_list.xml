@@ -19,7 +19,7 @@
         android:paddingRight="16dp"
         android:text="@string/setup_instructions"
         android:textAlignment="center"
-        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+        android:textColor="@color/color_text_secondary"
         android:textSize="18sp" />
 
     <RelativeLayout
@@ -33,6 +33,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/networks"
+            android:textColor="@color/color_text_primary"
             android:textSize="20sp" />
 
         <ImageView
@@ -40,7 +41,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
-            android:src="@drawable/ic_refresh"
+            android:src="@drawable/ic_fluent_refresh"
             android:visibility="gone" />
     </RelativeLayout>
 

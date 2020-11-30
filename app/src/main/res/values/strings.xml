@@ -193,6 +193,7 @@
     <string name="dialog_title_new_version_available">New Version is available!</string>
     <string name="dialog_title_network_info">Enter Network Information</string>
     <string name="dialog_title_schedule_name">Enter Schedule Name</string>
+    <string name="dialog_title_device_name">Enter device Name</string>
     <string name="dialog_msg_for_gps">Location services are disabled. Please enable them to continue</string>
     <string name="dialog_msg_delete_node">Are you sure?</string>
     <string name="dialog_msg_device_selection">Choose Provisioning Transport</string>

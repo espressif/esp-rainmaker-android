@@ -22,16 +22,16 @@
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:src="@drawable/ic_wifi" />
+            android:src="@drawable/ic_fluent_wifi_selector" />
 
         <ImageView
             android:id="@+id/iv_wifi_security"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
-            android:layout_marginEnd="20dp"
+            android:layout_marginEnd="8dp"
             android:layout_toStartOf="@id/iv_wifi_rssi"
-            android:src="@drawable/ic_lock" />
+            android:src="@drawable/ic_fluent_lock" />
 
     </RelativeLayout>
 

@@ -457,7 +457,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         LayoutInflater inflater = context.getLayoutInflater();
         final View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
         builder.setView(dialogView);
-
+        builder.setTitle(R.string.dialog_title_device_name);
         final EditText etAttribute = dialogView.findViewById(R.id.et_attr_value);
 
         if (!TextUtils.isEmpty(param.getDataType())) {

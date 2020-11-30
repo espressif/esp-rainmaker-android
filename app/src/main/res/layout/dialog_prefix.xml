@@ -1,24 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/custom_dialog_layout_design_user_input"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="32dp">
 
     <TextView
         android:id="@+id/dialogTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/prefix"
-        android:textAppearance="?android:attr/textAppearanceLarge" />
+        android:textColor="@color/color_text_primary"
+        android:textSize="18sp"/>
 
-    <EditText
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/layout_prefix"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:hintEnabled="false"
+        app:errorIconDrawable="@drawable/ic_fluent_error_circle"
+        app:errorIconTint="@color/color_text_error"
+        app:errorTextColor="@color/color_text_error"
+        app:boxStrokeWidth="0dp"
+        app:boxStrokeWidthFocused="0dp">
+
+    <com.google.android.material.textfield.TextInputEditText
         android:id="@+id/et_prefix"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@drawable/bg_edit_text"
         android:hint="@string/hint_prefix"
         android:inputType="text"
         android:maxLength="30"
-        android:maxLines="1" />
+        android:maxLines="1"
+        android:importantForAutofill="no"
+        android:paddingStart="16dp"
+        android:paddingTop="18dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="18dp"
+        android:textColor="@color/color_text_primary"
+        android:textSize="16sp" />
+    </com.google.android.material.textfield.TextInputLayout>
 </LinearLayout>

@@ -15,16 +15,20 @@
 package com.espressif.ui.activities;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -55,8 +59,7 @@ public class EspDeviceActivity extends AppCompatActivity {
     private static final int NODE_DETAILS_ACTIVITY_REQUEST = 10;
     private static final int UPDATE_INTERVAL = 5000;
 
-    private TextView tvTitle, tvBack, tvNoParam, tvNodeOffline;
-    private ImageView ivNodeInfo;
+    private TextView tvTitle, ivNodeInfo, tvBack, tvNoParam, tvNodeOffline;
     private RecyclerView paramRecyclerView;
     private RecyclerView attrRecyclerView;
     private SwipeRefreshLayout swipeRefreshLayout;
@@ -80,6 +83,20 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_esp_device);
+
+        Window window = EspDeviceActivity.this.getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        window.setStatusBarColor(ContextCompat.getColor(EspDeviceActivity.this,R.color.color_actionbar_bg));
+        int currentNightMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        switch (currentNightMode){
+            case Configuration.UI_MODE_NIGHT_NO:
+                window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                break;
+            case Configuration.UI_MODE_NIGHT_YES:
+                window.getDecorView().setSystemUiVisibility(window.getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                break;
+        }
 
         espApp = (EspApplication) getApplicationContext();
         networkApiManager = new NetworkApiManager(getApplicationContext());

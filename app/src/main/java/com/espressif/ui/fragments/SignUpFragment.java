@@ -73,11 +73,8 @@ public class SignUpFragment extends Fragment {
 
     private static final String TAG = SignUpFragment.class.getSimpleName();
 
-    private EditText etEmail;
-    private TextInputEditText etPassword;
-    private TextInputEditText etConfirmPassword;
-    private TextInputLayout layoutPassword;
-    private TextInputLayout layoutConfirmPassword;
+    private TextInputEditText etEmail, etPassword, etConfirmPassword;
+    private TextInputLayout layoutEmail, layoutPassword, layoutConfirmPassword;
     private CheckBox cbTermsCondition;
     private CardView btnRegister;
     private TextView txtRegisterBtn;
@@ -122,7 +119,7 @@ public class SignUpFragment extends Fragment {
 
     private void doSignUp() {
 
-        etEmail.setError(null);
+        layoutEmail.setError(null);
         layoutPassword.setError(null);
         layoutConfirmPassword.setError(null);
 
@@ -132,12 +129,12 @@ public class SignUpFragment extends Fragment {
         email = etEmail.getText().toString();
         if (TextUtils.isEmpty(email)) {
 
-            etEmail.setError(getString(R.string.error_email_empty));
+            layoutEmail.setError(getString(R.string.error_email_empty));
             return;
 
         } else if (!Utils.isValidEmail(email)) {
 
-            etEmail.setError(getString(R.string.error_invalid_email));
+            layoutEmail.setError(getString(R.string.error_invalid_email));
             return;
         }
 
@@ -234,6 +231,7 @@ public class SignUpFragment extends Fragment {
         tvPolicy.setMovementMethod(LinkMovementMethod.getInstance());
 
         // Email
+        layoutEmail = view.findViewById(R.id.layout_email);
         etEmail = view.findViewById(R.id.et_email);
         etEmail.addTextChangedListener(new TextWatcher() {
 

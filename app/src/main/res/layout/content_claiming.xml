@@ -37,9 +37,8 @@
                 android:layout_centerHorizontal="true"
                 android:layout_marginTop="@dimen/margin_16"
                 android:text="@string/progress_claiming"
-                android:textColor="@color/colorPrimaryDark"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textColor="@color/color_text_primary"
+                android:textSize="18sp"/>
 
             <TextView
                 android:id="@+id/tv_please_wait"
@@ -49,7 +48,7 @@
                 android:layout_centerHorizontal="true"
                 android:layout_marginTop="@dimen/margin_10"
                 android:text="@string/process_take_time"
-                android:textColor="@color/colorPrimaryDark"
+                android:textColor="@color/color_text_secondary"
                 android:textSize="16sp" />
 
             <TextView
@@ -60,7 +59,7 @@
                 android:layout_centerHorizontal="true"
                 android:layout_marginTop="@dimen/margin_10"
                 android:text="@string/error_claiming_init"
-                android:textColor="@color/color_err_text"
+                android:textColor="@color/color_text_error"
                 android:textSize="16sp"
                 android:visibility="invisible" />
 
@@ -74,7 +73,7 @@
             android:gravity="center_horizontal"
             android:lineSpacingExtra="8sp"
             android:text="@string/error_claiming"
-            android:textColor="@color/colorAccent"
+            android:textColor="@color/color_purple_accent_l"
             android:textSize="16sp"
             android:visibility="invisible"
             app:layout_constraintBottom_toTopOf="@id/btn_ok"

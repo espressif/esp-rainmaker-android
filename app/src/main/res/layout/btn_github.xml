@@ -5,14 +5,14 @@
     android:layout_height="wrap_content"
     app:cardCornerRadius="10dp"
     app:cardElevation="1dp"
-    app:strokeColor="@color/color_light_gray"
+    app:strokeColor="@color/color_btn_stroke"
     app:strokeWidth="1dp">
 
     <RelativeLayout
         android:id="@+id/layout_btn_github"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/white"
+        android:background="@drawable/button_bg_light_selector"
         android:paddingTop="16dp"
         android:paddingBottom="16dp">
 
@@ -32,7 +32,7 @@
             android:layout_centerInParent="true"
             android:lineSpacingExtra="8sp"
             android:text="@string/btn_github"
-            android:textColor="@android:color/black"
+            android:textColor="@color/color_text_primary"
             android:textSize="18sp" />
 
         <androidx.core.widget.ContentLoadingProgressBar

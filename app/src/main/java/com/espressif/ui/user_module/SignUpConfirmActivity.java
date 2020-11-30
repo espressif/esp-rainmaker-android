@@ -16,10 +16,13 @@ package com.espressif.ui.user_module;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -28,6 +31,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserCodeDeliveryDetails;
@@ -35,12 +39,15 @@ import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.GenericHa
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.VerificationHandler;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
+import com.espressif.ui.activities.AddDeviceActivity;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 public class SignUpConfirmActivity extends AppCompatActivity {
 
     private TextView tvConfMsg;
-    private EditText etEmail;
-    private EditText etConfCode;
+    private TextInputEditText etEmail,  etConfCode;
+    private TextInputLayout layoutEmail, layoutConfCode;
     private CardView btnConfirm;
     private TextView txtConfirmBtn;
     private ImageView arrowImage;
@@ -55,6 +62,21 @@ public class SignUpConfirmActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up_confirm);
+
+        Window window = SignUpConfirmActivity.this.getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        window.setStatusBarColor(ContextCompat.getColor(SignUpConfirmActivity.this,R.color.color_actionbar_bg));
+        int currentNightMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        switch (currentNightMode){
+            case Configuration.UI_MODE_NIGHT_NO:
+                window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                break;
+            case Configuration.UI_MODE_NIGHT_YES:
+                window.getDecorView().setSystemUiVisibility(window.getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                break;
+        }
+
         init();
     }
 
@@ -78,7 +100,9 @@ public class SignUpConfirmActivity extends AppCompatActivity {
         tvCancel.setOnClickListener(cancelButtonClickListener);
 
         tvConfMsg = findViewById(R.id.tv_sign_up_confirm_msg_1);
+        layoutEmail = findViewById(R.id.layout_email);
         etEmail = findViewById(R.id.et_email);
+        layoutConfCode = findViewById(R.id.layout_verification_code);
         etConfCode = findViewById(R.id.et_verification_code);
         btnConfirm = findViewById(R.id.btn_confirm);
         txtConfirmBtn = findViewById(R.id.text_btn);
@@ -166,22 +190,22 @@ public class SignUpConfirmActivity extends AppCompatActivity {
 
         email = etEmail.getText().toString();
         String confirmCode = etConfCode.getText().toString();
-        etEmail.setError(null);
-        etConfCode.setError(null);
+        layoutEmail.setError(null);
+        layoutConfCode.setError(null);
 
         if (TextUtils.isEmpty(email)) {
 
-            etEmail.setError(getString(R.string.error_email_empty));
+            layoutEmail.setError(getString(R.string.error_email_empty));
             return;
 
         } else if (!Utils.isValidEmail(email)) {
 
-            etEmail.setError(getString(R.string.error_invalid_email));
+            layoutEmail.setError(getString(R.string.error_invalid_email));
             return;
 
         } else if (TextUtils.isEmpty(confirmCode)) {
 
-            etConfCode.setError(getString(R.string.error_confirmation_code_empty));
+            layoutConfCode.setError(getString(R.string.error_confirmation_code_empty));
             return;
         }
 
@@ -195,7 +219,7 @@ public class SignUpConfirmActivity extends AppCompatActivity {
 
         if (TextUtils.isEmpty(email)) {
 
-            etEmail.setError(getString(R.string.error_email_empty));
+            layoutEmail.setError(getString(R.string.error_email_empty));
             return;
         }
         AppHelper.getPool().getUser(email).resendConfirmationCodeInBackground(resendConfCodeHandler);

@@ -5,18 +5,18 @@
     android:layout_height="wrap_content"
     app:cardCornerRadius="10dp"
     app:cardElevation="0dp"
-    app:strokeColor="@color/colorPrimary"
+    app:strokeColor="@color/color_purple_accent"
     app:strokeWidth="1dp">
 
     <LinearLayout
         android:id="@+id/layout_btn_remove"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/white"
+        android:background="@drawable/button_bg_light_selector"
         android:gravity="center"
         android:orientation="horizontal"
-        android:paddingTop="15dp"
-        android:paddingBottom="15dp">
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp">
 
         <TextView
             android:id="@+id/text_btn"
@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:lineSpacingExtra="8sp"
             android:text="@string/btn_no_qr_code"
-            android:textColor="@color/colorPrimary"
+            android:textColor="@color/color_purple_accent"
             android:textSize="16sp"
             android:textStyle="bold" />
 

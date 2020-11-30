@@ -16,6 +16,7 @@ package com.espressif.ui.activities;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.InputFilter;
@@ -24,6 +25,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.LinearInterpolator;
 import android.widget.EditText;
@@ -38,6 +40,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.aventrix.jnanoid.jnanoid.NanoIdUtils;
@@ -52,6 +55,8 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -97,6 +102,20 @@ public class AddScheduleActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_schedule);
+
+        Window window = AddScheduleActivity.this.getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        window.setStatusBarColor(ContextCompat.getColor(AddScheduleActivity.this,R.color.color_actionbar_bg));
+        int currentNightMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        switch (currentNightMode){
+            case Configuration.UI_MODE_NIGHT_NO:
+                window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                break;
+            case Configuration.UI_MODE_NIGHT_YES:
+                window.getDecorView().setSystemUiVisibility(window.getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                break;
+        }
 
         espApp = (EspApplication) getApplicationContext();
         apiManager = ApiManager.getInstance(this);
@@ -187,7 +206,7 @@ public class AddScheduleActivity extends AppCompatActivity {
         tvDone = findViewById(R.id.btn_cancel);
 
         tvTitle.setText(R.string.title_activity_add_schedule);
-        tvDone.setText(R.string.btn_save);
+        tvDone.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_fluent_checkmark,0,0,0);
         tvBack.setVisibility(View.VISIBLE);
         tvDone.setVisibility(View.VISIBLE);
         tvBack.setOnClickListener(backBtnClickListener);
@@ -388,7 +407,8 @@ public class AddScheduleActivity extends AppCompatActivity {
         View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
         builder.setView(dialogView);
         builder.setTitle(R.string.dialog_title_schedule_name);
-        final EditText etAttribute = dialogView.findViewById(R.id.et_attr_value);
+        final TextInputLayout layoutAttribute = dialogView.findViewById(R.id.layout_attr_value);
+        final TextInputEditText etAttribute = dialogView.findViewById(R.id.et_attr_value);
         etAttribute.setInputType(InputType.TYPE_CLASS_TEXT);
         etAttribute.setFilters(new InputFilter[]{new InputFilter.LengthFilter(32)});
         etAttribute.setText(scheduleName);
@@ -402,7 +422,7 @@ public class AddScheduleActivity extends AppCompatActivity {
                     scheduleName = value;
                     tvScheduleName.setText(scheduleName);
                 } else {
-                    etAttribute.setError(getString(R.string.error_invalid_schedule_name));
+                    layoutAttribute.setError(getString(R.string.error_invalid_schedule_name));
                 }
                 dialog.dismiss();
             }
@@ -435,10 +455,10 @@ public class AddScheduleActivity extends AppCompatActivity {
     private void updateDayText(char dayValue, TextView tvDay) {
 
         if (dayValue == '1') {
-            tvDay.setTextColor(getColor(R.color.colorPrimary));
+            tvDay.setTextColor(getColor(R.color.color_purple_accent));
             tvDay.setTypeface(null, Typeface.BOLD);
         } else {
-            tvDay.setTextColor(getColor(R.color.colorPrimaryDark));
+            tvDay.setTextColor(getColor(R.color.color_text_primary));
             tvDay.setTypeface(null, Typeface.NORMAL);
         }
     }

@@ -24,6 +24,6 @@
         android:id="@+id/user_update_attribute"
         android:orderInCategory="200"
         android:title="Update"
-        android:icon="@drawable/sync"
+        android:icon="@drawable/ic_fluent_arrow_sync"
         app:showAsAction="ifRoom"></item>
 </menu>

@@ -36,7 +36,7 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/rv_user_info" />
 
-            <androidx.cardview.widget.CardView xmlns:card_view="http://schemas.android.com/apk/res-auto"
+            <androidx.cardview.widget.CardView
                 android:id="@+id/card_view_logout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -44,10 +44,10 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/rv_terms"
-                card_view:cardBackgroundColor="@color/color_background"
-                card_view:cardCornerRadius="8dp"
-                card_view:cardElevation="1dp"
-                card_view:cardUseCompatPadding="true">
+                app:cardBackgroundColor="@color/color_card_bg"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="1dp"
+                app:cardUseCompatPadding="true">
 
                 <RelativeLayout
                     android:id="@+id/rl_card_switch"
@@ -64,8 +64,17 @@
                         android:paddingTop="@dimen/margin_8"
                         android:paddingBottom="@dimen/margin_8"
                         android:text="@string/btn_logout"
-                        android:textColor="@color/color_orange"
+                        android:textColor="@color/color_orange_accent"
                         android:textSize="16sp" />
+
+                    <ImageView
+                        android:id="@+id/iv_out"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="8dp"
+                        android:layout_toEndOf="@+id/tv_node_value"
+                        android:src="@drawable/ic_fluent_sign_out" />
 
                 </RelativeLayout>
 
@@ -87,7 +96,7 @@
                     android:alpha="0.5"
                     android:lineSpacingExtra="6sp"
                     android:text="@string/powered_by_esp"
-                    android:textColor="@color/colorPrimaryDark"
+                    android:textColor="@color/color_text_primary"
                     android:textSize="12sp" />
 
                 <TextView
@@ -97,7 +106,7 @@
                     android:layout_gravity="center_horizontal"
                     android:alpha="0.5"
                     android:lineSpacingExtra="6sp"
-                    android:textColor="@color/colorPrimaryDark"
+                    android:textColor="@color/color_text_primary"
                     android:textSize="12sp" />
 
             </LinearLayout>

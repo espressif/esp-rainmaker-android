@@ -25,7 +25,7 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="@dimen/margin_10"
         android:alpha="0.5"
-        android:textColor="@color/colorPrimaryDark"
+        android:textColor="@color/color_text_primary"
         android:textSize="14sp"
         android:textStyle="italic" />
 
@@ -55,7 +55,7 @@
                     android:layout_height="wrap_content"
                     android:layout_centerInParent="true"
                     android:text="@string/device_no_param"
-                    android:textColor="@color/colorPrimaryDark"
+                    android:textColor="@color/color_text_primary"
                     android:textSize="18sp"
                     android:visibility="gone" />
 

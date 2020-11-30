@@ -15,12 +15,16 @@
 package com.espressif.ui.activities;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.SimpleItemAnimator;
@@ -45,6 +49,20 @@ public class ScheduleActionsActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_actions);
+
+        Window window = ScheduleActionsActivity.this.getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        window.setStatusBarColor(ContextCompat.getColor(ScheduleActionsActivity.this,R.color.color_actionbar_bg));
+        int currentNightMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        switch (currentNightMode){
+            case Configuration.UI_MODE_NIGHT_NO:
+                window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                break;
+            case Configuration.UI_MODE_NIGHT_YES:
+                window.getDecorView().setSystemUiVisibility(window.getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                break;
+        }
 
         ArrayList<Device> receivedDevices = getIntent().getParcelableArrayListExtra("devices");
         ArrayList<Device> selectedDevice = getIntent().getParcelableArrayListExtra("selected_devices");
@@ -94,7 +112,7 @@ public class ScheduleActionsActivity extends AppCompatActivity {
         tvDone = findViewById(R.id.btn_cancel);
 
         tvTitle.setText(R.string.title_activity_actions);
-        tvDone.setText(R.string.btn_done);
+        tvDone.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_fluent_checkmark,0,0,0);
         tvBack.setVisibility(View.VISIBLE);
         tvDone.setVisibility(View.VISIBLE);
         tvBack.setOnClickListener(backBtnClickListener);

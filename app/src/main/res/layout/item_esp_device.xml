@@ -12,6 +12,7 @@
             android:id="@+id/iv_device_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
             android:layout_centerVertical="true"
             android:layout_margin="8dp"
             android:src="@drawable/ic_status_offline" />
@@ -21,7 +22,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
-            android:layout_marginStart="5dp"
             android:layout_toRightOf="@id/iv_device_status"
             android:text="ESP Smart Switch"
             android:textSize="20sp" />

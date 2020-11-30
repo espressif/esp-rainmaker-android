@@ -59,35 +59,56 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/btn_login_with_google" />
 
-                <EditText
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layout_email"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                app:hintEnabled="false"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_use_email_id"
+                app:errorIconDrawable="@drawable/ic_fluent_error_circle"
+                app:errorIconTint="@color/color_text_error"
+                app:errorTextColor="@color/color_text_error"
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeWidthFocused="0dp">
+
+                <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_email"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/margin_16"
                     android:background="@drawable/bg_edit_text"
                     android:hint="@string/hint_email"
                     android:imeOptions="actionNext"
                     android:inputType="textEmailAddress"
-                    android:paddingStart="@dimen/margin_16"
-                    android:paddingTop="@dimen/margin_18"
-                    android:paddingBottom="@dimen/margin_18"
-                    android:textColor="@color/color_text"
-                    android:textSize="16sp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/tv_use_email_id" />
+                    android:importantForAutofill="yes"
+                    android:paddingStart="16dp"
+                    android:paddingTop="18dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="18dp"
+                    android:textColor="@color/color_text_primary"
+                    android:textSize="16sp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/layout_password"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
+                    android:layout_marginTop="8dp"
                     app:hintEnabled="false"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/et_email"
+                    app:layout_constraintTop_toBottomOf="@id/layout_email"
+                    app:errorIconDrawable="@drawable/ic_fluent_error_circle"
+                    app:errorIconTint="@color/color_text_error"
+                    app:errorTextColor="@color/color_text_error"
+                    app:boxStrokeWidth="0dp"
+                    app:boxStrokeWidthFocused="0dp"
+                    app:passwordToggleDrawable="@drawable/ic_fluent_eye_selector"
                     app:passwordToggleEnabled="true"
-                    app:passwordToggleTint="@color/colorAccent">
+                    app:passwordToggleTint="@color/color_purple_accent_l">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_password"
@@ -97,11 +118,12 @@
                         android:hint="@string/hint_password"
                         android:imeOptions="actionGo"
                         android:inputType="textPassword"
-                        android:paddingStart="@dimen/margin_16"
-                        android:paddingTop="@dimen/margin_18"
-                        android:paddingEnd="@dimen/margin_16"
-                        android:paddingBottom="@dimen/margin_18"
-                        android:textColor="@color/color_text"
+                        android:importantForAutofill="yes"
+                        android:paddingStart="16dp"
+                        android:paddingTop="18dp"
+                        android:paddingEnd="16dp"
+                        android:paddingBottom="18dp"
+                        android:textColor="@color/color_text_primary"
                         android:textSize="16sp" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -123,7 +145,7 @@
                     android:layout_marginTop="@dimen/margin_24"
                     android:layout_marginBottom="@dimen/margin_24"
                     android:text="@string/forgot_password"
-                    android:textColor="@color/color_purple"
+                    android:textColor="@color/color_purple_accent"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -157,7 +179,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/link_documentation"
-                android:textColor="@color/color_text_secondary"
+                android:textColor="@color/color_purple_accent_l"
                 android:textSize="14sp"
                 app:layout_constraintEnd_toStartOf="@+id/tv_privacy"
                 app:layout_constraintHorizontal_chainStyle="spread_inside"
@@ -169,7 +191,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/link_privacy"
-                android:textColor="@color/color_text_secondary"
+                android:textColor="@color/color_purple_accent_l"
                 android:textSize="14sp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintEnd_toStartOf="@+id/tv_terms_condition"
@@ -181,7 +203,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/link_terms_of_use"
-                android:textColor="@color/color_text_secondary"
+                android:textColor="@color/color_purple_accent_l"
                 android:textSize="14sp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/tv_privacy"
@@ -197,7 +219,7 @@
             android:alpha="0.5"
             android:lineSpacingExtra="6sp"
             android:text="App Version : v1.0"
-            android:textColor="@color/colorPrimaryDark"
+            android:textColor="@color/color_text_secondary"
             android:textSize="11sp"/>
 
     </LinearLayout>

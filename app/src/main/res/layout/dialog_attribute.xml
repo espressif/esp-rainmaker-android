@@ -15,27 +15,43 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingStart="15dp"
+            android:paddingStart="32dp"
             android:paddingTop="10dp"
-            android:paddingEnd="15dp">
+            android:paddingEnd="32dp">
 
-            <EditText
-                android:id="@+id/et_attr_value"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layout_attr_value"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:background="@drawable/bg_edit_text"
-                android:hint="@string/hint_value"
-                android:imeOptions="actionGo"
-                android:maxLines="1"
-                android:paddingStart="16dp"
-                android:paddingTop="18dp"
-                android:paddingBottom="18dp"
-                android:textColor="@color/color_text"
-                android:textSize="16sp"
+                app:hintEnabled="false"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                app:errorIconDrawable="@drawable/ic_fluent_error_circle"
+                app:errorIconTint="@color/color_text_error"
+                app:errorTextColor="@color/color_text_error"
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeWidthFocused="0dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_attr_value"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_edit_text"
+                    android:hint="@string/hint_value"
+                    android:imeOptions="actionGo"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:importantForAutofill="no"
+                    android:paddingStart="16dp"
+                    android:paddingTop="18dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="18dp"
+                    android:textColor="@color/color_text_primary"
+                    android:textSize="16sp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

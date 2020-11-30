@@ -28,7 +28,7 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="@dimen/margin_24"
             android:text="@string/no_devices"
-            android:textColor="@color/colorPrimaryDark"
+            android:textColor="@color/color_text_secondary"
             android:textSize="18sp" />
 
         <TextView
@@ -40,7 +40,7 @@
             android:layout_marginTop="8dp"
             android:gravity="center_horizontal"
             android:text="@string/add_device_txt"
-            android:textColor="@color/colorAccent"
+            android:textColor="@color/color_purple_accent_l"
             android:textSize="14sp"
             android:visibility="gone" />
 

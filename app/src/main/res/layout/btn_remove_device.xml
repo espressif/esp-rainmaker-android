@@ -5,18 +5,18 @@
     android:layout_height="wrap_content"
     app:cardCornerRadius="10dp"
     app:cardElevation="0dp"
-    app:strokeColor="@color/color_orange"
+    app:strokeColor="@color/color_orange_accent"
     app:strokeWidth="1dp">
 
     <LinearLayout
         android:id="@+id/layout_btn_remove"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/color_remove"
+        android:background="@drawable/button_bg_warning_selector"
         android:gravity="center"
         android:orientation="horizontal"
-        android:paddingTop="18dp"
-        android:paddingBottom="18dp">
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp">
 
         <TextView
             android:id="@+id/text_btn"
@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:lineSpacingExtra="8sp"
             android:text="@string/btn_remove"
-            android:textColor="@color/color_orange"
+            android:textColor="@color/color_orange_accent"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -33,7 +33,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:src="@drawable/ic_remove_device" />
+            android:src="@drawable/ic_fluent_delete" />
 
         <androidx.core.widget.ContentLoadingProgressBar
             android:id="@+id/progress_indicator"

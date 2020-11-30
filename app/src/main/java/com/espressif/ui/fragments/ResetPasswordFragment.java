@@ -29,13 +29,14 @@ import androidx.fragment.app.Fragment;
 
 import com.espressif.rainmaker.R;
 import com.espressif.ui.user_module.ForgotPasswordActivity;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 public class ResetPasswordFragment extends Fragment {
 
     private TextView tvResetPasswordMsg;
-    private EditText etPassword;
-    private EditText etConfirmPassword;
-    private EditText etVerificationCode;
+    private TextInputEditText etPassword, etConfirmPassword, etVerificationCode;
+    private TextInputLayout layoutPassword, layoutConfirmPassword, layoutVerificationCode;
     private CardView btnSetPassword;
     private TextView txtSetPasswordBtn;
     private ImageView arrowImage;
@@ -76,8 +77,11 @@ public class ResetPasswordFragment extends Fragment {
     private void init(View view, Bundle extras) {
 
         tvResetPasswordMsg = view.findViewById(R.id.tv_reset_password_msg);
+        layoutPassword = view.findViewById(R.id.layout_new_password);
         etPassword = view.findViewById(R.id.et_new_password);
+        layoutConfirmPassword = view.findViewById(R.id.layout_confirm_new_password);
         etConfirmPassword = view.findViewById(R.id.et_confirm_new_password);
+        layoutVerificationCode = view.findViewById(R.id.layout_verification_code);
         etVerificationCode = view.findViewById(R.id.et_verification_code);
         btnSetPassword = view.findViewById(R.id.btn_set_password);
         txtSetPasswordBtn = view.findViewById(R.id.text_btn);
@@ -102,27 +106,27 @@ public class ResetPasswordFragment extends Fragment {
         String newPassword = etPassword.getText().toString();
         if (TextUtils.isEmpty(newPassword)) {
 
-            etPassword.setError(getString(R.string.error_password_empty));
+            layoutPassword.setError(getString(R.string.error_password_empty));
             return;
         }
 
         String newConfirmPassword = etConfirmPassword.getText().toString();
         if (TextUtils.isEmpty(newConfirmPassword)) {
 
-            etConfirmPassword.setError(getString(R.string.error_confirm_password_empty));
+            layoutConfirmPassword.setError(getString(R.string.error_confirm_password_empty));
             return;
         }
 
         if (!newPassword.equals(newConfirmPassword)) {
 
-            etConfirmPassword.setError(getString(R.string.error_password_not_matched));
+            layoutConfirmPassword.setError(getString(R.string.error_password_not_matched));
             return;
         }
 
         String verCode = etVerificationCode.getText().toString();
         if (TextUtils.isEmpty(verCode)) {
 
-            etVerificationCode.setError(getString(R.string.error_verification_code_empty));
+            layoutVerificationCode.setError(getString(R.string.error_verification_code_empty));
             return;
         }
 

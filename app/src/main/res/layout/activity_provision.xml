@@ -64,7 +64,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_vertical"
-                                android:src="@drawable/ic_checkbox_unselected" />
+                                android:src="@drawable/ic_fluent_checkmark_unselected" />
 
                             <androidx.core.widget.ContentLoadingProgressBar
                                 android:id="@+id/prov_progress_1"
@@ -81,7 +81,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
                             android:text="@string/prov_step_1"
-                            android:textColor="@color/colorPrimaryDark"
+                            android:textColor="@color/color_text_primary"
                             android:textSize="16sp" />
                     </LinearLayout>
 
@@ -90,7 +90,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="32dp"
-                        android:textColor="@color/color_orange"
+                        android:textColor="@color/color_text_error"
                         android:textSize="12sp"
                         android:visibility="gone" />
 
@@ -118,7 +118,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_vertical"
-                                android:src="@drawable/ic_checkbox_unselected" />
+                                android:src="@drawable/ic_fluent_checkmark_unselected" />
 
                             <androidx.core.widget.ContentLoadingProgressBar
                                 android:id="@+id/prov_progress_2"
@@ -135,7 +135,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
                             android:text="@string/prov_step_2"
-                            android:textColor="@color/colorPrimaryDark"
+                            android:textColor="@color/color_text_primary"
                             android:textSize="16sp" />
                     </LinearLayout>
 
@@ -144,7 +144,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="32dp"
-                        android:textColor="@color/color_orange"
+                        android:textColor="@color/color_text_error"
                         android:textSize="12sp"
                         android:visibility="gone" />
 
@@ -172,7 +172,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_vertical"
-                                android:src="@drawable/ic_checkbox_unselected" />
+                                android:src="@drawable/ic_fluent_checkmark_unselected" />
 
                             <androidx.core.widget.ContentLoadingProgressBar
                                 android:id="@+id/prov_progress_3"
@@ -189,7 +189,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
                             android:text="@string/prov_step_3"
-                            android:textColor="@color/colorPrimaryDark"
+                            android:textColor="@color/color_text_primary"
                             android:textSize="16sp" />
 
                     </LinearLayout>
@@ -199,7 +199,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="32dp"
-                        android:textColor="@color/color_orange"
+                        android:textColor="@color/color_text_error"
                         android:textSize="12sp"
                         android:visibility="gone" />
 
@@ -227,7 +227,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_vertical"
-                                android:src="@drawable/ic_checkbox_unselected" />
+                                android:src="@drawable/ic_fluent_checkmark_unselected" />
 
                             <androidx.core.widget.ContentLoadingProgressBar
                                 android:id="@+id/prov_progress_4"
@@ -246,7 +246,7 @@
                             android:layout_marginTop="5dp"
                             android:layout_marginBottom="5dp"
                             android:text="@string/prov_step_4"
-                            android:textColor="@color/colorPrimaryDark"
+                            android:textColor="@color/color_text_primary"
                             android:textSize="16sp" />
 
                     </LinearLayout>
@@ -256,7 +256,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="32dp"
-                        android:textColor="@color/color_orange"
+                        android:textColor="@color/color_text_error"
                         android:textSize="12sp"
                         android:visibility="gone" />
 
@@ -272,7 +272,7 @@
                 android:gravity="center_horizontal"
                 android:lineSpacingExtra="8sp"
                 android:text="@string/error_provisioning"
-                android:textColor="@color/colorAccent"
+                android:textColor="@color/color_purple_accent_l"
                 android:textSize="14sp"
                 android:visibility="invisible"
                 app:layout_constraintEnd_toEndOf="parent"

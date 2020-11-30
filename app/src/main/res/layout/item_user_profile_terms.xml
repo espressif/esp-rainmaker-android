@@ -6,7 +6,7 @@
     android:layout_height="wrap_content"
     android:layout_marginTop="1dp"
     android:layout_marginBottom="1dp"
-    card_view:cardBackgroundColor="@color/color_background"
+    card_view:cardBackgroundColor="@color/color_card_bg"
     card_view:cardCornerRadius="8dp"
     card_view:cardElevation="1dp"
     card_view:cardUseCompatPadding="true">
@@ -25,7 +25,7 @@
             android:paddingTop="10dp"
             android:paddingBottom="10dp"
             android:text="@string/title_activity_change_password"
-            android:textColor="@color/colorPrimary"
+            android:textColor="@color/color_purple_accent"
             android:textSize="16sp" />
 
     </RelativeLayout>

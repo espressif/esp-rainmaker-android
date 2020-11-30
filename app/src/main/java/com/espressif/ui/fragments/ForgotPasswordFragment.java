@@ -30,10 +30,13 @@ import androidx.fragment.app.Fragment;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
 import com.espressif.ui.user_module.ForgotPasswordActivity;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 public class ForgotPasswordFragment extends Fragment {
 
-    private EditText etEmail;
+    private TextInputEditText etEmail;
+    private TextInputLayout layoutEmail;
     private CardView btnResetPassword;
     private TextView txtResetPasswordBtn;
     private ImageView arrowImage;
@@ -74,6 +77,7 @@ public class ForgotPasswordFragment extends Fragment {
     private void init(View view, Bundle extras) {
 
         etEmail = view.findViewById(R.id.et_email);
+        layoutEmail = view.findViewById(R.id.layout_email);
         btnResetPassword = view.findViewById(R.id.btn_reset_password);
         txtResetPasswordBtn = view.findViewById(R.id.text_btn);
         arrowImage = view.findViewById(R.id.iv_arrow);
@@ -95,12 +99,12 @@ public class ForgotPasswordFragment extends Fragment {
         email = etEmail.getText().toString();
         if (TextUtils.isEmpty(email)) {
 
-            etEmail.setError(getString(R.string.error_email_empty));
+            layoutEmail.setError(getString(R.string.error_email_empty));
             return;
 
         } else if (!Utils.isValidEmail(email)) {
 
-            etEmail.setError(getString(R.string.error_invalid_email));
+            layoutEmail.setError(getString(R.string.error_invalid_email));
             return;
         }
 

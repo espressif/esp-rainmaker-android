@@ -1,15 +1,15 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
-    <item
+     <item
         android:id="@+id/action_devices"
-        android:icon="@drawable/ic_tab_devices"
+        android:icon="@drawable/ic_fluent_home_selector"
         android:orderInCategory="100"
         android:title="@string/tab_devices"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_schedules"
-        android:icon="@drawable/ic_tab_schedules"
+        android:icon="@drawable/ic_fluent_calendar_selector"
         android:orderInCategory="100"
         android:title="@string/tab_schedules"
         app:showAsAction="never" />

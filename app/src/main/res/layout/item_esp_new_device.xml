@@ -5,7 +5,8 @@
     android:id="@+id/card_view_switch"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    card_view:cardCornerRadius="16dp"
+    card_view:cardBackgroundColor="@color/color_card_new_device_bg"
+    card_view:cardCornerRadius="12dp"
     card_view:cardElevation="5dp"
     card_view:cardUseCompatPadding="true">
 
@@ -63,7 +64,7 @@
                     android:layout_alignParentEnd="true"
                     android:gravity="end"
                     android:text="Test"
-                    android:textColor="@color/color_dark_gray"
+                    android:textColor="@color/color_text_tertiary"
                     android:textSize="20sp"
                     android:visibility="visible" />
 
@@ -91,7 +92,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="Smart Bulb"
-                android:textColor="@color/colorPrimaryDark"
+                android:textColor="@color/color_text_primary"
                 android:textSize="16sp" />
 
             <LinearLayout
@@ -106,6 +107,7 @@
                     android:id="@+id/iv_offline"
                     android:layout_width="12dp"
                     android:layout_height="12dp"
+                    android:layout_marginStart="4dp"
                     android:layout_gravity="center_vertical"
                     android:src="@drawable/ic_status_offline" />
 
@@ -113,11 +115,10 @@
                     android:id="@+id/tv_offline"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
                     android:maxLines="1"
                     android:ellipsize="end"
                     android:text="Offline at 31/13/2020, 4:40 PM"
-                    android:textColor="@color/colorAccent"
+                    android:textColor="@color/color_text_tertiary"
                     android:textSize="12sp" />
 
             </LinearLayout>

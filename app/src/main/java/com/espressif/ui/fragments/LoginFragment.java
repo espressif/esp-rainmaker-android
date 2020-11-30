@@ -53,7 +53,7 @@ public class LoginFragment extends Fragment {
 
     private EditText etEmail;
     private TextInputEditText etPassword;
-    private TextInputLayout layoutPassword;
+    private TextInputLayout layoutPassword, layoutEmail;
     private CardView btnLogin, btnLoginWithGitHub, btnLoginWithGoogle;
     private TextView txtLoginBtn;
     private ImageView arrowImageLogin;
@@ -143,6 +143,7 @@ public class LoginFragment extends Fragment {
         btnLoginWithGitHub.setOnClickListener(githubLoginBtnClickListener);
         btnLoginWithGoogle.setOnClickListener(googleLoginBtnClickListener);
 
+        layoutEmail = view.findViewById(R.id.layout_email);
         etEmail = view.findViewById(R.id.et_email);
         layoutPassword = view.findViewById(R.id.layout_password);
         etPassword = view.findViewById(R.id.et_password);
@@ -189,16 +190,16 @@ public class LoginFragment extends Fragment {
         email = etEmail.getText().toString();
         password = etPassword.getText().toString();
 
-        etEmail.setError(null);
+        layoutEmail.setError(null);
         layoutPassword.setError(null);
 
         if (TextUtils.isEmpty(email)) {
 
-            etEmail.setError(getString(R.string.error_email_empty));
+            layoutEmail.setError(getString(R.string.error_email_empty));
             return;
         } else if (!Utils.isValidEmail(email)) {
 
-            etEmail.setError(getString(R.string.error_invalid_email));
+            layoutEmail.setError(getString(R.string.error_invalid_email));
             return;
         }
 
@@ -220,16 +221,16 @@ public class LoginFragment extends Fragment {
         etPassword.setText(newUserPassword);
         email = etEmail.getText().toString();
         password = etPassword.getText().toString();
-        etEmail.setError(null);
+        layoutEmail.setError(null);
         layoutPassword.setError(null);
 
         if (TextUtils.isEmpty(email)) {
 
-            etEmail.setError(getString(R.string.error_email_empty));
+            layoutEmail.setError(getString(R.string.error_email_empty));
             return;
         } else if (!Utils.isValidEmail(email)) {
 
-            etEmail.setError(getString(R.string.error_invalid_email));
+            layoutEmail.setError(getString(R.string.error_invalid_email));
             return;
         }
 

@@ -9,7 +9,7 @@
     android:layout_marginTop="@dimen/margin_8"
     android:layout_marginEnd="@dimen/margin_8"
     android:layout_marginBottom="@dimen/margin_8"
-    card_view:cardBackgroundColor="@color/color_background"
+    card_view:cardBackgroundColor="@color/color_card_bg"
     card_view:cardCornerRadius="8dp"
     card_view:cardElevation="1dp"
     card_view:cardUseCompatPadding="true">
@@ -30,6 +30,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
+                android:button="@drawable/ic_fluent_checkbox_selector"
                 android:padding="@dimen/margin_10" />
 
             <TextView
@@ -43,7 +44,7 @@
                 android:paddingEnd="@dimen/margin_10"
                 android:paddingBottom="@dimen/margin_10"
                 android:text="My Light Bulb"
-                android:textColor="@color/colorPrimaryDark"
+                android:textColor="@color/color_text_primary"
                 android:textSize="17sp" />
 
             <ImageView
@@ -53,7 +54,7 @@
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
                 android:paddingEnd="5dp"
-                android:src="@drawable/ic_side_arrow" />
+                android:src="@drawable/ic_fluent_chevron_right" />
 
         </RelativeLayout>
 

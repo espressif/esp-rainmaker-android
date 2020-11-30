@@ -30,7 +30,7 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="@dimen/margin_16"
             android:text="@string/progress_add_sch"
-            android:textColor="@color/colorPrimaryDark"
+            android:textColor="@color/color_text_primary"
             android:textSize="18sp" />
     </RelativeLayout>
 

@@ -7,7 +7,7 @@
     android:layout_height="wrap_content"
     android:layout_marginTop="8dp"
     android:layout_marginBottom="8dp"
-    card_view:cardBackgroundColor="@color/color_background"
+    card_view:cardBackgroundColor="@color/color_card_bg"
     card_view:cardCornerRadius="8dp"
     card_view:cardElevation="2dp"
     card_view:cardUseCompatPadding="true">
@@ -30,7 +30,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:textColor="@color/colorPrimaryDark"
+                android:textColor="@color/color_text_primary"
                 android:textSize="18sp" />
 
             <TextView
@@ -39,7 +39,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:alpha="0.8"
-                android:textColor="@color/colorPrimaryDark"
+                android:textColor="@color/color_text_primary"
                 android:textSize="14sp" />
 
             <TextView
@@ -48,7 +48,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:alpha="0.8"
-                android:textColor="@color/colorPrimaryDark"
+                android:textColor="@color/color_text_primary"
                 android:textSize="15sp" />
 
         </LinearLayout>

@@ -321,7 +321,6 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.MyVi
                 myViewHolder.ivOffline.setVisibility(View.VISIBLE);
                 String offlineText = context.getString(R.string.status_offline);
                 myViewHolder.tvOffline.setText(offlineText);
-                myViewHolder.tvOffline.setTextColor(context.getColor(R.color.colorAccent));
 
                 if (node.getTimeStampOfStatus() != 0) {
 
@@ -358,7 +357,6 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.MyVi
             myViewHolder.llOffline.setVisibility(View.VISIBLE);
             myViewHolder.ivOffline.setVisibility(View.GONE);
             myViewHolder.tvOffline.setText(R.string.local_device_text);
-            myViewHolder.tvOffline.setTextColor(context.getColor(R.color.colorPrimaryDark));
         }
 
         // implement setOnClickListener event on item view.

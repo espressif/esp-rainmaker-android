@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.appbar.AppBarLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:theme="@style/AppTheme.AppBarOverlay">
@@ -9,9 +8,8 @@
         android:id="@+id/main_toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:textAlignment="center"
-        app:contentInsetEnd="0dp"
-        app:contentInsetStart="0dp">
+        android:background="@color/color_actionbar_bg"
+        android:textAlignment="center">
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -22,10 +20,12 @@
                 android:id="@+id/main_toolbar_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="4dp"
+                android:layout_toEndOf="@+id/btn_back"
                 android:lineSpacingExtra="8sp"
                 android:text="@string/btn_reset_password"
-                android:textColor="@android:color/white"
+                android:textColor="@color/color_text_primary"
                 android:textSize="18sp" />
 
             <TextView
@@ -34,10 +34,10 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
-                android:padding="16dp"
-                android:text="@string/btn_back"
-                android:textColor="@android:color/white"
-                android:textSize="17sp" />
+                android:layout_marginStart="-4dp"
+                android:clickable="true"
+                android:padding="12dp"
+                android:drawableStart="@drawable/ic_fluent_arrow_left" />
 
             <TextView
                 android:id="@+id/btn_cancel"
@@ -45,13 +45,13 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:padding="16dp"
-                android:text="@string/btn_cancel"
-                android:textColor="@android:color/white"
-                android:textSize="17sp" />
+                android:clickable="true"
+                android:layout_marginEnd="12dp"
+                android:padding="12dp"
+                android:drawableStart="@drawable/ic_fluent_dismiss"/>
 
         </RelativeLayout>
 
     </androidx.appcompat.widget.Toolbar>
-
 </com.google.android.material.appbar.AppBarLayout>
+
