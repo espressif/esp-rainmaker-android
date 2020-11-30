@@ -195,7 +195,7 @@
     <string name="dialog_title_schedule_name">Enter Schedule Name</string>
     <string name="dialog_msg_for_gps">Location services are disabled. Please enable them to continue</string>
     <string name="dialog_msg_delete_node">Are you sure?</string>
-    <string name="dialog_msg_device_selection">Select Device Type</string>
+    <string name="dialog_msg_device_selection">Choose Provisioning Transport</string>
     <string name="dialog_title_remove_schedule">Remove</string>
     <string name="dialog_msg_remove_schedule">Are you sure to remove this schedule?</string>
 

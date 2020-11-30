@@ -686,7 +686,7 @@ public class ApiManager {
 
     public void getNodeDetails(String nodeId, final ApiResponseListener listener) {
 
-        Log.d(TAG, "Get Node Details");
+        Log.d(TAG, "Get Node Details for id : " + nodeId);
 
         apiInterface.getNode(accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
 
@@ -968,7 +968,7 @@ public class ApiManager {
 
     public void getParamsValues(final String nodeId, final ApiResponseListener listener) {
 
-        Log.d(TAG, "Get Param values");
+        Log.d(TAG, "Get Param values for node : " + nodeId);
 
         apiInterface.getParamValue(accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
 

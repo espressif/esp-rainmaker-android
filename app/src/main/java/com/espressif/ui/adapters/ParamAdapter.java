@@ -136,7 +136,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
     }
 
     private void displayPalette(MyViewHolder myViewHolder, final Param param, final int position) {
-        ((EspDeviceActivity) context).stopUpdateValueTask();
+
         myViewHolder.rvPalette.setVisibility(View.VISIBLE);
         myViewHolder.tvSliderName.setVisibility(View.GONE);
         myViewHolder.intSlider.setVisibility(View.GONE);
@@ -153,6 +153,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                     @Override
                     public void onColorSelected(int colorInt) {
 
+                        ((EspDeviceActivity) context).stopUpdateValueTask();
                         JsonObject jsonParam = new JsonObject();
                         JsonObject body = new JsonObject();
 

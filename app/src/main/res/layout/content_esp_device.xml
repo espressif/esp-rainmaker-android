@@ -26,7 +26,8 @@
         android:layout_marginTop="@dimen/margin_10"
         android:alpha="0.5"
         android:textColor="@color/colorPrimaryDark"
-        android:textSize="14sp" />
+        android:textSize="14sp"
+        android:textStyle="italic" />
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_container"

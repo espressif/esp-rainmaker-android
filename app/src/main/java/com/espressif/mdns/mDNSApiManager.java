@@ -50,7 +50,7 @@ public class mDNSApiManager {
 
     public void getNodeDetails(final String nodeId, final ApiResponseListener listener) {
 
-        Log.d(TAG, "Get Node details on local network");
+        Log.d(TAG, "Get Node details on local network for id : " + nodeId);
 
         if (espApp.mDNSDeviceMap.containsKey(nodeId)) {
 
@@ -142,7 +142,7 @@ public class mDNSApiManager {
 
     public void getParamsValues(final String nodeId, final ApiResponseListener listener) {
 
-        Log.d(TAG, "Get param values on local network");
+        Log.d(TAG, "Get param values on local network for node : " + nodeId);
 
         if (espApp.mDNSDeviceMap.containsKey(nodeId)) {
 
