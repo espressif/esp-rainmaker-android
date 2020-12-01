@@ -611,7 +611,7 @@ public class AddScheduleActivity extends AppCompatActivity {
                             int min = param.getMinBounds();
 
                             if ((min < max)) {
-                                int value = (int) param.getSliderValue();
+                                int value = (int) param.getValue();
                                 jsonParam.addProperty(param.getName(), value);
                             } else {
 
@@ -625,7 +625,7 @@ public class AddScheduleActivity extends AppCompatActivity {
                             int min = param.getMinBounds();
 
                             if ((min < max)) {
-                                jsonParam.addProperty(param.getName(), param.getSliderValue());
+                                jsonParam.addProperty(param.getName(), param.getValue());
                             } else {
 
                                 float value = Float.parseFloat(param.getLabelValue());
@@ -641,13 +641,13 @@ public class AddScheduleActivity extends AppCompatActivity {
                         } else if (dataType.equalsIgnoreCase("int")
                                 || dataType.equalsIgnoreCase("integer")) {
 
-                            int value = (int) param.getSliderValue();
+                            int value = (int) param.getValue();
                             jsonParam.addProperty(param.getName(), value);
 
                         } else if (dataType.equalsIgnoreCase("float")
                                 || dataType.equalsIgnoreCase("double")) {
 
-                            jsonParam.addProperty(param.getName(), param.getSliderValue());
+                            jsonParam.addProperty(param.getName(), param.getValue());
 
                         } else if (dataType.equalsIgnoreCase("string")) {
 

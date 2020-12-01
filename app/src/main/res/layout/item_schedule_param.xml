@@ -122,10 +122,10 @@
                     android:textColor="@color/colorPrimaryDark"
                     android:textSize="12sp" />
 
-                <com.espressif.ui.PaletteBar
+                <com.espressif.ui.widgets.PaletteBar
                     android:id="@+id/rl_palette"
                     android:layout_width="match_parent"
-                    android:layout_height="25pt"/>
+                    android:layout_height="25pt" />
             </LinearLayout>
         </RelativeLayout>
 
@@ -227,15 +227,53 @@
                 android:textSize="12sp"
                 android:visibility="visible" />
 
-            <androidx.core.widget.ContentLoadingProgressBar
-                android:id="@+id/progress_indicator"
-                style="?android:attr/progressBarStyle"
-                android:layout_width="25dp"
-                android:layout_height="25dp"
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/rl_card_drop_down"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_toRightOf="@id/cb_param_select"
+            android:padding="5dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="8dp"
+                android:layout_toLeftOf="@id/card_spinner"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_spinner_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:alpha="0.5"
+                    android:textColor="@color/colorPrimaryDark"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tv_spinner_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:maxLines="2"
+                    android:textColor="@color/colorPrimaryDark"
+                    android:textSize="16sp" />
+
+            </LinearLayout>
+
+            <com.espressif.ui.widgets.EspDropDown
+                android:id="@+id/card_spinner"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:layout_marginEnd="16dp"
-                android:visibility="gone" />
+                android:gravity="end"
+                android:paddingEnd="8dp"
+                android:textAlignment="gravity" />
 
         </RelativeLayout>
 
