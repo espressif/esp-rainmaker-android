@@ -28,8 +28,8 @@
 
             <ImageView
                 android:id="@+id/btn_user_profile"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
                 android:padding="12dp"
@@ -37,8 +37,8 @@
 
             <ImageView
                 android:id="@+id/btn_add_device"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
                 android:layout_marginEnd="16dp"
