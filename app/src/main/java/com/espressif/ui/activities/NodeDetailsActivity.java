@@ -15,12 +15,8 @@
 package com.espressif.ui.activities;
 
 import android.content.DialogInterface;
-import android.content.res.Configuration;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -29,7 +25,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-import androidx.core.content.ContextCompat;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -43,6 +38,7 @@ import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.NodeDetailsAdapter;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
+import com.espressif.ui.theme_manager.SystemUIThemeManager;
 
 import java.util.ArrayList;
 
@@ -66,30 +62,10 @@ public class NodeDetailsActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        SystemUIThemeManager systemUIThemeManager = new SystemUIThemeManager(this, false);
+        systemUIThemeManager.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_node_details);
-
-        Window window = NodeDetailsActivity.this.getWindow();
-        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-        window.setStatusBarColor(ContextCompat.getColor(NodeDetailsActivity.this,R.color.color_actionbar_bg));
-        int currentNightMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-        switch (currentNightMode){
-            case Configuration.UI_MODE_NIGHT_NO:
-                if(Build.VERSION.SDK_INT >= 27) {
-                    window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR |
-                            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-                }
-                else
-                    window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-                break;
-            case Configuration.UI_MODE_NIGHT_YES:
-                if(Build.VERSION.SDK_INT >= 27) {
-                    window.getDecorView().setSystemUiVisibility(window.getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-                }
-                window.getDecorView().setSystemUiVisibility(window.getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-                break;
-        }
 
         nodeInfoList = new ArrayList<>();
         nodeInfoValueList = new ArrayList<>();

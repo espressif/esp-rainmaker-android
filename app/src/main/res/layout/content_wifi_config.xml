@@ -71,7 +71,7 @@
         app:passwordToggleEnabled="true"
         app:passwordToggleTint="@color/color_purple_accent_l">
 
-        <EditText
+        <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_password_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

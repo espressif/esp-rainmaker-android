@@ -1,14 +1,11 @@
 package com.espressif.ui.activities;
 
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.RotateAnimation;
@@ -18,7 +15,6 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-import androidx.core.content.ContextCompat;
 
 import com.espressif.AppConstants;
 import com.espressif.cloudapi.ApiManager;
@@ -26,6 +22,7 @@ import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.theme_manager.SystemUIThemeManager;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.protobuf.ByteString;
@@ -58,30 +55,10 @@ public class ClaimingActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        SystemUIThemeManager systemUIThemeManager = new SystemUIThemeManager(this, false);
+        systemUIThemeManager.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_claiming);
-
-        Window window = ClaimingActivity.this.getWindow();
-        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-        window.setStatusBarColor(ContextCompat.getColor(ClaimingActivity.this,R.color.color_actionbar_bg));
-        int currentNightMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-        switch (currentNightMode){
-            case Configuration.UI_MODE_NIGHT_NO:
-                if(Build.VERSION.SDK_INT >= 27) {
-                    window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR |
-                            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-                }
-                else
-                    window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-                break;
-            case Configuration.UI_MODE_NIGHT_YES:
-                if(Build.VERSION.SDK_INT >= 27) {
-                    window.getDecorView().setSystemUiVisibility(window.getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-                }
-                window.getDecorView().setSystemUiVisibility(window.getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-                break;
-        }
 
         handler = new Handler();
         apiManager = ApiManager.getInstance(getApplicationContext());

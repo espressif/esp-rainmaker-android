@@ -15,17 +15,12 @@
 package com.espressif.ui.user_module;
 
 import android.content.DialogInterface;
-import android.content.res.Configuration;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -35,6 +30,7 @@ import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.AddDeviceActivity;
 import com.espressif.ui.fragments.ForgotPasswordFragment;
 import com.espressif.ui.fragments.ResetPasswordFragment;
+import com.espressif.ui.theme_manager.SystemUIThemeManager;
 
 public class ForgotPasswordActivity extends AppCompatActivity {
 
@@ -46,30 +42,10 @@ public class ForgotPasswordActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        SystemUIThemeManager systemUIThemeManager = new SystemUIThemeManager(this, false);
+        systemUIThemeManager.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_forgot_password);
-
-        Window window = ForgotPasswordActivity.this.getWindow();
-        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-        window.setStatusBarColor(ContextCompat.getColor(ForgotPasswordActivity.this,R.color.color_actionbar_bg));
-        int currentNightMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-        switch (currentNightMode){
-            case Configuration.UI_MODE_NIGHT_NO:
-                if(Build.VERSION.SDK_INT >= 27) {
-                    window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR |
-                            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-                }
-                else
-                    window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-                break;
-            case Configuration.UI_MODE_NIGHT_YES:
-                if(Build.VERSION.SDK_INT >= 27) {
-                    window.getDecorView().setSystemUiVisibility(window.getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-                }
-                window.getDecorView().setSystemUiVisibility(window.getDecorView().getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-                break;
-        }
 
         init();
     }
