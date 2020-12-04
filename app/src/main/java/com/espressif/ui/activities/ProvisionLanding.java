@@ -39,7 +39,7 @@ import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.theme_manager.SystemUIThemeManager;
+import com.espressif.ui.theme_manager.WindowThemeManager;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -70,8 +70,8 @@ public class ProvisionLanding extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SystemUIThemeManager systemUIThemeManager = new SystemUIThemeManager(this, false);
-        systemUIThemeManager.applyWindowTheme(getWindow());
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_provision_landing);
 

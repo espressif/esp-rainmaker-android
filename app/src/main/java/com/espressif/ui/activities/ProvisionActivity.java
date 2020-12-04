@@ -36,7 +36,7 @@ import com.espressif.provisioning.listeners.ProvisionListener;
 import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.UpdateEvent;
-import com.espressif.ui.theme_manager.SystemUIThemeManager;
+import com.espressif.ui.theme_manager.WindowThemeManager;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.greenrobot.eventbus.EventBus;
@@ -71,8 +71,8 @@ public class ProvisionActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SystemUIThemeManager systemUIThemeManager = new SystemUIThemeManager(this, false);
-        systemUIThemeManager.applyWindowTheme(getWindow());
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_provision);
 

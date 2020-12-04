@@ -30,7 +30,7 @@ import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.AddDeviceActivity;
 import com.espressif.ui.fragments.ForgotPasswordFragment;
 import com.espressif.ui.fragments.ResetPasswordFragment;
-import com.espressif.ui.theme_manager.SystemUIThemeManager;
+import com.espressif.ui.theme_manager.WindowThemeManager;
 
 public class ForgotPasswordActivity extends AppCompatActivity {
 
@@ -42,8 +42,8 @@ public class ForgotPasswordActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SystemUIThemeManager systemUIThemeManager = new SystemUIThemeManager(this, false);
-        systemUIThemeManager.applyWindowTheme(getWindow());
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_forgot_password);
 

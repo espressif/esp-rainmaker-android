@@ -26,7 +26,7 @@ import androidx.cardview.widget.CardView;
 import com.espressif.AppConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.theme_manager.SystemUIThemeManager;
+import com.espressif.ui.theme_manager.WindowThemeManager;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -44,8 +44,8 @@ public class WiFiConfigActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SystemUIThemeManager systemUIThemeManager = new SystemUIThemeManager(this, false);
-        systemUIThemeManager.applyWindowTheme(getWindow());
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_wifi_config);
 

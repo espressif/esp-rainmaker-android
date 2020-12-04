@@ -55,7 +55,7 @@ import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.UpdateEvent;
-import com.espressif.ui.theme_manager.SystemUIThemeManager;
+import com.espressif.ui.theme_manager.WindowThemeManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -97,8 +97,8 @@ public class EspMainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SystemUIThemeManager systemUIThemeManager = new SystemUIThemeManager(this, false);
-        systemUIThemeManager.applyWindowTheme(getWindow());
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_esp_main);
 

@@ -20,11 +20,11 @@ import android.view.Window;
 import com.espressif.rainmaker.R;
 import com.google.android.material.color.MaterialColors;
 
-public class SystemUIThemeManager {
+public class WindowThemeManager {
   private final Context context;
 
   private static boolean isNoActionBarWindow = false;
-  public SystemUIThemeManager(Context context, boolean NoActionBar) {
+  public WindowThemeManager(Context context, boolean NoActionBar) {
     this.context = context;
     isNoActionBarWindow = NoActionBar;
   }

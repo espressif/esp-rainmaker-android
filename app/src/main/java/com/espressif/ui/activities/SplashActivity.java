@@ -27,7 +27,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.espressif.AppConstants;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.theme_manager.SystemUIThemeManager;
+import com.espressif.ui.theme_manager.WindowThemeManager;
 import com.espressif.ui.user_module.AppHelper;
 
 public class SplashActivity extends AppCompatActivity {
@@ -42,8 +42,8 @@ public class SplashActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SystemUIThemeManager systemUIThemeManager = new SystemUIThemeManager(this, true);
-        systemUIThemeManager.applyWindowTheme(getWindow());
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, true);
+        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 

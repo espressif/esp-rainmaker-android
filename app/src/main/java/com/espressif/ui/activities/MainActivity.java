@@ -45,7 +45,7 @@ import com.espressif.cloudapi.ApiManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.TabsPagerAdapter;
 import com.espressif.ui.fragments.LoginFragment;
-import com.espressif.ui.theme_manager.SystemUIThemeManager;
+import com.espressif.ui.theme_manager.WindowThemeManager;
 import com.espressif.ui.user_module.AppHelper;
 import com.espressif.ui.user_module.SignUpConfirmActivity;
 import com.google.android.material.tabs.TabLayout;
@@ -63,8 +63,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SystemUIThemeManager systemUIThemeManager = new SystemUIThemeManager(this, false);
-        systemUIThemeManager.applyWindowTheme(getWindow());
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
