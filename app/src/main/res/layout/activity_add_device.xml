@@ -4,15 +4,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <include
-        android:id="@+id/title_bar"
-        layout="@layout/tool_bar_main_purple" />
+    <include layout="@layout/app_toolbar" />
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@+id/ll_instruction_text"
-        android:layout_below="@id/title_bar" >
+        android:layout_below="@id/toolbar_layout" >
 
         <com.budiyev.android.codescanner.CodeScannerView
             android:id="@+id/scanner_view"
@@ -81,8 +79,8 @@
     </LinearLayout>
 
     <include
-        android:id="@+id/btn_add_device_manually"
         layout="@layout/btn_add_device"
+        android:id="@+id/btn_add_device_manually"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"

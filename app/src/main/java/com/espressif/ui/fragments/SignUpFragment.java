@@ -18,6 +18,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
@@ -35,13 +36,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.CheckBox;
-import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
-import androidx.cardview.widget.CardView;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.fragment.app.Fragment;
 
@@ -64,6 +61,8 @@ import com.espressif.ui.Utils;
 import com.espressif.ui.activities.MainActivity;
 import com.espressif.ui.user_module.AppHelper;
 import com.espressif.ui.user_module.SignUpConfirmActivity;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -76,11 +75,8 @@ public class SignUpFragment extends Fragment {
     private TextInputEditText etEmail, etPassword, etConfirmPassword;
     private TextInputLayout layoutEmail, layoutPassword, layoutConfirmPassword;
     private CheckBox cbTermsCondition;
-    private CardView btnRegister;
-    private TextView txtRegisterBtn;
-    private ImageView arrowImage;
+    private MaterialButton btnRegister;
     private ContentLoadingProgressBar progressBar;
-    private AlertDialog userDialog;
     private TextView tvPolicy;
 
     private String email, password, confirmPassword;
@@ -172,10 +168,9 @@ public class SignUpFragment extends Fragment {
         }
 
         btnRegister.setEnabled(false);
-        btnRegister.setAlpha(0.5f);
-        txtRegisterBtn.setText(R.string.btn_registering);
+        btnRegister.setText(R.string.btn_registering);
+        btnRegister.setIcon(null);
         progressBar.setVisibility(View.VISIBLE);
-        arrowImage.setVisibility(View.GONE);
 
         AppHelper.getPool().signUpInBackground(email, password, userAttributes, null, signUpHandler);
     }
@@ -183,8 +178,6 @@ public class SignUpFragment extends Fragment {
     private void init(View view) {
 
         sharedPreferences = getActivity().getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
-        txtRegisterBtn = view.findViewById(R.id.text_btn);
-        arrowImage = view.findViewById(R.id.iv_arrow);
         progressBar = view.findViewById(R.id.progress_indicator);
         tvPolicy = view.findViewById(R.id.tv_terms_condition);
 
@@ -297,7 +290,7 @@ public class SignUpFragment extends Fragment {
         });
 
         cbTermsCondition = view.findViewById(R.id.checkbox_terms_condition);
-        btnRegister = view.findViewById(R.id.btn_register);
+        btnRegister = view.findViewById(R.id.btn_material);
         btnRegister.setOnClickListener(registerBtnClickListener);
         enableRegisterButton();
 
@@ -328,10 +321,9 @@ public class SignUpFragment extends Fragment {
 
             // Check signUpConfirmationState to see if the user is already confirmed
             btnRegister.setEnabled(true);
-            btnRegister.setAlpha(1f);
-            txtRegisterBtn.setText(R.string.btn_register);
+            btnRegister.setText(R.string.btn_register);
+            btnRegister.setIconResource(R.drawable.ic_fluent_arrow_right_filled);
             progressBar.setVisibility(View.GONE);
-            arrowImage.setVisibility(View.VISIBLE);
 
             Boolean regState = signUpResult.getUserConfirmed();
             if (regState) {
@@ -347,10 +339,9 @@ public class SignUpFragment extends Fragment {
         public void onFailure(Exception exception) {
 
             btnRegister.setEnabled(true);
-            btnRegister.setAlpha(1f);
-            txtRegisterBtn.setText(R.string.btn_register);
+            btnRegister.setText(R.string.btn_register);
+            btnRegister.setIconResource(R.drawable.ic_fluent_arrow_right_filled);
             progressBar.setVisibility(View.GONE);
-            arrowImage.setVisibility(View.VISIBLE);
 
             exception.printStackTrace();
             showDialogMessage(getString(R.string.dialog_title_sign_up_failed), AppHelper.formatException(exception), false);
@@ -361,10 +352,8 @@ public class SignUpFragment extends Fragment {
 
         if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password) || TextUtils.isEmpty(confirmPassword)) {
             btnRegister.setEnabled(false);
-            btnRegister.setAlpha(0.5f);
         } else {
             btnRegister.setEnabled(true);
-            btnRegister.setAlpha(1f);
         }
     }
 
@@ -382,13 +371,13 @@ public class SignUpFragment extends Fragment {
 
     private void showDialogMessage(String title, String body, final boolean exit) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity(), R.style.AlertDialogTheme);
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(getActivity(), R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
 
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 try {
-                    userDialog.dismiss();
+                    dialog.dismiss();
                     if (exit) {
                         exit(email);
                     }
@@ -399,8 +388,7 @@ public class SignUpFragment extends Fragment {
                 }
             }
         });
-        userDialog = builder.create();
-        userDialog.show();
+        builder.show();
     }
 
     private void exit(String uname) {
@@ -443,19 +431,18 @@ public class SignUpFragment extends Fragment {
 
     private void showDialogMessage(String title, String body) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity(), R.style.AlertDialogTheme);
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(getActivity(), R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 try {
-                    userDialog.dismiss();
+                    dialog.dismiss();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         });
-        userDialog = builder.create();
-        userDialog.show();
+        builder.show();
     }
 
     AuthenticationHandler authenticationHandler = new AuthenticationHandler() {

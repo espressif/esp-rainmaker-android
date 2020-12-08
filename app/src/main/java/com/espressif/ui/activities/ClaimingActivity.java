@@ -1,10 +1,12 @@
 package com.espressif.ui.activities;
 
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
@@ -14,7 +16,7 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+import androidx.appcompat.widget.Toolbar;
 
 import com.espressif.AppConstants;
 import com.espressif.cloudapi.ApiManager;
@@ -23,6 +25,7 @@ import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.protobuf.ByteString;
@@ -36,10 +39,9 @@ public class ClaimingActivity extends AppCompatActivity {
 
     private static final String TAG = ClaimingActivity.class.getSimpleName();
 
-    private TextView tvTitle, tvBack, tvCancel;
-
-    private CardView btnOk;
-    private TextView txtOkBtn;
+    private Toolbar toolbar;
+    private static boolean show_cancel_btn = false;
+    private MaterialButton btnOk;
 
     private TextView tvClaimProgress, tvClaimError, tvClaimFailure, tvPleaseWait;
     private ImageView ivClaimingProgress;
@@ -55,10 +57,14 @@ public class ClaimingActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_claiming);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
+
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setTitle(R.string.title_activity_claiming);
 
         handler = new Handler();
         apiManager = ApiManager.getInstance(getApplicationContext());
@@ -67,6 +73,30 @@ public class ClaimingActivity extends AppCompatActivity {
         displayClaimingProgress();
         handler.postDelayed(timeoutTask, 10000);
         sendClaimStartRequest();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_toolbar, menu);
+        if(show_cancel_btn){
+            MenuItem tvCancel = menu.findItem(R.id.action_done);
+            tvCancel.setVisible(true);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_cancel:
+                cancelBtnVoid();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -89,10 +119,7 @@ public class ClaimingActivity extends AppCompatActivity {
         }
     };
 
-    private View.OnClickListener cancelBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
+    private void cancelBtnVoid() {
 
             sendClaimAbortRequest();
 
@@ -107,19 +134,9 @@ public class ClaimingActivity extends AppCompatActivity {
                     finish();
                 }
             }, 2000);
-        }
     };
 
     private void initViews() {
-
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_claiming);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.GONE);
-        tvCancel.setOnClickListener(cancelBtnClickListener);
 
         tvClaimProgress = findViewById(R.id.tv_claiming_progress);
         tvClaimError = findViewById(R.id.tv_claiming_error);
@@ -127,12 +144,11 @@ public class ClaimingActivity extends AppCompatActivity {
         ivClaimingProgress = findViewById(R.id.iv_claiming);
         tvPleaseWait = findViewById(R.id.tv_please_wait);
 
-        btnOk = findViewById(R.id.btn_ok);
-        txtOkBtn = findViewById(R.id.text_btn);
-        btnOk.findViewById(R.id.iv_arrow).setVisibility(View.GONE);
+        btnOk = findViewById(R.id.btn_material);
+        btnOk.setIcon(null);
         btnOk.setVisibility(View.GONE);
 
-        txtOkBtn.setText(R.string.btn_ok);
+        btnOk.setText(R.string.btn_ok);
         btnOk.setOnClickListener(okBtnClickListener);
     }
 
@@ -607,7 +623,8 @@ public class ClaimingActivity extends AppCompatActivity {
 
         @Override
         public void run() {
-            tvCancel.setVisibility(View.VISIBLE);
+            show_cancel_btn = true;
+            invalidateOptionsMenu();
         }
     };
 }

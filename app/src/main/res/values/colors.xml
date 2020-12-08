@@ -10,13 +10,12 @@
 	<color name="color_actionbar_bg">#f7f6fb</color>
 	<color name="color_app_bg">#fafafa</color>
 	<color name="color_btn_bg">#ffffff</color>
-    <color name="color_btn_bg_pressed">#f1f1f1</color>
     <color name="color_btn_output_off_bg">#f6f5fb</color>
 	<color name="color_btn_stroke">#bbbbbb</color>
 	<color name="color_card_bg">#f7f6fb</color>
     <color name="color_card_new_device_bg">#ffffff</color>
+    <color name="color_daynight_black">#000000</color>
 	<color name="color_daynight_white">#ffffff</color>
-	<color name="color_daynight_black">#000000</color>
     <color name="color_divider">#cccccc</color>
     <color name="color_text_error">#ff3b30</color>
 	<color name="color_input_bg">#f6f7fb</color>
@@ -24,9 +23,6 @@
 	<color name="color_purple_accent">#5330b9</color>
     <color name="color_purple_accent_d">#492aa3</color>
     <color name="color_purple_accent_l">#8181a8</color>
-	<color name="color_remove_bg">#ffeee6</color>
-    <color name="color_remove_bg_d">#e0d2ca</color>
-    <color name="color_side_nav_bg">#343434</color>
 	<color name="color_text_primary">#050505</color>
 	<color name="color_text_secondary">#555555</color>
 	<color name="color_text_tertiary">#999999</color>

@@ -39,7 +39,7 @@
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
             android:label="@string/app_name"
             android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.NoActionBar"
+            android:theme="@style/SplashScreenTheme"
             android:windowSoftInputMode="adjustPan">
 
             <intent-filter>
@@ -152,12 +152,12 @@
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name="com.espressif.ui.activities.AddScheduleActivity"
-            android:label="@string/title_activity_add_device"
+            android:label="@string/title_activity_schedule_details"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name="com.espressif.ui.activities.ScheduleActionsActivity"
-            android:label="@string/title_activity_add_device"
+            android:label="@string/title_activity_select_actions"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
 

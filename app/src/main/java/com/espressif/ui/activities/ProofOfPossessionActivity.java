@@ -19,17 +19,21 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+import androidx.appcompat.widget.Toolbar;
 
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.button.MaterialButton;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -41,9 +45,8 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
 
     private static final String TAG = ProofOfPossessionActivity.class.getSimpleName();
 
-    private TextView tvTitle, tvBack, tvCancel;
-    private CardView btnNext;
-    private TextView txtNextBtn;
+    private Toolbar toolbar;
+    private MaterialButton btnNext;
 
     private String deviceName;
     private TextView tvPopInstruction;
@@ -52,10 +55,14 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pop);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
+
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setTitle(R.string.title_activity_pop);
 
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
@@ -94,6 +101,28 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_toolbar, menu);
+        MenuItem tvCancel = menu.findItem(R.id.action_cancel);
+        tvCancel.setVisible(true);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_cancel:
+                cancelBtnVoid();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
     public void onBackPressed() {
         if (provisionManager.getEspDevice() != null) {
             provisionManager.getEspDevice().disconnectDevice();
@@ -110,36 +139,21 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         }
     };
 
-    private View.OnClickListener cancelBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
+    private void cancelBtnVoid() {
 
             if (provisionManager.getEspDevice() != null) {
                 provisionManager.getEspDevice().disconnectDevice();
             }
             finish();
-        }
     };
 
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
         tvPopInstruction = findViewById(R.id.tv_pop);
         etPop = findViewById(R.id.et_pop);
+        btnNext = findViewById(R.id.btn_material);
 
-        tvTitle.setText(R.string.title_activity_pop);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.VISIBLE);
-
-        tvCancel.setOnClickListener(cancelBtnClickListener);
-
-        btnNext = findViewById(R.id.btn_next);
-        txtNextBtn = findViewById(R.id.text_btn);
-
-        txtNextBtn.setText(R.string.btn_next);
+        btnNext.setText(R.string.btn_next);
         btnNext.setOnClickListener(nextBtnClickListener);
     }
 

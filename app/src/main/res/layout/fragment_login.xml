@@ -22,9 +22,9 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:paddingStart="@dimen/margin_32"
-                android:paddingEnd="@dimen/margin_32"
-                android:paddingBottom="@dimen/margin_32">
+                android:paddingStart="@dimen/margin_24"
+                android:paddingEnd="@dimen/margin_24"
+                android:paddingBottom="@dimen/margin_24">
 
                 <include
                     android:id="@+id/btn_login_with_github"
@@ -41,7 +41,7 @@
                     layout="@layout/btn_google"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/margin_16"
+                    android:layout_marginTop="2dp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/btn_login_with_github" />
@@ -50,7 +50,7 @@
                     android:id="@+id/tv_use_email_id"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/margin_16"
+                    android:layout_marginTop="@dimen/margin_10"
                     android:lineSpacingExtra="8sp"
                     android:text="@string/use_email_id"
                     android:textColor="@color/color_text_secondary"
@@ -63,7 +63,7 @@
                 android:id="@+id/layout_email"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="16dp"
                 app:hintEnabled="false"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -142,8 +142,8 @@
                     android:id="@+id/tv_forgot_password"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/margin_24"
-                    android:layout_marginBottom="@dimen/margin_24"
+                    android:layout_marginTop="@dimen/margin_10"
+                    android:layout_marginBottom="@dimen/margin_10"
                     android:text="@string/forgot_password"
                     android:textColor="@color/color_purple_accent"
                     android:textSize="14sp"
@@ -164,10 +164,10 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:layout_alignParentBottom="true"
-        android:layout_marginStart="@dimen/margin_32"
-        android:layout_marginEnd="@dimen/margin_32"
+        android:layout_marginStart="@dimen/margin_24"
+        android:layout_marginEnd="@dimen/margin_24"
         android:layout_marginTop="@dimen/margin_16"
-        android:layout_marginBottom="@dimen/margin_8">
+        android:layout_marginBottom="@dimen/margin_16">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"

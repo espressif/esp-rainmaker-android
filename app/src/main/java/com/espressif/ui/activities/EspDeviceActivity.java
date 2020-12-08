@@ -18,6 +18,9 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -25,6 +28,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.widget.ContentLoadingProgressBar;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -55,7 +59,8 @@ public class EspDeviceActivity extends AppCompatActivity {
     private static final int NODE_DETAILS_ACTIVITY_REQUEST = 10;
     private static final int UPDATE_INTERVAL = 5000;
 
-    private TextView tvTitle, ivNodeInfo, tvBack, tvNoParam, tvNodeOffline;
+    private Toolbar toolbar;
+    private TextView tvNoParam, tvNodeOffline;
     private RecyclerView paramRecyclerView;
     private RecyclerView attrRecyclerView;
     private SwipeRefreshLayout swipeRefreshLayout;
@@ -76,10 +81,20 @@ public class EspDeviceActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_esp_device);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
+
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setNavigationIcon(R.drawable.ic_fluent_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         espApp = (EspApplication) getApplicationContext();
         networkApiManager = new NetworkApiManager(getApplicationContext());
@@ -93,6 +108,28 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         initViews();
         updateUi();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_toolbar, menu);
+        MenuItem tvInfo = menu.findItem(R.id.action_info);
+        tvInfo.setVisible(true);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_info:
+                infoBtnVoid();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -123,7 +160,7 @@ public class EspDeviceActivity extends AppCompatActivity {
     }
 
     public void setDeviceName(String deviceName) {
-        tvTitle.setText(deviceName);
+        toolbar.setTitle(device.getDeviceName());
     }
 
     public boolean isNodeOnline() {
@@ -139,24 +176,10 @@ public class EspDeviceActivity extends AppCompatActivity {
         handler.removeCallbacks(updateValuesTask);
     }
 
-    private View.OnClickListener backButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            finish();
-        }
-    };
-
-    private View.OnClickListener infoBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
+    private void infoBtnVoid() {
             Intent intent = new Intent(EspDeviceActivity.this, NodeDetailsActivity.class);
             intent.putExtra(AppConstants.KEY_NODE_ID, device.getNodeId());
             startActivityForResult(intent, NODE_DETAILS_ACTIVITY_REQUEST);
-        }
     };
 
     private Runnable updateValuesTask = new Runnable() {
@@ -170,10 +193,7 @@ public class EspDeviceActivity extends AppCompatActivity {
 
     private void initViews() {
 
-        tvTitle = findViewById(R.id.esp_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
         tvNoParam = findViewById(R.id.tv_no_params);
-        ivNodeInfo = findViewById(R.id.btn_info);
         progressBar = findViewById(R.id.progress_get_params);
         tvNodeOffline = findViewById(R.id.tv_device_offline);
 
@@ -184,23 +204,18 @@ public class EspDeviceActivity extends AppCompatActivity {
             Param p = device.getParams().get(i);
             if (p != null && p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
                 isParamTypeNameAvailable = true;
-                tvTitle.setText(p.getLabelValue());
+                toolbar.setTitle(p.getLabelValue());
                 break;
             }
         }
 
         if (!isParamTypeNameAvailable) {
-            tvTitle.setText(device.getDeviceName());
+            toolbar.setTitle(device.getDeviceName());
         }
-
-        tvBack.setVisibility(View.VISIBLE);
 
         paramRecyclerView = findViewById(R.id.rv_dynamic_param_list);
         attrRecyclerView = findViewById(R.id.rv_static_param_list);
         swipeRefreshLayout = findViewById(R.id.swipe_container);
-
-        tvBack.setOnClickListener(backButtonClickListener);
-        ivNodeInfo.setOnClickListener(infoBtnClickListener);
 
         // set a LinearLayoutManager with default orientation
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getApplicationContext());
@@ -462,13 +477,14 @@ public class EspDeviceActivity extends AppCompatActivity {
             Param p = device.getParams().get(i);
             if (p != null && p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
                 isParamTypeNameAvailable = true;
-                tvTitle.setText(p.getLabelValue());
+                toolbar.setTitle(p.getLabelValue());
+
                 break;
             }
         }
 
         if (!isParamTypeNameAvailable) {
-            tvTitle.setText(device.getDeviceName());
+            toolbar.setTitle(device.getDeviceName());
         }
 
         if (espApp.getCurrentStatus().equals(GetDataStatus.GET_DATA_FAILED) && !isNetworkAvailable) {

@@ -6,8 +6,6 @@
     android:layout_height="match_parent"
     tools:context="com.espressif.ui.activities.EspMainActivity">
 
-    <include layout="@layout/tool_bar_devices" />
-
-    <include layout="@layout/content_esp_main" />
+    <include layout="@layout/content_esp_main"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

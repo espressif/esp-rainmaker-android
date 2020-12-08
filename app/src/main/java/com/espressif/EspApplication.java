@@ -22,6 +22,7 @@ import com.espressif.mdns.mDNSDevice;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Schedule;
+import com.espressif.ui.theme_manager.AppThemeManager;
 import com.espressif.ui.user_module.AppHelper;
 
 import java.util.HashMap;
@@ -46,6 +47,8 @@ public class EspApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        AppThemeManager AppTheme = new AppThemeManager(this);
+        AppTheme.getAndApplyTheme();
         Log.d(TAG, "ESP Application is created");
         AppHelper.init(this);
         ApiManager.getInstance(this);

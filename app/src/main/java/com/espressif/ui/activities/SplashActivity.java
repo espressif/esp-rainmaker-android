@@ -21,14 +21,12 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.espressif.AppConstants;
-import com.espressif.rainmaker.R;
-import com.espressif.ui.theme_manager.WindowThemeManager;
 import com.espressif.ui.user_module.AppHelper;
+import com.espressif.ui.theme_manager.WindowThemeManager;
 
 public class SplashActivity extends AppCompatActivity {
 
@@ -45,7 +43,7 @@ public class SplashActivity extends AppCompatActivity {
         WindowThemeManager WindowTheme = new WindowThemeManager(this, true);
         WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_splash);
+
 
         handler = new Handler();
         sharedPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
@@ -56,19 +54,18 @@ public class SplashActivity extends AppCompatActivity {
 
         if (TextUtils.isEmpty(email) || TextUtils.isEmpty(accessToken)) {
 
-            handler.postDelayed(launchLoginScreenTask, 1500);
+            launchLoginScreen();
 
         } else {
 
             AppHelper.setUser(email);
-            handler.postDelayed(launchHomeScreenTask, 1500);
+            launchHomeScreen();
         }
     }
 
     public void launchHomeScreen() {
 
         Intent espMainActivity = new Intent(getApplicationContext(), EspMainActivity.class);
-        espMainActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(espMainActivity);
         finish();
     }
@@ -76,24 +73,7 @@ public class SplashActivity extends AppCompatActivity {
     public void launchLoginScreen() {
 
         Intent espMainActivity = new Intent(getApplicationContext(), MainActivity.class);
-        espMainActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(espMainActivity);
         finish();
     }
-
-    private Runnable launchLoginScreenTask = new Runnable() {
-
-        @Override
-        public void run() {
-            launchLoginScreen();
-        }
-    };
-
-    private Runnable launchHomeScreenTask = new Runnable() {
-
-        @Override
-        public void run() {
-            launchHomeScreen();
-        }
-    };
 }

@@ -136,6 +136,7 @@
     <string name="btn_ok">OK</string>
     <string name="btn_back">Back</string>
     <string name="btn_cancel">Cancel</string>
+    <string name="btn_info">Info</string>
     <string name="btn_join">Provision</string>
     <string name="btn_yes">YES</string>
     <string name="btn_no">NO</string>
@@ -170,6 +171,7 @@
     <string name="title_activity_user_profile">User Profile</string>
     <string name="title_activity_claiming">Claiming</string>
     <string name="title_activity_add_schedule">Add Schedule</string>
+    <string name="title_activity_schedule_name">Schedule name</string>
     <string name="title_activity_schedule_details">Schedule Details</string>
     <string name="title_activity_repeat_days">Repeat</string>
     <string name="title_activity_actions">Actions</string>
@@ -270,5 +272,10 @@
         <item>Tue</item>
         <item>Mon</item>
     </string-array>
+
+    <string name="theme_choose_theme_label">Theme</string>
+    <string name="theme_choose_theme_light">Light</string>
+    <string name="theme_choose_theme_dark">Dark</string>
+    <string name="theme_choose_theme_default">System default</string>
 
 </resources>

@@ -19,14 +19,15 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
-import android.widget.ImageView;
 import android.widget.TextView;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserCodeDeliveryDetails;
@@ -34,34 +35,58 @@ import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.GenericHa
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.VerificationHandler;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
-import com.espressif.ui.activities.AddDeviceActivity;
 import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 public class SignUpConfirmActivity extends AppCompatActivity {
 
+    private Toolbar toolbar;
     private TextView tvConfMsg;
     private TextInputEditText etEmail,  etConfCode;
     private TextInputLayout layoutEmail, layoutConfCode;
-    private CardView btnConfirm;
-    private TextView txtConfirmBtn;
-    private ImageView arrowImage;
+    private MaterialButton btnConfirm;
     private ContentLoadingProgressBar progressBar;
     private TextView tvResendCode;
-    private AlertDialog userDialog;
-    private TextView tvTitle, tvBack, tvCancel;
 
     private String email, password;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up_confirm);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
+
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setTitle(R.string.title_activity_sign_up_confirm);
 
         init();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_toolbar, menu);
+        MenuItem tvCancel = menu.findItem(R.id.action_done);
+        tvCancel.setVisible(true);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_cancel:
+                cancelButtonVoid();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -73,28 +98,16 @@ public class SignUpConfirmActivity extends AppCompatActivity {
 
     private void init() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_sign_up_confirm);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.VISIBLE);
-
-        tvCancel.setOnClickListener(cancelButtonClickListener);
-
         tvConfMsg = findViewById(R.id.tv_sign_up_confirm_msg_1);
         layoutEmail = findViewById(R.id.layout_email);
         etEmail = findViewById(R.id.et_email);
         layoutConfCode = findViewById(R.id.layout_verification_code);
         etConfCode = findViewById(R.id.et_verification_code);
-        btnConfirm = findViewById(R.id.btn_confirm);
-        txtConfirmBtn = findViewById(R.id.text_btn);
-        arrowImage = findViewById(R.id.iv_arrow);
+        btnConfirm = findViewById(R.id.btn_material);
         progressBar = findViewById(R.id.progress_indicator);
         tvResendCode = findViewById(R.id.tv_resend_code);
 
-        txtConfirmBtn.setText(R.string.btn_confirm);
+        btnConfirm.setText(R.string.btn_confirm);
 
         Bundle extras = getIntent().getExtras();
 
@@ -160,14 +173,10 @@ public class SignUpConfirmActivity extends AppCompatActivity {
         });
     }
 
-    View.OnClickListener cancelButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
+    private void cancelButtonVoid() {
 
             setResult(RESULT_CANCELED, getIntent());
             finish();
-        }
     };
 
     private void sendConfCode() {
@@ -244,13 +253,13 @@ public class SignUpConfirmActivity extends AppCompatActivity {
 
     private void showDialogMessage(String title, String body, final boolean exitActivity) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
 
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 try {
-                    userDialog.dismiss();
+                    dialog.dismiss();
 
                     if (exitActivity) {
 
@@ -267,25 +276,22 @@ public class SignUpConfirmActivity extends AppCompatActivity {
                 }
             }
         });
-        userDialog = builder.create();
-        userDialog.show();
+        builder.show();
     }
 
     private void showLoading() {
 
         btnConfirm.setEnabled(false);
-        btnConfirm.setAlpha(0.5f);
-        txtConfirmBtn.setText(R.string.btn_confirming);
+        btnConfirm.setText(R.string.btn_confirming);
+        btnConfirm.setIcon(null);
         progressBar.setVisibility(View.VISIBLE);
-        arrowImage.setVisibility(View.GONE);
     }
 
     public void hideLoading() {
 
         btnConfirm.setEnabled(true);
-        btnConfirm.setAlpha(1f);
-        txtConfirmBtn.setText(R.string.btn_confirm);
+        btnConfirm.setText(R.string.btn_confirm);
+        btnConfirm.setIconResource(R.drawable.ic_fluent_arrow_right_filled);
         progressBar.setVisibility(View.GONE);
-        arrowImage.setVisibility(View.VISIBLE);
     }
 }

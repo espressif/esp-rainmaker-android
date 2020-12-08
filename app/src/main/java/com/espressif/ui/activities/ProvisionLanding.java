@@ -23,14 +23,15 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.widget.ContentLoadingProgressBar;
 
@@ -40,6 +41,8 @@ import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -57,10 +60,8 @@ public class ProvisionLanding extends AppCompatActivity {
     private static final int REQUEST_FINE_LOCATION = 10;
     private static final int WIFI_SETTINGS_ACTIVITY_REQUEST = 11;
 
-    private TextView tvTitle, tvBack, tvCancel;
-    private CardView btnConnect;
-    private TextView txtConnectBtn;
-    private ImageView arrowImage;
+    private Toolbar toolbar;
+    private MaterialButton btnConnect;
     private TextView tvConnectDeviceInstruction, tvDeviceName;
     private ContentLoadingProgressBar progressBar;
 
@@ -70,10 +71,15 @@ public class ProvisionLanding extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_provision_landing);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
+
+
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setTitle(R.string.title_activity_connect_device);
 
         securityType = getIntent().getIntExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_TYPE_1);
         deviceName = getIntent().getStringExtra(AppConstants.KEY_DEVICE_NAME);
@@ -81,6 +87,28 @@ public class ProvisionLanding extends AppCompatActivity {
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
         EventBus.getDefault().register(this);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_toolbar, menu);
+        MenuItem tvCancel = menu.findItem(R.id.action_cancel);
+        tvCancel.setVisible(true);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_cancel:
+                cancelButtonVoid();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -136,10 +164,9 @@ public class ProvisionLanding extends AppCompatActivity {
                 Log.e(TAG, "Device Connected Event Received");
 
                 btnConnect.setEnabled(true);
-                btnConnect.setAlpha(1f);
-                txtConnectBtn.setText(R.string.btn_connect);
+                btnConnect.setText(R.string.btn_connect);
+                btnConnect.setIconResource(R.drawable.ic_fluent_arrow_right_filled);
                 progressBar.setVisibility(View.GONE);
-                arrowImage.setVisibility(View.VISIBLE);
 
                 checkDeviceCapabilities();
                 break;
@@ -147,10 +174,9 @@ public class ProvisionLanding extends AppCompatActivity {
             case ESPConstants.EVENT_DEVICE_CONNECTION_FAILED:
 
                 btnConnect.setEnabled(true);
-                btnConnect.setAlpha(1f);
-                txtConnectBtn.setText(R.string.btn_connect);
+                btnConnect.setText(R.string.btn_connect);
+                btnConnect.setIconResource(R.drawable.ic_fluent_arrow_right_filled);
                 progressBar.setVisibility(View.GONE);
-                arrowImage.setVisibility(View.VISIBLE);
                 Toast.makeText(this, R.string.error_device_connect_failed, Toast.LENGTH_SHORT).show();
                 break;
         }
@@ -168,10 +194,9 @@ public class ProvisionLanding extends AppCompatActivity {
     private void connectDevice() {
 
         btnConnect.setEnabled(false);
-        btnConnect.setAlpha(0.5f);
-        txtConnectBtn.setText(R.string.btn_connecting);
+        btnConnect.setText(R.string.btn_connecting);
+        btnConnect.setIcon(null);
         progressBar.setVisibility(View.VISIBLE);
-        arrowImage.setVisibility(View.GONE);
 
         if (ActivityCompat.checkSelfPermission(ProvisionLanding.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
@@ -182,33 +207,17 @@ public class ProvisionLanding extends AppCompatActivity {
         }
     }
 
-    private View.OnClickListener cancelButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
+    private void cancelButtonVoid () {
 
             if (provisionManager.getEspDevice() != null) {
                 provisionManager.getEspDevice().disconnectDevice();
             }
             finish();
-        }
     };
 
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_connect_device);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.VISIBLE);
-
-        tvCancel.setOnClickListener(cancelButtonClickListener);
-
-        btnConnect = findViewById(R.id.btn_connect);
-        txtConnectBtn = findViewById(R.id.text_btn);
-        arrowImage = findViewById(R.id.iv_arrow);
+        btnConnect = findViewById(R.id.btn_material);
         progressBar = findViewById(R.id.progress_indicator);
         tvConnectDeviceInstruction = findViewById(R.id.tv_connect_device_instruction);
         tvDeviceName = findViewById(R.id.tv_device_name);
@@ -227,7 +236,7 @@ public class ProvisionLanding extends AppCompatActivity {
             tvDeviceName.setText(deviceName);
         }
 
-        txtConnectBtn.setText(R.string.btn_connect);
+        btnConnect.setText(R.string.btn_connect);
         btnConnect.setOnClickListener(btnConnectClickListener);
         hasPermissions();
     }
@@ -341,7 +350,7 @@ public class ProvisionLanding extends AppCompatActivity {
 
     private void alertForClaimingNotSupported() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setCancelable(false);
         builder.setMessage(R.string.error_claiming_not_supported);
 

@@ -29,7 +29,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
@@ -41,6 +40,7 @@ import com.espressif.provisioning.listeners.WiFiScanListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.WiFiListAdapter;
 import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -50,6 +50,7 @@ public class WiFiScanActivity extends AppCompatActivity {
 
     private static final String TAG = WiFiScanActivity.class.getSimpleName();
 
+    private Toolbar toolbar;
     private ProgressBar progressBar;
     private ArrayList<WiFiAccessPoint> wifiAPList;
     private WiFiListAdapter adapter;
@@ -60,14 +61,21 @@ public class WiFiScanActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_wifi_scan_list);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        toolbar.setTitle(R.string.title_activity_wifi_scan_list);
+        toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        toolbar.setTitle(R.string.title_activity_wifi_scan_list);
+        toolbar.setNavigationIcon(R.drawable.ic_fluent_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onBackPressed();
+            }
+        });
 
         ivRefresh = findViewById(R.id.btn_refresh);
         wifiListView = findViewById(R.id.wifi_ap_list);
@@ -188,7 +196,7 @@ public class WiFiScanActivity extends AppCompatActivity {
 
     private void askForNetwork(final String ssid, final int authMode) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         LayoutInflater inflater = this.getLayoutInflater();
         final View dialogView = inflater.inflate(R.layout.dialog_wifi_network, null);
         builder.setView(dialogView);
@@ -219,7 +227,6 @@ public class WiFiScanActivity extends AppCompatActivity {
                     String networkName = etSsid.getText().toString();
 
                     if (TextUtils.isEmpty(networkName)) {
-                        TextInputLayout ssidLayout = dialogView.findViewById(R.id.layout_ssid);
                         ssidLayout.setError(getString(R.string.error_ssid_empty));
 
                     } else {
@@ -264,8 +271,7 @@ public class WiFiScanActivity extends AppCompatActivity {
             }
         });
 
-        AlertDialog alertDialog = builder.create();
-        alertDialog.show();
+        builder.show();
     }
 
     private void goForProvisioning(String ssid, String password) {

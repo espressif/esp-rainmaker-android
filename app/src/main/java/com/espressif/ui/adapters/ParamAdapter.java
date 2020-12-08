@@ -31,7 +31,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.recyclerview.widget.RecyclerView;
@@ -43,6 +42,7 @@ import com.espressif.rainmaker.R;
 import com.espressif.ui.PaletteBar;
 import com.espressif.ui.activities.EspDeviceActivity;
 import com.espressif.ui.models.Param;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.gson.JsonObject;
 import com.warkiz.tickseekbar.OnSeekChangeListener;
 import com.warkiz.tickseekbar.SeekParams;
@@ -453,7 +453,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
     private void askForNewValue(final MyViewHolder myViewHolder, final Param param, final int position) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.AlertDialogTheme);
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context, R.style.ThemeOverlay_MaterialAlertDialog);
         LayoutInflater inflater = context.getLayoutInflater();
         final View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
         builder.setView(dialogView);
@@ -725,8 +725,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
             }
         });
 
-        AlertDialog alertDialog = builder.create();
-        alertDialog.show();
+        builder.show();
     }
 
     public static class MyViewHolder extends RecyclerView.ViewHolder {

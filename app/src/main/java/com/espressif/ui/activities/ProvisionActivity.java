@@ -24,7 +24,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.espressif.AppConstants;
@@ -37,6 +37,7 @@ import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.UpdateEvent;
 import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.button.MaterialButton;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.greenrobot.eventbus.EventBus;
@@ -53,13 +54,12 @@ public class ProvisionActivity extends AppCompatActivity {
 
     private static final long ADD_DEVICE_REQ_TIME = 5000;
 
-    private TextView tvTitle, tvBack, tvCancel;
+    private Toolbar toolbar;
     private ImageView tick1, tick2, tick3, tick4;
     private ContentLoadingProgressBar progress1, progress2, progress3, progress4;
     private TextView tvErrAtStep1, tvErrAtStep2, tvErrAtStep3, tvErrAtStep4, tvProvError;
 
-    private CardView btnOk;
-    private TextView txtOkBtn;
+    private MaterialButton btnOk;
 
     private int addDeviceReqCount = 0;
     private String ssidValue, passphraseValue = "";
@@ -71,10 +71,14 @@ public class ProvisionActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_provision);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
+
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setTitle(R.string.title_activity_provisioning);
 
         Intent intent = getIntent();
         ssidValue = intent.getStringExtra(AppConstants.KEY_SSID);
@@ -139,10 +143,6 @@ public class ProvisionActivity extends AppCompatActivity {
 
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
         tick1 = findViewById(R.id.iv_tick_1);
         tick2 = findViewById(R.id.iv_tick_2);
         tick3 = findViewById(R.id.iv_tick_3);
@@ -159,15 +159,10 @@ public class ProvisionActivity extends AppCompatActivity {
         tvErrAtStep4 = findViewById(R.id.tv_prov_error_4);
         tvProvError = findViewById(R.id.tv_prov_error);
 
-        tvTitle.setText(R.string.title_activity_provisioning);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.GONE);
+        btnOk = findViewById(R.id.btn_material);
 
-        btnOk = findViewById(R.id.btn_ok);
-        txtOkBtn = findViewById(R.id.text_btn);
-        btnOk.findViewById(R.id.iv_arrow).setVisibility(View.GONE);
-
-        txtOkBtn.setText(R.string.btn_ok);
+        btnOk.setIcon(null);
+        btnOk.setText(R.string.btn_ok);
         btnOk.setOnClickListener(okBtnClickListener);
     }
 
@@ -504,12 +499,10 @@ public class ProvisionActivity extends AppCompatActivity {
     private void showLoading() {
 
         btnOk.setEnabled(false);
-        btnOk.setAlpha(0.5f);
     }
 
     public void hideLoading() {
 
         btnOk.setEnabled(true);
-        btnOk.setAlpha(1f);
     }
 }

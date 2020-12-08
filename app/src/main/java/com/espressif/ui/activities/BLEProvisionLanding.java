@@ -31,13 +31,11 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
@@ -51,6 +49,8 @@ import com.espressif.provisioning.listeners.BleScanListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.BleDeviceListAdapter;
 import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -74,7 +74,8 @@ public class BLEProvisionLanding extends AppCompatActivity {
     // Time out
     private static final long DEVICE_CONNECT_TIMEOUT = 20000;
 
-    private Button btnScan;
+    private Toolbar toolbar;
+    private MaterialButton btnScan;
     private ListView listView;
     private ProgressBar progressBar;
     private RelativeLayout prefixLayout;
@@ -93,14 +94,23 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bleprovision_landing);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        toolbar.setTitle(R.string.title_activity_connect_device);
+
+        toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        toolbar.setTitle(R.string.title_activity_connect_device);
+        toolbar.setNavigationIcon(R.drawable.ic_fluent_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+
         securityType = getIntent().getIntExtra(AppConstants.KEY_SECURITY_TYPE, 0);
 
         // Use this check to determine whether BLE is supported on the device.  Then you can
@@ -330,7 +340,6 @@ public class BLEProvisionLanding extends AppCompatActivity {
         if (isScanning) {
 
             btnScan.setEnabled(false);
-            btnScan.setAlpha(0.5f);
             btnScan.setTextColor(Color.WHITE);
             progressBar.setVisibility(View.VISIBLE);
             listView.setVisibility(View.GONE);
@@ -338,7 +347,6 @@ public class BLEProvisionLanding extends AppCompatActivity {
         } else {
 
             btnScan.setEnabled(true);
-            btnScan.setAlpha(1f);
             progressBar.setVisibility(View.GONE);
             listView.setVisibility(View.VISIBLE);
         }
@@ -346,7 +354,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
     private void alertForDeviceNotSupported(String msg) {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setCancelable(false);
 
         builder.setTitle(R.string.error_title);

@@ -4,7 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context="com.espressif.ui.activities.EspMainActivity"
     tools:showIn="@layout/activity_esp_main">
 
@@ -12,14 +11,16 @@
         android:id="@+id/frame_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/bottom_navigation_view"
-        android:layout_alignParentTop="true" >
+        android:layout_above="@id/bottom_navigation_view">
+
+        <include layout="@layout/app_actionbar" />
 
         <androidx.viewpager.widget.ViewPager
             android:id="@+id/view_pager"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_above="@id/bottom_navigation_view" />
+            android:layout_height="wrap_content"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">>
+        </androidx.viewpager.widget.ViewPager>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <androidx.core.widget.ContentLoadingProgressBar
@@ -37,6 +38,5 @@
         android:layout_alignParentBottom="true"
         app:backgroundTint="@color/color_actionbar_bg"
         app:menu="@menu/menu_bottom_tabs" />
-
 
 </RelativeLayout>

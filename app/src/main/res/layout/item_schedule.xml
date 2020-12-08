@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:card_view="http://schemas.android.com/apk/res-auto"
     android:id="@+id/card_view_switch"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="8dp"
-    android:layout_marginBottom="8dp"
-    card_view:cardBackgroundColor="@color/color_card_bg"
-    card_view:cardCornerRadius="8dp"
-    card_view:cardElevation="2dp"
-    card_view:cardUseCompatPadding="true">
+    android:layout_marginVertical="8dp"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardBackgroundColor="@color/color_card_new_device_bg"
+    app:cardElevation="4dp"
+    app:cardUseCompatPadding="true">
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="@dimen/margin_10">
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="16dp">
 
         <LinearLayout
             android:id="@+id/ll_schedule_info"
@@ -29,7 +30,6 @@
                 android:id="@+id/tv_schedule_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
                 android:textColor="@color/color_text_primary"
                 android:textSize="18sp" />
 
@@ -37,7 +37,7 @@
                 android:id="@+id/tv_action_devices"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="4dp"
                 android:alpha="0.8"
                 android:textColor="@color/color_text_primary"
                 android:textSize="14sp" />
@@ -49,29 +49,27 @@
                 android:layout_marginTop="2dp"
                 android:alpha="0.8"
                 android:textColor="@color/color_text_primary"
-                android:textSize="15sp" />
+                android:textSize="14sp" />
 
         </LinearLayout>
 
-        <androidx.appcompat.widget.SwitchCompat
+        <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/sch_enable_switch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:layout_marginEnd="@dimen/margin_10"
-            android:paddingEnd="@dimen/margin_8"
-            android:theme="@style/AppTheme.PurpleAccent" />
+            android:layout_marginEnd="4dp"/>
 
         <androidx.core.widget.ContentLoadingProgressBar
             android:id="@+id/sch_progress_indicator"
             style="?android:attr/progressBarStyle"
-            android:layout_width="25dp"
-            android:layout_height="25dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:layout_marginEnd="@dimen/margin_18" />
+            android:layout_marginEnd="16dp" />
 
     </RelativeLayout>
 
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

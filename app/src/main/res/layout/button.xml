@@ -1,46 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    app:cardCornerRadius="10dp">
-
-    <LinearLayout
-        android:id="@+id/layout_btn"
+    <RelativeLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/layout_btn_material"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/button_bg_dark_selector"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:paddingTop="16dp"
-        android:paddingBottom="16dp">
+        android:layout_height="wrap_content">
 
-        <TextView
-            android:id="@+id/text_btn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:lineSpacingExtra="8sp"
-            android:text="@string/btn_register"
-            android:textColor="@color/color_white"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_material"
+        style="@style/Widget.MaterialComponents.Button.Icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:paddingVertical="14dp"
+        android:paddingHorizontal="48dp"
+        android:text="@string/btn_register"
+        android:textAppearance="?attr/textAppearanceHeadline6"
+        android:textAllCaps="false"
+        android:textColor="@color/color_white"
+        android:textSize="16dp"
+        app:icon="@drawable/ic_fluent_arrow_right_filled"
+        app:iconTint="@color/color_white"
+        app:iconGravity="textEnd" />
 
-        <ImageView
-            android:id="@+id/iv_arrow"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:src="@drawable/ic_fluent_arrow_right_filled" />
+    <androidx.core.widget.ContentLoadingProgressBar
+        android:id="@+id/progress_indicator"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_centerVertical="true"
+        android:layout_marginRight="16dp"
+        android:layout_alignRight="@id/btn_material"
+        android:elevation="8dp"
+        android:visibility="gone"/>
+    </RelativeLayout>
 
-        <androidx.core.widget.ContentLoadingProgressBar
-            android:id="@+id/progress_indicator"
-            style="?android:attr/progressBarStyle"
-            android:layout_width="25dp"
-            android:layout_height="25dp"
-            android:layout_marginStart="40dp"
-            android:theme="@style/AppTheme.WhiteAccent"
-            android:visibility="gone" />
-
-    </LinearLayout>
-
-</androidx.cardview.widget.CardView>

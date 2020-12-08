@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
-    <include layout="@layout/tool_bar_main_purple" />
+    <include layout="@layout/app_toolbar" />
 
     <FrameLayout
         android:id="@+id/ScrollView01"
@@ -45,7 +45,7 @@
                     app:layout_constraintTop_toBottomOf="@id/iv_provisioning" />
 
                 <include
-                    android:id="@+id/btn_remove"
+                    android:id="@+id/rl_btn_remove"
                     layout="@layout/btn_remove_device"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -61,11 +61,11 @@
                     android:layout_marginStart="@dimen/margin_16"
                     android:layout_marginTop="@dimen/margin_10"
                     android:text="@string/text_remove_node"
-                    android:textColor="@color/color_purple_accent_l"
+                    android:textColor="@color/color_text_secondary"
                     android:textSize="12sp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/btn_remove" />
+                    app:layout_constraintTop_toBottomOf="@id/rl_btn_remove" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 

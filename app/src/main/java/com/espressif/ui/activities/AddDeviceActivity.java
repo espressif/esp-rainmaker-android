@@ -27,15 +27,16 @@ import android.os.Bundle;
 import android.os.Vibrator;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 
 import com.budiyev.android.codescanner.CodeScanner;
@@ -48,6 +49,8 @@ import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.QRCodeScanListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.wang.avi.AVLoadingIndicatorView;
 
 import org.greenrobot.eventbus.EventBus;
@@ -66,9 +69,8 @@ public class AddDeviceActivity extends AppCompatActivity {
     private static final int REQUEST_CAMERA_PERMISSION = 1;
     private static final int REQUEST_ACCESS_FINE_LOCATION = 2;
 
-    private TextView tvTitle, tvBack, tvCancel;
-    private CardView btnAddManually;
-    private TextView txtAddManuallyBtn;
+    private Toolbar toolbar;
+    private MaterialButton btnAddManually;
 
     private AVLoadingIndicatorView loader;
     private ESPDevice espDevice;
@@ -79,14 +81,40 @@ public class AddDeviceActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_device);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
+
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setTitle(R.string.title_activity_add_device);
 
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
         EventBus.getDefault().register(this);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_toolbar, menu);
+        MenuItem tvCancel = menu.findItem(R.id.action_cancel);
+        tvCancel.setVisible(true);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_cancel:
+                cancelBtnClickListener();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -209,39 +237,23 @@ public class AddDeviceActivity extends AppCompatActivity {
         }
     };
 
-    private View.OnClickListener cancelBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
+    private void cancelBtnClickListener() {
             if (provisionManager.getEspDevice() != null) {
                 provisionManager.getEspDevice().disconnectDevice();
             }
             setResult(RESULT_CANCELED, getIntent());
             finish();
-        }
     };
 
     private void initViews() {
-
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_add_device);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.VISIBLE);
-        tvCancel.setOnClickListener(cancelBtnClickListener);
-
         CodeScannerView scannerView = findViewById(R.id.scanner_view);
         codeScanner = new CodeScanner(this, scannerView);
 
 //        cameraPreview = findViewById(R.id.preview);
-        btnAddManually = findViewById(R.id.btn_add_device_manually);
-        txtAddManuallyBtn = findViewById(R.id.text_btn);
+        btnAddManually = findViewById(R.id.btn_add_dev_manually);
         loader = findViewById(R.id.loader);
 
-        txtAddManuallyBtn.setText(R.string.btn_no_qr_code);
+        btnAddManually.setText(R.string.btn_no_qr_code);
         btnAddManually.setOnClickListener(btnAddManuallyClickListener);
 
         initialiseDetectorsAndSources();
@@ -286,7 +298,7 @@ public class AddDeviceActivity extends AppCompatActivity {
     private void askForDeviceType() {
 
         final String[] deviceTypes = {"BLE", "SoftAP"};
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setCancelable(true);
         builder.setTitle(R.string.dialog_msg_device_selection);
         boolean isSec1 = true;
@@ -449,7 +461,7 @@ public class AddDeviceActivity extends AppCompatActivity {
 
     private void alertForWiFi() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setCancelable(false);
         builder.setMessage(R.string.error_wifi_off);
 
@@ -481,7 +493,7 @@ public class AddDeviceActivity extends AppCompatActivity {
 
     private void alertForClaimingNotSupported() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setCancelable(false);
         builder.setMessage(R.string.error_claiming_not_supported);
 
@@ -560,7 +572,7 @@ public class AddDeviceActivity extends AppCompatActivity {
 
     private void askForManualDeviceConnection() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setCancelable(true);
         builder.setMessage("Device connection failed. \nDo you want to connect device manually ?");
 
@@ -593,9 +605,8 @@ public class AddDeviceActivity extends AppCompatActivity {
             }
         });
 
-        AlertDialog alertDialog = builder.create();
         if (!isFinishing()) {
-            alertDialog.show();
+            builder.show();
         }
     }
 

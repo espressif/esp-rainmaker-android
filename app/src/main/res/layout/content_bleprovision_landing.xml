@@ -36,17 +36,14 @@
             android:textSize="16sp" />
 
         <Button
-            android:background="@drawable/button_light_selector"
             android:id="@+id/btn_change_prefix"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"
-            android:layout_height="40dp"
+            android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:layout_marginEnd="20dp"
-            android:layout_marginVertical="6dp"
-            android:text="@string/btn_change_prefix"
-            android:textColor="@color/color_text_secondary"
-            android:textAllCaps="false"/>
+            android:layout_marginEnd="24dp"
+            android:text="@string/btn_change_prefix" />
 
     </RelativeLayout>
 
@@ -86,27 +83,29 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        <ProgressBar
+        <androidx.core.widget.ContentLoadingProgressBar
             android:id="@+id/ble_landing_progress_indicator"
-            style="@android:style/Widget.DeviceDefault.Light.ProgressBar"
+            style="?android:attr/progressBarStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true" />
 
     </RelativeLayout>
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_scan"
-        style="@style/Widget.AppCompat.Button.Colored"
-        android:background="@drawable/button_dark_selector"
-        android:layout_width="match_parent"
-        android:layout_height="54dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginVertical="30dip"
-        android:layout_marginHorizontal="32dip"
+        android:layout_marginVertical="32dp"
+        android:paddingVertical="14dp"
+        android:paddingHorizontal="48dp"
         android:text="@string/btn_scan_again"
+        android:textAppearance="?attr/textAppearanceHeadline6"
+        android:textAllCaps="false"
         android:textColor="@color/color_white"
-        android:textAllCaps="false"/>
+        android:textSize="16dp" />
+
 
 </RelativeLayout>

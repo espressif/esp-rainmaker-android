@@ -28,11 +28,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.cardview.widget.CardView;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.fragment.app.Fragment;
 
@@ -44,6 +42,7 @@ import com.espressif.ui.Utils;
 import com.espressif.ui.activities.MainActivity;
 import com.espressif.ui.user_module.AppHelper;
 import com.espressif.ui.user_module.ForgotPasswordActivity;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -54,9 +53,7 @@ public class LoginFragment extends Fragment {
     private EditText etEmail;
     private TextInputEditText etPassword;
     private TextInputLayout layoutPassword, layoutEmail;
-    private CardView btnLogin, btnLoginWithGitHub, btnLoginWithGoogle;
-    private TextView txtLoginBtn;
-    private ImageView arrowImageLogin;
+    private MaterialButton btnLogin, btnLoginWithGitHub, btnLoginWithGoogle;
     private ContentLoadingProgressBar progressBarLogin, progressBarLoginGitHub, progressBarLoginGoogle;
     private TextView tvForgotPassword;
     private TextView linkDoc, linkPrivacy, linkTerms;
@@ -128,18 +125,16 @@ public class LoginFragment extends Fragment {
 
     private void init(View view) {
 
-        btnLogin = view.findViewById(R.id.btn_login);
-        btnLoginWithGitHub = view.findViewById(R.id.btn_login_with_github);
-        btnLoginWithGoogle = view.findViewById(R.id.btn_login_with_google);
+        btnLogin = view.findViewById(R.id.btn_material);
+        btnLoginWithGitHub = view.findViewById(R.id.btn_login_github);
+        btnLoginWithGoogle = view.findViewById(R.id.btn_login_google);
 
-        txtLoginBtn = btnLogin.findViewById(R.id.text_btn);
-        arrowImageLogin = btnLogin.findViewById(R.id.iv_arrow);
-        progressBarLogin = btnLogin.findViewById(R.id.progress_indicator);
+        progressBarLogin = view.findViewById(R.id.progress_indicator);
 
-        progressBarLoginGitHub = btnLoginWithGitHub.findViewById(R.id.progress_indicator);
-        progressBarLoginGoogle = btnLoginWithGoogle.findViewById(R.id.progress_indicator);
+        progressBarLoginGitHub = view.findViewById(R.id.progress_indicator_github);
+        progressBarLoginGoogle = view.findViewById(R.id.progress_indicator_google);
 
-        txtLoginBtn.setText(R.string.btn_login);
+        btnLogin.setText(R.string.btn_login);
         btnLoginWithGitHub.setOnClickListener(githubLoginBtnClickListener);
         btnLoginWithGoogle.setOnClickListener(googleLoginBtnClickListener);
 
@@ -249,46 +244,40 @@ public class LoginFragment extends Fragment {
     public void showLoginLoading() {
 
         btnLogin.setEnabled(false);
-        btnLogin.setAlpha(0.5f);
-        txtLoginBtn.setText(R.string.btn_signing_in);
+        btnLogin.setText(R.string.btn_signing_in);
+        btnLogin.setIcon(null);
         progressBarLogin.setVisibility(View.VISIBLE);
-        arrowImageLogin.setVisibility(View.GONE);
     }
 
     public void hideLoginLoading() {
 
         btnLogin.setEnabled(true);
-        btnLogin.setAlpha(1f);
-        txtLoginBtn.setText(R.string.btn_login);
+        btnLogin.setText(R.string.btn_login);
+        btnLogin.setIconResource(R.drawable.ic_fluent_arrow_right_filled);
         progressBarLogin.setVisibility(View.GONE);
-        arrowImageLogin.setVisibility(View.VISIBLE);
     }
 
     public void showGitHubLoginLoading() {
 
         btnLoginWithGitHub.setEnabled(false);
-        btnLoginWithGitHub.setAlpha(0.5f);
         progressBarLoginGitHub.setVisibility(View.VISIBLE);
     }
 
     public void hideGitHubLoginLoading() {
 
         btnLoginWithGitHub.setEnabled(true);
-        btnLoginWithGitHub.setAlpha(1f);
         progressBarLoginGitHub.setVisibility(View.GONE);
     }
 
     public void showGoogleLoginLoading() {
 
         btnLoginWithGoogle.setEnabled(false);
-        btnLoginWithGoogle.setAlpha(0.5f);
         progressBarLoginGoogle.setVisibility(View.VISIBLE);
     }
 
     public void hideGoogleLoginLoading() {
 
         btnLoginWithGoogle.setEnabled(true);
-        btnLoginWithGoogle.setAlpha(1f);
         progressBarLoginGoogle.setVisibility(View.GONE);
     }
 

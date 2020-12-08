@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:card_view="http://schemas.android.com/apk/res-auto"
     android:id="@+id/card_view_switch"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    card_view:cardBackgroundColor="@color/color_card_bg"
-    card_view:cardCornerRadius="8dp"
-    card_view:cardElevation="2dp"
-    card_view:cardUseCompatPadding="true">
+    app:cardBackgroundColor="@color/color_card_bg"
+    app:cardElevation="2dp"
+    app:cardUseCompatPadding="true">
+
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -21,14 +21,15 @@
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:button="@drawable/ic_fluent_checkbox_selector"
-            android:layout_marginStart="@dimen/margin_8" />
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="-16dp"/>
 
         <RelativeLayout
             android:id="@+id/rl_card_slider"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_toRightOf="@id/cb_param_select"
-            android:padding="5dp"
+            android:padding="8dp"
             android:visibility="visible">
 
             <TextView
@@ -40,7 +41,7 @@
                 android:alpha="0.5"
                 android:text="Brightness"
                 android:textColor="@color/color_text_primary"
-                android:textSize="12sp" />
+                android:textSize="14sp" />
 
             <com.warkiz.tickseekbar.TickSeekBar
                 android:id="@+id/card_int_slider"
@@ -103,7 +104,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_toRightOf="@id/cb_param_select"
-            android:paddingTop="5dp"
+            android:padding="8dp"
             android:visibility="gone">
 
             <LinearLayout
@@ -121,7 +122,7 @@
                     android:alpha="0.5"
                     android:text="Brightness"
                     android:textColor="@color/color_text_primary"
-                    android:textSize="12sp" />
+                    android:textSize="14sp" />
 
                 <com.espressif.ui.PaletteBar
                     android:id="@+id/rl_palette"
@@ -135,7 +136,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_toRightOf="@id/cb_param_select"
-            android:padding="5dp"
+            android:padding="8dp"
             android:visibility="gone">
 
             <LinearLayout
@@ -144,6 +145,7 @@
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
                 android:layout_marginStart="8dp"
+                android:paddingVertical="4dp"
                 android:layout_toLeftOf="@id/card_switch"
                 android:orientation="vertical">
 
@@ -154,7 +156,7 @@
                     android:alpha="0.5"
                     android:text="Title"
                     android:textColor="@color/color_text_primary"
-                    android:textSize="12sp" />
+                    android:textSize="14sp" />
 
                 <TextView
                     android:id="@+id/tv_switch_status"
@@ -167,14 +169,13 @@
 
             </LinearLayout>
 
-            <androidx.appcompat.widget.SwitchCompat
+            <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/card_switch"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:paddingEnd="8dp"
-                android:theme="@style/AppTheme.PurpleAccent" />
+                android:paddingEnd="4dp" />
 
         </RelativeLayout>
 
@@ -183,7 +184,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_toRightOf="@id/cb_param_select"
-            android:padding="5dp"
+            android:padding="8dp"
             android:visibility="gone">
 
             <LinearLayout
@@ -192,6 +193,7 @@
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
                 android:layout_marginStart="8dp"
+                android:paddingVertical="4dp"
                 android:layout_toLeftOf="@id/btn_edit"
                 android:orientation="vertical">
 
@@ -202,7 +204,7 @@
                     android:alpha="0.5"
                     android:text="Device Name"
                     android:textColor="@color/color_text_primary"
-                    android:textSize="12sp" />
+                    android:textSize="14sp" />
 
                 <TextView
                     android:id="@+id/tv_label_value"
@@ -225,14 +227,14 @@
                 android:padding="8dp"
                 android:text="@string/btn_edit"
                 android:textColor="@color/color_purple_accent"
-                android:textSize="12sp"
+                android:textSize="16sp"
                 android:visibility="visible" />
 
             <androidx.core.widget.ContentLoadingProgressBar
                 android:id="@+id/progress_indicator"
                 style="?android:attr/progressBarStyle"
-                android:layout_width="25dp"
-                android:layout_height="25dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
                 android:layout_marginEnd="16dp"
@@ -242,4 +244,4 @@
 
     </RelativeLayout>
 
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

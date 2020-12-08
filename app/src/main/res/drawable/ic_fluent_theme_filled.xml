@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="32" android:viewportHeight="32">
+    <group android:translateX="0" android:translateY="0">
+        <path android:pathData="M18 3c1.657 0 3 1.343 3 3v12c0 1.657-1.343 3-3 3H6c-1.657 0-3-1.343-3-3V6c0-1.657 1.343-3 3-3h12z" android:strokeWidth="1" android:fillColor="@color/color_purple_accent"/>
+    </group>
+    <group android:translateX="8" android:translateY="8">
+        <path android:pathData="M12 22.002c5.524 0 10.002-4.478 10.002-10.001 0-5.524-4.478-10.002-10.002-10.002-5.524 0-10.002 4.478-10.002 10.002 0 5.523 4.478 10.001 10.002 10.001zm0-1.5" android:strokeWidth="1" android:fillColor="@color/color_app_bg"/>
+    </group>
+    <group android:translateX="0" android:translateY="0">
+        <path android:pathData="M5.75 3h12.5C19.769 3 21 4.231 21 5.75v12.5c0 1.519-1.231 2.75-2.75 2.75H5.75C4.231 21 3 19.769 3 18.25V5.75C3 4.231 4.231 3 5.75 3zm0 1.5C5.06 4.5 4.5 5.06 4.5 5.75v12.5c0 0.69 0.56 1.25 1.25 1.25h12.5c0.69 0 1.25-0.56 1.25-1.25V5.75c0-0.69-0.56-1.25-1.25-1.25H5.75z" android:strokeWidth="1" android:fillColor="@color/fluent_default_icon_tint"/>
+    </group>
+    <group android:translateX="8" android:translateY="8">
+        <path android:pathData="M12 22.002c5.524 0 10.002-4.478 10.002-10.001 0-5.524-4.478-10.002-10.002-10.002-5.524 0-10.002 4.478-10.002 10.002 0 5.523 4.478 10.001 10.002 10.001zm0-1.5c-4.695 0-8.502-3.806-8.502-8.501 0-4.696 3.807-8.502 8.502-8.502s8.502 3.806 8.502 8.502c0 4.695-3.807 8.501-8.502 8.501z" android:strokeWidth="1" android:fillColor="@color/fluent_default_icon_tint"/>
+    </group>
+</vector>

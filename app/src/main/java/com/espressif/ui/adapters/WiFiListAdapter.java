@@ -67,7 +67,7 @@ public class WiFiListAdapter extends ArrayAdapter<WiFiAccessPoint> {
 
             wifiNameText.setTextColor(ContextCompat.getColor(context.getApplicationContext(), R.color.colorPrimary));
             rssiImage.setVisibility(View.VISIBLE);
-            rssiImage.setImageResource(R.drawable.ic_fluent_arrow_right_filled);
+            rssiImage.setImageResource(R.drawable.ic_wifi_next);
         }
 
         return view;

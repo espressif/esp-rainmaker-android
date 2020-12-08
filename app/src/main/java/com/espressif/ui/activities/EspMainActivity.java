@@ -26,14 +26,17 @@ import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.HapticFeedbackConstants;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.PopupMenu;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager.widget.ViewPager;
 
@@ -55,8 +58,11 @@ import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.UpdateEvent;
+import com.espressif.ui.theme_manager.AppThemeManager;
 import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 
 import org.greenrobot.eventbus.EventBus;
@@ -75,11 +81,12 @@ public class EspMainActivity extends AppCompatActivity {
     private static final String TAG = EspMainActivity.class.getSimpleName();
 
     private static final int REQUEST_LOCATION = 1;
-
+    private static boolean show_add_btn = true;
+    private AppThemeManager AppTheme;
+    private CollapsingToolbarLayout collapsingToolbarLayout;
     private BottomNavigationView bottomNavigationView;
     private ViewPager viewPager;
-    private TextView tvTitle;
-    private ImageView ivAddDevice, ivUserProfile;
+    private Toolbar appbar;
 
     private Fragment deviceFragment;
     private Fragment scheduleFragment;
@@ -97,10 +104,17 @@ public class EspMainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_esp_main);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
+        AppTheme = new AppThemeManager(this);
+
+        collapsingToolbarLayout = findViewById(R.id.collapsing_toolbar_layout);
+        collapsingToolbarLayout.setTitle(getResources().getString(R.string.devices_title));
+        appbar = findViewById(R.id.appbar);
+        setSupportActionBar(appbar);
+        // Set our minimum height to enable proper AppBarLayout collapsing
 
         devices = new ArrayList<>();
         schedules = new ArrayList<>();
@@ -124,6 +138,45 @@ public class EspMainActivity extends AppCompatActivity {
         }
 
         getSupportedVersions();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_toolbar, menu);
+        MenuItem tvUser = menu.findItem(R.id.action_user);
+        MenuItem tvTheme = menu.findItem(R.id.action_theme);
+        tvUser.setVisible(true);
+        tvTheme.setVisible(true);
+        if(AppTheme.getAppTheme())
+            tvTheme.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_fluent_theme_filled));
+        else
+            tvTheme.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_fluent_theme));
+        if(show_add_btn){
+            MenuItem tvAdd = menu.findItem(R.id.action_add);
+            tvAdd.setVisible(true);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_add:
+                addDeviceBtnVoid();
+                return true;
+            case R.id.action_user:
+                UserBtnVoid();
+                return true;
+            case R.id.action_theme:
+                View menuItemView = findViewById(item.getItemId());
+                showPopupMenu(menuItemView);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -195,15 +248,40 @@ public class EspMainActivity extends AppCompatActivity {
         }
     }
 
-    View.OnClickListener addDeviceBtnClickListener = new View.OnClickListener() {
+    private void showPopupMenu(View anchor)
+    {
+        PopupMenu popupMenu = new PopupMenu(this, anchor);
+        popupMenu.getMenuInflater().inflate(R.menu.menu_choose_theme, popupMenu.getMenu());
+        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                switch (item.getItemId()) {
+                    case R.id.theme_light:
+                        AppTheme.saveAndApplyTheme("light_mode");
+                        return true;
 
-        @Override
-        public void onClick(View v) {
+                    case R.id.theme_dark:
+                        AppTheme.saveAndApplyTheme("dark_mode");
+                        return true;
+
+                    case R.id.theme_default:
+                        AppTheme.saveAndApplyTheme("default_mode");
+                        return true;
+
+                    default:
+                        return false;
+                }
+            }
+        });
+        popupMenu.show();
+    }
+
+    private void addDeviceBtnVoid() {
 
             Vibrator vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
             vib.vibrate(HapticFeedbackConstants.VIRTUAL_KEY);
 
-            if (tvTitle.getText().toString().equals(getString(R.string.title_activity_devices))) {
+            if (collapsingToolbarLayout.getTitle().toString().equals(getString(R.string.title_activity_devices))) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
 
                     if (!isLocationEnabled()) {
@@ -215,7 +293,6 @@ public class EspMainActivity extends AppCompatActivity {
             } else {
                 goToAddScheduleActivity();
             }
-        }
     };
 
     BottomNavigationView.OnNavigationItemSelectedListener navigationItemSelectedListener = new BottomNavigationView.OnNavigationItemSelectedListener() {
@@ -226,13 +303,13 @@ public class EspMainActivity extends AppCompatActivity {
             switch (menuItem.getItemId()) {
 
                 case R.id.action_devices:
-                    tvTitle.setText(pagerAdapter.getPageTitle(0));
+                    collapsingToolbarLayout.setTitle(pagerAdapter.getPageTitle(0));
                     viewPager.setCurrentItem(0);
                     updateUi();
                     return true;
 
                 case R.id.action_schedules:
-                    tvTitle.setText(pagerAdapter.getPageTitle(1));
+                    collapsingToolbarLayout.setTitle(pagerAdapter.getPageTitle(1));
                     viewPager.setCurrentItem(1);
                     updateUi();
                     return true;
@@ -255,24 +332,16 @@ public class EspMainActivity extends AppCompatActivity {
         getNodes();
     }
 
+    private void UserBtnVoid() {
+
+        startActivity(new Intent(EspMainActivity.this, UserProfileActivity.class));
+
+    };
+
     private void initViews() {
 
-        tvTitle = findViewById(R.id.esp_toolbar_title);
-        ivAddDevice = findViewById(R.id.btn_add_device);
-        ivUserProfile = findViewById(R.id.btn_user_profile);
         bottomNavigationView = findViewById(R.id.bottom_navigation_view);
         viewPager = findViewById(R.id.view_pager);
-
-        tvTitle.setText(R.string.title_activity_devices);
-        ivAddDevice.setOnClickListener(addDeviceBtnClickListener);
-
-        ivUserProfile.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                startActivity(new Intent(EspMainActivity.this, UserProfileActivity.class));
-            }
-        });
 
         if (BuildConfig.isScheduleSupported) {
 
@@ -310,7 +379,7 @@ public class EspMainActivity extends AppCompatActivity {
                     }
                     bottomNavigationView.getMenu().getItem(position).setChecked(true);
                     prevMenuItem = bottomNavigationView.getMenu().getItem(position);
-                    tvTitle.setText(pagerAdapter.getPageTitle(position));
+                    collapsingToolbarLayout.setTitle(pagerAdapter.getPageTitle(position));
                     updateUi();
                 }
 
@@ -366,14 +435,13 @@ public class EspMainActivity extends AppCompatActivity {
     }
 
     private void updateUi() {
-
         switch (espApp.getCurrentStatus()) {
 
             case FETCHING_DATA:
                 if (devices.size() > 0) {
-                    ivAddDevice.setVisibility(View.VISIBLE);
+                    show_add_btn = true;
                 } else {
-                    ivAddDevice.setVisibility(View.GONE);
+                    show_add_btn = false;
                 }
                 break;
 
@@ -395,11 +463,10 @@ public class EspMainActivity extends AppCompatActivity {
                     }
 
                     if (devices.size() > 0) {
-
-                        ivAddDevice.setVisibility(View.VISIBLE);
+                        show_add_btn = true;
 
                     } else {
-                        ivAddDevice.setVisibility(View.GONE);
+                        show_add_btn = false;
                     }
                 } else if (viewPager.getCurrentItem() == 1) {
 
@@ -417,10 +484,10 @@ public class EspMainActivity extends AppCompatActivity {
 
                     if (schedules.size() > 0) {
 
-                        ivAddDevice.setVisibility(View.VISIBLE);
+                        show_add_btn = true;
 
                     } else {
-                        ivAddDevice.setVisibility(View.GONE);
+                        show_add_btn = false;
                     }
                 }
                 break;
@@ -451,6 +518,7 @@ public class EspMainActivity extends AppCompatActivity {
                 listener.updateUi();
             }
         }
+        invalidateOptionsMenu();
     }
 
     private void startLocalDeviceDiscovery() {
@@ -575,7 +643,7 @@ public class EspMainActivity extends AppCompatActivity {
 
     private void alertForForceUpdate(String message) {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setCancelable(false);
 
         builder.setTitle(R.string.dialog_title_new_version_available);
@@ -601,7 +669,7 @@ public class EspMainActivity extends AppCompatActivity {
 
     private void alertForNewVersion(String message) {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setCancelable(true);
 
         builder.setTitle(R.string.dialog_title_new_version_available);
@@ -636,7 +704,7 @@ public class EspMainActivity extends AppCompatActivity {
 
     private void askForLocation() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setCancelable(true);
         builder.setMessage(R.string.dialog_msg_for_gps);
 

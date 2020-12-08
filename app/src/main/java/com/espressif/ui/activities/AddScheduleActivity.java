@@ -23,10 +23,12 @@ import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.LinearInterpolator;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -34,9 +36,8 @@ import android.widget.TimePicker;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.aventrix.jnanoid.jnanoid.NanoIdUtils;
@@ -52,6 +53,8 @@ import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
 import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
@@ -72,13 +75,11 @@ public class AddScheduleActivity extends AppCompatActivity {
 
     public static final int REQ_CODE_ACTIONS = 10;
 
+    private Toolbar toolbar;
     private RelativeLayout rlScheduleName, rlActions, rlRepeat;
     private TextView tvScheduleName, tvActionDevices;
-    private TextView tvTitle, tvBack, tvDone;
     private TimePicker timePicker;
-    private CardView btnRemoveSchedule;
-    private TextView txtRemoveScheduleBtn;
-    private ImageView removeScheduleImage;
+    private MaterialButton btnRemoveSchedule;
     private ContentLoadingProgressBar progressBar;
     private RelativeLayout rlSchProgress, rlAddSch;
     private LinearLayout daysLayout;
@@ -97,10 +98,16 @@ public class AddScheduleActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_schedule);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
+
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setTitle(R.string.title_activity_add_schedule);
+        toolbar.setNavigationIcon(R.drawable.ic_fluent_arrow_left);
+        toolbar.setNavigationOnClickListener(backBtnClickListener);
 
         espApp = (EspApplication) getApplicationContext();
         apiManager = ApiManager.getInstance(this);
@@ -161,6 +168,28 @@ public class AddScheduleActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_toolbar, menu);
+        MenuItem tvDone = menu.findItem(R.id.action_done);
+        tvDone.setVisible(true);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_done:
+                saveSchedule();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
 
         super.onActivityResult(requestCode, resultCode, data);
@@ -186,20 +215,7 @@ public class AddScheduleActivity extends AppCompatActivity {
 
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvDone = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_add_schedule);
-        tvDone.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_fluent_checkmark,0,0,0);
-        tvBack.setVisibility(View.VISIBLE);
-        tvDone.setVisibility(View.VISIBLE);
-        tvBack.setOnClickListener(backBtnClickListener);
-        tvDone.setOnClickListener(doneBtnClickListener);
-
-        btnRemoveSchedule = findViewById(R.id.btn_remove_schedule);
-        txtRemoveScheduleBtn = findViewById(R.id.text_btn);
-        removeScheduleImage = findViewById(R.id.iv_remove);
+        btnRemoveSchedule = findViewById(R.id.btn_remove);
         progressBar = findViewById(R.id.progress_indicator);
 
         rlScheduleName = findViewById(R.id.rl_schedule_name);
@@ -231,7 +247,7 @@ public class AddScheduleActivity extends AppCompatActivity {
 
             operation = "edit";
             scheduleName = schedule.getName();
-            tvTitle.setText(R.string.title_activity_schedule_details);
+            toolbar.setTitle(R.string.title_activity_schedule_details);
 
             HashMap<String, Integer> triggers = schedule.getTriggers();
             int daysValue = triggers.get("d");
@@ -360,14 +376,6 @@ public class AddScheduleActivity extends AppCompatActivity {
         }
     };
 
-    private View.OnClickListener doneBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-            saveSchedule();
-        }
-    };
-
     private View.OnClickListener backBtnClickListener = new View.OnClickListener() {
 
         @Override
@@ -387,7 +395,7 @@ public class AddScheduleActivity extends AppCompatActivity {
 
     private void askForScheduleName() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         LayoutInflater inflater = getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
         builder.setView(dialogView);
@@ -421,8 +429,7 @@ public class AddScheduleActivity extends AppCompatActivity {
             }
         });
 
-        AlertDialog alertDialog = builder.create();
-        alertDialog.show();
+        builder.show();
     }
 
     private void changeDayValue(int position, TextView tvDay) {
@@ -450,7 +457,7 @@ public class AddScheduleActivity extends AppCompatActivity {
 
     private void confirmForRemoveSchedule() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setTitle(R.string.dialog_title_remove_schedule);
         builder.setMessage(R.string.dialog_msg_remove_schedule);
 
@@ -474,8 +481,7 @@ public class AddScheduleActivity extends AppCompatActivity {
             }
         });
 
-        AlertDialog userDialog = builder.create();
-        userDialog.show();
+        builder.show();
     }
 
     private void removeSchedule() {
@@ -852,18 +858,16 @@ public class AddScheduleActivity extends AppCompatActivity {
     private void showRemoveScheduleLoading() {
 
         btnRemoveSchedule.setEnabled(false);
-        btnRemoveSchedule.setAlpha(0.5f);
-        txtRemoveScheduleBtn.setText(R.string.btn_removing);
+        btnRemoveSchedule.setText(R.string.btn_removing);
+        btnRemoveSchedule.setIcon(null);
         progressBar.setVisibility(View.VISIBLE);
-        removeScheduleImage.setVisibility(View.GONE);
     }
 
     public void hideRemoveScheduleLoading() {
 
         btnRemoveSchedule.setEnabled(true);
-        btnRemoveSchedule.setAlpha(1f);
-        txtRemoveScheduleBtn.setText(R.string.btn_remove);
+        btnRemoveSchedule.setText(R.string.btn_remove);
+        btnRemoveSchedule.setIconResource(R.drawable.ic_fluent_delete);
         progressBar.setVisibility(View.GONE);
-        removeScheduleImage.setVisibility(View.VISIBLE);
     }
 }

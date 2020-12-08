@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:drawable="@color/color_app_bg"
+        android:gravity="fill" />
+
+    <item
+        android:drawable="@drawable/ic_esp_splashscreen"
+        android:gravity="center"/>
+
+</layer-list>

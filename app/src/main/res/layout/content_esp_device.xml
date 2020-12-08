@@ -17,6 +17,7 @@
         android:layout_centerInParent="true"
         android:visibility="gone" />
 
+
     <TextView
         android:id="@+id/tv_device_offline"
         android:layout_width="wrap_content"
@@ -26,18 +27,15 @@
         android:layout_marginTop="@dimen/margin_10"
         android:alpha="0.5"
         android:textColor="@color/color_text_primary"
-        android:textSize="14sp"
-        android:textStyle="italic" />
+        android:textSize="14sp" />
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/tv_device_offline"
-        android:layout_marginStart="@dimen/margin_32"
-        android:layout_marginTop="@dimen/margin_10"
-        android:layout_marginEnd="@dimen/margin_32"
-        android:layout_marginBottom="@dimen/margin_32"
+        android:layout_marginHorizontal="@dimen/margin_24"
+        android:layout_marginVertical="@dimen/margin_10"
         android:visibility="visible"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
@@ -63,7 +61,7 @@
                     android:id="@+id/rv_dynamic_param_list"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:scrollbars="vertical" />
+                    android:overScrollMode="never" />
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rv_static_param_list"
@@ -71,7 +69,7 @@
                     android:layout_height="wrap_content"
                     android:layout_below="@id/rv_dynamic_param_list"
                     android:layout_marginTop="@dimen/margin_32"
-                    android:scrollbars="vertical" />
+                    android:overScrollMode="never" />
 
             </RelativeLayout>
 

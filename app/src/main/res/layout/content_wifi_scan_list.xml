@@ -59,14 +59,12 @@
             android:layout_marginEnd="15dp"
             android:layout_marginBottom="15dp" />
 
-        <ProgressBar
+        <androidx.core.widget.ContentLoadingProgressBar
             android:id="@+id/wifi_progress_indicator"
-            style="@android:style/Widget.DeviceDefault.Light.ProgressBar"
+            style="?android:attr/progressBarStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:visibility="visible" />
-
+            android:layout_centerInParent="true" />
     </RelativeLayout>
 
 </RelativeLayout>

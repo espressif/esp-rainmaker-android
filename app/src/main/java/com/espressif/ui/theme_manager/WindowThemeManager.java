@@ -22,22 +22,11 @@ import com.google.android.material.color.MaterialColors;
 
 public class WindowThemeManager {
   private final Context context;
-
   private static boolean isNoActionBarWindow = false;
+
   public WindowThemeManager(Context context, boolean NoActionBar) {
     this.context = context;
     isNoActionBarWindow = NoActionBar;
-  }
-
-  public boolean isDarkTheme() {
-    int currentNightMode = context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-    switch (currentNightMode){
-      case Configuration.UI_MODE_NIGHT_NO:
-      return false;
-      case Configuration.UI_MODE_NIGHT_YES:
-        return true;
-    }
-    return false;
   }
 
   public void applyWindowTheme(Window window) {

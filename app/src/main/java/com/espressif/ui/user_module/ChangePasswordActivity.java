@@ -21,53 +21,49 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.TextView;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.GenericHandler;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.activities.AddDeviceActivity;
 import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputLayout;
 
 public class ChangePasswordActivity extends AppCompatActivity {
 
-    private TextView tvTitle, tvBack, tvCancel;
+    private Toolbar toolbar;
     private EditText etOldPassword, etNewPassword, etConfirmNewPassword;
     private TextInputLayout layoutOldPassword, layoutNewPassword, layoutConfirmPassword;
-    private CardView btnSetPassword;
-    private TextView txtSetPasswordBtn;
-    private ImageView arrowImage;
+    private MaterialButton btnSetPassword;
     private ContentLoadingProgressBar progressBar;
-    private AlertDialog userDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_change_password);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
+
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setTitle(R.string.title_activity_change_password);
+        toolbar.setNavigationIcon(R.drawable.ic_fluent_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         init();
     }
 
     private void init() {
-
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_change_password);
-        tvBack.setVisibility(View.VISIBLE);
-        tvCancel.setVisibility(View.VISIBLE);
-
-        tvBack.setOnClickListener(backButtonClickListener);
-        tvCancel.setOnClickListener(cancelButtonClickListener);
 
         etOldPassword = findViewById(R.id.et_old_password);
         etNewPassword = findViewById(R.id.et_new_password);
@@ -75,12 +71,10 @@ public class ChangePasswordActivity extends AppCompatActivity {
         layoutOldPassword = findViewById(R.id.layout_old_password);
         layoutNewPassword = findViewById(R.id.layout_new_password);
         layoutConfirmPassword = findViewById(R.id.layout_confirm_new_password);
-        btnSetPassword = findViewById(R.id.btn_set_password);
-        txtSetPasswordBtn = findViewById(R.id.text_btn);
-        arrowImage = findViewById(R.id.iv_arrow);
+        btnSetPassword = findViewById(R.id.btn_material);
         progressBar = findViewById(R.id.progress_indicator);
 
-        txtSetPasswordBtn.setText(R.string.btn_set_password);
+        btnSetPassword.setText(R.string.btn_set_password);
         btnSetPassword.setOnClickListener(setPasswordBtnClickListener);
 
         etConfirmNewPassword.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -95,24 +89,6 @@ public class ChangePasswordActivity extends AppCompatActivity {
             }
         });
     }
-
-    private View.OnClickListener backButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            finish();
-        }
-    };
-
-    private View.OnClickListener cancelButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            finish();
-        }
-    };
 
     private View.OnClickListener setPasswordBtnClickListener = new View.OnClickListener() {
 
@@ -187,14 +163,14 @@ public class ChangePasswordActivity extends AppCompatActivity {
 
     private void showDialogMessage(String title, String body, final boolean exitActivity) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
 
             @Override
             public void onClick(DialogInterface dialog, int which) {
 
                 try {
-                    userDialog.dismiss();
+                    dialog.dismiss();
                     if (exitActivity) {
                         onBackPressed();
                     }
@@ -203,25 +179,22 @@ public class ChangePasswordActivity extends AppCompatActivity {
                 }
             }
         });
-        userDialog = builder.create();
-        userDialog.show();
+        builder.show();
     }
 
     private void showLoading() {
 
         btnSetPassword.setEnabled(false);
-        btnSetPassword.setAlpha(0.5f);
-        txtSetPasswordBtn.setText(R.string.btn_setting_password);
+        btnSetPassword.setText(R.string.btn_setting_password);
+        btnSetPassword.setIcon(null);
         progressBar.setVisibility(View.VISIBLE);
-        arrowImage.setVisibility(View.GONE);
     }
 
     public void hideLoading() {
 
         btnSetPassword.setEnabled(true);
-        btnSetPassword.setAlpha(1f);
-        txtSetPasswordBtn.setText(R.string.btn_set_password);
+        btnSetPassword.setText(R.string.btn_set_password);
+        btnSetPassword.setIconResource(R.drawable.ic_fluent_arrow_right_filled);
         progressBar.setVisibility(View.GONE);
-        arrowImage.setVisibility(View.VISIBLE);
     }
 }

@@ -11,7 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
-        android:padding="@dimen/margin_32"
+        android:paddingBottom="56dp"
         android:visibility="gone">
 
         <ImageView
@@ -19,6 +19,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
+            android:layout_margin="6dp"
             android:src="@drawable/ic_no_devices" />
 
         <TextView
@@ -48,13 +49,20 @@
 
     </RelativeLayout>
 
-    <include
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_add_schedule"
-        layout="@layout/button"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_margin="@dimen/margin_32" />
+        android:layout_marginBottom="88dp"
+        android:layout_centerHorizontal="true"
+        android:paddingVertical="14dp"
+        android:paddingHorizontal="48dp"
+        android:text="@string/btn_add_schedule"
+        android:textAppearance="?attr/textAppearanceHeadline6"
+        android:textAllCaps="false"
+        android:textColor="@color/color_white"
+        android:textSize="16dp" />
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_container"
@@ -68,7 +76,7 @@
             android:id="@+id/rv_schedule_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:scrollbars="vertical"
+            android:overScrollMode="never"
             android:visibility="gone" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

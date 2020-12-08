@@ -17,16 +17,20 @@ package com.espressif.ui.activities;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+import androidx.appcompat.widget.Toolbar;
 
 import com.espressif.AppConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -34,9 +38,8 @@ public class WiFiConfigActivity extends AppCompatActivity {
 
     private static final String TAG = WiFiConfigActivity.class.getSimpleName();
 
-    private TextView tvTitle, tvBack, tvCancel;
-    private CardView btnNext;
-    private TextView txtNextBtn;
+    private Toolbar toolbar;
+    private MaterialButton btnNext;
 
     private TextInputEditText etSsid, etPassword;
     private TextInputLayout layoutSsid;
@@ -44,13 +47,46 @@ public class WiFiConfigActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_wifi_config);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
+
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setTitle(R.string.title_activity_wifi_config);
+        toolbar.setNavigationIcon(R.drawable.ic_fluent_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onBackPressed();
+            }
+        });
 
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_toolbar, menu);
+        MenuItem tvCancel = menu.findItem(R.id.action_cancel);
+        tvCancel.setVisible(true);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_cancel:
+                finish();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -76,20 +112,9 @@ public class WiFiConfigActivity extends AppCompatActivity {
         }
     };
 
-    private View.OnClickListener cancelBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            finish();
-        }
-    };
 
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
         layoutSsid = findViewById(R.id.ssid_input_layout);
         etSsid = findViewById(R.id.et_ssid_input);
         etPassword = findViewById(R.id.et_password_input);
@@ -101,14 +126,8 @@ public class WiFiConfigActivity extends AppCompatActivity {
             tvInstructionMsg.setText(msg);
         }
 
-        tvTitle.setText(R.string.title_activity_wifi_config);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.VISIBLE);
-        tvCancel.setOnClickListener(cancelBtnClickListener);
-
         btnNext = findViewById(R.id.btn_next);
-        txtNextBtn = findViewById(R.id.text_btn);
-        txtNextBtn.setText(R.string.btn_next);
+        btnNext.setText(R.string.btn_next);
         btnNext.setOnClickListener(nextBtnClickListener);
     }
 

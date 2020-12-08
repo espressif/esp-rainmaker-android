@@ -17,14 +17,12 @@ package com.espressif.ui.activities;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -39,6 +37,8 @@ import com.espressif.ui.adapters.NodeDetailsAdapter;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 
@@ -51,21 +51,29 @@ public class NodeDetailsActivity extends AppCompatActivity {
     private ArrayList<String> nodeInfoList;
     private ArrayList<String> nodeInfoValueList;
 
-    private TextView tvTitle, tvBack, tvCancel;
-    private CardView btnRemoveDevice;
-    private TextView txtRemoveDeviceBtn;
-    private ImageView removeDeviceImage;
+    private Toolbar toolbar;
+    private MaterialButton btnRemoveDevice;
     private RecyclerView nodeInfoRecyclerView;
     private TextView txtRemoveMultiDeviceInfo;
     private ContentLoadingProgressBar progressBar;
-    private AlertDialog userDialog;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_node_details);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
+
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setTitle(R.string.title_activity_node_details);
+        toolbar.setNavigationIcon(R.drawable.ic_fluent_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         nodeInfoList = new ArrayList<>();
         nodeInfoValueList = new ArrayList<>();
@@ -87,33 +95,14 @@ public class NodeDetailsActivity extends AppCompatActivity {
         }
     };
 
-    private View.OnClickListener backButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            finish();
-        }
-    };
 
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_node_details);
-        tvBack.setVisibility(View.VISIBLE);
-        tvCancel.setVisibility(View.GONE);
-
         nodeInfoRecyclerView = findViewById(R.id.rv_node_details_list);
         btnRemoveDevice = findViewById(R.id.btn_remove);
-        txtRemoveDeviceBtn = findViewById(R.id.text_btn);
-        removeDeviceImage = findViewById(R.id.iv_remove);
         progressBar = findViewById(R.id.progress_indicator);
         txtRemoveMultiDeviceInfo = findViewById(R.id.tv_txt_remove);
 
-        tvBack.setOnClickListener(backButtonClickListener);
         btnRemoveDevice.setOnClickListener(removeDeviceBtnClickListener);
 
         // set a LinearLayoutManager with default orientation
@@ -161,24 +150,22 @@ public class NodeDetailsActivity extends AppCompatActivity {
     private void showLoading() {
 
         btnRemoveDevice.setEnabled(false);
-        btnRemoveDevice.setAlpha(0.5f);
-        txtRemoveDeviceBtn.setText(R.string.btn_removing);
+        btnRemoveDevice.setText(R.string.btn_removing);
+        btnRemoveDevice.setIcon(null);
         progressBar.setVisibility(View.VISIBLE);
-        removeDeviceImage.setVisibility(View.GONE);
     }
 
     public void hideLoading() {
 
         btnRemoveDevice.setEnabled(true);
-        btnRemoveDevice.setAlpha(1f);
-        txtRemoveDeviceBtn.setText(R.string.btn_remove);
+        btnRemoveDevice.setText(R.string.btn_remove);
+        btnRemoveDevice.setIconResource(R.drawable.ic_fluent_delete);
         progressBar.setVisibility(View.GONE);
-        removeDeviceImage.setVisibility(View.VISIBLE);
     }
 
     private void confirmForRemoveNode() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setMessage(R.string.dialog_msg_delete_node);
 
         // Set up the buttons
@@ -201,8 +188,7 @@ public class NodeDetailsActivity extends AppCompatActivity {
             }
         });
 
-        userDialog = builder.create();
-        userDialog.show();
+        builder.show();
     }
 
     private void removeDevice() {

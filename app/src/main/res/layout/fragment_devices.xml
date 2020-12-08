@@ -11,7 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
-        android:padding="@dimen/margin_32">
+        android:paddingBottom="56dp">
 
         <ImageView
             android:id="@+id/iv_no_device"
@@ -46,29 +46,35 @@
 
     </RelativeLayout>
 
-    <include
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_add_device_1"
-        layout="@layout/button"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_margin="@dimen/margin_32" />
+        android:layout_marginBottom="88dp"
+        android:layout_centerHorizontal="true"
+        android:paddingVertical="14dp"
+        android:paddingHorizontal="48dp"
+        android:text="@string/btn_add_schedule"
+        android:textAppearance="?attr/textAppearanceHeadline6"
+        android:textAllCaps="false"
+        android:textColor="@color/color_white"
+        android:textSize="16dp" />
 
-    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-        android:id="@+id/swipe_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:layout_margin="@dimen/margin_16">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_device_list"
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipe_container"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:scrollbars="vertical"
-            android:visibility="gone" />
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_margin="@dimen/margin_16"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_device_list"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:overScrollMode="never"
+                android:visibility="visible" />
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 </RelativeLayout>

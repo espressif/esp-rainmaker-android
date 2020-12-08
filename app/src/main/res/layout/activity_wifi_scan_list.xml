@@ -6,19 +6,7 @@
     android:layout_height="match_parent"
     tools:context="com.espressif.ui.activities.WiFiScanActivity">
 
-    <com.google.android.material.appbar.AppBarLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:theme="@style/AppTheme.AppBarOverlay">
-
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@color/color_actionbar_bg"
-            app:popupTheme="@style/AppTheme.AppBarOverlay" />
-
-    </com.google.android.material.appbar.AppBarLayout>
+    <include layout="@layout/app_toolbar" />
 
     <include layout="@layout/content_wifi_scan_list" />
 

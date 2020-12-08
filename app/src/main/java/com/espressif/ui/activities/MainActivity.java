@@ -21,10 +21,8 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.View;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
@@ -45,9 +43,11 @@ import com.espressif.cloudapi.ApiManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.TabsPagerAdapter;
 import com.espressif.ui.fragments.LoginFragment;
-import com.espressif.ui.theme_manager.WindowThemeManager;
 import com.espressif.ui.user_module.AppHelper;
 import com.espressif.ui.user_module.SignUpConfirmActivity;
+import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.dialog.MaterialDialogs;
 import com.google.android.material.tabs.TabLayout;
 
 import java.util.Locale;
@@ -58,15 +58,14 @@ public class MainActivity extends AppCompatActivity {
     private static final int SIGN_UP_CONFIRM_ACTIVITY_REQUEST = 11;
 
     private ViewPager viewPager;
-    private AlertDialog userDialog;
     private String email, password;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitle("");
@@ -250,18 +249,17 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDialogMessage(String title, String body) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 try {
-                    userDialog.dismiss();
+                    dialog.dismiss();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         });
-        userDialog = builder.create();
-        userDialog.show();
+        builder.show();
     }
 }

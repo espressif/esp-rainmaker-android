@@ -26,7 +26,7 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -37,56 +37,49 @@ import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.UserProfileAdapter;
-import com.espressif.ui.theme_manager.WindowThemeManager;
 import com.espressif.ui.user_module.AppHelper;
 import com.espressif.ui.user_module.ChangePasswordActivity;
+import com.espressif.ui.theme_manager.WindowThemeManager;
+import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
 
 public class UserProfileActivity extends AppCompatActivity {
 
+    private Toolbar toolbar;
     private UserProfileAdapter termsInfoAdapter;
     private ArrayList<String> termsInfoList;
 
-    private TextView tvTitle, tvBack, tvCancel;
     private TextView tvAppVersion;
     private SharedPreferences sharedPreferences;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
-        WindowTheme.applyWindowTheme(getWindow());
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user_profile);
+        WindowThemeManager WindowTheme = new WindowThemeManager(this, false);
+        WindowTheme.applyWindowTheme(getWindow());
 
-        overridePendingTransition(R.anim.anim_left_to_right, R.anim.scale_in);
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setTitle(R.string.title_activity_user_profile);
+        toolbar.setNavigationIcon(R.drawable.ic_fluent_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         sharedPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
         initViews();
     }
 
-    private View.OnClickListener backButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            finish();
-        }
-    };
-
     private void initViews() {
-
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_user_profile);
-        tvBack.setVisibility(View.VISIBLE);
-        tvCancel.setVisibility(View.GONE);
 
         RecyclerView userInfoView = findViewById(R.id.rv_user_info);
         RecyclerView termsInfoView = findViewById(R.id.rv_terms);
-        CardView logoutView = findViewById(R.id.card_view_logout);
+        MaterialButton btnLogout = findViewById(R.id.btn_logout);
         tvAppVersion = findViewById(R.id.tv_app_version);
 
         String version = "";
@@ -100,8 +93,7 @@ public class UserProfileActivity extends AppCompatActivity {
         String appVersion = getString(R.string.app_version) + " - v" + version;
         tvAppVersion.setText(appVersion);
 
-        tvBack.setOnClickListener(backButtonClickListener);
-        logoutView.setOnClickListener(new View.OnClickListener() {
+        btnLogout.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
