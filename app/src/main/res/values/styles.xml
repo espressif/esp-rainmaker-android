@@ -15,7 +15,8 @@
 
     <style name="SplashScreenTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:windowBackground">@drawable/background_splash</item>
-        <item name="android:windowLightStatusBar">@bool/LightStatusBar</item>
+        <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">?attr/isLightTheme</item>
         <item name="android:navigationBarColor">@color/color_app_bg</item>
         <item name="android:navigationBarDividerColor" tools:targetApi="27">@color/color_app_bg</item>
         <item name="android:statusBarColor">@color/color_app_bg</item>
