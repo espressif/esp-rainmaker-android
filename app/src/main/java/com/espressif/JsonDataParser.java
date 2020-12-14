@@ -57,14 +57,14 @@ public class JsonDataParser {
                 int value = deviceJson.optInt(paramName);
                 labelValue = String.valueOf(value);
                 param.setLabelValue(labelValue);
-                param.setSliderValue(value);
+                param.setValue(value);
 
             } else if (dataType.equalsIgnoreCase("float") || dataType.equalsIgnoreCase("double")) {
 
                 double value = deviceJson.optDouble(paramName);
                 labelValue = String.valueOf(value);
                 param.setLabelValue(labelValue);
-                param.setSliderValue(value);
+                param.setValue(value);
 
             } else {
 
@@ -76,6 +76,19 @@ public class JsonDataParser {
             boolean value = deviceJson.optBoolean(paramName);
             param.setSwitchStatus(value);
 
+        } else if (AppConstants.UI_TYPE_DROP_DOWN.equalsIgnoreCase(param.getUiType())) {
+
+            String labelValue = "";
+
+            if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
+                int value = deviceJson.optInt(paramName);
+                labelValue = String.valueOf(value);
+                param.setLabelValue(labelValue);
+                param.setValue(value);
+            } else {
+                labelValue = deviceJson.optString(paramName);
+                param.setLabelValue(labelValue);
+            }
         } else {
 
             String labelValue = "";
@@ -185,7 +198,18 @@ public class JsonDataParser {
                         if (boundsJson != null) {
                             param.setMaxBounds(boundsJson.optInt("max"));
                             param.setMinBounds(boundsJson.optInt("min"));
+                            param.setStepCount((float) boundsJson.optDouble("step", 0));
                         }
+
+                        JSONArray validValuesJson = paraObj.optJSONArray("valid_strs");
+                        ArrayList<String> validVals = new ArrayList<>();
+
+                        if (validValuesJson != null) {
+                            for (int k = 0; k < validValuesJson.length(); k++) {
+                                validVals.add(validValuesJson.optString(k));
+                            }
+                        }
+                        param.setValidStrings(validVals);
                     }
                 }
 

@@ -97,6 +97,7 @@
     <string name="offline_at">Offline at</string>
     <string name="no_devices_with_schedule">You don\'t have any device\nthat supports this.</string>
     <string name="local_device_text">Reachable on WLAN</string>
+    <string name="invalid">Invalid</string>
 
     <!--Tab titles-->
     <string name="tab_login">SIGN IN</string>
@@ -269,5 +270,7 @@
         <item>Tue</item>
         <item>Mon</item>
     </string-array>
+
+    <item name="position" type="id" />
 
 </resources>
