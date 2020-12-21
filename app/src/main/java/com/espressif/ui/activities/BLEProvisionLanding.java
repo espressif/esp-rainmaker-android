@@ -50,6 +50,7 @@ import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.BleScanListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.BleDeviceListAdapter;
+import com.espressif.ui.models.BleDevice;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -59,7 +60,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 
 public class BLEProvisionLanding extends AppCompatActivity {
@@ -80,7 +80,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
     private BleDeviceListAdapter adapter;
     private BluetoothAdapter bleAdapter;
-    private ArrayList<BluetoothDevice> deviceList;
+    private ArrayList<BleDevice> deviceList;
     private HashMap<BluetoothDevice, String> bluetoothDevices;
     private Handler handler;
 
@@ -121,8 +121,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
         isDeviceConnected = false;
         handler = new Handler();
         bluetoothDevices = new HashMap<>();
-        Collection<BluetoothDevice> keySet = bluetoothDevices.keySet();
-        deviceList = new ArrayList<>(keySet);
+        deviceList = new ArrayList<>();
 
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
@@ -442,9 +441,13 @@ public class BLEProvisionLanding extends AppCompatActivity {
             }
 
             if (!deviceExists) {
+                BleDevice bleDevice = new BleDevice();
+                bleDevice.setName(scanResult.getScanRecord().getDeviceName());
+                bleDevice.setBluetoothDevice(device);
+
                 listView.setVisibility(View.VISIBLE);
                 bluetoothDevices.put(device, serviceUuid);
-                deviceList.add(device);
+                deviceList.add(bleDevice);
                 adapter.notifyDataSetChanged();
             }
         }
@@ -474,13 +477,12 @@ public class BLEProvisionLanding extends AppCompatActivity {
             listView.setVisibility(View.GONE);
             progressBar.setVisibility(View.VISIBLE);
             BLEProvisionLanding.this.position = position;
-            BluetoothDevice device = adapter.getItem(position);
-            String uuid = bluetoothDevices.get(device);
-            Log.d(TAG, "=================== Connect to device : " + device.getName() + " UUID : " + uuid);
+            BleDevice bleDevice = adapter.getItem(position);
+            String uuid = bluetoothDevices.get(bleDevice.getBluetoothDevice());
+            Log.d(TAG, "=================== Connect to device : " + bleDevice.getName() + " UUID : " + uuid);
 
             if (ActivityCompat.checkSelfPermission(BLEProvisionLanding.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-
-                provisionManager.getEspDevice().connectBLEDevice(device, uuid);
+                provisionManager.getEspDevice().connectBLEDevice(bleDevice.getBluetoothDevice(), uuid);
                 handler.postDelayed(disconnectDeviceTask, DEVICE_CONNECT_TIMEOUT);
             } else {
                 Log.e(TAG, "Not able to connect device as Location permission is not granted.");

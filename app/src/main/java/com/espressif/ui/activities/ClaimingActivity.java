@@ -1,5 +1,6 @@
 package com.espressif.ui.activities;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -12,12 +13,15 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
 import com.espressif.AppConstants;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.provisioning.DeviceConnectionEvent;
+import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.rainmaker.R;
@@ -25,6 +29,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.ArrayList;
 
@@ -60,9 +68,16 @@ public class ClaimingActivity extends AppCompatActivity {
         apiManager = ApiManager.getInstance(getApplicationContext());
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
+        EventBus.getDefault().register(this);
         displayClaimingProgress();
         handler.postDelayed(timeoutTask, 10000);
         sendClaimStartRequest();
+    }
+
+    @Override
+    protected void onDestroy() {
+        EventBus.getDefault().unregister(this);
+        super.onDestroy();
     }
 
     @Override
@@ -71,6 +86,21 @@ public class ClaimingActivity extends AppCompatActivity {
             provisionManager.getEspDevice().disconnectDevice();
         }
         super.onBackPressed();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEvent(DeviceConnectionEvent event) {
+
+        Log.d(TAG, "On Device Connection Event RECEIVED : " + event.getEventType());
+
+        switch (event.getEventType()) {
+
+            case ESPConstants.EVENT_DEVICE_DISCONNECTED:
+                if (!isFinishing()) {
+                    showAlertForDeviceDisconnected();
+                }
+                break;
+        }
     }
 
     private View.OnClickListener okBtnClickListener = new View.OnClickListener() {
@@ -406,11 +436,9 @@ public class ClaimingActivity extends AppCompatActivity {
                     ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
 
                     if (deviceCaps.contains("wifi_scan")) {
-
                         goToWiFiScanActivity();
-
                     } else {
-                        goToProvisionActivity();
+                        goToWiFiConfigActivity();
                     }
 
                 } else {
@@ -563,17 +591,15 @@ public class ClaimingActivity extends AppCompatActivity {
     }
 
     private void goToWiFiScanActivity() {
-
         finish();
         Intent wifiListIntent = new Intent(getApplicationContext(), WiFiScanActivity.class);
         startActivity(wifiListIntent);
     }
 
-    private void goToProvisionActivity() {
-
+    private void goToWiFiConfigActivity() {
         finish();
-        Intent provisionIntent = new Intent(getApplicationContext(), ProvisionActivity.class);
-        startActivity(provisionIntent);
+        Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
+        startActivity(wifiConfigIntent);
     }
 
     private void displayClaimingProgress() {
@@ -606,4 +632,23 @@ public class ClaimingActivity extends AppCompatActivity {
             tvCancel.setVisibility(View.VISIBLE);
         }
     };
+
+    private void showAlertForDeviceDisconnected() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        builder.setCancelable(false);
+        builder.setTitle(R.string.error_title);
+        builder.setMessage(R.string.dialog_msg_ble_device_disconnection);
+
+        // Set up the buttons
+        builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                finish();
+            }
+        });
+        builder.show();
+    }
 }
