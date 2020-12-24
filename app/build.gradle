@@ -97,7 +97,7 @@ dependencies {
 
     implementation 'com.aventrix.jnanoid:jnanoid:2.0.0'
     implementation 'com.budiyev.android:code-scanner:2.1.0'
-    implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.0.6'
+    implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.0.7'
 
     implementation 'com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.19.0'
     implementation 'com.github.warkiz.tickseekbar:tickseekbar:0.1.4'

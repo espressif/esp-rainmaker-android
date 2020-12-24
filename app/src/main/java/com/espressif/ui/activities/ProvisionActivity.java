@@ -14,6 +14,7 @@
 
 package com.espressif.ui.activities;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -23,6 +24,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.widget.ContentLoadingProgressBar;
@@ -30,6 +32,7 @@ import androidx.core.widget.ContentLoadingProgressBar;
 import com.espressif.AppConstants;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.ProvisionListener;
@@ -67,6 +70,7 @@ public class ProvisionActivity extends AppCompatActivity {
     private ApiManager apiManager;
     private Handler handler;
     private ESPProvisionManager provisionManager;
+    private boolean isProvisioningCompleted = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -126,11 +130,27 @@ public class ProvisionActivity extends AppCompatActivity {
         }
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEvent(DeviceConnectionEvent event) {
+
+        Log.d(TAG, "On Device Connection Event RECEIVED : " + event.getEventType());
+
+        switch (event.getEventType()) {
+
+            case ESPConstants.EVENT_DEVICE_DISCONNECTED:
+                if (!isFinishing() && !isProvisioningCompleted) {
+                    showAlertForDeviceDisconnected();
+                }
+                break;
+        }
+    }
+
+
     private View.OnClickListener okBtnClickListener = new View.OnClickListener() {
 
         @Override
         public void onClick(View v) {
-
+            provisionManager.getEspDevice().disconnectDevice();
             finish();
         }
     };
@@ -323,6 +343,7 @@ public class ProvisionActivity extends AppCompatActivity {
 
                     @Override
                     public void run() {
+                        isProvisioningCompleted = true;
                         doStep3(true);
                     }
                 });
@@ -509,5 +530,24 @@ public class ProvisionActivity extends AppCompatActivity {
 
         btnOk.setEnabled(true);
         btnOk.setAlpha(1f);
+    }
+
+    private void showAlertForDeviceDisconnected() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        builder.setCancelable(false);
+        builder.setTitle(R.string.error_title);
+        builder.setMessage(R.string.dialog_msg_ble_device_disconnection);
+
+        // Set up the buttons
+        builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                finish();
+            }
+        });
+        builder.show();
     }
 }
