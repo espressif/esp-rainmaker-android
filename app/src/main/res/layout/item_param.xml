@@ -251,6 +251,7 @@
             android:layout_centerVertical="true"
             android:layout_marginStart="8dp"
             android:layout_toLeftOf="@id/card_spinner"
+            android:paddingVertical="4dp"
             android:orientation="vertical">
 
             <TextView
@@ -258,8 +259,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:alpha="0.5"
-                android:textColor="@color/colorPrimaryDark"
-                android:textSize="12sp" />
+                android:textColor="@color/color_text_primary"
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/tv_spinner_value"
@@ -267,7 +268,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:maxLines="2"
-                android:textColor="@color/colorPrimaryDark"
+                android:textColor="@color/color_text_primary"
                 android:textSize="16sp" />
 
         </LinearLayout>
@@ -285,8 +286,8 @@
         <androidx.core.widget.ContentLoadingProgressBar
             android:id="@+id/progress_indicator_spinner"
             style="?android:attr/progressBarStyle"
-            android:layout_width="25dp"
-            android:layout_height="25dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:layout_marginEnd="16dp"
