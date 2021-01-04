@@ -33,6 +33,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import com.espressif.AppConstants;
+import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.WiFiAccessPoint;
@@ -43,6 +44,10 @@ import com.espressif.ui.theme_manager.WindowThemeManager;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.ArrayList;
 
@@ -109,7 +114,7 @@ public class WiFiScanActivity extends AppCompatActivity {
                 if (ssid.equals(getString(R.string.join_other_network))) {
                     askForNetwork(wifiAPList.get(pos).getWifiName(), wifiAPList.get(pos).getSecurity());
                 } else if (wifiAPList.get(pos).getSecurity() == ESPConstants.WIFI_OPEN) {
-                    goForProvisioning(wifiAPList.get(pos).getWifiName(), "");
+                    goToProvisionActivity(wifiAPList.get(pos).getWifiName(), "");
                 } else {
                     askForNetwork(wifiAPList.get(pos).getWifiName(), wifiAPList.get(pos).getSecurity());
                 }
@@ -123,13 +128,35 @@ public class WiFiScanActivity extends AppCompatActivity {
             }
         });
 
+        EventBus.getDefault().register(this);
         startWifiScan();
+    }
+
+    @Override
+    protected void onDestroy() {
+        EventBus.getDefault().unregister(this);
+        super.onDestroy();
     }
 
     @Override
     public void onBackPressed() {
         provisionManager.getEspDevice().disconnectDevice();
         super.onBackPressed();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEvent(DeviceConnectionEvent event) {
+
+        Log.d(TAG, "On Device Connection Event RECEIVED : " + event.getEventType());
+
+        switch (event.getEventType()) {
+
+            case ESPConstants.EVENT_DEVICE_DISCONNECTED:
+                if (!isFinishing()) {
+                    showAlertForDeviceDisconnected();
+                }
+                break;
+        }
     }
 
     private void startWifiScan() {
@@ -232,7 +259,7 @@ public class WiFiScanActivity extends AppCompatActivity {
                     } else {
 
                         dialog.dismiss();
-                        goForProvisioning(networkName, password);
+                        goToProvisionActivity(networkName, password);
                     }
 
                 } else {
@@ -247,7 +274,7 @@ public class WiFiScanActivity extends AppCompatActivity {
                         } else {
 
                             dialog.dismiss();
-                            goForProvisioning(ssid, password);
+                            goToProvisionActivity(ssid, password);
                         }
 
                     } else {
@@ -256,7 +283,7 @@ public class WiFiScanActivity extends AppCompatActivity {
                             password = "";
                         }
                         dialog.dismiss();
-                        goForProvisioning(ssid, password);
+                        goToProvisionActivity(ssid, password);
                     }
                 }
             }
@@ -274,14 +301,13 @@ public class WiFiScanActivity extends AppCompatActivity {
         builder.show();
     }
 
-    private void goForProvisioning(String ssid, String password) {
-
+    private void goToProvisionActivity(String ssid, String password) {
         finish();
-        Intent launchProvisionInstructions = new Intent(getApplicationContext(), ProvisionActivity.class);
-        launchProvisionInstructions.putExtras(getIntent());
-        launchProvisionInstructions.putExtra(AppConstants.KEY_SSID, ssid);
-        launchProvisionInstructions.putExtra(AppConstants.KEY_PASSWORD, password);
-        startActivity(launchProvisionInstructions);
+        Intent provisionIntent = new Intent(getApplicationContext(), ProvisionActivity.class);
+        provisionIntent.putExtras(getIntent());
+        provisionIntent.putExtra(AppConstants.KEY_SSID, ssid);
+        provisionIntent.putExtra(AppConstants.KEY_PASSWORD, password);
+        startActivity(provisionIntent);
     }
 
     private View.OnClickListener refreshClickListener = new View.OnClickListener() {
@@ -320,5 +346,24 @@ public class WiFiScanActivity extends AppCompatActivity {
             ivRefresh.setVisibility(View.VISIBLE);
             adapter.notifyDataSetChanged();
         }
+    }
+
+    private void showAlertForDeviceDisconnected() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        builder.setCancelable(false);
+        builder.setTitle(R.string.error_title);
+        builder.setMessage(R.string.dialog_msg_ble_device_disconnection);
+
+        // Set up the buttons
+        builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                finish();
+            }
+        });
+        builder.show();
     }
 }

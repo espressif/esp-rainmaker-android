@@ -14,12 +14,14 @@
 
 package com.espressif.ui.activities;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
@@ -27,12 +29,19 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import com.espressif.AppConstants;
+import com.espressif.provisioning.DeviceConnectionEvent;
+import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.theme_manager.WindowThemeManager;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 public class WiFiConfigActivity extends AppCompatActivity {
 
@@ -65,6 +74,13 @@ public class WiFiConfigActivity extends AppCompatActivity {
 
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
+        EventBus.getDefault().register(this);
+    }
+
+    @Override
+    protected void onDestroy() {
+        EventBus.getDefault().unregister(this);
+        super.onDestroy();
     }
 
     @Override
@@ -95,6 +111,21 @@ public class WiFiConfigActivity extends AppCompatActivity {
         super.onBackPressed();
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEvent(DeviceConnectionEvent event) {
+
+        Log.d(TAG, "On Device Connection Event RECEIVED : " + event.getEventType());
+
+        switch (event.getEventType()) {
+
+            case ESPConstants.EVENT_DEVICE_DISCONNECTED:
+                if (!isFinishing()) {
+                    showAlertForDeviceDisconnected();
+                }
+                break;
+        }
+    }
+
     private View.OnClickListener nextBtnClickListener = new View.OnClickListener() {
 
         @Override
@@ -112,6 +143,14 @@ public class WiFiConfigActivity extends AppCompatActivity {
         }
     };
 
+    private View.OnClickListener cancelBtnClickListener = new View.OnClickListener() {
+
+        @Override
+        public void onClick(View v) {
+            provisionManager.getEspDevice().disconnectDevice();
+            finish();
+        }
+    };
 
     private void initViews() {
 
@@ -139,5 +178,24 @@ public class WiFiConfigActivity extends AppCompatActivity {
         provisionIntent.putExtra(AppConstants.KEY_SSID, ssid);
         provisionIntent.putExtra(AppConstants.KEY_PASSWORD, password);
         startActivity(provisionIntent);
+    }
+
+    private void showAlertForDeviceDisconnected() {
+
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
+        builder.setCancelable(false);
+        builder.setTitle(R.string.error_title);
+        builder.setMessage(R.string.dialog_msg_ble_device_disconnection);
+
+        // Set up the buttons
+        builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                finish();
+            }
+        });
+        builder.show();
     }
 }

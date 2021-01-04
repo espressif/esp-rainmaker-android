@@ -97,6 +97,7 @@
     <string name="offline_at">Offline at</string>
     <string name="no_devices_with_schedule">You don\'t have any device\nthat supports this.</string>
     <string name="local_device_text">Reachable on WLAN</string>
+    <string name="invalid">Invalid</string>
 
     <!--Tab titles-->
     <string name="tab_login">SIGN IN</string>
@@ -201,6 +202,7 @@
     <string name="dialog_msg_device_selection">Choose Provisioning Transport</string>
     <string name="dialog_title_remove_schedule">Remove</string>
     <string name="dialog_msg_remove_schedule">Are you sure to remove this schedule?</string>
+    <string name="dialog_msg_ble_device_disconnection">Device disconnected</string>
 
     <!--Node Details-->
     <string name="node_id">Node Id</string>
@@ -277,5 +279,6 @@
     <string name="theme_choose_theme_light">Light</string>
     <string name="theme_choose_theme_dark">Dark</string>
     <string name="theme_choose_theme_default">System default</string>
+    <item name="position" type="id" />
 
 </resources>

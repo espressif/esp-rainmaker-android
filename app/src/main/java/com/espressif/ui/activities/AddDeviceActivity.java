@@ -450,11 +450,9 @@ public class AddDeviceActivity extends AppCompatActivity {
         } else {
 
             if (deviceCaps.contains("wifi_scan")) {
-
                 goToWiFiScanActivity();
-
             } else {
-                goToProvisionActivity();
+                goToWiFiConfigActivity();
             }
         }
     }
@@ -550,21 +548,18 @@ public class AddDeviceActivity extends AppCompatActivity {
     }
 
     private void goToWiFiScanActivity() {
-
         finish();
         Intent wifiListIntent = new Intent(getApplicationContext(), WiFiScanActivity.class);
         startActivity(wifiListIntent);
     }
 
-    private void goToProvisionActivity() {
-
+    private void goToWiFiConfigActivity() {
         finish();
-        Intent provisionIntent = new Intent(getApplicationContext(), ProvisionActivity.class);
-        startActivity(provisionIntent);
+        Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
+        startActivity(wifiConfigIntent);
     }
 
     private void goToClaimingActivity() {
-
         finish();
         Intent claimingIntent = new Intent(getApplicationContext(), ClaimingActivity.class);
         startActivity(claimingIntent);

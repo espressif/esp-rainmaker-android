@@ -14,6 +14,7 @@
 
 package com.espressif.ui.activities;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -30,11 +31,17 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import com.espressif.provisioning.DeviceConnectionEvent;
+import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.theme_manager.WindowThemeManager;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -66,6 +73,7 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
 
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
+        EventBus.getDefault().register(this);
 
         deviceName = "";
         if (provisionManager.getEspDevice() != null) {
@@ -123,11 +131,32 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onDestroy() {
+        EventBus.getDefault().unregister(this);
+        super.onDestroy();
+    }
+
+    @Override
     public void onBackPressed() {
         if (provisionManager.getEspDevice() != null) {
             provisionManager.getEspDevice().disconnectDevice();
         }
         super.onBackPressed();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEvent(DeviceConnectionEvent event) {
+
+        Log.d(TAG, "On Device Connection Event RECEIVED : " + event.getEventType());
+
+        switch (event.getEventType()) {
+
+            case ESPConstants.EVENT_DEVICE_DISCONNECTED:
+                if (!isFinishing()) {
+                    showAlertForDeviceDisconnected();
+                }
+                break;
+        }
     }
 
     private View.OnClickListener nextBtnClickListener = new View.OnClickListener() {
@@ -220,5 +249,24 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
         startActivity(wifiConfigIntent);
         finish();
+    }
+
+    private void showAlertForDeviceDisconnected() {
+
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
+        builder.setCancelable(false);
+        builder.setTitle(R.string.error_title);
+        builder.setMessage(R.string.dialog_msg_ble_device_disconnection);
+
+        // Set up the buttons
+        builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                finish();
+            }
+        });
+        builder.show();
     }
 }

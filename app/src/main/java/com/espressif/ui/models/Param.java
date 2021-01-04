@@ -29,9 +29,10 @@ public class Param implements Parcelable {
     private int minBounds;
     private int maxBounds;
     private float stepCount;
-    private double sliderValue;
+    private double value;
     private boolean switchStatus;
     private String labelValue;
+    private ArrayList<String> validStrings;
     private boolean isDynamicParam;
     private boolean isSelected;
 
@@ -45,9 +46,10 @@ public class Param implements Parcelable {
         minBounds = param.getMinBounds();
         maxBounds = param.getMaxBounds();
         stepCount = param.getStepCount();
-        sliderValue = param.getSliderValue();
+        value = param.getValue();
         switchStatus = param.getSwitchStatus();
         labelValue = param.getLabelValue();
+        validStrings = param.getValidStrings();
         isDynamicParam = param.isDynamicParam();
         isSelected = param.isSelected();
     }
@@ -116,12 +118,12 @@ public class Param implements Parcelable {
         this.stepCount = stepCount;
     }
 
-    public double getSliderValue() {
-        return sliderValue;
+    public double getValue() {
+        return value;
     }
 
-    public void setSliderValue(double sliderValue) {
-        this.sliderValue = sliderValue;
+    public void setValue(double value) {
+        this.value = value;
     }
 
     public boolean getSwitchStatus() {
@@ -138,6 +140,14 @@ public class Param implements Parcelable {
 
     public void setLabelValue(String labelValue) {
         this.labelValue = labelValue;
+    }
+
+    public ArrayList<String> getValidStrings() {
+        return validStrings;
+    }
+
+    public void setValidStrings(ArrayList<String> validStrings) {
+        this.validStrings = validStrings;
     }
 
     public boolean isDynamicParam() {
@@ -168,9 +178,10 @@ public class Param implements Parcelable {
         minBounds = in.readInt();
         maxBounds = in.readInt();
         stepCount = in.readFloat();
-        sliderValue = in.readDouble();
+        value = in.readDouble();
         switchStatus = in.readByte() != 0;
         labelValue = in.readString();
+        validStrings = in.createStringArrayList();
         isDynamicParam = in.readByte() != 0;
         isSelected = in.readByte() != 0;
     }
@@ -202,9 +213,10 @@ public class Param implements Parcelable {
         dest.writeInt(minBounds);
         dest.writeInt(maxBounds);
         dest.writeFloat(stepCount);
-        dest.writeDouble(sliderValue);
+        dest.writeDouble(value);
         dest.writeByte((byte) (switchStatus ? 1 : 0));
         dest.writeString(labelValue);
+        dest.writeStringList(validStrings);
         dest.writeByte((byte) (isDynamicParam ? 1 : 0));
         dest.writeByte((byte) (isSelected ? 1 : 0));
     }

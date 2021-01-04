@@ -20,13 +20,17 @@ import android.os.Bundle;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -39,10 +43,11 @@ import com.espressif.AppConstants;
 import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.PaletteBar;
 import com.espressif.ui.activities.EspDeviceActivity;
 import com.espressif.ui.models.Param;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.espressif.ui.widgets.EspDropDown;
+import com.espressif.ui.widgets.PaletteBar;
 import com.google.gson.JsonObject;
 import com.warkiz.tickseekbar.OnSeekChangeListener;
 import com.warkiz.tickseekbar.SeekParams;
@@ -120,6 +125,40 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                 displayLabel(myViewHolder, param, position);
             }
 
+        } else if (AppConstants.UI_TYPE_DROP_DOWN.equalsIgnoreCase(param.getUiType())) {
+
+            String dataType = param.getDataType();
+
+            if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("string"))) {
+
+                displaySpinner(myViewHolder, param, position);
+
+            } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
+                    || dataType.equalsIgnoreCase("integer"))) {
+
+                int max = param.getMaxBounds();
+                int min = param.getMinBounds();
+                int stepCount = (int) param.getStepCount();
+                if (stepCount == 0) {
+                    stepCount = 1;
+                }
+                ArrayList<String> spinnerValues = new ArrayList<>();
+                for (int i = min; i <= max; i = i + stepCount) {
+                    spinnerValues.add(String.valueOf(i));
+                }
+
+                if ((min < max)) {
+                    displaySpinner(myViewHolder, param, position);
+                } else {
+                    if (spinnerValues.size() > 0) {
+                        displaySpinner(myViewHolder, param, position);
+                    } else {
+                        displayLabel(myViewHolder, param, position);
+                    }
+                }
+            } else {
+                displayLabel(myViewHolder, param, position);
+            }
         } else {
             displayLabel(myViewHolder, param, position);
         }
@@ -137,11 +176,14 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
     private void displayPalette(MyViewHolder myViewHolder, final Param param, final int position) {
 
+        myViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
+        myViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
+        myViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
         myViewHolder.rvPalette.setVisibility(View.VISIBLE);
-        myViewHolder.tvSliderName.setVisibility(View.GONE);
-        myViewHolder.intSlider.setVisibility(View.GONE);
+        myViewHolder.rvUiTypeDropDown.setVisibility(View.GONE);
+
         myViewHolder.tvLabelPalette.setText(param.getName());
-        myViewHolder.paletteBar.setColor((int) param.getSliderValue());
+        myViewHolder.paletteBar.setColor((int) param.getValue());
         myViewHolder.paletteBar.setThumbCircleRadius(17);
         myViewHolder.paletteBar.setTrackMarkHeight(10);
         if (param.getProperties().contains("write")) {
@@ -184,8 +226,10 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         myViewHolder.rvUiTypeSlider.setVisibility(View.VISIBLE);
         myViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
         myViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
+        myViewHolder.rvPalette.setVisibility(View.GONE);
+        myViewHolder.rvUiTypeDropDown.setVisibility(View.GONE);
 
-        double sliderValue = param.getSliderValue();
+        double sliderValue = param.getValue();
         myViewHolder.tvSliderName.setText(param.getName());
         float max = param.getMaxBounds();
         float min = param.getMinBounds();
@@ -356,6 +400,8 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         myViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
         myViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
         myViewHolder.rvUiTypeSwitch.setVisibility(View.VISIBLE);
+        myViewHolder.rvPalette.setVisibility(View.GONE);
+        myViewHolder.rvUiTypeDropDown.setVisibility(View.GONE);
 
         myViewHolder.tvSwitchName.setText(param.getName());
         myViewHolder.tvSwitchStatus.setVisibility(View.VISIBLE);
@@ -429,6 +475,8 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         myViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
         myViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
         myViewHolder.rvUiTypeLabel.setVisibility(View.VISIBLE);
+        myViewHolder.rvPalette.setVisibility(View.GONE);
+        myViewHolder.rvUiTypeDropDown.setVisibility(View.GONE);
 
         myViewHolder.tvLabelName.setText(param.getName());
         myViewHolder.tvLabelValue.setText(param.getLabelValue());
@@ -448,6 +496,226 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         } else {
 
             myViewHolder.btnEdit.setVisibility(View.GONE);
+        }
+    }
+
+    private void displaySpinner(final MyViewHolder myViewHolder, final Param param, final int position) {
+
+        myViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
+        myViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
+        myViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
+        myViewHolder.rvPalette.setVisibility(View.GONE);
+        myViewHolder.rvUiTypeDropDown.setVisibility(View.VISIBLE);
+
+        myViewHolder.tvSpinnerName.setText(param.getName());
+        myViewHolder.spinner.setVisibility(View.VISIBLE);
+
+        myViewHolder.spinner.setEnabled(false);
+        myViewHolder.spinner.setOnItemSelectedListener(null);
+
+        final String dataType = param.getDataType();
+
+        if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("string"))) {
+
+            if (param.getValidStrings() != null && param.getValidStrings().size() > 0) {
+
+                ArrayList<String> spinnerValues = new ArrayList<>();
+                spinnerValues.addAll(param.getValidStrings());
+                ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(context, android.R.layout.simple_spinner_item, spinnerValues);
+                dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                myViewHolder.spinner.setAdapter(dataAdapter);
+                boolean isValueFound = false;
+                String value = param.getLabelValue();
+
+                for (int i = 0; i < param.getValidStrings().size(); i++) {
+
+                    if (!TextUtils.isEmpty(value)) {
+
+                        if (value.equals(param.getValidStrings().get(i))) {
+                            isValueFound = true;
+                            myViewHolder.spinner.setSelection(i, false);
+                            myViewHolder.spinner.setTag(R.id.position, i);
+                            break;
+                        }
+                    }
+                }
+
+                if (!isValueFound) {
+                    spinnerValues.add(0, "");
+                    myViewHolder.spinner.setSelection(0, false);
+                    myViewHolder.spinner.setTag(R.id.position, 0);
+                    dataAdapter.notifyDataSetChanged();
+                    String strInvalidValue = "" + value + " (" + context.getString(R.string.invalid) + ")";
+                    myViewHolder.tvSpinnerValue.setText(strInvalidValue);
+                    myViewHolder.tvSpinnerValue.setVisibility(View.VISIBLE);
+                } else {
+                    myViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+                }
+            }
+        } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
+                || dataType.equalsIgnoreCase("integer"))) {
+
+            int sliderValue = (int) param.getValue();
+            int max = param.getMaxBounds();
+            int min = param.getMinBounds();
+            int stepCount = (int) param.getStepCount();
+            if (stepCount == 0) {
+                stepCount = 1;
+            }
+
+            ArrayList<String> spinnerValues = new ArrayList<>();
+            for (int i = min; i <= max; i = i + stepCount) {
+                spinnerValues.add(String.valueOf(i));
+            }
+
+            if (spinnerValues.size() > 0) {
+
+                ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(context, android.R.layout.simple_spinner_item, spinnerValues);
+                dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                myViewHolder.spinner.setAdapter(dataAdapter);
+
+                if (sliderValue < min) {
+
+                    myViewHolder.spinner.setSelection(0);
+                    myViewHolder.spinner.setTag(R.id.position, 0);
+
+                } else if (sliderValue > max) {
+
+                    int lastPosition = spinnerValues.size() - 1;
+                    myViewHolder.spinner.setSelection(lastPosition);
+                    myViewHolder.spinner.setTag(R.id.position, lastPosition);
+
+                } else {
+
+                    boolean isValueFound = false;
+                    for (int i = 0; i < spinnerValues.size(); i++) {
+
+                        String value = spinnerValues.get(i);
+                        int intValue = Integer.parseInt(value);
+
+                        if (sliderValue == intValue) {
+                            isValueFound = true;
+                            myViewHolder.spinner.setSelection(i, false);
+                            myViewHolder.spinner.setTag(R.id.position, i);
+                            break;
+                        }
+                    }
+
+                    if (!isValueFound) {
+                        spinnerValues.add(0, "");
+                        myViewHolder.spinner.setSelection(0, false);
+                        myViewHolder.spinner.setTag(R.id.position, 0);
+                        dataAdapter.notifyDataSetChanged();
+                        String strInvalidValue = "" + sliderValue + " (" + context.getString(R.string.invalid) + ")";
+                        myViewHolder.tvSpinnerValue.setText(strInvalidValue);
+                        myViewHolder.tvSpinnerValue.setVisibility(View.VISIBLE);
+                    } else {
+                        myViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+                    }
+                }
+            } else {
+                // Displayed label for this condition.
+            }
+        }
+
+        if (param.getProperties().contains("write") && ((EspDeviceActivity) context).isNodeOnline()) {
+
+            myViewHolder.spinner.setSpinnerEventsListener(new EspDropDown.OnSpinnerEventsListener() {
+
+                @Override
+                public void onSpinnerOpened(Spinner spin) {
+                    ((EspDeviceActivity) context).stopUpdateValueTask();
+                }
+
+                @Override
+                public void onSpinnerClosed(Spinner spin) {
+                    ((EspDeviceActivity) context).startUpdateValueTask();
+                }
+            });
+
+            myViewHolder.spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, final int pos, long id) {
+
+                    Log.d(TAG, "Dropdown list item clicked position :  " + myViewHolder.spinner.getTag(R.id.position));
+
+                    if ((int) myViewHolder.spinner.getTag(R.id.position) != pos) {
+
+                        final String newValue = parent.getItemAtPosition(pos).toString();
+                        myViewHolder.spinner.setVisibility(View.GONE);
+                        myViewHolder.progressBarSpinner.setVisibility(View.VISIBLE);
+
+                        ((EspDeviceActivity) context).stopUpdateValueTask();
+
+                        JsonObject jsonParam = new JsonObject();
+                        JsonObject body = new JsonObject();
+
+                        if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("string"))) {
+
+                            jsonParam.addProperty(param.getName(), newValue);
+
+                        } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
+                                || dataType.equalsIgnoreCase("integer"))) {
+
+                            jsonParam.addProperty(param.getName(), Integer.parseInt(newValue));
+                        }
+                        body.add(deviceName, jsonParam);
+
+                        networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+
+                            @Override
+                            public void onSuccess(Bundle data) {
+
+                                context.runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+
+                                        myViewHolder.progressBarSpinner.setVisibility(View.GONE);
+                                        myViewHolder.spinner.setVisibility(View.VISIBLE);
+                                        myViewHolder.spinner.setTag(R.id.position, pos);
+
+                                        if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("string"))) {
+
+                                            params.get(position).setLabelValue(newValue);
+                                            myViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+
+                                        } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
+                                                || dataType.equalsIgnoreCase("integer"))) {
+
+                                            params.get(position).setValue(Integer.parseInt(newValue));
+                                            myViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+                                        }
+
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onFailure(Exception exception) {
+
+                                context.runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        myViewHolder.progressBarSpinner.setVisibility(View.GONE);
+                                        myViewHolder.spinner.setVisibility(View.VISIBLE);
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
+                }
+            });
+            myViewHolder.spinner.setEnabled(true);
+
+        } else {
+            myViewHolder.spinner.setOnItemSelectedListener(null);
         }
     }
 
@@ -733,11 +1001,12 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         // init the item view's
         TickSeekBar intSlider, floatSlider;
         SwitchCompat toggleSwitch;
-        TextView tvSliderName, tvSwitchName, tvSwitchStatus, tvLabelName, tvLabelValue, tvLabelPalette;
-        RelativeLayout rvUiTypeSlider, rvUiTypeSwitch, rvUiTypeLabel, rvPalette;
+        TextView tvSliderName, tvSwitchName, tvSwitchStatus, tvLabelName, tvLabelValue, tvLabelPalette, tvSpinnerName, tvSpinnerValue;
+        RelativeLayout rvUiTypeSlider, rvUiTypeSwitch, rvUiTypeLabel, rvPalette, rvUiTypeDropDown;
         TextView btnEdit;
-        ContentLoadingProgressBar progressBar;
+        ContentLoadingProgressBar progressBar, progressBarSpinner;
         PaletteBar paletteBar;
+        EspDropDown spinner;
 
         public MyViewHolder(View itemView) {
             super(itemView);
@@ -752,13 +1021,18 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
             tvLabelName = itemView.findViewById(R.id.tv_label_name);
             tvLabelValue = itemView.findViewById(R.id.tv_label_value);
             tvLabelPalette = itemView.findViewById(R.id.palette_name);
+            tvSpinnerName = itemView.findViewById(R.id.tv_spinner_name);
+            tvSpinnerValue = itemView.findViewById(R.id.tv_spinner_value);
             btnEdit = itemView.findViewById(R.id.btn_edit);
             progressBar = itemView.findViewById(R.id.progress_indicator);
+            progressBarSpinner = itemView.findViewById(R.id.progress_indicator_spinner);
             rvUiTypeSlider = itemView.findViewById(R.id.rl_card_slider);
             rvUiTypeSwitch = itemView.findViewById(R.id.rl_card_switch);
             rvUiTypeLabel = itemView.findViewById(R.id.rl_card_label);
             rvPalette = itemView.findViewById(R.id.rl_card_palette);
+            rvUiTypeDropDown = itemView.findViewById(R.id.rl_card_drop_down);
             paletteBar = itemView.findViewById(R.id.rl_palette);
+            spinner = itemView.findViewById(R.id.card_spinner);
         }
     }
 }
