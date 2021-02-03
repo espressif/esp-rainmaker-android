@@ -29,7 +29,7 @@ import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserPool;
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserSession;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.cognitoidentityprovider.model.AttributeType;
-import com.espressif.rainmaker.R;
+import com.espressif.rainmaker.BuildConfig;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -124,12 +124,12 @@ public class AppHelper {
 
         if (userPool == null) {
 
-            String region = context.getResources().getString(R.string.aws_region);
+            String region = BuildConfig.AWS_REGION;
             if (!TextUtils.isEmpty(region)) {
                 cognitoRegion = Regions.fromName(region);
             }
-            userPoolId = context.getResources().getString(R.string.user_pool_id);
-            clientId = context.getResources().getString(R.string.client_id);
+            userPoolId = BuildConfig.USER_POOL_ID;
+            clientId = BuildConfig.CLIENT_ID;
             clientSecret = "";
 
             // Create a user pool with default ClientConfiguration

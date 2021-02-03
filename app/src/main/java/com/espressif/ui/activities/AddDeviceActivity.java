@@ -47,6 +47,7 @@ import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPDevice;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.QRCodeScanListener;
+import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.theme_manager.WindowThemeManager;
 import com.google.android.material.button.MaterialButton;
@@ -233,7 +234,36 @@ public class AddDeviceActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
 
-            askForDeviceType();
+            boolean isSec1 = true;
+            if (AppConstants.SECURITY_0.equalsIgnoreCase(BuildConfig.SECURITY)) {
+                isSec1 = false;
+            }
+
+            if (AppConstants.TRANSPORT_SOFTAP.equalsIgnoreCase(BuildConfig.TRANSPORT)) {
+
+                if (isSec1) {
+                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_1);
+                } else {
+                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_0);
+                }
+                goToWiFiProvisionLanding(isSec1);
+
+            } else if (AppConstants.TRANSPORT_BLE.equalsIgnoreCase(BuildConfig.TRANSPORT)) {
+
+                if (isSec1) {
+                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_1);
+                } else {
+                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_0);
+                }
+                goToBLEProvisionLanding(isSec1);
+
+            } else if (AppConstants.TRANSPORT_BOTH.equalsIgnoreCase(BuildConfig.TRANSPORT)) {
+
+                askForDeviceType(isSec1);
+
+            } else {
+                Toast.makeText(AddDeviceActivity.this, R.string.error_device_type_not_supported, Toast.LENGTH_LONG).show();
+            }
         }
     };
 
@@ -295,19 +325,12 @@ public class AddDeviceActivity extends AppCompatActivity {
         }
     }
 
-    private void askForDeviceType() {
+    private void askForDeviceType(final boolean isSec1) {
 
         final String[] deviceTypes = {"BLE", "SoftAP"};
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setCancelable(true);
         builder.setTitle(R.string.dialog_msg_device_selection);
-        boolean isSec1 = true;
-        String securityType = getResources().getString(R.string.security_type);
-
-        if (!TextUtils.isEmpty(securityType) && securityType.equals("sec0")) {
-            isSec1 = false;
-        }
-        final boolean finalIsSec = isSec1;
 
         builder.setItems(deviceTypes, new DialogInterface.OnClickListener() {
 
@@ -316,23 +339,21 @@ public class AddDeviceActivity extends AppCompatActivity {
 
                 switch (position) {
                     case 0:
-
-                        if (finalIsSec) {
+                        if (isSec1) {
                             provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_1);
                         } else {
                             provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_0);
                         }
-                        goToBLEProvisionLanding(finalIsSec);
+                        goToBLEProvisionLanding(isSec1);
                         break;
 
                     case 1:
-
-                        if (finalIsSec) {
+                        if (isSec1) {
                             provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_1);
                         } else {
                             provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_0);
                         }
-                        goToWiFiProvisionLanding(finalIsSec);
+                        goToWiFiProvisionLanding(isSec1);
                         break;
                 }
                 dialog.dismiss();
@@ -518,9 +539,9 @@ public class AddDeviceActivity extends AppCompatActivity {
         finish();
         Intent intent = new Intent(getApplicationContext(), BLEProvisionLanding.class);
         if (isSec1) {
-            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_TYPE_1);
+            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_1);
         } else {
-            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_TYPE_0);
+            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_0);
         }
 
         if (espDevice != null) {
@@ -535,9 +556,9 @@ public class AddDeviceActivity extends AppCompatActivity {
         finish();
         Intent intent = new Intent(getApplicationContext(), ProvisionLanding.class);
         if (isSec1) {
-            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_TYPE_1);
+            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_1);
         } else {
-            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_TYPE_0);
+            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_0);
         }
 
         if (espDevice != null) {
@@ -569,7 +590,7 @@ public class AddDeviceActivity extends AppCompatActivity {
 
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_MaterialAlertDialog);
         builder.setCancelable(true);
-        builder.setMessage("Device connection failed. \nDo you want to connect device manually ?");
+        builder.setMessage(R.string.dialog_msg_connect_device_manually);
 
         // Set up the buttons
         builder.setPositiveButton(R.string.btn_yes, new DialogInterface.OnClickListener() {
@@ -579,10 +600,18 @@ public class AddDeviceActivity extends AppCompatActivity {
 
                 dialog.dismiss();
                 if (espDevice != null) {
-                    if (espDevice.getSecurityType().equals(ESPConstants.SecurityType.SECURITY_0)) {
-                        goToWiFiProvisionLanding(false);
+                    if (espDevice.getTransportType().equals(ESPConstants.TransportType.TRANSPORT_SOFTAP)) {
+                        if (espDevice.getSecurityType().equals(ESPConstants.SecurityType.SECURITY_0)) {
+                            goToWiFiProvisionLanding(false);
+                        } else {
+                            goToWiFiProvisionLanding(true);
+                        }
                     } else {
-                        goToWiFiProvisionLanding(true);
+                        if (espDevice.getSecurityType().equals(ESPConstants.SecurityType.SECURITY_0)) {
+                            goToBLEProvisionLanding(false);
+                        } else {
+                            goToBLEProvisionLanding(true);
+                        }
                     }
                 } else {
                     finish();

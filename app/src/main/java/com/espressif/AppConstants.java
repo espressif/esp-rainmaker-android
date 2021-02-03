@@ -16,8 +16,12 @@ package com.espressif;
 
 public class AppConstants {
 
-    public static final int SECURITY_TYPE_0 = 0;
-    public static final int SECURITY_TYPE_1 = 1;
+    public static final String SECURITY_0 = "Sec0";
+    public static final String SECURITY_1 = "Sec1";
+
+    public static final String TRANSPORT_SOFTAP = "softap";
+    public static final String TRANSPORT_BLE = "ble";
+    public static final String TRANSPORT_BOTH = "both";
 
     // End point names
     public static final String HANDLER_RM_USER_MAPPING = "cloud_user_assoc";
@@ -81,17 +85,4 @@ public class AppConstants {
     public static final String CURRENT_VERSION = "v1";
     public static final String PATH_SEPARATOR = "/";
     public static final String HEADER_AUTHORIZATION = "Authorization";
-
-    public static final String BASE_URL = "https://api.rainmaker.espressif.com";
-    public static final String AUTH_URL = "https://auth.rainmaker.espressif.com/oauth2";
-    public static final String TOKEN_URL = "https://auth.rainmaker.espressif.com/oauth2/token";
-    public static final String GITHUB_URL = AUTH_URL + PATH_SEPARATOR + "authorize?identity_provider=GitHub&redirect_uri=rainmaker://com.espressif.rainmaker/success&response_type=CODE&client_id=";
-    public static final String GOOGLE_URL = AUTH_URL + PATH_SEPARATOR + "authorize?identity_provider=Google&redirect_uri=rainmaker://com.espressif.rainmaker/success&response_type=CODE&client_id=";
-    public static final String CLAIM_BASE_URL = "https://esp-claiming.rainmaker.espressif.com";
-
-    public static final String REDIRECT_URI = "rainmaker://com.espressif.rainmaker/success";
-
-    public static final String DOCUMENTATION_URL = "https://rainmaker.espressif.com/";
-    public static final String PRIVACY_URL = "https://rainmaker.espressif.com/docs/privacy-policy.html";
-    public static final String TERMS_URL = "https://rainmaker.espressif.com/docs/terms-of-use.html";
 }

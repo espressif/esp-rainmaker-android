@@ -34,6 +34,7 @@ import androidx.appcompat.widget.Toolbar;
 import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
+import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.theme_manager.WindowThemeManager;
 import com.google.android.material.button.MaterialButton;
@@ -86,11 +87,10 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         }
 
         btnNext.setOnClickListener(nextBtnClickListener);
-        String pop = getResources().getString(R.string.proof_of_possesion);
 
-        if (!TextUtils.isEmpty(pop)) {
+        if (!TextUtils.isEmpty(BuildConfig.POP)) {
 
-            etPop.setText(pop);
+            etPop.setText(BuildConfig.POP);
             etPop.setSelection(etPop.getText().length());
         }
         etPop.requestFocus();

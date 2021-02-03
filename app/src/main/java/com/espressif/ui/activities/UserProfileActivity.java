@@ -35,6 +35,7 @@ import com.espressif.AppConstants;
 import com.espressif.EspDatabase;
 import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
+import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.UserProfileAdapter;
 import com.espressif.ui.user_module.AppHelper;
@@ -162,17 +163,17 @@ public class UserProfileActivity extends AppCompatActivity {
 
             } else if (str.equals(getString(R.string.documentation))) {
 
-                Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(AppConstants.DOCUMENTATION_URL));
+                Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.DOCUMENTATION_URL));
                 startActivity(openURL);
 
             } else if (str.equals(getString(R.string.privacy_policy))) {
 
-                Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(AppConstants.PRIVACY_URL));
+                Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.PRIVACY_URL));
                 startActivity(openURL);
 
             } else if (str.equals(getString(R.string.terms_of_use))) {
 
-                Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(AppConstants.TERMS_URL));
+                Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.TERMS_URL));
                 startActivity(openURL);
             }
         }
