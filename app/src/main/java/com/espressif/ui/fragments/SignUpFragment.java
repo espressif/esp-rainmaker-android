@@ -59,6 +59,7 @@ import com.amazonaws.services.cognitoidentityprovider.model.CodeDeliveryDetailsT
 import com.amazonaws.services.cognitoidentityprovider.model.SignUpResult;
 import com.espressif.AppConstants;
 import com.espressif.cloudapi.ApiManager;
+import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
 import com.espressif.ui.activities.MainActivity;
@@ -198,7 +199,7 @@ public class SignUpFragment extends Fragment {
             @Override
             public void onClick(View textView) {
                 textView.invalidate();
-                Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(AppConstants.PRIVACY_URL));
+                Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.PRIVACY_URL));
                 startActivity(openURL);
             }
 
@@ -215,7 +216,7 @@ public class SignUpFragment extends Fragment {
             @Override
             public void onClick(View textView) {
                 textView.invalidate();
-                Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(AppConstants.TERMS_URL));
+                Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.TERMS_URL));
                 startActivity(openURL);
             }
 

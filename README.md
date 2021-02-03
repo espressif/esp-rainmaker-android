@@ -9,15 +9,8 @@ For more details :
 ## Setup
  
 To build this app, you will need a development machine, with Android Studio installed.
-App will also require Amazon Cognito user pool details.
-Following are the configuration fields available in `app/build.gradle`.
-
-  - `aws_region` - AWS Cognito user pool region. Default value is "us-east-1" if this field is empty or not configured.
-  - `user_pool_id` - Your user pool id.
-  - `client_id` - Your app client id.
-
-After configuring these fields, you are now ready to run this demo.
-
+Download the source code and open this project in Android Studio.
+You are now ready to run this demo.
 
 ## Features
 
@@ -56,8 +49,9 @@ After configuring these fields, you are now ready to run this demo.
 - This feature allows user to control their ESP devices over local network by communicating over Wi-Fi + HTTP.
 - Local Control ensures your devices are reachable even when your internet connection is poor or there is no internet over connected Wi-Fi.
 
+This feature can be enabled/disabled by setting true/false value of `isLocalControlSupported` field in `local.properties`.
 This feature is optional but enabled by default.
-This feature can be enabled/disabled by setting true/false value of `isLocalControlSupported` field available in `app/build.gradle`.
+Add `isLocalControlSupported=false` in `local.properties` file to disable this feature.
 
 ### Scheduling
 
@@ -69,8 +63,32 @@ List of operations that are supported for scheduling :
  - Remove.
  - Enable/disable.
 
+Schedule can be enabled/disabled by setting true/false value of `isScheduleSupported` field in `local.properties`.
 Schedule feature is optional but enabled by default.
-Schedule can be enabled/disabled by setting true/false value of `isScheduleSupported` field available in `app/build.gradle`.
+Add `isScheduleSupported=false` in `local.properties` file to disable this feature.
+
+## Additional Settings:
+
+Settings associated with provisioning a device can be modified in the `local.properties` file.
+
+Add below lines in `local.properties` and customize as per your requirement.
+ 
+ ```
+ transport=Both
+ security=Sec1
+ POP=abcd1234
+ isScheduleSupported=true
+ isLocalControlSupported=true
+ ```  
+
+Description of each key can be found below.
+
+| Key       	| Type   	| Description                                                                                                                                                                                                     	|
+|-----------	|--------	|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	|
+| transport 	| String 	| Possible values:   <br> **Both** (Default) : Supports both BLE and SoftAP device provisioning. <br> **SoftAP** : supports only SoftAP device provisioning. <br> **BLE**: supports only BLE device provisioning. 	|
+| security  	| String 	| Possible values:   <br> **Sec1** (Default) : for secure/encrypted communication between device and app. <br> **Sec0**: for unencrypted communication between device and app.                                    	|
+| POP       	| String 	| Proof of Possession. It's default value is empty string.                                                                                                                                                        	|
+
 
 ## Supports
 

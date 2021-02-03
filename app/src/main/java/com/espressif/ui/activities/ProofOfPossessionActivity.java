@@ -32,6 +32,7 @@ import androidx.cardview.widget.CardView;
 import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
+import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 
 import org.greenrobot.eventbus.EventBus;
@@ -76,11 +77,10 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         }
 
         btnNext.setOnClickListener(nextBtnClickListener);
-        String pop = getResources().getString(R.string.proof_of_possesion);
 
-        if (!TextUtils.isEmpty(pop)) {
+        if (!TextUtils.isEmpty(BuildConfig.POP)) {
 
-            etPop.setText(pop);
+            etPop.setText(BuildConfig.POP);
             etPop.setSelection(etPop.getText().length());
         }
         etPop.requestFocus();

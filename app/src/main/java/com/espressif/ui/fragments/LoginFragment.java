@@ -19,6 +19,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Html;
 import android.text.TextUtils;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
@@ -36,9 +37,9 @@ import androidx.cardview.widget.CardView;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.fragment.app.Fragment;
 
-import com.espressif.AppConstants;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
 import com.espressif.ui.activities.MainActivity;
@@ -96,10 +97,10 @@ public class LoginFragment extends Fragment {
 
         Intent activityIntent = getActivity().getIntent();
 
-        if (activityIntent.getData() != null && activityIntent.getData().toString().contains(AppConstants.REDIRECT_URI)) {
+        if (activityIntent.getData() != null && activityIntent.getData().toString().contains(BuildConfig.REDIRECT_URI)) {
 
             Log.d(TAG, "Data : " + activityIntent.getData().toString());
-            String code = activityIntent.getData().toString().replace(AppConstants.REDIRECT_URI, "");
+            String code = activityIntent.getData().toString().replace(BuildConfig.REDIRECT_URI, "");
             code = code.replace("?code=", "");
             code = code.replace("#", "");
             Log.d(TAG, "Code : " + code);
@@ -150,9 +151,21 @@ public class LoginFragment extends Fragment {
         linkDoc = view.findViewById(R.id.tv_documentation);
         linkPrivacy = view.findViewById(R.id.tv_privacy);
         linkTerms = view.findViewById(R.id.tv_terms_condition);
+
+        // Set documentation URL
         linkDoc.setMovementMethod(LinkMovementMethod.getInstance());
+        String docUrl = "<a href='" + BuildConfig.DOCUMENTATION_URL + "'>" + getString(R.string.documentation) + "</a>";
+        linkDoc.setText(Html.fromHtml(docUrl));
+
+        // Set privacy URL
         linkPrivacy.setMovementMethod(LinkMovementMethod.getInstance());
+        String privacyUrl = "<a href='" + BuildConfig.PRIVACY_URL + "'>" + getString(R.string.privacy_policy) + "</a>";
+        linkPrivacy.setText(Html.fromHtml(privacyUrl));
+
+        // Set terms of use URL
         linkTerms.setMovementMethod(LinkMovementMethod.getInstance());
+        String termsUrl = "<a href='" + BuildConfig.TERMS_URL + "'>" + getString(R.string.terms_of_use) + "</a>";
+        linkTerms.setText(Html.fromHtml(termsUrl));
 
         btnLogin.setOnClickListener(loginBtnClickListener);
         btnLoginWithGitHub.setOnClickListener(githubLoginBtnClickListener);
@@ -305,7 +318,7 @@ public class LoginFragment extends Fragment {
         public void onClick(View v) {
 
 //            showGitHubLoginLoading();
-            String uriStr = AppConstants.GITHUB_URL + getString(R.string.client_id);
+            String uriStr = BuildConfig.GITHUB_URL;
             Uri uri = Uri.parse(uriStr);
             Intent openURL = new Intent(Intent.ACTION_VIEW, uri);
             startActivity(openURL);
@@ -318,7 +331,7 @@ public class LoginFragment extends Fragment {
         public void onClick(View v) {
 
 //            showGoogleLoginLoading();
-            String uriStr = AppConstants.GOOGLE_URL + getString(R.string.client_id);
+            String uriStr = BuildConfig.GOOGLE_URL;
             Uri uri = Uri.parse(uriStr);
             Intent openURL = new Intent(Intent.ACTION_VIEW, uri);
             startActivity(openURL);
