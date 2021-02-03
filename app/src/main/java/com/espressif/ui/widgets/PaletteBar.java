@@ -10,6 +10,8 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.espressif.rainmaker.R;
+
 
 public class PaletteBar extends View {
     public static final String TAG = "PaletteBar";
@@ -39,8 +41,8 @@ public class PaletteBar extends View {
     private static float outerCircleRadius;
     private static float innerCircleRadius;
     private static int trackMarkHeight;
-    private static int thumbCircleRadiusDP = 17;
-    private static int trackMarkHeightDP = 10;
+    private static int thumbCircleRadiusDP = 10;
+    private static int trackMarkHeightDP = 4;
 
 
     public PaletteBar(Context context) {
@@ -59,7 +61,7 @@ public class PaletteBar extends View {
 
 
     public void init(Context context) {
-        mColorMargin = dip2px(18);
+        mColorMargin = dip2px(12);
         outerCircleRadius = dip2px(thumbCircleRadiusDP);
 
         innerCircleRadius = dip2px(thumbCircleRadiusDP - 2);
@@ -85,10 +87,10 @@ public class PaletteBar extends View {
     private void drawSliderCircle(Canvas canvas) {
         hsv[0] = mCurrentHueColor;
         mCurrentIntColor = Color.HSVToColor(hsv);
-        backgroundPaint.setColor(Color.WHITE);
-        canvas.drawCircle(x, mViewHeight / 2f, outerCircleRadius, backgroundPaint);
         backgroundPaint.setColor(mCurrentIntColor);
-        canvas.drawCircle(x, mViewHeight / 2f, innerCircleRadius, backgroundPaint);
+        canvas.drawCircle(x, mViewHeight / 2f, outerCircleRadius, backgroundPaint);
+        backgroundPaint.setColor(getContext().getColor(R.color.color_card_bg));
+        canvas.drawCircle(x, mViewHeight / 2f, innerCircleRadius / 1.2f, backgroundPaint);
 
     }
 

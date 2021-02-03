@@ -184,8 +184,8 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
         myViewHolder.tvLabelPalette.setText(param.getName());
         myViewHolder.paletteBar.setColor((int) param.getValue());
-        myViewHolder.paletteBar.setThumbCircleRadius(17);
-        myViewHolder.paletteBar.setTrackMarkHeight(10);
+        myViewHolder.paletteBar.setThumbCircleRadius(10);
+        myViewHolder.paletteBar.setTrackMarkHeight(4);
         if (param.getProperties().contains("write")) {
 
             if (((EspDeviceActivity) context).isNodeOnline()) {

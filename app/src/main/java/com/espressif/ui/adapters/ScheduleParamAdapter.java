@@ -209,8 +209,8 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         myViewHolder.intSlider.setVisibility(View.GONE);
         myViewHolder.tvLabelPalette.setText(param.getName());
         myViewHolder.paletteBar.setColor((int) param.getValue());
-        myViewHolder.paletteBar.setThumbCircleRadius(12);
-        myViewHolder.paletteBar.setTrackMarkHeight(6);
+        myViewHolder.paletteBar.setThumbCircleRadius(10);
+        myViewHolder.paletteBar.setTrackMarkHeight(4);
         if (param.getProperties().contains("write")) {
 
             myViewHolder.paletteBar.setEnabled(true);

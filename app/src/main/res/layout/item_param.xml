@@ -123,8 +123,8 @@
             <com.espressif.ui.widgets.PaletteBar
                 android:id="@+id/rl_palette"
                 android:layout_width="match_parent"
-                android:layout_height="25pt"
-                android:layout_margin="5dp" />
+                android:layout_height="32dp"
+                android:layout_margin="8dp" />
         </LinearLayout>
     </RelativeLayout>
 
