@@ -34,7 +34,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/tv_device_offline"
-        android:layout_marginHorizontal="@dimen/margin_24"
+        android:layout_marginHorizontal="@dimen/margin_16"
         android:layout_marginVertical="@dimen/margin_10"
         android:visibility="visible"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
