@@ -45,8 +45,8 @@ android {
         applicationId localProperties.getProperty("applicationId", defaultAppId)
         minSdkVersion 23
         targetSdkVersion 29
-        versionCode 13
-        versionName "2.2.2 - ${getGitHash()}"
+        versionCode 14
+        versionName "2.2.3 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
