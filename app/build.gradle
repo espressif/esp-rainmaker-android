@@ -45,8 +45,8 @@ android {
         applicationId localProperties.getProperty("applicationId", defaultAppId)
         minSdkVersion 23
         targetSdkVersion 29
-        versionCode 14
-        versionName "2.2.3 - ${getGitHash()}"
+        versionCode 15
+        versionName "2.2.4 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -83,7 +83,7 @@ android {
         buildConfigField "String", "CLAIM_BASE_URL", '"' + localProperties.getProperty("claimBaseUrl", defaultClaimBaseUrl) + '"'
 
         buildConfigField "String", "AUTH_URL", '"' + localProperties.getProperty("authUrl", defaultAuthUrl) + '"'
-        buildConfigField "String", "TOKEN_URL", '"' + localProperties.getProperty("authUrl") + "/token" + '"'
+        buildConfigField "String", "TOKEN_URL", '"' + localProperties.getProperty("authUrl", defaultAuthUrl) + "/token" + '"'
         buildConfigField "String", "REDIRECT_URI", '"' + localProperties.getProperty("redirectUri", defaultRedirectUri) + '"'
         buildConfigField "String", "GITHUB_URL", '"' + gitHubUrl + '"'
         buildConfigField "String", "GOOGLE_URL", '"' + googleUrl + '"'
