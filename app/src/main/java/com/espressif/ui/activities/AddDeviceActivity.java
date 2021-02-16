@@ -35,7 +35,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 
 import com.budiyev.android.codescanner.CodeScanner;
@@ -48,6 +47,7 @@ import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.QRCodeScanListener;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.google.android.material.card.MaterialCardView;
 import com.wang.avi.AVLoadingIndicatorView;
 
 import org.greenrobot.eventbus.EventBus;
@@ -67,7 +67,7 @@ public class AddDeviceActivity extends AppCompatActivity {
     private static final int REQUEST_ACCESS_FINE_LOCATION = 2;
 
     private TextView tvTitle, tvBack, tvCancel;
-    private CardView btnAddManually;
+    private MaterialCardView btnAddManually;
     private TextView txtAddManuallyBtn;
 
     private AVLoadingIndicatorView loader;
@@ -311,8 +311,8 @@ public class AddDeviceActivity extends AppCompatActivity {
 
     private void askForDeviceType(final boolean isSec1) {
 
-        final String[] deviceTypes = {"BLE", "SoftAP"};
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        final String[] deviceTypes = getResources().getStringArray(R.array.prov_transport_types);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(true);
         builder.setTitle(R.string.dialog_msg_device_selection);
 
@@ -445,7 +445,7 @@ public class AddDeviceActivity extends AppCompatActivity {
             Log.d(TAG, "Version Info JSON not available.");
         }
 
-        if (rmakerCaps.size() > 0 && rmakerCaps.contains("claim")) {
+        if (rmakerCaps.size() > 0 && rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM)) {
 
             if (espDevice.getTransportType().equals(ESPConstants.TransportType.TRANSPORT_BLE)) {
                 goToClaimingActivity();
@@ -454,7 +454,7 @@ public class AddDeviceActivity extends AppCompatActivity {
             }
         } else {
 
-            if (deviceCaps.contains("wifi_scan")) {
+            if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
                 goToWiFiScanActivity();
             } else {
                 goToWiFiConfigActivity();
@@ -464,7 +464,7 @@ public class AddDeviceActivity extends AppCompatActivity {
 
     private void alertForWiFi() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(false);
         builder.setMessage(R.string.error_wifi_off);
 
@@ -496,7 +496,7 @@ public class AddDeviceActivity extends AppCompatActivity {
 
     private void alertForClaimingNotSupported() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(false);
         builder.setMessage(R.string.error_claiming_not_supported);
 
@@ -572,7 +572,7 @@ public class AddDeviceActivity extends AppCompatActivity {
 
     private void askForManualDeviceConnection() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(true);
         builder.setMessage(R.string.dialog_msg_connect_device_manually);
 

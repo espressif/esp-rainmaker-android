@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context="com.espressif.ui.activities.ClaimingActivity">
 
-    <include layout="@layout/tool_bar_main_purple" />
+    <include layout="@layout/toolbar" />
 
     <include layout="@layout/content_claiming" />
 

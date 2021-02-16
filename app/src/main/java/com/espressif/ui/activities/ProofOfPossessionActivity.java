@@ -27,13 +27,14 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 
+import com.espressif.AppConstants;
 import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.google.android.material.card.MaterialCardView;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -49,7 +50,7 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
     private static final String TAG = ProofOfPossessionActivity.class.getSimpleName();
 
     private TextView tvTitle, tvBack, tvCancel;
-    private CardView btnNext;
+    private MaterialCardView btnNext;
     private TextView txtNextBtn;
 
     private String deviceName;
@@ -197,13 +198,13 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
             Log.d(TAG, "Version Info JSON not available.");
         }
 
-        if (rmakerCaps.size() > 0 && rmakerCaps.contains("claim")) {
+        if (rmakerCaps.size() > 0 && rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM)) {
 
             goToClaimingActivity();
 
         } else {
 
-            if (deviceCaps != null && deviceCaps.contains("wifi_scan")) {
+            if (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
 
                 goToWiFiScanListActivity();
 
@@ -236,7 +237,7 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
 
     private void showAlertForDeviceDisconnected() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(false);
         builder.setTitle(R.string.error_title);
         builder.setMessage(R.string.dialog_msg_ble_device_disconnection);

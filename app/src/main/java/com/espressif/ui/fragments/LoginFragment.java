@@ -33,7 +33,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.cardview.widget.CardView;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.fragment.app.Fragment;
 
@@ -45,6 +44,7 @@ import com.espressif.ui.Utils;
 import com.espressif.ui.activities.MainActivity;
 import com.espressif.ui.user_module.AppHelper;
 import com.espressif.ui.user_module.ForgotPasswordActivity;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -55,7 +55,7 @@ public class LoginFragment extends Fragment {
     private EditText etEmail;
     private TextInputEditText etPassword;
     private TextInputLayout layoutPassword;
-    private CardView btnLogin, btnLoginWithGitHub, btnLoginWithGoogle;
+    private MaterialCardView btnLogin, btnLoginWithGitHub, btnLoginWithGoogle;
     private TextView txtLoginBtn;
     private ImageView arrowImageLogin;
     private ContentLoadingProgressBar progressBarLogin, progressBarLoginGitHub, progressBarLoginGoogle;

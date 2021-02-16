@@ -17,7 +17,7 @@ You are now ready to run this demo.
 ### User Management
 
 - Signup/Signin using email id.
-- Third party login includes Apple login, GitHub and Google.
+- Third party login includes GitHub and Google.
 - Forgot/reset password support.
 - Signing out.
 
@@ -77,17 +77,23 @@ Add below lines in `local.properties` and customize as per your requirement.
  transport=Both
  security=Sec1
  POP=abcd1234
+ deviceNamePrefix=PROV_
+ isFilterPrefixEditable=true
+ isQRCodeSupported=true
  isScheduleSupported=true
  isLocalControlSupported=true
  ```  
 
 Description of each key can be found below.
 
-| Key       	| Type   	| Description                                                                                                                                                                                                     	|
-|-----------	|--------	|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	|
-| transport 	| String 	| Possible values:   <br> **Both** (Default) : Supports both BLE and SoftAP device provisioning. <br> **SoftAP** : supports only SoftAP device provisioning. <br> **BLE**: supports only BLE device provisioning. 	|
-| security  	| String 	| Possible values:   <br> **Sec1** (Default) : for secure/encrypted communication between device and app. <br> **Sec0**: for unencrypted communication between device and app.                                    	|
-| POP       	| String 	| Proof of Possession. It's default value is empty string.                                                                                                                                                        	|
+| Key                    	| Type    	| Description                                                                                                                                                                                                     	|
+|------------------------	|---------	|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	|
+| transport              	| String  	| Possible values:   <br> **Both** (Default) : Supports both BLE and SoftAP device provisioning. <br> **SoftAP** : supports only SoftAP device provisioning. <br> **BLE**: supports only BLE device provisioning. 	|
+| security               	| String  	| Possible values:   <br> **Sec1** (Default) : for secure/encrypted communication between device and app. <br> **Sec0**: for unencrypted communication between device and app.                                    	|
+| POP                    	| String  	| Proof of Possession. It's default value is **empty string**.                                                                                                                                                    	|
+| deviceNamePrefix       	| String  	| Search for BLE devices with this prefix in scanning. It's default value is "**PROV_**".                                                                                                                         	|
+| isFilterPrefixEditable 	| boolean 	| Allow users to edit the prefix used for filtering BLE devices. It's default value is **true**.                                                                                                                  	|
+| isQRCodeSupported      	| boolean 	| Allow users to connect with the device and start provisioning using QR code which has device information. It's default value is **true**.                                                                       	|
 
 
 ## Supports

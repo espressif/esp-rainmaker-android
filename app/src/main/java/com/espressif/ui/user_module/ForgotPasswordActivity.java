@@ -173,7 +173,7 @@ public class ForgotPasswordActivity extends AppCompatActivity {
 
     private void showDialogMessage(String title, String body, final boolean shouldExit) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
 
             @Override

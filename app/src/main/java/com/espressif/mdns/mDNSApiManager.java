@@ -19,6 +19,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.JsonDataParser;
 import com.espressif.cloudapi.ApiResponseListener;
@@ -57,11 +58,10 @@ public class mDNSApiManager {
             final mDNSDevice dnsDevice = espApp.mDNSDeviceMap.get(nodeId);
 
             final String url = "http://" + dnsDevice.getIpAddr() + ":" + dnsDevice.getPort();
-            final String path = "esp_local_ctrl/control";
 
             if (dnsDevice.getPropertyCount() != 0) {
 
-                getPropertyValues(url, path, dnsDevice.getPropertyCount(), new ApiResponseListener() {
+                getPropertyValues(url, AppConstants.LOCAL_CONTROL_PATH, dnsDevice.getPropertyCount(), new ApiResponseListener() {
 
                     @Override
                     public void onSuccess(Bundle data) {
@@ -70,8 +70,8 @@ public class mDNSApiManager {
 
                         if (data != null) {
 
-                            String configData = data.getString("config");
-                            String paramsData = data.getString("params");
+                            String configData = data.getString(AppConstants.KEY_CONFIG);
+                            String paramsData = data.getString(AppConstants.KEY_PARAMS);
 
                             Log.d(TAG, "Config data : " + configData);
                             Log.d(TAG, "Params data : " + paramsData);
@@ -116,16 +116,16 @@ public class mDNSApiManager {
 
             } else {
 
-                getPropertyCount(url, path, new ApiResponseListener() {
+                getPropertyCount(url, AppConstants.LOCAL_CONTROL_PATH, new ApiResponseListener() {
 
                     @Override
                     public void onSuccess(Bundle data) {
 
                         if (data != null) {
 
-                            int count = data.getInt("property_count", 0);
+                            int count = data.getInt(AppConstants.KEY_PROPERTY_COUNT, 0);
                             dnsDevice.setPropertyCount(count);
-                            getPropertyValues(url, path, count, listener);
+                            getPropertyValues(url, AppConstants.LOCAL_CONTROL_PATH, count, listener);
                         }
                     }
 
@@ -149,11 +149,10 @@ public class mDNSApiManager {
             final mDNSDevice dnsDevice = espApp.mDNSDeviceMap.get(nodeId);
 
             final String url = "http://" + dnsDevice.getIpAddr() + ":" + dnsDevice.getPort();
-            final String path = "esp_local_ctrl/control";
 
             if (dnsDevice.getPropertyCount() != 0) {
 
-                getPropertyValues(url, path, dnsDevice.getPropertyCount(), new ApiResponseListener() {
+                getPropertyValues(url, AppConstants.LOCAL_CONTROL_PATH, dnsDevice.getPropertyCount(), new ApiResponseListener() {
 
                     @Override
                     public void onSuccess(Bundle data) {
@@ -162,8 +161,8 @@ public class mDNSApiManager {
 
                         if (data != null) {
 
-                            String configData = data.getString("config");
-                            String paramsData = data.getString("params");
+                            String configData = data.getString(AppConstants.KEY_CONFIG);
+                            String paramsData = data.getString(AppConstants.KEY_PARAMS);
                             Log.e(TAG, "Params data : " + paramsData);
 
                             if (!TextUtils.isEmpty(configData)) {
@@ -205,16 +204,16 @@ public class mDNSApiManager {
 
             } else {
 
-                getPropertyCount(url, path, new ApiResponseListener() {
+                getPropertyCount(url, AppConstants.LOCAL_CONTROL_PATH, new ApiResponseListener() {
 
                     @Override
                     public void onSuccess(Bundle data) {
 
                         if (data != null) {
 
-                            int count = data.getInt("property_count", 0);
+                            int count = data.getInt(AppConstants.KEY_PROPERTY_COUNT, 0);
                             dnsDevice.setPropertyCount(count);
-                            getPropertyValues(url, path, count, listener);
+                            getPropertyValues(url, AppConstants.LOCAL_CONTROL_PATH, count, listener);
                         }
                     }
 
@@ -238,12 +237,11 @@ public class mDNSApiManager {
             mDNSDevice dnsDevice = espApp.mDNSDeviceMap.get(nodeId);
 
             String url = "http://" + dnsDevice.getIpAddr() + ":" + dnsDevice.getPort();
-            String path = "esp_local_ctrl/control";
             String jsonData = body.toString();
             byte[] data = createSetPropertyInfoRequest(jsonData);
 
             mDNSTransport transport = new mDNSTransport(url);
-            transport.sendData(path, data, new ResponseListener() {
+            transport.sendData(AppConstants.LOCAL_CONTROL_PATH, data, new ResponseListener() {
 
                 @Override
                 public void onSuccess(byte[] returnData) {
@@ -296,7 +294,7 @@ public class mDNSApiManager {
                 if (returnData != null) {
                     int count = processGetPropertyCount(returnData);
                     Bundle bundle = new Bundle();
-                    bundle.putInt("property_count", count);
+                    bundle.putInt(AppConstants.KEY_PROPERTY_COUNT, count);
                     listener.onSuccess(bundle);
                 } else {
                     Log.e("TAG", "returnData is null");

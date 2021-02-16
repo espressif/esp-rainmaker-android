@@ -61,7 +61,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.MyVi
 
         // infalte the item Layout
         LayoutInflater layoutInflater = LayoutInflater.from(context);
-        View v = layoutInflater.inflate(R.layout.item_esp_new_device, parent, false);
+        View v = layoutInflater.inflate(R.layout.item_esp_device, parent, false);
         // set the view's size, margins, paddings and layout parameters
         MyViewHolder vh = new MyViewHolder(v); // pass the view to View Holder
         return vh;
@@ -181,7 +181,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.MyVi
                         myViewHolder.ivDeviceStatus.setImageResource(R.drawable.ic_output_off);
                     }
 
-                    if (param.getProperties().contains("write")) {
+                    if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
                         myViewHolder.ivDeviceStatus.setOnClickListener(new View.OnClickListener() {
 
@@ -236,7 +236,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.MyVi
                         myViewHolder.ivDeviceStatus.setImageResource(R.drawable.ic_output_off);
                     }
 
-                    if (param.getProperties().contains("write")) {
+                    if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
                         myViewHolder.ivDeviceStatus.setOnClickListener(new View.OnClickListener() {
 

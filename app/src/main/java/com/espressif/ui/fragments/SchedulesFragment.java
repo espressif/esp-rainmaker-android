@@ -28,7 +28,6 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -43,6 +42,7 @@ import com.espressif.ui.adapters.ScheduleAdapter;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
+import com.google.android.material.card.MaterialCardView;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -53,7 +53,7 @@ public class SchedulesFragment extends Fragment {
 
     private static final String TAG = SchedulesFragment.class.getSimpleName();
 
-    private CardView btnAddSchedule;
+    private MaterialCardView btnAddSchedule;
     private TextView txtAddScheduleBtn;
     private ImageView arrowImage;
 

@@ -37,7 +37,6 @@ import com.espressif.EspApplication;
 import com.espressif.EspDatabase;
 import com.espressif.JsonDataParser;
 import com.espressif.rainmaker.BuildConfig;
-import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Action;
 import com.espressif.ui.models.ApiResponse;
 import com.espressif.ui.models.Device;
@@ -134,9 +133,9 @@ public class ApiManager {
 
                             String jsonResponse = response.body().string();
                             JSONObject jsonObject = new JSONObject(jsonResponse);
-                            idToken = jsonObject.getString("id_token");
-                            accessToken = jsonObject.getString("access_token");
-                            refreshToken = jsonObject.getString("refresh_token");
+                            idToken = jsonObject.getString(AppConstants.KEY_ID_TOKEN);
+                            accessToken = jsonObject.getString(AppConstants.KEY_ACCESS_TOKEN);
+                            refreshToken = jsonObject.getString(AppConstants.KEY_REFRESH_TOKEN);
                             isOAuthLogin = true;
 
                             SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -154,10 +153,10 @@ public class ApiManager {
                             String jsonErrResponse = response.errorBody().string();
                             Log.e(TAG, "Error Response : " + jsonErrResponse);
 
-                            if (jsonErrResponse.contains("failure")) {
+                            if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
 
                                 JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                                String err = jsonObject.optString("description");
+                                String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
 
                                 if (!TextUtils.isEmpty(err)) {
                                     listener.onFailure(new CloudException(err));
@@ -232,9 +231,8 @@ public class ApiManager {
     public void getSupportedVersions(final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Supported Versions");
-        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + "apiversions";
 
-        apiInterface.getSupportedVersions(url)
+        apiInterface.getSupportedVersions(AppConstants.URL_SUPPORTED_VERSIONS)
 
                 .enqueue(new Callback<ResponseBody>() {
 
@@ -252,7 +250,7 @@ public class ApiManager {
                                     String jsonResponse = response.body().string();
                                     Log.e(TAG, "onResponse Success : " + jsonResponse);
                                     JSONObject jsonObject = new JSONObject(jsonResponse);
-                                    JSONArray jsonArray = jsonObject.optJSONArray("supported_versions");
+                                    JSONArray jsonArray = jsonObject.optJSONArray(AppConstants.KEY_SUPPORTED_VERSIONS);
                                     ArrayList<String> supportedVersions = new ArrayList<>();
 
                                     for (int i = 0; i < jsonArray.length(); i++) {
@@ -262,10 +260,10 @@ public class ApiManager {
                                         supportedVersions.add(version);
                                     }
 
-                                    String additionalInfoMsg = jsonObject.optString("additional_info");
+                                    String additionalInfoMsg = jsonObject.optString(AppConstants.KEY_ADDITIONAL_INFO);
                                     Bundle bundle = new Bundle();
-                                    bundle.putString("additional_info", additionalInfoMsg);
-                                    bundle.putStringArrayList("supported_versions", supportedVersions);
+                                    bundle.putString(AppConstants.KEY_ADDITIONAL_INFO, additionalInfoMsg);
+                                    bundle.putStringArrayList(AppConstants.KEY_SUPPORTED_VERSIONS, supportedVersions);
                                     listener.onSuccess(bundle);
 
                                 } else {
@@ -278,10 +276,10 @@ public class ApiManager {
                                 String jsonErrResponse = response.errorBody().string();
                                 Log.e(TAG, "Error Response : " + jsonErrResponse);
 
-                                if (jsonErrResponse.contains("failure")) {
+                                if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
 
                                     JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                                    String err = jsonObject.optString("description");
+                                    String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
 
                                     if (!TextUtils.isEmpty(err)) {
                                         listener.onFailure(new CloudException(err));
@@ -319,9 +317,7 @@ public class ApiManager {
     public void getNodes(final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Nodes");
-        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes?node_details=true";
-
-        apiInterface.getNodes(url, accessToken).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getNodes(AppConstants.URL_USER_NODES_DETAILS, accessToken).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -341,7 +337,7 @@ public class ApiManager {
                             String jsonResponse = response.body().string();
                             Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
-                            JSONArray nodeJsonArray = jsonObject.optJSONArray("node_details");
+                            JSONArray nodeJsonArray = jsonObject.optJSONArray(AppConstants.KEY_NODE_DETAILS);
                             nodeIds.clear();
                             scheduleIds.clear();
                             espDatabase.getNodeDao().deleteAll();
@@ -357,7 +353,7 @@ public class ApiManager {
                                     if (nodeJson != null) {
 
                                         // Node ID
-                                        String nodeId = nodeJson.optString("id");
+                                        String nodeId = nodeJson.optString(AppConstants.KEY_ID);
                                         Log.d(TAG, "Node id : " + nodeId);
                                         nodeIds.add(nodeId);
                                         EspNode espNode;
@@ -369,7 +365,7 @@ public class ApiManager {
                                         }
 
                                         // Node Config
-                                        JSONObject configJson = nodeJson.optJSONObject("config");
+                                        JSONObject configJson = nodeJson.optJSONObject(AppConstants.KEY_CONFIG);
                                         if (configJson != null) {
 
                                             // If node is available on local network then ignore configuration received from cloud.
@@ -385,14 +381,14 @@ public class ApiManager {
                                         }
 
                                         // Node Params values
-                                        JSONObject paramsJson = nodeJson.optJSONObject("params");
+                                        JSONObject paramsJson = nodeJson.optJSONObject(AppConstants.KEY_PARAMS);
                                         if (paramsJson != null) {
 
                                             espNode.setParamData(paramsJson.toString());
                                             espDatabase.getNodeDao().insert(espNode);
 
                                             ArrayList<Device> devices = espNode.getDevices();
-                                            JSONObject scheduleJson = paramsJson.optJSONObject("Schedule");
+                                            JSONObject scheduleJson = paramsJson.optJSONObject(AppConstants.KEY_SCHEDULE);
 
                                             // If node is available on local network then ignore param values received from cloud.
                                             if (!espApp.mDNSDeviceMap.containsKey(nodeId)) {
@@ -429,29 +425,29 @@ public class ApiManager {
                                             // Schedules
                                             if (scheduleJson != null) {
 
-                                                JSONArray scheduleArrayJson = scheduleJson.optJSONArray("Schedules");
+                                                JSONArray scheduleArrayJson = scheduleJson.optJSONArray(AppConstants.KEY_SCHEDULES);
 
                                                 if (scheduleArrayJson != null) {
 
                                                     for (int index = 0; index < scheduleArrayJson.length(); index++) {
 
                                                         JSONObject schJson = scheduleArrayJson.getJSONObject(index);
-                                                        String scheduleId = schJson.optString("id");
+                                                        String scheduleId = schJson.optString(AppConstants.KEY_ID);
                                                         String key = scheduleId;
 
                                                         if (!TextUtils.isEmpty(scheduleId)) {
 
-                                                            String name = schJson.optString("name");
-                                                            key = key + "_" + name + "_" + schJson.optBoolean("enabled");
+                                                            String name = schJson.optString(AppConstants.KEY_NAME);
+                                                            key = key + "_" + name + "_" + schJson.optBoolean(AppConstants.KEY_ENABLED);
 
                                                             HashMap<String, Integer> triggers = new HashMap<>();
-                                                            JSONArray triggerArray = schJson.optJSONArray("triggers");
+                                                            JSONArray triggerArray = schJson.optJSONArray(AppConstants.KEY_TRIGGERS);
                                                             for (int t = 0; t < triggerArray.length(); t++) {
                                                                 JSONObject triggerJson = triggerArray.optJSONObject(t);
-                                                                int days = triggerJson.optInt("d");
-                                                                int mins = triggerJson.optInt("m");
-                                                                triggers.put("d", days);
-                                                                triggers.put("m", mins);
+                                                                int days = triggerJson.optInt(AppConstants.KEY_DAYS);
+                                                                int mins = triggerJson.optInt(AppConstants.KEY_MINUTES);
+                                                                triggers.put(AppConstants.KEY_DAYS, days);
+                                                                triggers.put(AppConstants.KEY_MINUTES, mins);
                                                                 key = key + "_" + days + "_" + mins;
                                                             }
 
@@ -461,15 +457,15 @@ public class ApiManager {
                                                             }
 
                                                             schedule.setId(scheduleId);
-                                                            schedule.setName(schJson.optString("name"));
-                                                            schedule.setEnabled(schJson.optBoolean("enabled"));
+                                                            schedule.setName(schJson.optString(AppConstants.KEY_NAME));
+                                                            schedule.setEnabled(schJson.optBoolean(AppConstants.KEY_ENABLED));
 
                                                             scheduleIds.add(key);
                                                             schedule.setTriggers(triggers);
                                                             Log.d(TAG, "=============== Schedule : " + schedule.getName() + " ===============");
 
                                                             // Actions
-                                                            JSONObject actionsSchJson = schJson.optJSONObject("action");
+                                                            JSONObject actionsSchJson = schJson.optJSONObject(AppConstants.KEY_ACTION);
 
                                                             if (actionsSchJson != null) {
 
@@ -541,7 +537,7 @@ public class ApiManager {
                                                                                     itr.remove();
                                                                                 } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
                                                                                     itr.remove();
-                                                                                } else if (!p.getProperties().contains("write")) {
+                                                                                } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
                                                                                     itr.remove();
                                                                                 }
                                                                             }
@@ -587,16 +583,16 @@ public class ApiManager {
                                         }
 
                                         // Node Status
-                                        JSONObject statusJson = nodeJson.optJSONObject("status");
+                                        JSONObject statusJson = nodeJson.optJSONObject(AppConstants.KEY_STATUS);
 
                                         if (statusJson != null && !espApp.mDNSDeviceMap.containsKey(nodeId)) {
 
-                                            JSONObject connectivityObject = statusJson.optJSONObject("connectivity");
+                                            JSONObject connectivityObject = statusJson.optJSONObject(AppConstants.KEY_CONNECTIVITY);
 
                                             if (connectivityObject != null) {
 
-                                                boolean nodeStatus = connectivityObject.optBoolean("connected");
-                                                long timestamp = connectivityObject.optLong("timestamp");
+                                                boolean nodeStatus = connectivityObject.optBoolean(AppConstants.KEY_CONNECTED);
+                                                long timestamp = connectivityObject.optLong(AppConstants.KEY_TIMESTAMP);
                                                 espNode.setTimeStampOfStatus(timestamp);
 
                                                 if (espNode.isOnline() != nodeStatus) {
@@ -654,10 +650,10 @@ public class ApiManager {
                         String jsonErrResponse = response.errorBody().string();
                         Log.e(TAG, "Error Response : " + jsonErrResponse);
 
-                        if (jsonErrResponse.contains("failure")) {
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
 
                             JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString("description");
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
 
                             if (!TextUtils.isEmpty(err)) {
                                 listener.onFailure(new CloudException(err));
@@ -692,9 +688,8 @@ public class ApiManager {
     public void getNodeDetails(String nodeId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Node Details for id : " + nodeId);
-        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes";
 
-        apiInterface.getNode(url, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getNode(AppConstants.URL_USER_NODES, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -713,7 +708,7 @@ public class ApiManager {
                             String jsonResponse = response.body().string();
                             Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
-                            JSONArray nodeJsonArray = jsonObject.optJSONArray("node_details");
+                            JSONArray nodeJsonArray = jsonObject.optJSONArray(AppConstants.KEY_NODE_DETAILS);
                             nodeIds.clear();
 
                             if (nodeJsonArray != null) {
@@ -725,7 +720,7 @@ public class ApiManager {
                                     if (nodeJson != null) {
 
                                         // Node ID
-                                        String nodeId = nodeJson.optString("id");
+                                        String nodeId = nodeJson.optString(AppConstants.KEY_ID);
                                         Log.d(TAG, "Node id : " + nodeId);
                                         nodeIds.add(nodeId);
                                         EspNode espNode;
@@ -737,7 +732,7 @@ public class ApiManager {
                                         }
 
                                         // Node Config
-                                        JSONObject configJson = nodeJson.optJSONObject("config");
+                                        JSONObject configJson = nodeJson.optJSONObject(AppConstants.KEY_CONFIG);
                                         if (configJson != null) {
 
                                             espNode = JsonDataParser.setNodeConfig(espNode, configJson);
@@ -746,7 +741,7 @@ public class ApiManager {
                                         }
 
                                         // Node Params
-                                        JSONObject paramsJson = nodeJson.optJSONObject("params");
+                                        JSONObject paramsJson = nodeJson.optJSONObject(AppConstants.KEY_PARAMS);
                                         if (paramsJson != null) {
                                             JsonDataParser.setAllParams(espApp, espNode, paramsJson);
                                             espNode.setParamData(paramsJson.toString());
@@ -754,16 +749,16 @@ public class ApiManager {
                                         }
 
                                         // Node Status
-                                        JSONObject statusJson = nodeJson.optJSONObject("status");
+                                        JSONObject statusJson = nodeJson.optJSONObject(AppConstants.KEY_STATUS);
 
                                         if (statusJson != null) {
 
-                                            JSONObject connectivityObject = statusJson.optJSONObject("connectivity");
+                                            JSONObject connectivityObject = statusJson.optJSONObject(AppConstants.KEY_CONNECTIVITY);
 
                                             if (connectivityObject != null) {
 
-                                                boolean nodeStatus = connectivityObject.optBoolean("connected");
-                                                long timestamp = connectivityObject.optLong("timestamp");
+                                                boolean nodeStatus = connectivityObject.optBoolean(AppConstants.KEY_CONNECTED);
+                                                long timestamp = connectivityObject.optLong(AppConstants.KEY_TIMESTAMP);
                                                 espNode.setTimeStampOfStatus(timestamp);
 
                                                 if (espNode.isOnline() != nodeStatus) {
@@ -789,10 +784,10 @@ public class ApiManager {
                         String jsonErrResponse = response.errorBody().string();
                         Log.e(TAG, "Error Response : " + jsonErrResponse);
 
-                        if (jsonErrResponse.contains("failure")) {
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
 
                             JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString("description");
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
 
                             if (!TextUtils.isEmpty(err)) {
                                 listener.onFailure(new CloudException(err));
@@ -802,6 +797,90 @@ public class ApiManager {
 
                         } else {
                             listener.onFailure(new RuntimeException("Failed to get Node Details"));
+                        }
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onFailure(new Exception(t));
+            }
+        });
+    }
+
+    public void getNodeStatus(final String nodeId, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Get Node connectivity status for id : " + nodeId);
+
+        apiInterface.getNodeStatus(AppConstants.URL_USER_NODE_STATUS, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Get Node status, Response code : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        if (response.body() != null) {
+
+                            String jsonResponse = response.body().string();
+                            Log.d(TAG, "onResponse Success : " + jsonResponse);
+                            JSONObject nodeStatusJson = new JSONObject(jsonResponse);
+                            EspNode espNode = espApp.nodeMap.get(nodeId);
+
+                            if (espNode != null) {
+
+                                // Node Status
+                                JSONObject connectivityObject = nodeStatusJson.optJSONObject(AppConstants.KEY_CONNECTIVITY);
+
+                                if (connectivityObject != null) {
+
+                                    boolean nodeStatus = connectivityObject.optBoolean(AppConstants.KEY_CONNECTED);
+                                    long timestamp = connectivityObject.optLong(AppConstants.KEY_TIMESTAMP);
+                                    espNode.setTimeStampOfStatus(timestamp);
+
+                                    if (espNode.isOnline() != nodeStatus) {
+                                        espNode.setOnline(nodeStatus);
+                                        EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
+                                    }
+                                } else {
+                                    Log.e(TAG, "Connectivity object is null");
+                                }
+                            }
+
+                            listener.onSuccess(null);
+
+                        } else {
+                            Log.e(TAG, "Response received : null");
+                            listener.onFailure(new RuntimeException("Failed to get Node status"));
+                        }
+                    } else {
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to get Node status"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to get Node status"));
                         }
                     }
                 } catch (JSONException e) {
@@ -836,10 +915,9 @@ public class ApiManager {
         DeviceOperationRequest req = new DeviceOperationRequest();
         req.setNodeId(nodeId);
         req.setSecretKey(secretKey);
-        req.setOperation("add");
-        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/mapping";
+        req.setOperation(AppConstants.KEY_OPERATION_ADD);
 
-        apiInterface.addNode(url, accessToken, req).enqueue(new Callback<ResponseBody>() {
+        apiInterface.addNode(AppConstants.URL_USER_NODE_MAPPING, accessToken, req).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -854,11 +932,11 @@ public class ApiManager {
                             String jsonResponse = response.body().string();
                             Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
-                            String reqId = jsonObject.optString("request_id");
+                            String reqId = jsonObject.optString(AppConstants.KEY_REQ_ID);
                             requestIds.put(nodeId, reqId);
-                            handler.post(getRequestStatusTask);
+                            handler.post(getUserNodeMappingStatusTask);
                             Bundle data = new Bundle();
-                            data.putString("request_id", reqId);
+                            data.putString(AppConstants.KEY_REQ_ID, reqId);
                             listener.onSuccess(data);
 
                         } else {
@@ -870,10 +948,10 @@ public class ApiManager {
                         String jsonErrResponse = response.errorBody().string();
                         Log.e(TAG, "Error Response : " + jsonErrResponse);
 
-                        if (jsonErrResponse.contains("failure")) {
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
 
                             JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString("description");
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
 
                             if (!TextUtils.isEmpty(err)) {
                                 listener.onFailure(new CloudException(err));
@@ -914,10 +992,9 @@ public class ApiManager {
 
         DeviceOperationRequest req = new DeviceOperationRequest();
         req.setNodeId(nodeId);
-        req.setOperation("remove");
-        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/mapping";
+        req.setOperation(AppConstants.KEY_OPERATION_REMOVE);
 
-        apiInterface.removeNode(url, accessToken, req).enqueue(new Callback<ResponseBody>() {
+        apiInterface.removeNode(AppConstants.URL_USER_NODE_MAPPING, accessToken, req).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -942,10 +1019,10 @@ public class ApiManager {
                         String jsonErrResponse = response.errorBody().string();
                         Log.e(TAG, "Error Response : " + jsonErrResponse);
 
-                        if (jsonErrResponse.contains("failure")) {
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
 
                             JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString("description");
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
 
                             if (!TextUtils.isEmpty(err)) {
                                 listener.onFailure(new CloudException(err));
@@ -977,9 +1054,8 @@ public class ApiManager {
     public void getParamsValues(final String nodeId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Param values for node : " + nodeId);
-        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/params";
 
-        apiInterface.getParamValue(url, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getParamValue(AppConstants.URL_USER_NODES_PARAMS, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -995,7 +1071,7 @@ public class ApiManager {
                             String jsonResponse = response.body().string();
                             Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
-                            JSONObject scheduleJson = jsonObject.optJSONObject("Schedule");
+                            JSONObject scheduleJson = jsonObject.optJSONObject(AppConstants.KEY_SCHEDULE);
 
                             EspNode node = espApp.nodeMap.get(nodeId);
 
@@ -1029,7 +1105,7 @@ public class ApiManager {
                                 // Schedules
                                 if (scheduleJson != null) {
 
-                                    JSONArray scheduleArrayJson = scheduleJson.optJSONArray("Schedules");
+                                    JSONArray scheduleArrayJson = scheduleJson.optJSONArray(AppConstants.KEY_SCHEDULES);
 
                                     if (scheduleArrayJson != null) {
 
@@ -1040,22 +1116,22 @@ public class ApiManager {
                                         for (int index = 0; index < scheduleArrayJson.length(); index++) {
 
                                             JSONObject schJson = scheduleArrayJson.getJSONObject(index);
-                                            String scheduleId = schJson.optString("id");
+                                            String scheduleId = schJson.optString(AppConstants.KEY_ID);
                                             String key = scheduleId;
 
                                             if (!TextUtils.isEmpty(scheduleId)) {
 
-                                                String name = schJson.optString("name");
-                                                key = key + "_" + name + "_" + schJson.optBoolean("enabled");
+                                                String name = schJson.optString(AppConstants.KEY_NAME);
+                                                key = key + "_" + name + "_" + schJson.optBoolean(AppConstants.KEY_ENABLED);
 
                                                 HashMap<String, Integer> triggers = new HashMap<>();
-                                                JSONArray triggerArray = schJson.optJSONArray("triggers");
+                                                JSONArray triggerArray = schJson.optJSONArray(AppConstants.KEY_TRIGGERS);
                                                 for (int t = 0; t < triggerArray.length(); t++) {
                                                     JSONObject triggerJson = triggerArray.optJSONObject(t);
-                                                    int days = triggerJson.optInt("d");
-                                                    int mins = triggerJson.optInt("m");
-                                                    triggers.put("d", days);
-                                                    triggers.put("m", mins);
+                                                    int days = triggerJson.optInt(AppConstants.KEY_DAYS);
+                                                    int mins = triggerJson.optInt(AppConstants.KEY_MINUTES);
+                                                    triggers.put(AppConstants.KEY_DAYS, days);
+                                                    triggers.put(AppConstants.KEY_MINUTES, mins);
                                                     key = key + "_" + days + "_" + mins;
                                                 }
 
@@ -1065,12 +1141,12 @@ public class ApiManager {
                                                 }
 
                                                 schedule.setId(scheduleId);
-                                                schedule.setName(schJson.optString("name"));
-                                                schedule.setEnabled(schJson.optBoolean("enabled"));
+                                                schedule.setName(schJson.optString(AppConstants.KEY_NAME));
+                                                schedule.setEnabled(schJson.optBoolean(AppConstants.KEY_ENABLED));
                                                 schedule.setTriggers(triggers);
 
                                                 // Actions
-                                                JSONObject actionsSchJson = schJson.optJSONObject("action");
+                                                JSONObject actionsSchJson = schJson.optJSONObject(AppConstants.KEY_ACTION);
 
                                                 if (actionsSchJson != null) {
 
@@ -1142,7 +1218,7 @@ public class ApiManager {
                                                                         itr.remove();
                                                                     } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
                                                                         itr.remove();
-                                                                    } else if (!p.getProperties().contains("write")) {
+                                                                    } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
                                                                         itr.remove();
                                                                     }
                                                                 }
@@ -1197,10 +1273,10 @@ public class ApiManager {
                         String jsonErrResponse = response.errorBody().string();
                         Log.e(TAG, "Error Response : " + jsonErrResponse);
 
-                        if (jsonErrResponse.contains("failure")) {
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
 
                             JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString("description");
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
 
                             if (!TextUtils.isEmpty(err)) {
                                 listener.onFailure(new CloudException(err));
@@ -1232,9 +1308,8 @@ public class ApiManager {
     public void updateParamValue(final String nodeId, JsonObject body, final ApiResponseListener listener) {
 
         Log.d(TAG, "Updating param value");
-        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/params";
 
-        apiInterface.updateParamValue(url, accessToken, nodeId, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.updateParamValue(AppConstants.URL_USER_NODES_PARAMS, accessToken, nodeId, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1261,10 +1336,10 @@ public class ApiManager {
                         String jsonErrResponse = response.errorBody().string();
                         Log.e(TAG, "Error Response : " + jsonErrResponse);
 
-                        if (jsonErrResponse.contains("failure")) {
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
 
                             JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString("description");
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
 
                             if (!TextUtils.isEmpty(err)) {
                                 listener.onFailure(new CloudException(err));
@@ -1304,7 +1379,6 @@ public class ApiManager {
                                 final ApiResponseListener listener) {
 
         Log.d(TAG, "Updating Schedule");
-        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/params";
         List<Observable<ApiResponse>> requests = new ArrayList<>();
         final ArrayList<ApiResponse> responses = new ArrayList<>();
 
@@ -1314,7 +1388,7 @@ public class ApiManager {
             JsonObject jsonBody = entry.getValue();
 
             requests.add(
-                    apiInterface.updateSchedules(url, accessToken, nodeId, jsonBody)
+                    apiInterface.updateSchedules(AppConstants.URL_USER_NODES_PARAMS, accessToken, nodeId, jsonBody)
 
                             .map(new Function<ResponseBody, ApiResponse>() {
 
@@ -1388,9 +1462,8 @@ public class ApiManager {
     private void getAddNodeRequestStatus(final String nodeId, String requestId) {
 
         Log.d(TAG, "Get Node mapping status");
-        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/user/nodes/mapping";
 
-        apiInterface.getAddNodeRequestStatus(url, accessToken, requestId, true).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getAddNodeRequestStatus(AppConstants.URL_USER_NODE_MAPPING, accessToken, requestId, true).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1405,9 +1478,9 @@ public class ApiManager {
                             String jsonResponse = response.body().string();
                             Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
-                            String reqStatus = jsonObject.optString("request_status");
+                            String reqStatus = jsonObject.optString(AppConstants.KEY_REQ_STATUS);
 
-                            if (!TextUtils.isEmpty(reqStatus) && reqStatus.equals("confirmed")) {
+                            if (!TextUtils.isEmpty(reqStatus) && reqStatus.equals(AppConstants.KEY_REQ_CONFIRMED)) {
 
                                 requestIds.remove(nodeId);
 
@@ -1415,7 +1488,7 @@ public class ApiManager {
                                 if (requestIds.size() == 0) {
                                     EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_ADDED));
                                 }
-                            } else if (!TextUtils.isEmpty(reqStatus) && reqStatus.equals("timedout")) {
+                            } else if (!TextUtils.isEmpty(reqStatus) && reqStatus.equals(AppConstants.KEY_REQ_TIMEDOUT)) {
 
                                 requestIds.remove(nodeId);
 
@@ -1446,12 +1519,12 @@ public class ApiManager {
         });
     }
 
-    private void getNodeReqStatus() {
+    private void getUserNodeMappingStatus() {
 
-        handler.postDelayed(getRequestStatusTask, REQ_STATUS_TIME);
+        handler.postDelayed(getUserNodeMappingStatusTask, REQ_STATUS_TIME);
     }
 
-    private Runnable getRequestStatusTask = new Runnable() {
+    private Runnable getUserNodeMappingStatusTask = new Runnable() {
 
         @Override
         public void run() {
@@ -1464,10 +1537,10 @@ public class ApiManager {
                     String requestId = requestIds.get(nodeId);
                     getAddNodeRequestStatus(nodeId, requestId);
                 }
-                getNodeReqStatus();
+                getUserNodeMappingStatus();
             } else {
                 Log.i(TAG, "No request id is available to check status");
-                handler.removeCallbacks(getRequestStatusTask);
+                handler.removeCallbacks(getUserNodeMappingStatusTask);
             }
         }
     };
@@ -1578,12 +1651,11 @@ public class ApiManager {
     public void getNewTokenForOAuth(final ApiResponseListener listener) {
 
         Log.d(TAG, "Get New Token For OAuth");
-        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + "/login";
         HashMap<String, String> body = new HashMap<>();
         body.put("user_name", userId);
         body.put("refreshtoken", refreshToken);
 
-        apiInterface.getOAuthLoginToken(url, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getOAuthLoginToken(AppConstants.URL_OAUTH_LOGIN, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1612,10 +1684,10 @@ public class ApiManager {
                         String jsonErrResponse = response.errorBody().string();
                         Log.e(TAG, "Error Response : " + jsonErrResponse);
 
-                        if (jsonErrResponse.contains("failure")) {
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
 
                             JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString("description");
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
 
                             if (!TextUtils.isEmpty(err)) {
                                 listener.onFailure(new CloudException(err));
@@ -1647,9 +1719,8 @@ public class ApiManager {
     public void initiateClaim(JsonObject body, final ApiResponseListener listener) {
 
         Log.d(TAG, "Initiate Claiming...");
-        String url = BuildConfig.CLAIM_BASE_URL + "/claim/initiate";
 
-        apiInterface.initiateClaiming(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.initiateClaiming(AppConstants.URL_CLAIM_INITIATE, accessToken, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1661,7 +1732,7 @@ public class ApiManager {
 
                         String jsonResponse = response.body().string();
                         Bundle data = new Bundle();
-                        data.putString("claim_initiate_response", jsonResponse);
+                        data.putString(AppConstants.KEY_CLAIM_INIT_RESPONSE, jsonResponse);
                         listener.onSuccess(data);
 
                     } else {
@@ -1669,10 +1740,10 @@ public class ApiManager {
                         String jsonErrResponse = response.errorBody().string();
                         Log.e(TAG, "Error Response : " + jsonErrResponse);
 
-                        if (jsonErrResponse.contains("failure")) {
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
 
                             JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString("description");
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
 
                             if (!TextUtils.isEmpty(err)) {
                                 listener.onFailure(new CloudException(err));
@@ -1701,9 +1772,8 @@ public class ApiManager {
     public void verifyClaiming(JsonObject body, final ApiResponseListener listener) {
 
         Log.d(TAG, "Verifying Claiming...");
-        String url = BuildConfig.CLAIM_BASE_URL + "/claim/verify";
 
-        apiInterface.verifyClaiming(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.verifyClaiming(AppConstants.URL_CLAIM_VERIFY, accessToken, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1715,7 +1785,7 @@ public class ApiManager {
 
                         String jsonResponse = response.body().string();
                         Bundle data = new Bundle();
-                        data.putString("claim_verify_response", jsonResponse);
+                        data.putString(AppConstants.KEY_CLAIM_VERIFY_RESPONSE, jsonResponse);
                         listener.onSuccess(data);
 
                     } else {
@@ -1723,10 +1793,10 @@ public class ApiManager {
                         String jsonErrResponse = response.errorBody().string();
                         Log.e(TAG, "Error Response : " + jsonErrResponse);
 
-                        if (jsonErrResponse.contains("failure")) {
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
 
                             JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString("description");
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
 
                             if (!TextUtils.isEmpty(err)) {
                                 listener.onFailure(new CloudException(err));
@@ -1758,7 +1828,7 @@ public class ApiManager {
         public void run() {
             requestIds.clear();
             Log.d(TAG, "Stopped Polling Task");
-            handler.removeCallbacks(getRequestStatusTask);
+            handler.removeCallbacks(getUserNodeMappingStatusTask);
             EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_ADD_DEVICE_TIME_OUT));
         }
     };

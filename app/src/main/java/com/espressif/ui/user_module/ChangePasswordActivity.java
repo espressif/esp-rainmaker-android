@@ -26,11 +26,11 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.GenericHandler;
 import com.espressif.rainmaker.R;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputLayout;
 
 public class ChangePasswordActivity extends AppCompatActivity {
@@ -38,7 +38,7 @@ public class ChangePasswordActivity extends AppCompatActivity {
     private TextView tvTitle, tvBack, tvCancel;
     private EditText etOldPassword, etNewPassword, etConfirmNewPassword;
     private TextInputLayout layoutOldPassword, layoutNewPassword, layoutConfirmPassword;
-    private CardView btnSetPassword;
+    private MaterialCardView btnSetPassword;
     private TextView txtSetPasswordBtn;
     private ImageView arrowImage;
     private ContentLoadingProgressBar progressBar;
@@ -182,7 +182,7 @@ public class ChangePasswordActivity extends AppCompatActivity {
 
     private void showDialogMessage(String title, String body, final boolean exitActivity) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
 
             @Override

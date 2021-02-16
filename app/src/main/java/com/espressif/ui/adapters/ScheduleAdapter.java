@@ -30,6 +30,7 @@ import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.espressif.AppConstants;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
@@ -106,11 +107,11 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
         StringBuilder scheduleTimeText = new StringBuilder();
 
         HashMap<String, Integer> triggers = schedule.getTriggers();
-        int daysValue = triggers.get("d");
+        int daysValue = triggers.get(AppConstants.KEY_DAYS);
         String days = getDaysText(daysValue);
         scheduleTimeText.append(days);
 
-        int mins = triggers.get("m");
+        int mins = triggers.get(AppConstants.KEY_MINUTES);
         int h = mins / 60;
         int m = mins % 60;
 
@@ -152,7 +153,7 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
 
                 Schedule s = scheduleList.get(myViewHolder.getAdapterPosition());
                 Intent intent = new Intent(context, AddScheduleActivity.class);
-                intent.putExtra("schedule", s);
+                intent.putExtra(AppConstants.KEY_SCHEDULE, s);
                 context.startActivity(intent);
             }
         });
@@ -168,10 +169,10 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
                 Set<String> nodeIdList = new HashSet<>();
                 Schedule schedule = scheduleList.get(myViewHolder.getAdapterPosition());
                 ArrayList<Action> actions = schedule.getActions();
-                String operation = "disable";
+                String operation = AppConstants.KEY_OPERATION_DISABLE;
 
                 if (isChecked) {
-                    operation = "enable";
+                    operation = AppConstants.KEY_OPERATION_ENABLE;
                 }
 
                 HashMap<String, JsonObject> map = new HashMap<>();
@@ -184,17 +185,17 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
                         nodeIdList.add(nodeId);
 
                         JsonObject scheduleJson = new JsonObject();
-                        scheduleJson.addProperty("id", schedule.getId());
-                        scheduleJson.addProperty("operation", operation);
+                        scheduleJson.addProperty(AppConstants.KEY_ID, schedule.getId());
+                        scheduleJson.addProperty(AppConstants.KEY_OPERATION, operation);
 
                         JsonArray schArr = new JsonArray();
                         schArr.add(scheduleJson);
 
                         JsonObject finalBody = new JsonObject();
-                        finalBody.add("Schedules", schArr);
+                        finalBody.add(AppConstants.KEY_SCHEDULES, schArr);
 
                         JsonObject body = new JsonObject();
-                        body.add("Schedule", finalBody);
+                        body.add(AppConstants.KEY_SCHEDULE, finalBody);
 
                         map.put(nodeId, body);
                     }
@@ -253,7 +254,7 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
         StringBuilder daysText = new StringBuilder();
 
         if (days == 0) {
-            daysText.append("Once");
+            daysText.append(context.getString(R.string.schedule_once));
         } else {
 
             StringBuilder daysStr = new StringBuilder("00000000");
@@ -269,11 +270,11 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
             String daysStrValue = daysStr.toString();
 
             if (daysStrValue.equals("01111111") || daysStrValue.equals("11111111")) {
-                daysText.append("Daily");
+                daysText.append(context.getString(R.string.schedule_daily));
             } else if (daysStrValue.equals("01100000") || daysStrValue.equals("11100000")) {
-                daysText.append("On Weekends");
+                daysText.append(context.getString(R.string.schedule_weekends));
             } else if (daysStrValue.equals("00011111") || daysStrValue.equals("10011111")) {
-                daysText.append("On Weekdays");
+                daysText.append(context.getString(R.string.schedule_weekdays));
             } else {
                 String[] daysNames = context.getResources().getStringArray(R.array.days);
                 char[] chars = daysStrValue.toCharArray();
@@ -284,7 +285,8 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
 
                         String day = daysNames[i - 1];
                         if (daysText.length() == 0) {
-                            daysText.append("On ");
+                            daysText.append(context.getString(R.string.schedule_on_day));
+                            daysText.append(" ");
                             daysText.append(day);
                         } else {
                             daysText.append(", " + day);

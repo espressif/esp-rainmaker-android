@@ -23,23 +23,25 @@ import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 
 import com.espressif.AppConstants;
@@ -48,9 +50,12 @@ import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPDevice;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.BleScanListener;
+import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.BleDeviceListAdapter;
 import com.espressif.ui.models.BleDevice;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.card.MaterialCardView;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -73,10 +78,14 @@ public class BLEProvisionLanding extends AppCompatActivity {
     // Time out
     private static final long DEVICE_CONNECT_TIMEOUT = 20000;
 
-    private Button btnScan;
+    private MaterialCardView btnScan;
+    private TextView btnPrefix;
+    private TextView txtScanBtn;
+    private ImageView arrowImage;
     private ListView listView;
     private ProgressBar progressBar;
     private RelativeLayout prefixLayout;
+    private TextView textPrefix;
 
     private BleDeviceListAdapter adapter;
     private BluetoothAdapter bleAdapter;
@@ -87,15 +96,17 @@ public class BLEProvisionLanding extends AppCompatActivity {
     private int position = -1;
     private boolean isDeviceConnected = false, isConnecting = false;
     private ESPProvisionManager provisionManager;
+    private SharedPreferences sharedPreferences;
     private String securityType;
     private boolean isScanning = false;
+    private String deviceNamePrefix;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bleprovision_landing);
-        Toolbar toolbar = findViewById(R.id.toolbar);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitle(R.string.title_activity_connect_device);
         setSupportActionBar(toolbar);
         securityType = getIntent().getStringExtra(AppConstants.KEY_SECURITY_TYPE);
@@ -124,6 +135,12 @@ public class BLEProvisionLanding extends AppCompatActivity {
         deviceList = new ArrayList<>();
 
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
+        sharedPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
+        if (BuildConfig.isFilterPrefixEditable) {
+            deviceNamePrefix = sharedPreferences.getString(AppConstants.KEY_DEVICE_NAME_PREFIX, BuildConfig.DEVICE_NAME_PREFIX);
+        } else {
+            deviceNamePrefix = BuildConfig.DEVICE_NAME_PREFIX;
+        }
         initViews();
         EventBus.getDefault().register(this);
     }
@@ -234,10 +251,27 @@ public class BLEProvisionLanding extends AppCompatActivity {
     private void initViews() {
 
         btnScan = findViewById(R.id.btn_scan);
+        txtScanBtn = findViewById(R.id.text_btn);
+        arrowImage = findViewById(R.id.iv_arrow);
+        txtScanBtn.setText(R.string.btn_scan_again);
+        arrowImage.setVisibility(View.GONE);
+
         listView = findViewById(R.id.ble_devices_list);
         progressBar = findViewById(R.id.ble_landing_progress_indicator);
         prefixLayout = findViewById(R.id.prefix_layout);
         prefixLayout.setVisibility(View.GONE);
+
+        btnPrefix = findViewById(R.id.btn_change_prefix);
+        textPrefix = findViewById(R.id.prefix_value);
+        prefixLayout = findViewById(R.id.prefix_layout);
+        textPrefix.setText(deviceNamePrefix);
+
+        // Set visibility of Prefix layout
+        if (BuildConfig.isFilterPrefixEditable) {
+            prefixLayout.setVisibility(View.VISIBLE);
+        } else {
+            prefixLayout.setVisibility(View.GONE);
+        }
 
         adapter = new BleDeviceListAdapter(this, R.layout.item_ble_scan, deviceList);
 
@@ -245,6 +279,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
         listView.setAdapter(adapter);
         listView.setOnItemClickListener(onDeviceCLickListener);
         btnScan.setOnClickListener(btnScanClickListener);
+        btnPrefix.setOnClickListener(btnPrefixChangeClickListener);
     }
 
     private boolean hasPermissions() {
@@ -293,7 +328,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
         bluetoothDevices.clear();
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            provisionManager.searchBleEspDevices("", bleScanListener);
+            provisionManager.searchBleEspDevices(deviceNamePrefix, bleScanListener);
             updateProgressAndScanBtn();
         } else {
             Log.e(TAG, "Not able to start scan as Location permission is not granted.");
@@ -327,7 +362,6 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
             btnScan.setEnabled(false);
             btnScan.setAlpha(0.5f);
-            btnScan.setTextColor(Color.WHITE);
             progressBar.setVisibility(View.VISIBLE);
             listView.setVisibility(View.GONE);
 
@@ -342,7 +376,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
     private void alertForDeviceNotSupported(String msg) {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(false);
 
         builder.setTitle(R.string.error_title);
@@ -389,15 +423,15 @@ public class BLEProvisionLanding extends AppCompatActivity {
             Log.d(TAG, "Version Info JSON not available.");
         }
 
-        if (deviceCaps != null && !deviceCaps.contains("no_pop") && AppConstants.SECURITY_1.equalsIgnoreCase(securityType)) {
+        if (deviceCaps != null && !deviceCaps.contains(AppConstants.CAPABILITY_NO_POP) && AppConstants.SECURITY_1.equalsIgnoreCase(securityType)) {
 
             goToPopActivity();
 
-        } else if (rmakerCaps.size() > 0 && rmakerCaps.contains("claim")) {
+        } else if (rmakerCaps.size() > 0 && rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM)) {
 
             goToClaimingActivity();
 
-        } else if (deviceCaps != null && deviceCaps.contains("wifi_scan")) {
+        } else if (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
 
             goToWifiScanListActivity();
 
@@ -503,6 +537,58 @@ public class BLEProvisionLanding extends AppCompatActivity {
             alertForDeviceNotSupported(getString(R.string.error_device_not_supported));
         }
     };
+
+    private View.OnClickListener btnPrefixChangeClickListener = new View.OnClickListener() {
+
+        @Override
+        public void onClick(View v) {
+
+            askForPrefix();
+        }
+    };
+
+    private void askForPrefix() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setCancelable(true);
+
+        LayoutInflater layoutInflaterAndroid = LayoutInflater.from(this);
+        View view = layoutInflaterAndroid.inflate(R.layout.dialog_prefix, null);
+        builder.setView(view);
+        final EditText etPrefix = view.findViewById(R.id.et_prefix);
+        etPrefix.setText(deviceNamePrefix);
+        etPrefix.setSelection(etPrefix.getText().length());
+
+        // Set up the buttons
+        builder.setPositiveButton(R.string.btn_save, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+                String prefix = etPrefix.getText().toString();
+
+                if (prefix != null) {
+                    prefix = prefix.trim();
+                }
+
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString(AppConstants.KEY_DEVICE_NAME_PREFIX, prefix);
+                editor.apply();
+                deviceNamePrefix = prefix;
+                textPrefix.setText(prefix);
+                startScan();
+            }
+        });
+
+        builder.setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+            }
+        });
+
+        builder.show();
+    }
 
     private void goToPopActivity() {
 

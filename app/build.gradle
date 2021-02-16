@@ -14,7 +14,7 @@ def defaultAppName = "ESP RainMaker"
 def defaultTransport = "Both"
 def defaultSecurity = "Sec1"
 def defaultPoP = ""
-def defaultAppId = "com.espressif.rainmaker"
+def defaultPrefix = "PROV_"
 
 def defaultAwsRegion = "us-east-1"
 def defaultUserPoolId = "us-east-1_kWz4M6MfD"
@@ -27,8 +27,6 @@ def defaultAuthUrl = "https://auth.rainmaker.espressif.com/oauth2"
 def defaultRedirectUri = "rainmaker://com.espressif.rainmaker/success"
 def gitHubIdentityProvider = "GitHub"
 def googleIdentityProvider = "Google"
-def gitHubUrl = defaultAuthUrl + "/authorize?identity_provider=" + gitHubIdentityProvider + "&redirect_uri=" + defaultRedirectUri + "&response_type=CODE&client_id=" + defaultClientId
-def googleUrl = defaultAuthUrl + "/authorize?identity_provider=" + googleIdentityProvider + "&redirect_uri=" + defaultRedirectUri + "&response_type=CODE&client_id=" + defaultClientId
 
 def defaultDocUrl = "https://rainmaker.espressif.com/"
 def defaultPrivacyUrl = "https://rainmaker.espressif.com/docs/privacy-policy.html"
@@ -39,14 +37,14 @@ localProperties.load(new FileInputStream(rootProject.file("local.properties")))
 
 android {
 
-    compileSdkVersion 29
+    compileSdkVersion 30
 
     defaultConfig {
-        applicationId localProperties.getProperty("applicationId", defaultAppId)
+        applicationId "com.espressif.rainmaker"
         minSdkVersion 23
-        targetSdkVersion 29
-        versionCode 15
-        versionName "2.2.4 - ${getGitHash()}"
+        targetSdkVersion 30
+        versionCode 16
+        versionName "2.3.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -72,19 +70,33 @@ android {
             buildConfigField "String", "SECURITY", '"' + security + '"'
         }
 
+        buildConfigField "boolean", "isFilterPrefixEditable", localProperties.getProperty("isFilterPrefixEditable", "true")
+        buildConfigField "String", "DEVICE_NAME_PREFIX", '"' + localProperties.getProperty("deviceNamePrefix", defaultPrefix) + '"'
+
+        buildConfigField "boolean", "isQRCodeSupported", localProperties.getProperty("isQRCodeSupported", "true")
         buildConfigField "boolean", "isScheduleSupported", localProperties.getProperty("isScheduleSupported", "true")
         buildConfigField "boolean", "isLocalControlSupported", localProperties.getProperty("isLocalControlSupported", "true")
 
+        def clientId = localProperties.getProperty("clientId", defaultClientId)
+        def authUrl = localProperties.getProperty("authUrl", defaultAuthUrl)
+        def redirectUri = localProperties.getProperty("redirectUri", defaultRedirectUri)
+
         buildConfigField "String", "AWS_REGION", '"' + localProperties.getProperty("awsRegion", defaultAwsRegion) + '"'
         buildConfigField "String", "USER_POOL_ID", '"' + localProperties.getProperty("userPoolId", defaultUserPoolId) + '"'
-        buildConfigField "String", "CLIENT_ID", '"' + localProperties.getProperty("clientId", defaultClientId) + '"'
+        buildConfigField "String", "CLIENT_ID", '"' + clientId + '"'
 
         buildConfigField "String", "BASE_URL", '"' + localProperties.getProperty("baseUrl", defaultBaseUrl) + '"'
         buildConfigField "String", "CLAIM_BASE_URL", '"' + localProperties.getProperty("claimBaseUrl", defaultClaimBaseUrl) + '"'
 
-        buildConfigField "String", "AUTH_URL", '"' + localProperties.getProperty("authUrl", defaultAuthUrl) + '"'
-        buildConfigField "String", "TOKEN_URL", '"' + localProperties.getProperty("authUrl", defaultAuthUrl) + "/token" + '"'
-        buildConfigField "String", "REDIRECT_URI", '"' + localProperties.getProperty("redirectUri", defaultRedirectUri) + '"'
+        buildConfigField "String", "AUTH_URL", '"' + authUrl + '"'
+        buildConfigField "String", "TOKEN_URL", '"' + authUrl + "/token" + '"'
+        buildConfigField "String", "REDIRECT_URI", '"' + redirectUri + '"'
+
+        def gitHubUrl = authUrl + "/authorize?identity_provider=" + gitHubIdentityProvider +
+                "&redirect_uri=" + redirectUri + "&response_type=CODE&client_id=" + clientId
+        def googleUrl = authUrl + "/authorize?identity_provider=" + googleIdentityProvider +
+                "&redirect_uri=" + redirectUri + "&response_type=CODE&client_id=" + clientId
+
         buildConfigField "String", "GITHUB_URL", '"' + gitHubUrl + '"'
         buildConfigField "String", "GOOGLE_URL", '"' + googleUrl + '"'
 
@@ -132,10 +144,11 @@ protobuf {
 dependencies {
 
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation 'androidx.appcompat:appcompat:1.0.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-    implementation 'com.google.android.material:material:1.0.0'
-    implementation 'androidx.recyclerview:recyclerview:1.0.0'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+    implementation 'com.google.android.material:material:1.1.0'
+    implementation 'androidx.recyclerview:recyclerview:1.1.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
 
     implementation 'com.google.protobuf:protobuf-lite:3.0.1'
     implementation 'com.google.crypto.tink:tink-android:1.1.0'
@@ -153,7 +166,7 @@ dependencies {
     implementation 'com.budiyev.android:code-scanner:2.1.0'
     implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.0.8'
 
-    implementation 'com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.19.0'
+    implementation 'com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.22.5'
     implementation 'com.github.warkiz.tickseekbar:tickseekbar:0.1.4'
     implementation('com.amazonaws:aws-android-sdk-iot:2.15.2') { transitive = true }
     implementation('com.amazonaws:aws-android-sdk-mobile-client:2.15.2') { transitive = true }
@@ -162,7 +175,7 @@ dependencies {
     implementation 'android.arch.persistence.room:runtime:1.1.1'
     annotationProcessor 'android.arch.persistence.room:compiler:1.1.1'
 
-    testImplementation 'junit:junit:4.13.1'
+    testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test:runner:1.3.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
 }

@@ -6,7 +6,7 @@
 
     <include
         android:id="@+id/title_bar"
-        layout="@layout/tool_bar_main_purple" />
+        layout="@layout/toolbar" />
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -46,7 +46,7 @@
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:visibility="gone"
-            app:indicatorColor="#2196F3"
+            app:indicatorColor="@color/colorPrimary"
             app:indicatorName="LineSpinFadeLoaderIndicator" />
 
     </RelativeLayout>
