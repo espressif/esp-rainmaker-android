@@ -78,6 +78,7 @@ public class EspDeviceActivity extends AppCompatActivity {
     private boolean isNodeOnline;
     private long timeStampOfStatus;
     private boolean isNetworkAvailable = false;
+    private boolean shouldGetParams = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -168,11 +169,13 @@ public class EspDeviceActivity extends AppCompatActivity {
     }
 
     public void startUpdateValueTask() {
+        shouldGetParams = true;
         handler.removeCallbacks(updateValuesTask);
         handler.postDelayed(updateValuesTask, UPDATE_INTERVAL);
     }
 
     public void stopUpdateValueTask() {
+        shouldGetParams = false;
         handler.removeCallbacks(updateValuesTask);
     }
 
@@ -186,8 +189,9 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         @Override
         public void run() {
-            getValues();
-            handler.postDelayed(updateValuesTask, UPDATE_INTERVAL);
+            if (shouldGetParams) {
+                getValues();
+            }
         }
     };
 
@@ -296,6 +300,7 @@ public class EspDeviceActivity extends AppCompatActivity {
                         hideLoading();
                         swipeRefreshLayout.setRefreshing(false);
                         updateUi();
+                        handler.postDelayed(updateValuesTask, UPDATE_INTERVAL);
                     }
                 });
             }
