@@ -194,6 +194,8 @@ public class AppConstants {
     public static final String KEY_REQ_ACCEPT = "accept";
     public static final String KEY_SHARING_REQUESTS = "sharing_requests";
     public static final String KEY_METADATA = "metadata";
+    public static final String KEY_START_ID = "start_id";
+    public static final String KEY_NEXT_ID = "next_id";
 
     public static final String KEY_OPERATION = "operation";
     public static final String KEY_OPERATION_ADD = "add";

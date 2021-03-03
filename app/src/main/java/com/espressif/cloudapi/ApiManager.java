@@ -96,6 +96,7 @@ public class ApiManager {
     private SharedPreferences sharedPreferences;
     private static ArrayList<String> nodeIds = new ArrayList<>();
     private static ArrayList<String> scheduleIds = new ArrayList<>();
+    private boolean isGetNodesRunning = false;
 
     private static ApiManager apiManager;
 
@@ -320,7 +321,19 @@ public class ApiManager {
     public void getNodes(final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Nodes");
-        apiInterface.getNodes(AppConstants.URL_USER_NODES_DETAILS, accessToken).enqueue(new Callback<ResponseBody>() {
+        if (isGetNodesRunning) {
+            return;
+        }
+        isGetNodesRunning = true;
+        nodeIds.clear();
+        scheduleIds.clear();
+        getNodesFromCloud("", listener);
+    }
+
+    private void getNodesFromCloud(final String startId, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Get Nodes from cloud with start id : " + startId);
+        apiInterface.getNodes(AppConstants.URL_USER_NODES_DETAILS, accessToken, startId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -333,18 +346,15 @@ public class ApiManager {
 
                         if (response.body() != null) {
 
-                            if (espApp.nodeMap == null) {
-                                espApp.nodeMap = new HashMap<>();
+                            if (TextUtils.isEmpty(startId)) {
+                                espDatabase.getNodeDao().deleteAll();
+                                Log.d(TAG, "Delete all nodes from local storage.");
                             }
 
                             String jsonResponse = response.body().string();
                             Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
                             JSONArray nodeJsonArray = jsonObject.optJSONArray(AppConstants.KEY_NODE_DETAILS);
-                            nodeIds.clear();
-                            scheduleIds.clear();
-                            espDatabase.getNodeDao().deleteAll();
-                            Log.d(TAG, "Delete all nodes from local storage.");
                             HashMap<String, Schedule> scheduleMap = new HashMap<>();
 
                             if (nodeJsonArray != null) {
@@ -392,13 +402,13 @@ public class ApiManager {
                                         if (paramsJson != null) {
 
                                             espNode.setParamData(paramsJson.toString());
-                                            espDatabase.getNodeDao().insert(espNode);
+                                            espDatabase.getNodeDao().insertOrUpdate(espNode);
 
                                             ArrayList<Device> devices = espNode.getDevices();
                                             JSONObject scheduleJson = paramsJson.optJSONObject(AppConstants.KEY_SCHEDULE);
 
                                             // If node is available on local network then ignore param values received from cloud.
-                                            if (!espApp.mDNSDeviceMap.containsKey(nodeId)) {
+                                            if (!espApp.mDNSDeviceMap.containsKey(nodeId) && devices != null) {
 
                                                 for (int i = 0; i < devices.size(); i++) {
 
@@ -604,7 +614,6 @@ public class ApiManager {
 
                                                 if (espNode.isOnline() != nodeStatus) {
                                                     espNode.setOnline(nodeStatus);
-//                                                    EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                                                 }
                                             } else {
                                                 Log.e(TAG, "Connectivity object is null");
@@ -615,45 +624,54 @@ public class ApiManager {
                             }
 
                             espApp.scheduleMap = scheduleMap;
-                            Iterator<Map.Entry<String, EspNode>> itr = espApp.nodeMap.entrySet().iterator();
+                            String nextId = jsonObject.optString(AppConstants.KEY_NEXT_ID);
+                            Log.d(TAG, "Start next id : " + nextId);
 
-                            // iterate and remove items simultaneously
-                            while (itr.hasNext()) {
+                            if (!TextUtils.isEmpty(nextId)) {
+                                getNodesFromCloud(nextId, listener);
+                            } else {
+                                Iterator<Map.Entry<String, EspNode>> itr = espApp.nodeMap.entrySet().iterator();
 
-                                Map.Entry<String, EspNode> entry = itr.next();
-                                String key = entry.getKey();
+                                // iterate and remove items simultaneously
+                                while (itr.hasNext()) {
 
-                                if (!nodeIds.contains(key)) {
-                                    itr.remove();
+                                    Map.Entry<String, EspNode> entry = itr.next();
+                                    String key = entry.getKey();
+
+                                    if (!nodeIds.contains(key)) {
+                                        itr.remove();
+                                    }
                                 }
-                            }
 
-                            Iterator<Map.Entry<String, Schedule>> schItr = espApp.scheduleMap.entrySet().iterator();
+                                Iterator<Map.Entry<String, Schedule>> schItr = espApp.scheduleMap.entrySet().iterator();
 
-                            // iterate and remove items simultaneously
-                            while (schItr.hasNext()) {
+                                // iterate and remove items simultaneously
+                                while (schItr.hasNext()) {
 
-                                Map.Entry<String, Schedule> entry = schItr.next();
-                                String key = entry.getKey();
+                                    Map.Entry<String, Schedule> entry = schItr.next();
+                                    String key = entry.getKey();
 
-                                if (!scheduleIds.contains(key)) {
-                                    schItr.remove();
-                                    Log.e(TAG, "Remove schedule for key : " + key + " and Size : " + espApp.scheduleMap.size());
+                                    if (!scheduleIds.contains(key)) {
+                                        schItr.remove();
+                                        Log.e(TAG, "Remove schedule for key : " + key + " and Size : " + espApp.scheduleMap.size());
+                                    }
                                 }
-                            }
 
-                            listener.onSuccess(null);
+                                if (!BuildConfig.isNodeGroupingSupported) {
+                                    isGetNodesRunning = false;
+                                    espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_SUCCESS);
+                                }
+                                listener.onSuccess(null);
+                            }
 
                         } else {
                             Log.e(TAG, "Response received : null");
+                            isGetNodesRunning = false;
+                            espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
                             listener.onFailure(new RuntimeException("Failed to get User device mapping"));
                         }
 
                     } else {
-
-                        nodeIds.clear();
-                        scheduleIds.clear();
-
                         String jsonErrResponse = response.errorBody().string();
                         Log.e(TAG, "Error Response : " + jsonErrResponse);
 
@@ -661,6 +679,8 @@ public class ApiManager {
 
                             JSONObject jsonObject = new JSONObject(jsonErrResponse);
                             String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+                            isGetNodesRunning = false;
+                            espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
 
                             if (!TextUtils.isEmpty(err)) {
                                 listener.onFailure(new CloudException(err));
@@ -673,9 +693,13 @@ public class ApiManager {
                         }
                     }
                 } catch (JSONException e) {
+                    isGetNodesRunning = false;
+                    espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
                     e.printStackTrace();
                     listener.onFailure(e);
                 } catch (IOException e) {
+                    isGetNodesRunning = false;
+                    espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
                     e.printStackTrace();
                     listener.onFailure(e);
                 }
@@ -683,9 +707,8 @@ public class ApiManager {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-
-                nodeIds.clear();
-                scheduleIds.clear();
+                isGetNodesRunning = false;
+                espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
                 t.printStackTrace();
                 listener.onFailure(new Exception(t));
             }
@@ -716,7 +739,6 @@ public class ApiManager {
                             Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
                             JSONArray nodeJsonArray = jsonObject.optJSONArray(AppConstants.KEY_NODE_DETAILS);
-                            nodeIds.clear();
 
                             if (nodeJsonArray != null) {
 
@@ -729,7 +751,6 @@ public class ApiManager {
                                         // Node ID
                                         String nodeId = nodeJson.optString(AppConstants.KEY_ID);
                                         Log.d(TAG, "Node id : " + nodeId);
-                                        nodeIds.add(nodeId);
                                         EspNode espNode;
 
                                         if (espApp.nodeMap.get(nodeId) != null) {
@@ -756,7 +777,7 @@ public class ApiManager {
                                         if (paramsJson != null) {
                                             JsonDataParser.setAllParams(espApp, espNode, paramsJson);
                                             espNode.setParamData(paramsJson.toString());
-                                            espDatabase.getNodeDao().update(espNode);
+                                            espDatabase.getNodeDao().insertOrUpdate(espNode);
                                         }
 
                                         // Node Status
@@ -1091,25 +1112,27 @@ public class ApiManager {
                                 ArrayList<Device> devices = node.getDevices();
 
                                 // Node Params
-                                for (int i = 0; i < devices.size(); i++) {
+                                if (devices != null) {
+                                    for (int i = 0; i < devices.size(); i++) {
 
-                                    ArrayList<Param> params = devices.get(i).getParams();
-                                    String deviceName = devices.get(i).getDeviceName();
-                                    JSONObject deviceJson = jsonObject.optJSONObject(deviceName);
+                                        ArrayList<Param> params = devices.get(i).getParams();
+                                        String deviceName = devices.get(i).getDeviceName();
+                                        JSONObject deviceJson = jsonObject.optJSONObject(deviceName);
 
-                                    if (deviceJson != null) {
+                                        if (deviceJson != null) {
 
-                                        for (int j = 0; j < params.size(); j++) {
+                                            for (int j = 0; j < params.size(); j++) {
 
-                                            Param param = params.get(j);
-                                            String key = param.getName();
+                                                Param param = params.get(j);
+                                                String key = param.getName();
 
-                                            if (deviceJson.has(key)) {
-                                                JsonDataParser.setDeviceParamValue(deviceJson, devices.get(i), param);
+                                                if (deviceJson.has(key)) {
+                                                    JsonDataParser.setDeviceParamValue(deviceJson, devices.get(i), param);
+                                                }
                                             }
+                                        } else {
+                                            Log.e(TAG, "Device JSON is null");
                                         }
-                                    } else {
-                                        Log.e(TAG, "Device JSON is null");
                                     }
                                 }
 
@@ -1496,17 +1519,14 @@ public class ApiManager {
                                 requestIds.remove(nodeId);
 
                                 // Send event for update UI
-                                if (requestIds.size() == 0) {
-                                    EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_ADDED));
-                                }
+                                EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_ADDED));
+
                             } else if (!TextUtils.isEmpty(reqStatus) && reqStatus.equals(AppConstants.KEY_REQ_TIMEDOUT)) {
 
                                 requestIds.remove(nodeId);
 
                                 // Send event for update UI
-                                if (requestIds.size() == 0) {
-                                    EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_ADD_DEVICE_TIME_OUT));
-                                }
+                                EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_ADD_DEVICE_TIME_OUT));
                             }
 
                         } catch (IOException e) {
@@ -2039,7 +2059,10 @@ public class ApiManager {
                                 }
                             }
                         }
-
+                        if (isGetNodesRunning) {
+                            isGetNodesRunning = false;
+                            espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_SUCCESS);
+                        }
                         listener.onSuccess(null);
 
                     } else {
@@ -2051,6 +2074,10 @@ public class ApiManager {
 
                             JSONObject jsonObject = new JSONObject(jsonErrResponse);
                             String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+                            if (isGetNodesRunning) {
+                                isGetNodesRunning = false;
+                                espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
+                            }
 
                             if (!TextUtils.isEmpty(err)) {
                                 listener.onFailure(new CloudException(err));
@@ -2059,10 +2086,18 @@ public class ApiManager {
                             }
 
                         } else {
+                            if (isGetNodesRunning) {
+                                isGetNodesRunning = false;
+                                espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
+                            }
                             listener.onFailure(new RuntimeException("Failed to get user groups"));
                         }
                     }
                 } catch (Exception e) {
+                    if (isGetNodesRunning) {
+                        isGetNodesRunning = false;
+                        espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
+                    }
                     e.printStackTrace();
                     listener.onFailure(new RuntimeException("Failed to get user groups"));
                 }
@@ -2070,6 +2105,10 @@ public class ApiManager {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
+                if (isGetNodesRunning) {
+                    isGetNodesRunning = false;
+                    espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
+                }
                 t.printStackTrace();
                 listener.onFailure(new RuntimeException("Failed to get user groups"));
             }
@@ -2309,10 +2348,12 @@ public class ApiManager {
         ArrayList<Device> devices = espApp.nodeMap.get(nodeId).getDevices();
         JsonArray devicesJsonArr = new JsonArray();
 
-        for (int i = 0; i < devices.size(); i++) {
-            JsonObject deviceJson = new JsonObject();
-            deviceJson.addProperty(AppConstants.KEY_NAME, devices.get(i).getUserVisibleName());
-            devicesJsonArr.add(deviceJson);
+        if (devices != null) {
+            for (int i = 0; i < devices.size(); i++) {
+                JsonObject deviceJson = new JsonObject();
+                deviceJson.addProperty(AppConstants.KEY_NAME, devices.get(i).getUserVisibleName());
+                devicesJsonArr.add(deviceJson);
+            }
         }
 
         JsonObject metadataJson = new JsonObject();

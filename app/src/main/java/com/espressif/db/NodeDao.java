@@ -17,8 +17,8 @@ package com.espressif.db;
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
-import androidx.room.Update;
 
 import com.espressif.AppConstants;
 import com.espressif.ui.models.EspNode;
@@ -32,20 +32,12 @@ public interface NodeDao {
     List<EspNode> getNodesFromStorage();
 
     /**
-     * Insert node in the database.
+     * Update node if it exist in database, insert node otherwise.
      *
-     * @param node Node to be inserted.
+     * @param node Node to be inserted / updated.
      */
-    @Insert
-    void insert(EspNode node);
-
-    /**
-     * Update node in the database.
-     *
-     * @param node Node to be updated.
-     */
-    @Update
-    void update(EspNode node);
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertOrUpdate(EspNode node);
 
     /**
      * Delete the node from database.
