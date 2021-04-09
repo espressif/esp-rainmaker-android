@@ -26,7 +26,6 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -40,6 +39,7 @@ import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.UserProfileAdapter;
 import com.espressif.ui.user_module.AppHelper;
 import com.espressif.ui.user_module.ChangePasswordActivity;
+import com.google.android.material.card.MaterialCardView;
 
 import java.util.ArrayList;
 
@@ -83,7 +83,7 @@ public class UserProfileActivity extends AppCompatActivity {
 
         RecyclerView userInfoView = findViewById(R.id.rv_user_info);
         RecyclerView termsInfoView = findViewById(R.id.rv_terms);
-        CardView logoutView = findViewById(R.id.card_view_logout);
+        MaterialCardView logoutView = findViewById(R.id.card_view_logout);
         tvAppVersion = findViewById(R.id.tv_app_version);
 
         String version = "";

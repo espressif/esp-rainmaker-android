@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.SimpleItemAnimator;
 
+import com.espressif.AppConstants;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.ScheduleActionAdapter;
 import com.espressif.ui.models.Device;
@@ -46,8 +47,8 @@ public class ScheduleActionsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_actions);
 
-        ArrayList<Device> receivedDevices = getIntent().getParcelableArrayListExtra("devices");
-        ArrayList<Device> selectedDevice = getIntent().getParcelableArrayListExtra("selected_devices");
+        ArrayList<Device> receivedDevices = getIntent().getParcelableArrayListExtra(AppConstants.KEY_DEVICES);
+        ArrayList<Device> selectedDevice = getIntent().getParcelableArrayListExtra(AppConstants.KEY_SELECTED_DEVICES);
 
         devices = new ArrayList<>();
 
@@ -132,7 +133,7 @@ public class ScheduleActionsActivity extends AppCompatActivity {
                 }
             }
             Intent intent = getIntent();
-            intent.putParcelableArrayListExtra("actions", devices);
+            intent.putParcelableArrayListExtra(AppConstants.KEY_ACTIONS, devices);
             setResult(RESULT_OK, intent);
             finish();
         }

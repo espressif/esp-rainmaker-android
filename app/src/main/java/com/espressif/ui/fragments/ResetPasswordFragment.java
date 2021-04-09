@@ -23,12 +23,12 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import androidx.cardview.widget.CardView;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.fragment.app.Fragment;
 
 import com.espressif.rainmaker.R;
 import com.espressif.ui.user_module.ForgotPasswordActivity;
+import com.google.android.material.card.MaterialCardView;
 
 public class ResetPasswordFragment extends Fragment {
 
@@ -36,7 +36,7 @@ public class ResetPasswordFragment extends Fragment {
     private EditText etPassword;
     private EditText etConfirmPassword;
     private EditText etVerificationCode;
-    private CardView btnSetPassword;
+    private MaterialCardView btnSetPassword;
     private TextView txtSetPasswordBtn;
     private ImageView arrowImage;
     private ContentLoadingProgressBar progressBar;

@@ -18,6 +18,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
@@ -26,10 +27,10 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.espressif.AppConstants;
+import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.provisioning.DeviceConnectionEvent;
@@ -38,13 +39,20 @@ import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.ProvisionListener;
 import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.models.EspNode;
+import com.espressif.ui.models.Param;
+import com.espressif.ui.models.Service;
 import com.espressif.ui.models.UpdateEvent;
+import com.google.android.material.card.MaterialCardView;
+import com.google.gson.JsonObject;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.util.ArrayList;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import rainmaker.EspRmakerUserMapping;
@@ -54,13 +62,14 @@ public class ProvisionActivity extends AppCompatActivity {
     private static final String TAG = ProvisionActivity.class.getSimpleName();
 
     private static final long ADD_DEVICE_REQ_TIME = 5000;
+    private static final long NODE_STATUS_REQ_TIME = 35000;
 
     private TextView tvTitle, tvBack, tvCancel;
-    private ImageView tick1, tick2, tick3, tick4;
-    private ContentLoadingProgressBar progress1, progress2, progress3, progress4;
-    private TextView tvErrAtStep1, tvErrAtStep2, tvErrAtStep3, tvErrAtStep4, tvProvError;
+    private ImageView tick1, tick2, tick3, tick4, tick5;
+    private ContentLoadingProgressBar progress1, progress2, progress3, progress4, progress5;
+    private TextView tvErrAtStep1, tvErrAtStep2, tvErrAtStep3, tvErrAtStep4, tvErrAtStep5, tvProvError;
 
-    private CardView btnOk;
+    private MaterialCardView btnOk;
     private TextView txtOkBtn;
 
     private int addDeviceReqCount = 0;
@@ -114,9 +123,7 @@ public class ProvisionActivity extends AppCompatActivity {
         switch (event.getEventType()) {
 
             case EVENT_DEVICE_ADDED:
-                tick4.setImageResource(R.drawable.ic_checkbox_on);
-                tick4.setVisibility(View.VISIBLE);
-                progress4.setVisibility(View.GONE);
+                doStep5();
                 break;
 
             case EVENT_ADD_DEVICE_TIME_OUT:
@@ -165,16 +172,19 @@ public class ProvisionActivity extends AppCompatActivity {
         tick2 = findViewById(R.id.iv_tick_2);
         tick3 = findViewById(R.id.iv_tick_3);
         tick4 = findViewById(R.id.iv_tick_4);
+        tick5 = findViewById(R.id.iv_tick_5);
 
         progress1 = findViewById(R.id.prov_progress_1);
         progress2 = findViewById(R.id.prov_progress_2);
         progress3 = findViewById(R.id.prov_progress_3);
         progress4 = findViewById(R.id.prov_progress_4);
+        progress5 = findViewById(R.id.prov_progress_5);
 
         tvErrAtStep1 = findViewById(R.id.tv_prov_error_1);
         tvErrAtStep2 = findViewById(R.id.tv_prov_error_2);
         tvErrAtStep3 = findViewById(R.id.tv_prov_error_3);
         tvErrAtStep4 = findViewById(R.id.tv_prov_error_4);
+        tvErrAtStep5 = findViewById(R.id.tv_prov_error_5);
         tvProvError = findViewById(R.id.tv_prov_error);
 
         tvTitle.setText(R.string.title_activity_provisioning);
@@ -230,6 +240,32 @@ public class ProvisionActivity extends AppCompatActivity {
         progress3.setVisibility(View.GONE);
         tick4.setVisibility(View.GONE);
         progress4.setVisibility(View.VISIBLE);
+    }
+
+    private void doStep5() {
+
+        Log.d(TAG, "================= Do step 5 =================");
+        tick4.setImageResource(R.drawable.ic_checkbox_on);
+        tick4.setVisibility(View.VISIBLE);
+        progress4.setVisibility(View.GONE);
+        tick5.setVisibility(View.GONE);
+        progress5.setVisibility(View.VISIBLE);
+        handler.postDelayed(nodeStatusReqFailed, NODE_STATUS_REQ_TIME);
+
+        apiManager.getNodes(new ApiResponseListener() {
+
+            @Override
+            public void onSuccess(Bundle data) {
+                Log.e(TAG, "Get nodes - success");
+                handler.postDelayed(getNodeStatusTask, 1000);
+            }
+
+            @Override
+            public void onFailure(Exception exception) {
+                Log.e(TAG, "Get nodes - failure");
+                handler.postDelayed(getNodeStatusTask, 1000);
+            }
+        });
     }
 
     private void provision() {
@@ -520,6 +556,121 @@ public class ProvisionActivity extends AppCompatActivity {
         }
     };
 
+    private Runnable getNodeStatusTask = new Runnable() {
+
+        @Override
+        public void run() {
+
+            if (isFinishing()) {
+                return;
+            }
+            apiManager.getNodeStatus(receivedNodeId, new ApiResponseListener() {
+
+                @Override
+                public void onSuccess(Bundle data) {
+
+                    runOnUiThread(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            EspApplication espApp = (EspApplication) getApplicationContext();
+                            EspNode espNode = espApp.nodeMap.get(receivedNodeId);
+                            if (espNode != null && espNode.isOnline()) {
+
+                                // Send time zone to device.
+                                ArrayList<Service> services = espNode.getServices();
+                                boolean isTimeZoneServiceAvailable = false;
+                                String paramName = "";
+
+                                for (int i = 0; i < services.size(); i++) {
+
+                                    Service s = services.get(i);
+                                    if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_TIME)) {
+
+                                        ArrayList<Param> timeParams = s.getParams();
+                                        for (int index = 0; index < timeParams.size(); index++) {
+                                            if (AppConstants.PARAM_TYPE_TZ.equals(timeParams.get(index).getParamType())) {
+                                                isTimeZoneServiceAvailable = true;
+                                                paramName = timeParams.get(index).getName();
+                                                break;
+                                            }
+                                        }
+                                        if (isTimeZoneServiceAvailable) {
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if (isTimeZoneServiceAvailable) {
+
+                                    Log.e(TAG, "Time zone service is available");
+                                    TimeZone tz = TimeZone.getDefault();
+                                    String timeZoneId = tz.getID();
+                                    Log.e(TAG, "Time zone id : " + timeZoneId);
+
+                                    JsonObject body = new JsonObject();
+                                    JsonObject jsonParam = new JsonObject();
+                                    jsonParam.addProperty(paramName, timeZoneId);
+                                    body.add(AppConstants.KEY_TIME, jsonParam);
+                                    apiManager.updateParamValue(espNode.getNodeId(), body, new ApiResponseListener() {
+
+                                        @Override
+                                        public void onSuccess(Bundle data) {
+                                            tick5.setImageResource(R.drawable.ic_checkbox_on);
+                                            tick5.setVisibility(View.VISIBLE);
+                                            progress5.setVisibility(View.GONE);
+                                            handler.removeCallbacks(nodeStatusReqFailed);
+                                        }
+
+                                        @Override
+                                        public void onFailure(Exception exception) {
+                                            Log.e(TAG, "Failed to send time zone value");
+                                            handler.removeCallbacks(getNodeStatusTask);
+                                            tick5.setImageResource(R.drawable.ic_alert);
+                                            tick5.setVisibility(View.VISIBLE);
+                                            progress5.setVisibility(View.GONE);
+                                        }
+                                    });
+                                } else {
+                                    Log.e(TAG, "Time zone service is not available");
+                                    tick5.setImageResource(R.drawable.ic_checkbox_on);
+                                    tick5.setVisibility(View.VISIBLE);
+                                    progress5.setVisibility(View.GONE);
+                                    handler.removeCallbacks(nodeStatusReqFailed);
+                                }
+                            } else {
+                                handler.removeCallbacks(getNodeStatusTask);
+                                handler.postDelayed(getNodeStatusTask, 2000);
+                            }
+                        }
+                    });
+                }
+
+                @Override
+                public void onFailure(Exception exception) {
+                    handler.removeCallbacks(getNodeStatusTask);
+                    handler.postDelayed(getNodeStatusTask, 2000);
+                }
+            });
+        }
+    };
+
+    private Runnable nodeStatusReqFailed = new Runnable() {
+
+        @Override
+        public void run() {
+
+            if (isFinishing()) {
+                return;
+            }
+            Log.d(TAG, "Stop node status polling. Timeout");
+            handler.removeCallbacks(getNodeStatusTask);
+            tick5.setImageResource(R.drawable.ic_alert);
+            tick5.setVisibility(View.VISIBLE);
+            progress5.setVisibility(View.GONE);
+        }
+    };
+
     private void showLoading() {
 
         btnOk.setEnabled(false);
@@ -534,7 +685,7 @@ public class ProvisionActivity extends AppCompatActivity {
 
     private void showAlertForDeviceDisconnected() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(false);
         builder.setTitle(R.string.error_title);
         builder.setMessage(R.string.dialog_msg_ble_device_disconnection);

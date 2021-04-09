@@ -186,7 +186,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         myViewHolder.paletteBar.setColor((int) param.getValue());
         myViewHolder.paletteBar.setThumbCircleRadius(17);
         myViewHolder.paletteBar.setTrackMarkHeight(10);
-        if (param.getProperties().contains("write")) {
+        if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
             if (((EspDeviceActivity) context).isNodeOnline()) {
 
@@ -256,7 +256,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                 myViewHolder.intSlider.setProgress((int) sliderValue);
             }
 
-            if (param.getProperties().contains("write")) {
+            if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
                 if (((EspDeviceActivity) context).isNodeOnline()) {
 
@@ -335,7 +335,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                 myViewHolder.floatSlider.setProgress((float) sliderValue);
             }
 
-            if (param.getProperties().contains("write")) {
+            if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
                 if (((EspDeviceActivity) context).isNodeOnline()) {
 
@@ -414,7 +414,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
             myViewHolder.tvSwitchStatus.setText(R.string.text_off);
         }
 
-        if (param.getProperties().contains("write")) {
+        if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
             myViewHolder.toggleSwitch.setVisibility(View.VISIBLE);
             myViewHolder.toggleSwitch.setOnCheckedChangeListener(null);
@@ -481,7 +481,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         myViewHolder.tvLabelName.setText(param.getName());
         myViewHolder.tvLabelValue.setText(param.getLabelValue());
 
-        if (param.getProperties().contains("write") && ((EspDeviceActivity) context).isNodeOnline()) {
+        if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE) && ((EspDeviceActivity) context).isNodeOnline()) {
 
             myViewHolder.btnEdit.setVisibility(View.VISIBLE);
 
@@ -618,7 +618,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
             }
         }
 
-        if (param.getProperties().contains("write") && ((EspDeviceActivity) context).isNodeOnline()) {
+        if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE) && ((EspDeviceActivity) context).isNodeOnline()) {
 
             myViewHolder.spinner.setSpinnerEventsListener(new EspDropDown.OnSpinnerEventsListener() {
 
@@ -721,7 +721,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
     private void askForNewValue(final MyViewHolder myViewHolder, final Param param, final int position) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.AlertDialogTheme);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(context);
         LayoutInflater inflater = context.getLayoutInflater();
         final View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
         builder.setView(dialogView);

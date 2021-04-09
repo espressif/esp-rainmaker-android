@@ -67,6 +67,9 @@
     <string name="error_schedule_name_empty">Schedule name cannot be empty</string>
     <string name="error_invalid_schedule_name">Please enter schedule name</string>
     <string name="error_device_type_not_supported">Device may not be supported.</string>
+    <string name="error_schedule_action">Please select action for schedule</string>
+    <string name="error_schedule_add">Failed to add schedule for few devices</string>
+    <string name="error_schedule_remove">Failed to remove schedule for device</string>
 
     <!--Screen titles-->
     <string name="title_activity_settings">Settings</string>
@@ -104,6 +107,7 @@
     <string name="tab_sign_up">SignUp</string>
     <string name="tab_devices">Devices</string>
     <string name="tab_schedules">Schedules</string>
+    <string name="tab_user">User</string>
 
     <!--Hint texts-->
     <string name="hint_email">Email</string>
@@ -240,15 +244,26 @@
     <string name="not_set">Not set</string>
     <string name="msg_fetch_data">Fetching data from cloud</string>
     <string name="msg_no_internet">No internet connection</string>
+    <string name="schedule_actions">Actions</string>
+    <string name="msg_schedule_added">Schedule added</string>
+    <string name="msg_schedule_updated">Schedule updated</string>
 
     <string name="prov_step_1">Sending Wi-Fi credentials</string>
     <string name="prov_step_2">Confirming Wi-Fi connection</string>
     <string name="prov_step_3">Configuring User-Node association</string>
     <string name="prov_step_4">Confirming User-Node association</string>
+    <string name="prov_step_5">Setting up the Node</string>
     <string name="error_prov_step_1">Failed to associate device</string>
     <string name="error_prov_step_2">Failed to send Wi-Fi credentials</string>
     <string name="error_prov_step_3">Failed to configure node association</string>
     <string name="error_prov_step_4">Failed to confirm node association</string>
+    <string name="error_prov_step_5">Failed to setup node</string>
+
+    <string name="schedule_on_day">On</string>
+    <string name="schedule_once">Once</string>
+    <string name="schedule_daily">Daily</string>
+    <string name="schedule_weekends">On Weekends</string>
+    <string name="schedule_weekdays">On Weekdays</string>
 
     <string name="day_1">MON</string>
     <string name="day_2">TUE</string>
@@ -266,6 +281,11 @@
         <item>Wed</item>
         <item>Tue</item>
         <item>Mon</item>
+    </string-array>
+
+    <string-array name="prov_transport_types">
+        <item>BLE</item>
+        <item>SoftAP</item>
     </string-array>
 
     <item name="position" type="id" />

@@ -24,7 +24,6 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -38,6 +37,7 @@ import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.NodeDetailsAdapter;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
+import com.google.android.material.card.MaterialCardView;
 
 import java.util.ArrayList;
 
@@ -51,7 +51,7 @@ public class NodeDetailsActivity extends AppCompatActivity {
     private ArrayList<String> nodeInfoValueList;
 
     private TextView tvTitle, tvBack, tvCancel;
-    private CardView btnRemoveDevice;
+    private MaterialCardView btnRemoveDevice;
     private TextView txtRemoveDeviceBtn;
     private ImageView removeDeviceImage;
     private RecyclerView nodeInfoRecyclerView;
@@ -175,7 +175,7 @@ public class NodeDetailsActivity extends AppCompatActivity {
 
     private void confirmForRemoveNode() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(R.string.dialog_msg_delete_node);
 
         // Set up the buttons

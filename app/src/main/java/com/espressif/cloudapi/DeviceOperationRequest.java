@@ -14,17 +14,18 @@
 
 package com.espressif.cloudapi;
 
+import com.espressif.AppConstants;
 import com.google.gson.annotations.SerializedName;
 
 public class DeviceOperationRequest {
 
-    @SerializedName("node_id")
+    @SerializedName(AppConstants.KEY_NODE_ID)
     private String nodeId;
 
-    @SerializedName("secret_key")
+    @SerializedName(AppConstants.KEY_SECRET_KEY)
     private String secretKey;
 
-    @SerializedName("operation")
+    @SerializedName(AppConstants.KEY_OPERATION)
     private String operation;
 
     public String getNodeId() {

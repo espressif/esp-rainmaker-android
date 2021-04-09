@@ -14,6 +14,8 @@
 
 package com.espressif;
 
+import com.espressif.rainmaker.BuildConfig;
+
 public class AppConstants {
 
     public static final String SECURITY_0 = "Sec0";
@@ -23,26 +25,44 @@ public class AppConstants {
     public static final String TRANSPORT_BLE = "ble";
     public static final String TRANSPORT_BOTH = "both";
 
-    // End point names
+    // Device End point names
     public static final String HANDLER_RM_USER_MAPPING = "cloud_user_assoc";
     public static final String HANDLER_RM_CLAIM = "rmaker_claim";
 
-    // Keys used to pass data between activities and to store data in SharedPreference.
-    public static final String KEY_PROOF_OF_POSSESSION = "proof_of_possession";
-    public static final String KEY_DEVICE_NAME = "device_name";
-    public static final String KEY_ESP_DEVICE = "esp_device";
-    public static final String KEY_NODE_ID = "node_id";
-    public static final String KEY_EMAIL = "email";
-    public static final String KEY_ID_TOKEN = "id_token";
-    public static final String KEY_ACCESS_TOKEN = "access_token";
-    public static final String KEY_REFRESH_TOKEN = "refresh_token";
-    public static final String KEY_IS_OAUTH_LOGIN = "is_github_login";
-    public static final String KEY_ERROR_MSG = "err_msg";
-    public static final String KEY_SSID = "ssid";
-    public static final String KEY_PASSWORD = "password";
-    public static final String KEY_SECURITY_TYPE = "security_type";
-
     public static final String ESP_PREFERENCES = "Esp_Preferences";
+    public static final String ESP_DATABASE_NAME = "esp_db";
+    public static final String NODE_TABLE = "node_table";
+    public static final String MDNS_SERVICE_TYPE = "_esp_local_ctrl._tcp.";
+    public static final String LOCAL_CONTROL_PATH = "esp_local_ctrl/control";
+
+    public enum UpdateEventType {
+
+        EVENT_DEVICE_ADDED,
+        EVENT_DEVICE_REMOVED,
+        EVENT_ADD_DEVICE_TIME_OUT,
+        EVENT_DEVICE_STATUS_UPDATE
+    }
+
+    public static final String CURRENT_VERSION = "v1";
+    public static final String PATH_SEPARATOR = "/";
+    public static final String HEADER_AUTHORIZATION = "Authorization";
+
+    // Cloud API End point Urls
+    public static final String URL_SUPPORTED_VERSIONS = BuildConfig.BASE_URL + "/apiversions";
+    public static final String URL_OAUTH_LOGIN = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/login";
+    public static final String URL_USER_NODE_MAPPING = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/user/nodes/mapping";
+    public static final String URL_USER_NODES = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/user/nodes";
+    public static final String URL_USER_NODES_DETAILS = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/user/nodes?node_details=true";
+    public static final String URL_USER_NODE_STATUS = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/user/nodes/status";
+    public static final String URL_USER_NODES_PARAMS = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/user/nodes/params";
+    public static final String URL_CLAIM_INITIATE = BuildConfig.CLAIM_BASE_URL + "/claim/initiate";
+    public static final String URL_CLAIM_VERIFY = BuildConfig.CLAIM_BASE_URL + "/claim/verify";
 
     // UI Types of Device
     public static final String UI_TYPE_TOGGLE = "esp.ui.toggle";
@@ -60,29 +80,101 @@ public class AppConstants {
     public static final String ESP_DEVICE_FAN = "esp.device.fan";
     public static final String ESP_DEVICE_SENSOR = "esp.device.sensor";
     public static final String ESP_DEVICE_TEMP_SENSOR = "esp.device.temperature-sensor";
+    public static final String ESP_DEVICE_OUTLET = "esp.device.outlet";
 
     // Service Types
     public static final String SERVICE_TYPE_SCHEDULE = "esp.service.schedule";
+    public static final String SERVICE_TYPE_TIME = "esp.service.time";
 
     // Param Types
     public static final String PARAM_TYPE_NAME = "esp.param.name";
+    public static final String PARAM_TYPE_CCT = "esp.param.cct";
+    public static final String PARAM_TYPE_POWER = "esp.param.power";
     public static final String PARAM_TYPE_OUTPUT = "esp.param.output";
+    public static final String PARAM_TYPE_SATURATION = "esp.param.saturation";
     public static final String PARAM_TYPE_BRIGHTNESS = "esp.param.brightness";
     public static final String PARAM_TYPE_TEMPERATURE = "esp.param.temperature";
+    public static final String PARAM_TYPE_TZ = "esp.param.tz";
 
-    public static final String ESP_DATABASE_NAME = "esp_db";
-    public static final String NODE_TABLE = "node_table";
-    public static final String MDNS_SERVICE_TYPE = "_esp_local_ctrl._tcp.";
+    // Keys used to pass data between activities and to store data in SharedPreference.
+    public static final String KEY_DEVICE_NAME_PREFIX = "device_prefix";
+    public static final String KEY_PROOF_OF_POSSESSION = "proof_of_possession";
+    public static final String KEY_DEVICE_NAME = "device_name";
+    public static final String KEY_ESP_DEVICE = "esp_device";
+    public static final String KEY_NODE_ID = "node_id";
+    public static final String KEY_EMAIL = "email";
+    public static final String KEY_ID_TOKEN = "id_token";
+    public static final String KEY_ACCESS_TOKEN = "access_token";
+    public static final String KEY_REFRESH_TOKEN = "refresh_token";
+    public static final String KEY_IS_OAUTH_LOGIN = "is_github_login";
+    public static final String KEY_ERROR_MSG = "err_msg";
+    public static final String KEY_SSID = "ssid";
+    public static final String KEY_PASSWORD = "password";
+    public static final String KEY_SECURITY_TYPE = "security_type";
 
-    public enum UpdateEventType {
+    // Keys used in JSON responses and used to pass data between activities.
+    public static final String KEY_NAME = "name";
+    public static final String KEY_TYPE = "type";
+    public static final String KEY_DATA_TYPE = "data_type";
+    public static final String KEY_UI_TYPE = "ui_type";
 
-        EVENT_DEVICE_ADDED,
-        EVENT_DEVICE_REMOVED,
-        EVENT_ADD_DEVICE_TIME_OUT,
-        EVENT_DEVICE_STATUS_UPDATE
-    }
+    public static final String KEY_NODE_DETAILS = "node_details";
+    public static final String KEY_DEVICES = "devices";
+    public static final String KEY_PARAMS = "params";
+    public static final String KEY_PROPERTIES = "properties";
+    public static final String KEY_ATTRIBUTES = "attributes";
+    public static final String KEY_SERVICES = "services";
+    public static final String KEY_SCHEDULES = "Schedules";
+    public static final String KEY_TRIGGERS = "triggers";
+    public static final String KEY_BOUNDS = "bounds";
+    public static final String KEY_SELECTED_DEVICES = "selected_devices";
 
-    public static final String CURRENT_VERSION = "v1";
-    public static final String PATH_SEPARATOR = "/";
-    public static final String HEADER_AUTHORIZATION = "Authorization";
+    public static final String KEY_SUPPORTED_VERSIONS = "supported_versions";
+    public static final String KEY_ADDITIONAL_INFO = "additional_info";
+    public static final String KEY_CONFIG = "config";
+    public static final String KEY_CONFIG_VERSION = "config_version";
+    public static final String KEY_FW_VERSION = "fw_version";
+    public static final String KEY_INFO = "info";
+    public static final String KEY_PRIMARY = "primary";
+    public static final String KEY_MAX = "max";
+    public static final String KEY_MIN = "min";
+    public static final String KEY_STEP = "step";
+    public static final String KEY_VALID_STRS = "valid_strs";
+    public static final String KEY_VALUE = "value";
+    public static final String KEY_SCHEDULE = "Schedule";
+    public static final String KEY_ACTION = "action";
+    public static final String KEY_ACTIONS = "actions";
+    public static final String KEY_DAYS = "d";
+    public static final String KEY_MINUTES = "m";
+    public static final String KEY_ENABLED = "enabled";
+    public static final String KEY_ID = "id";
+    public static final String KEY_STATUS = "status";
+    public static final String KEY_TIME = "Time";
+    public static final String KEY_CONNECTIVITY = "connectivity";
+    public static final String KEY_CONNECTED = "connected";
+    public static final String KEY_TIMESTAMP = "timestamp";
+    public static final String KEY_DESCRIPTION = "description";
+    public static final String KEY_PROPERTY_WRITE = "write";
+    public static final String KEY_FAILURE_RESPONSE = "failure";
+    public static final String KEY_SECRET_KEY = "secret_key";
+    public static final String KEY_PROPERTY_COUNT = "property_count";
+    public static final String KEY_CLAIM_VERIFY_RESPONSE = "claim_verify_response";
+    public static final String KEY_CLAIM_INIT_RESPONSE = "claim_initiate_response";
+    public static final String KEY_REQ_ID = "request_id";
+    public static final String KEY_REQ_STATUS = "request_status";
+    public static final String KEY_REQ_CONFIRMED = "confirmed";
+    public static final String KEY_REQ_TIMEDOUT = "timedout";
+    public static final String KEY_USER_REQUEST = "user_request";
+
+    public static final String KEY_OPERATION = "operation";
+    public static final String KEY_OPERATION_ADD = "add";
+    public static final String KEY_OPERATION_EDIT = "edit";
+    public static final String KEY_OPERATION_REMOVE = "remove";
+    public static final String KEY_OPERATION_ENABLE = "enable";
+    public static final String KEY_OPERATION_DISABLE = "disable";
+
+    // Device capability
+    public static final String CAPABILITY_WIFI_SACN = "wifi_scan";
+    public static final String CAPABILITY_NO_POP = "no_pop";
+    public static final String CAPABILITY_CLAIM = "claim";
 }

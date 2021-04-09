@@ -129,7 +129,7 @@ public class JsonDataParser {
     public static EspNode setNodeConfig(EspNode espNode, JSONObject nodeConfigJson) {
 
         // Node ID
-        String nodeId = nodeConfigJson.optString("node_id");
+        String nodeId = nodeConfigJson.optString(AppConstants.KEY_NODE_ID);
 
         if (TextUtils.isEmpty(nodeId)) {
             return null;
@@ -140,20 +140,20 @@ public class JsonDataParser {
         }
 
         // Node Config
-        espNode.setConfigVersion(nodeConfigJson.optString("config_version"));
+        espNode.setConfigVersion(nodeConfigJson.optString(AppConstants.KEY_CONFIG_VERSION));
 
-        JSONObject infoObj = nodeConfigJson.optJSONObject("info");
+        JSONObject infoObj = nodeConfigJson.optJSONObject(AppConstants.KEY_INFO);
 
         if (infoObj != null) {
-            espNode.setNodeName(infoObj.optString("name"));
-            espNode.setFwVersion(infoObj.optString("fw_version"));
-            espNode.setNodeType(infoObj.optString("type"));
+            espNode.setNodeName(infoObj.optString(AppConstants.KEY_NAME));
+            espNode.setFwVersion(infoObj.optString(AppConstants.KEY_FW_VERSION));
+            espNode.setNodeType(infoObj.optString(AppConstants.KEY_TYPE));
         } else {
             Log.d(TAG, "Info object is null");
         }
 
         // Devices
-        JSONArray devicesJsonArray = nodeConfigJson.optJSONArray("devices");
+        JSONArray devicesJsonArray = nodeConfigJson.optJSONArray(AppConstants.KEY_DEVICES);
         ArrayList<Device> devices = new ArrayList<>();
 
         if (devicesJsonArray != null) {
@@ -162,11 +162,11 @@ public class JsonDataParser {
 
                 JSONObject deviceObj = devicesJsonArray.optJSONObject(i);
                 Device device = new Device(nodeId);
-                device.setDeviceName(deviceObj.optString("name"));
-                device.setDeviceType(deviceObj.optString("type"));
-                device.setPrimaryParamName(deviceObj.optString("primary"));
+                device.setDeviceName(deviceObj.optString(AppConstants.KEY_NAME));
+                device.setDeviceType(deviceObj.optString(AppConstants.KEY_TYPE));
+                device.setPrimaryParamName(deviceObj.optString(AppConstants.KEY_PRIMARY));
 
-                JSONArray paramsJson = deviceObj.optJSONArray("params");
+                JSONArray paramsJson = deviceObj.optJSONArray(AppConstants.KEY_PARAMS);
                 ArrayList<Param> params = new ArrayList<>();
 
                 if (paramsJson != null) {
@@ -175,14 +175,14 @@ public class JsonDataParser {
 
                         JSONObject paraObj = paramsJson.optJSONObject(j);
                         Param param = new Param();
-                        param.setName(paraObj.optString("name"));
-                        param.setParamType(paraObj.optString("type"));
-                        param.setDataType(paraObj.optString("data_type"));
-                        param.setUiType(paraObj.optString("ui_type"));
+                        param.setName(paraObj.optString(AppConstants.KEY_NAME));
+                        param.setParamType(paraObj.optString(AppConstants.KEY_TYPE));
+                        param.setDataType(paraObj.optString(AppConstants.KEY_DATA_TYPE));
+                        param.setUiType(paraObj.optString(AppConstants.KEY_UI_TYPE));
                         param.setDynamicParam(true);
                         params.add(param);
 
-                        JSONArray propertiesJson = paraObj.optJSONArray("properties");
+                        JSONArray propertiesJson = paraObj.optJSONArray(AppConstants.KEY_PROPERTIES);
                         ArrayList<String> properties = new ArrayList<>();
 
                         if (propertiesJson != null) {
@@ -193,15 +193,15 @@ public class JsonDataParser {
                         }
                         param.setProperties(properties);
 
-                        JSONObject boundsJson = paraObj.optJSONObject("bounds");
+                        JSONObject boundsJson = paraObj.optJSONObject(AppConstants.KEY_BOUNDS);
 
                         if (boundsJson != null) {
-                            param.setMaxBounds(boundsJson.optInt("max"));
-                            param.setMinBounds(boundsJson.optInt("min"));
-                            param.setStepCount((float) boundsJson.optDouble("step", 0));
+                            param.setMaxBounds(boundsJson.optInt(AppConstants.KEY_MAX));
+                            param.setMinBounds(boundsJson.optInt(AppConstants.KEY_MIN));
+                            param.setStepCount((float) boundsJson.optDouble(AppConstants.KEY_STEP, 0));
                         }
 
-                        JSONArray validValuesJson = paraObj.optJSONArray("valid_strs");
+                        JSONArray validValuesJson = paraObj.optJSONArray(AppConstants.KEY_VALID_STRS);
                         ArrayList<String> validVals = new ArrayList<>();
 
                         if (validValuesJson != null) {
@@ -213,7 +213,7 @@ public class JsonDataParser {
                     }
                 }
 
-                JSONArray attributesJson = deviceObj.optJSONArray("attributes");
+                JSONArray attributesJson = deviceObj.optJSONArray(AppConstants.KEY_ATTRIBUTES);
 
                 if (attributesJson != null) {
 
@@ -221,9 +221,9 @@ public class JsonDataParser {
 
                         JSONObject attrObj = attributesJson.optJSONObject(j);
                         Param param = new Param();
-                        param.setName(attrObj.optString("name"));
-                        param.setDataType(attrObj.optString("data_type"));
-                        param.setLabelValue(attrObj.optString("value"));
+                        param.setName(attrObj.optString(AppConstants.KEY_NAME));
+                        param.setDataType(attrObj.optString(AppConstants.KEY_DATA_TYPE));
+                        param.setLabelValue(attrObj.optString(AppConstants.KEY_VALUE));
                         params.add(param);
                     }
                 }
@@ -235,7 +235,7 @@ public class JsonDataParser {
         espNode.setDevices(devices);
 
         // Services
-        JSONArray servicesJsonArray = nodeConfigJson.optJSONArray("services");
+        JSONArray servicesJsonArray = nodeConfigJson.optJSONArray(AppConstants.KEY_SERVICES);
         ArrayList<Service> services = new ArrayList<>();
 
         if (servicesJsonArray != null) {
@@ -244,10 +244,10 @@ public class JsonDataParser {
 
                 JSONObject serviceObj = servicesJsonArray.optJSONObject(i);
                 Service service = new Service(nodeId);
-                service.setName(serviceObj.optString("name"));
-                service.setType(serviceObj.optString("type"));
+                service.setName(serviceObj.optString(AppConstants.KEY_NAME));
+                service.setType(serviceObj.optString(AppConstants.KEY_TYPE));
 
-                JSONArray paramsJson = serviceObj.optJSONArray("params");
+                JSONArray paramsJson = serviceObj.optJSONArray(AppConstants.KEY_PARAMS);
                 ArrayList<Param> params = new ArrayList<>();
 
                 if (paramsJson != null) {
@@ -256,13 +256,13 @@ public class JsonDataParser {
 
                         JSONObject paraObj = paramsJson.optJSONObject(j);
                         Param param = new Param();
-                        param.setName(paraObj.optString("name"));
-                        param.setParamType(paraObj.optString("type"));
-                        param.setDataType(paraObj.optString("data_type"));
+                        param.setName(paraObj.optString(AppConstants.KEY_NAME));
+                        param.setParamType(paraObj.optString(AppConstants.KEY_TYPE));
+                        param.setDataType(paraObj.optString(AppConstants.KEY_DATA_TYPE));
                         param.setDynamicParam(true);
                         params.add(param);
 
-                        JSONArray propertiesJson = paraObj.optJSONArray("properties");
+                        JSONArray propertiesJson = paraObj.optJSONArray(AppConstants.KEY_PROPERTIES);
                         ArrayList<String> properties = new ArrayList<>();
 
                         if (propertiesJson != null) {
@@ -281,7 +281,7 @@ public class JsonDataParser {
         espNode.setServices(services);
 
         // Attributes
-        JSONArray nodeAttributesJson = infoObj.optJSONArray("attributes");
+        JSONArray nodeAttributesJson = infoObj.optJSONArray(AppConstants.KEY_ATTRIBUTES);
         ArrayList<Param> nodeAttributes = new ArrayList<>();
 
         if (nodeAttributesJson != null) {
@@ -290,15 +290,15 @@ public class JsonDataParser {
 
                 JSONObject attrObj = nodeAttributesJson.optJSONObject(j);
                 Param param = new Param();
-                param.setName(attrObj.optString("name"));
-                param.setLabelValue(attrObj.optString("value"));
+                param.setName(attrObj.optString(AppConstants.KEY_NAME));
+                param.setLabelValue(attrObj.optString(AppConstants.KEY_VALUE));
                 nodeAttributes.add(param);
             }
         }
         espNode.setAttributes(nodeAttributes);
 
         // Node Params values
-        JSONObject paramsJson = nodeConfigJson.optJSONObject("params");
+        JSONObject paramsJson = nodeConfigJson.optJSONObject(AppConstants.KEY_PARAMS);
         if (paramsJson != null) {
 
             for (int i = 0; i < devices.size(); i++) {
@@ -329,15 +329,15 @@ public class JsonDataParser {
         }
 
         // Node Status
-        JSONObject statusJson = nodeConfigJson.optJSONObject("status");
+        JSONObject statusJson = nodeConfigJson.optJSONObject(AppConstants.KEY_STATUS);
         if (statusJson != null) {
 
-            JSONObject connectivityObject = statusJson.optJSONObject("connectivity");
+            JSONObject connectivityObject = statusJson.optJSONObject(AppConstants.KEY_CONNECTIVITY);
 
             if (connectivityObject != null) {
 
-                boolean nodeStatus = connectivityObject.optBoolean("connected");
-                long timestamp = connectivityObject.optLong("timestamp");
+                boolean nodeStatus = connectivityObject.optBoolean(AppConstants.KEY_CONNECTED);
+                long timestamp = connectivityObject.optLong(AppConstants.KEY_TIMESTAMP);
                 espNode.setTimeStampOfStatus(timestamp);
 
                 if (espNode.isOnline() != nodeStatus) {
@@ -353,7 +353,7 @@ public class JsonDataParser {
     public static void setAllParams(EspApplication espAppContext, EspNode node, JSONObject paramsJson) {
 
         ArrayList<Device> devices = node.getDevices();
-        JSONObject scheduleJson = paramsJson.optJSONObject("Schedule");
+        JSONObject scheduleJson = paramsJson.optJSONObject(AppConstants.KEY_SCHEDULE);
         String nodeId = node.getNodeId();
 
         for (int i = 0; i < devices.size(); i++) {
@@ -385,7 +385,7 @@ public class JsonDataParser {
         // Schedules
         if (scheduleJson != null) {
 
-            JSONArray scheduleArrayJson = scheduleJson.optJSONArray("Schedules");
+            JSONArray scheduleArrayJson = scheduleJson.optJSONArray(AppConstants.KEY_SCHEDULES);
 
             if (scheduleArrayJson != null) {
 
@@ -397,22 +397,22 @@ public class JsonDataParser {
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
-                    String scheduleId = schJson.optString("id");
+                    String scheduleId = schJson.optString(AppConstants.KEY_ID);
                     String key = scheduleId;
 
                     if (!TextUtils.isEmpty(scheduleId)) {
 
-                        String name = schJson.optString("name");
-                        key = key + "_" + name + "_" + schJson.optBoolean("enabled");
+                        String name = schJson.optString(AppConstants.KEY_NAME);
+                        key = key + "_" + name + "_" + schJson.optBoolean(AppConstants.KEY_ENABLED);
 
                         HashMap<String, Integer> triggers = new HashMap<>();
-                        JSONArray triggerArray = schJson.optJSONArray("triggers");
+                        JSONArray triggerArray = schJson.optJSONArray(AppConstants.KEY_TRIGGERS);
                         for (int t = 0; t < triggerArray.length(); t++) {
                             JSONObject triggerJson = triggerArray.optJSONObject(t);
-                            int days = triggerJson.optInt("d");
-                            int mins = triggerJson.optInt("m");
-                            triggers.put("d", days);
-                            triggers.put("m", mins);
+                            int days = triggerJson.optInt(AppConstants.KEY_DAYS);
+                            int mins = triggerJson.optInt(AppConstants.KEY_MINUTES);
+                            triggers.put(AppConstants.KEY_DAYS, days);
+                            triggers.put(AppConstants.KEY_MINUTES, mins);
                             key = key + "_" + days + "_" + mins;
                         }
 
@@ -422,13 +422,13 @@ public class JsonDataParser {
                         }
 
                         schedule.setId(scheduleId);
-                        schedule.setName(schJson.optString("name"));
-                        schedule.setEnabled(schJson.optBoolean("enabled"));
+                        schedule.setName(schJson.optString(AppConstants.KEY_NAME));
+                        schedule.setEnabled(schJson.optBoolean(AppConstants.KEY_ENABLED));
                         schedule.setTriggers(triggers);
                         Log.d(TAG, "=============== Schedule : " + schedule.getName() + " ===============");
 
                         // Actions
-                        JSONObject actionsSchJson = schJson.optJSONObject("action");
+                        JSONObject actionsSchJson = schJson.optJSONObject(AppConstants.KEY_ACTION);
 
                         if (actionsSchJson != null) {
 
@@ -500,7 +500,7 @@ public class JsonDataParser {
                                                 itr.remove();
                                             } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
                                                 itr.remove();
-                                            } else if (!p.getProperties().contains("write")) {
+                                            } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
                                                 itr.remove();
                                             }
                                         }

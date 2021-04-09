@@ -211,7 +211,7 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         myViewHolder.paletteBar.setColor((int) param.getValue());
         myViewHolder.paletteBar.setThumbCircleRadius(12);
         myViewHolder.paletteBar.setTrackMarkHeight(6);
-        if (param.getProperties().contains("write")) {
+        if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
             myViewHolder.paletteBar.setEnabled(true);
             myViewHolder.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
@@ -490,7 +490,7 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
             }
         }
 
-        if (param.getProperties().contains("write")) {
+        if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
             myViewHolder.spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
 
@@ -531,7 +531,7 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
     private void askForNewValue(final MyViewHolder myViewHolder, final Param param, final int position) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.AlertDialogTheme);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(context);
         LayoutInflater inflater = context.getLayoutInflater();
         final View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
         builder.setView(dialogView);

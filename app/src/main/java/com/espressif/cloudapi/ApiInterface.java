@@ -59,7 +59,12 @@ public interface ApiInterface {
 
     // Get Node Details
     @GET
-    Call<ResponseBody> getNode(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query("node_id") String nodeId);
+    Call<ResponseBody> getNode(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query(AppConstants.KEY_NODE_ID) String nodeId);
+
+    // Get Node Status
+    @GET
+    Call<ResponseBody> getNodeStatus(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                     @Query(AppConstants.KEY_NODE_ID) String nodeId);
 
     // Add Node
     @PUT
@@ -68,19 +73,19 @@ public interface ApiInterface {
     // Get Add Node request status
     @GET
     Call<ResponseBody> getAddNodeRequestStatus(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
-                                               @Query("request_id") String requestId, @Query("user_request") boolean userReq);
+                                               @Query(AppConstants.KEY_REQ_ID) String requestId, @Query(AppConstants.KEY_USER_REQUEST) boolean userReq);
 
     // Get param values
     @GET
-    Call<ResponseBody> getParamValue(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query("nodeid") String nodeId);
+    Call<ResponseBody> getParamValue(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query(AppConstants.KEY_NODE_ID) String nodeId);
 
     // Update param value
     @PUT
-    Call<ResponseBody> updateParamValue(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query("nodeid") String nodeId, @Body JsonObject body);
+    Call<ResponseBody> updateParamValue(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query(AppConstants.KEY_NODE_ID) String nodeId, @Body JsonObject body);
 
     // Update schedules
     @PUT
-    Observable<ResponseBody> updateSchedules(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query("nodeid") String nodeId, @Body JsonObject body);
+    Observable<ResponseBody> updateSchedules(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query(AppConstants.KEY_NODE_ID) String nodeId, @Body JsonObject body);
 
     // Remove Node
     @PUT

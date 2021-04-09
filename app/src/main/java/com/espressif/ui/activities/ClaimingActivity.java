@@ -15,7 +15,6 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 
 import com.espressif.AppConstants;
 import com.espressif.cloudapi.ApiManager;
@@ -25,6 +24,7 @@ import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.rainmaker.R;
+import com.google.android.material.card.MaterialCardView;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.protobuf.ByteString;
@@ -44,7 +44,7 @@ public class ClaimingActivity extends AppCompatActivity {
 
     private TextView tvTitle, tvBack, tvCancel;
 
-    private CardView btnOk;
+    private MaterialCardView btnOk;
     private TextView txtOkBtn;
 
     private TextView tvClaimProgress, tvClaimError, tvClaimFailure, tvPleaseWait;
@@ -435,7 +435,7 @@ public class ClaimingActivity extends AppCompatActivity {
                     Log.e(TAG, "Certificate Sent to device successfully.");
                     ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
 
-                    if (deviceCaps.contains("wifi_scan")) {
+                    if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
                         goToWiFiScanActivity();
                     } else {
                         goToWiFiConfigActivity();
@@ -521,7 +521,7 @@ public class ClaimingActivity extends AppCompatActivity {
             public void onSuccess(Bundle data) {
 
                 if (data != null) {
-                    String res = data.getString("claim_initiate_response");
+                    String res = data.getString(AppConstants.KEY_CLAIM_INIT_RESPONSE);
                     Log.d(TAG, "API Response : " + res);
                     sendClaimInitRequest(res);
                 }
@@ -562,7 +562,7 @@ public class ClaimingActivity extends AppCompatActivity {
             public void onSuccess(Bundle data) {
 
                 if (data != null) {
-                    certificateData = data.getString("claim_verify_response");
+                    certificateData = data.getString(AppConstants.KEY_CLAIM_VERIFY_RESPONSE);
                     Log.e(TAG, "Data send to cloud for verify");
                     sendCertificateToDevice(0);
                 }
@@ -635,7 +635,7 @@ public class ClaimingActivity extends AppCompatActivity {
 
     private void showAlertForDeviceDisconnected() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(false);
         builder.setTitle(R.string.error_title);
         builder.setMessage(R.string.dialog_msg_ble_device_disconnection);

@@ -30,6 +30,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -46,6 +47,8 @@ import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.mdns.mDNSApiManager;
 import com.espressif.mdns.mDNSDevice;
 import com.espressif.mdns.mDNSManager;
+import com.espressif.provisioning.ESPConstants;
+import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.HomeScreenPagerAdapter;
@@ -464,8 +467,8 @@ public class EspMainActivity extends AppCompatActivity {
             @Override
             public void onSuccess(Bundle data) {
 
-                String updateMsg = data.getString("additional_info");
-                ArrayList<String> versions = data.getStringArrayList("supported_versions");
+                String updateMsg = data.getString(AppConstants.KEY_ADDITIONAL_INFO);
+                ArrayList<String> versions = data.getStringArrayList(AppConstants.KEY_SUPPORTED_VERSIONS);
 
                 if (!versions.contains(AppConstants.CURRENT_VERSION)) {
                     alertForForceUpdate(updateMsg);
@@ -561,8 +564,44 @@ public class EspMainActivity extends AppCompatActivity {
 
     private void goToAddDeviceActivity() {
 
-        Intent intent = new Intent(this, AddDeviceActivity.class);
-        startActivity(intent);
+        if (BuildConfig.isQRCodeSupported) {
+            Intent intent = new Intent(this, AddDeviceActivity.class);
+            startActivity(intent);
+        } else {
+
+            boolean isSec1 = true;
+            ESPProvisionManager provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
+
+            if (AppConstants.SECURITY_0.equalsIgnoreCase(BuildConfig.SECURITY)) {
+                isSec1 = false;
+            }
+
+            if (AppConstants.TRANSPORT_SOFTAP.equalsIgnoreCase(BuildConfig.TRANSPORT)) {
+
+                if (isSec1) {
+                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_1);
+                } else {
+                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_0);
+                }
+                goToWiFiProvisionLanding(isSec1);
+
+            } else if (AppConstants.TRANSPORT_BLE.equalsIgnoreCase(BuildConfig.TRANSPORT)) {
+
+                if (isSec1) {
+                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_1);
+                } else {
+                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_0);
+                }
+                goToBLEProvisionLanding(isSec1);
+
+            } else if (AppConstants.TRANSPORT_BOTH.equalsIgnoreCase(BuildConfig.TRANSPORT)) {
+
+                askForDeviceType(isSec1);
+
+            } else {
+                Toast.makeText(this, R.string.error_device_type_not_supported, Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     private void goToAddScheduleActivity() {
@@ -571,9 +610,69 @@ public class EspMainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    private void askForDeviceType(final boolean isSec1) {
+
+        final String[] deviceTypes = getResources().getStringArray(R.array.prov_transport_types);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setCancelable(true);
+        builder.setTitle(R.string.dialog_msg_device_selection);
+        final ESPProvisionManager provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
+
+        builder.setItems(deviceTypes, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int position) {
+
+                switch (position) {
+                    case 0:
+                        if (isSec1) {
+                            provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_1);
+                        } else {
+                            provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_0);
+                        }
+                        goToBLEProvisionLanding(isSec1);
+                        break;
+
+                    case 1:
+                        if (isSec1) {
+                            provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_1);
+                        } else {
+                            provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_0);
+                        }
+                        goToWiFiProvisionLanding(isSec1);
+                        break;
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.show();
+    }
+
+    private void goToBLEProvisionLanding(boolean isSec1) {
+
+        Intent intent = new Intent(getApplicationContext(), BLEProvisionLanding.class);
+        if (isSec1) {
+            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_1);
+        } else {
+            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_0);
+        }
+        startActivity(intent);
+    }
+
+    private void goToWiFiProvisionLanding(boolean isSec1) {
+
+        Intent intent = new Intent(getApplicationContext(), ProvisionLanding.class);
+        if (isSec1) {
+            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_1);
+        } else {
+            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_0);
+        }
+        startActivity(intent);
+    }
+
     private void alertForForceUpdate(String message) {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(false);
 
         builder.setTitle(R.string.dialog_title_new_version_available);
@@ -599,7 +698,7 @@ public class EspMainActivity extends AppCompatActivity {
 
     private void alertForNewVersion(String message) {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(true);
 
         builder.setTitle(R.string.dialog_title_new_version_available);
@@ -634,7 +733,7 @@ public class EspMainActivity extends AppCompatActivity {
 
     private void askForLocation() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(true);
         builder.setMessage(R.string.dialog_msg_for_gps);
 
@@ -693,28 +792,27 @@ public class EspMainActivity extends AppCompatActivity {
 
             Log.e(TAG, "deviceFound on local network");
             final String url = "http://" + dnsDevice.getIpAddr() + ":" + dnsDevice.getPort();
-            final String path = "esp_local_ctrl/control";
             final mDNSApiManager dnsMsgHelper = new mDNSApiManager(getApplicationContext());
 
-            dnsMsgHelper.getPropertyCount(url, path, new ApiResponseListener() {
+            dnsMsgHelper.getPropertyCount(url, AppConstants.LOCAL_CONTROL_PATH, new ApiResponseListener() {
 
                 @Override
                 public void onSuccess(Bundle data) {
 
                     if (data != null) {
 
-                        int count = data.getInt("property_count", 0);
+                        int count = data.getInt(AppConstants.KEY_PROPERTY_COUNT, 0);
                         dnsDevice.setPropertyCount(count);
 
-                        dnsMsgHelper.getPropertyValues(url, path, count, new ApiResponseListener() {
+                        dnsMsgHelper.getPropertyValues(url, AppConstants.LOCAL_CONTROL_PATH, count, new ApiResponseListener() {
 
                             @Override
                             public void onSuccess(Bundle data) {
 
                                 if (data != null) {
 
-                                    String configData = data.getString("config");
-                                    String paramsData = data.getString("params");
+                                    String configData = data.getString(AppConstants.KEY_CONFIG);
+                                    String paramsData = data.getString(AppConstants.KEY_PARAMS);
 
                                     Log.d(TAG, "Config data : " + configData);
                                     Log.d(TAG, "Params data : " + paramsData);

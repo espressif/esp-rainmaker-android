@@ -27,7 +27,6 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserCodeDeliveryDetails;
@@ -35,13 +34,14 @@ import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.GenericHa
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.VerificationHandler;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
+import com.google.android.material.card.MaterialCardView;
 
 public class SignUpConfirmActivity extends AppCompatActivity {
 
     private TextView tvConfMsg;
     private EditText etEmail;
     private EditText etConfCode;
-    private CardView btnConfirm;
+    private MaterialCardView btnConfirm;
     private TextView txtConfirmBtn;
     private ImageView arrowImage;
     private ContentLoadingProgressBar progressBar;
@@ -236,7 +236,7 @@ public class SignUpConfirmActivity extends AppCompatActivity {
 
     private void showDialogMessage(String title, String body, final boolean exitActivity) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
 
             @Override

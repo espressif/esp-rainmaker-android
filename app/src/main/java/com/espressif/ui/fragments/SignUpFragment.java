@@ -34,14 +34,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
-import androidx.cardview.widget.CardView;
+import androidx.appcompat.widget.AppCompatCheckBox;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.fragment.app.Fragment;
 
@@ -65,6 +64,7 @@ import com.espressif.ui.Utils;
 import com.espressif.ui.activities.MainActivity;
 import com.espressif.ui.user_module.AppHelper;
 import com.espressif.ui.user_module.SignUpConfirmActivity;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -79,8 +79,8 @@ public class SignUpFragment extends Fragment {
     private TextInputEditText etConfirmPassword;
     private TextInputLayout layoutPassword;
     private TextInputLayout layoutConfirmPassword;
-    private CheckBox cbTermsCondition;
-    private CardView btnRegister;
+    private AppCompatCheckBox cbTermsCondition;
+    private MaterialCardView btnRegister;
     private TextView txtRegisterBtn;
     private ImageView arrowImage;
     private ContentLoadingProgressBar progressBar;
@@ -385,7 +385,7 @@ public class SignUpFragment extends Fragment {
 
     private void showDialogMessage(String title, String body, final boolean exit) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity(), R.style.AlertDialogTheme);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
 
             @Override
@@ -446,7 +446,7 @@ public class SignUpFragment extends Fragment {
 
     private void showDialogMessage(String title, String body) {
 
-        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity(), R.style.AlertDialogTheme);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {

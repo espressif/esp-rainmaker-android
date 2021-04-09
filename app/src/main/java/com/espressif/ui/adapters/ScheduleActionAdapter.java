@@ -70,7 +70,7 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
                 itr.remove();
             } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
                 itr.remove();
-            } else if (!p.getProperties().contains("write")) {
+            } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
                 itr.remove();
             }
         }

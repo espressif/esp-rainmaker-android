@@ -30,7 +30,6 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.widget.ContentLoadingProgressBar;
 
@@ -39,6 +38,7 @@ import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.R;
+import com.google.android.material.card.MaterialCardView;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -57,7 +57,7 @@ public class ProvisionLanding extends AppCompatActivity {
     private static final int WIFI_SETTINGS_ACTIVITY_REQUEST = 11;
 
     private TextView tvTitle, tvBack, tvCancel;
-    private CardView btnConnect;
+    private MaterialCardView btnConnect;
     private TextView txtConnectBtn;
     private ImageView arrowImage;
     private TextView tvConnectDeviceInstruction, tvDeviceName;
@@ -252,7 +252,7 @@ public class ProvisionLanding extends AppCompatActivity {
             Log.d(TAG, "Version Info JSON not available.");
         }
 
-        if (rmakerCaps.size() > 0 && rmakerCaps.contains("claim")) {
+        if (rmakerCaps.size() > 0 && rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM)) {
 
             // Claiming is not supported for SoftAP transport.
             alertForClaimingNotSupported();
@@ -263,7 +263,7 @@ public class ProvisionLanding extends AppCompatActivity {
 
                 provisionManager.getEspDevice().setProofOfPossession(pop);
 
-                if (deviceCaps != null && deviceCaps.contains("wifi_scan")) {
+                if (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
 
                     goToWifiScanListActivity();
 
@@ -274,11 +274,11 @@ public class ProvisionLanding extends AppCompatActivity {
 
             } else {
 
-                if (deviceCaps != null && !deviceCaps.contains("no_pop") && AppConstants.SECURITY_1.equalsIgnoreCase(securityType)) {
+                if (deviceCaps != null && !deviceCaps.contains(AppConstants.CAPABILITY_NO_POP) && AppConstants.SECURITY_1.equalsIgnoreCase(securityType)) {
 
                     goToPopActivity();
 
-                } else if (deviceCaps != null && deviceCaps.contains("wifi_scan")) {
+                } else if (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
 
                     goToWifiScanListActivity();
 
@@ -336,7 +336,7 @@ public class ProvisionLanding extends AppCompatActivity {
 
     private void alertForClaimingNotSupported() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogTheme);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(false);
         builder.setMessage(R.string.error_claiming_not_supported);
 
