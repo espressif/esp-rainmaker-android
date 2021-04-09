@@ -50,6 +50,16 @@
                 android:textColor="@android:color/white"
                 android:textSize="17sp" />
 
+            <ImageView
+                android:id="@+id/btn_add"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="16dp"
+                android:src="@drawable/ic_plus"
+                android:visibility="gone" />
+
         </RelativeLayout>
 
     </com.google.android.material.appbar.MaterialToolbar>

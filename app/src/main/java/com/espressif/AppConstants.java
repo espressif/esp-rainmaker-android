@@ -32,6 +32,7 @@ public class AppConstants {
     public static final String ESP_PREFERENCES = "Esp_Preferences";
     public static final String ESP_DATABASE_NAME = "esp_db";
     public static final String NODE_TABLE = "node_table";
+    public static final String GROUP_TABLE = "group_table";
     public static final String MDNS_SERVICE_TYPE = "_esp_local_ctrl._tcp.";
     public static final String LOCAL_CONTROL_PATH = "esp_local_ctrl/control";
 
@@ -63,6 +64,8 @@ public class AppConstants {
             + AppConstants.CURRENT_VERSION + "/user/nodes/params";
     public static final String URL_CLAIM_INITIATE = BuildConfig.CLAIM_BASE_URL + "/claim/initiate";
     public static final String URL_CLAIM_VERIFY = BuildConfig.CLAIM_BASE_URL + "/claim/verify";
+    public static final String URL_USER_NODE_GROUP = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/user/node_group";
 
     // UI Types of Device
     public static final String UI_TYPE_TOGGLE = "esp.ui.toggle";
@@ -165,6 +168,12 @@ public class AppConstants {
     public static final String KEY_REQ_CONFIRMED = "confirmed";
     public static final String KEY_REQ_TIMEDOUT = "timedout";
     public static final String KEY_USER_REQUEST = "user_request";
+    public static final String KEY_GROUP_ID = "group_id";
+    public static final String KEY_GROUP_NAME = "group_name";
+    public static final String KEY_GROUPS = "groups";
+    public static final String KEY_NODES = "nodes";
+    public static final String KEY_NODE_LIST = "node_list";
+    public static final String KEY_GROUP = "group";
 
     public static final String KEY_OPERATION = "operation";
     public static final String KEY_OPERATION_ADD = "add";

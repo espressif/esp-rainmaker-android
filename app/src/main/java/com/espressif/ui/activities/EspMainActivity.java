@@ -40,7 +40,7 @@ import androidx.viewpager.widget.ViewPager;
 
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
-import com.espressif.EspDatabase;
+import com.espressif.db.EspDatabase;
 import com.espressif.JsonDataParser;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
@@ -56,6 +56,7 @@ import com.espressif.ui.fragments.DevicesFragment;
 import com.espressif.ui.fragments.SchedulesFragment;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
+import com.espressif.ui.models.Group;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.UpdateEvent;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -363,6 +364,17 @@ public class EspMainActivity extends AppCompatActivity {
                 devices.addAll(espDevices);
             }
         }
+
+        if (BuildConfig.isNodeGroupingSupported) {
+            ArrayList<Group> groupList = (ArrayList<Group>) espDatabase.getGroupDao().getGroupsFromStorage();
+            for (int groupIndex = 0; groupIndex < groupList.size(); groupIndex++) {
+
+                Group group = groupList.get(groupIndex);
+                if (group != null) {
+                    espApp.groupMap.put(group.getGroupId(), group);
+                }
+            }
+        }
         Log.d(TAG, "Device list size from local storage : " + devices.size());
     }
 
@@ -548,13 +560,30 @@ public class EspMainActivity extends AppCompatActivity {
             @Override
             public void onSuccess(Bundle data) {
 
-                espApp.setCurrentStatus(GetDataStatus.GET_DATA_SUCCESS);
-                updateUi();
+                if (BuildConfig.isNodeGroupingSupported) {
+                    apiManager.getUserGroups(null, new ApiResponseListener() {
+
+                        @Override
+                        public void onSuccess(Bundle data) {
+                            espApp.setCurrentStatus(GetDataStatus.GET_DATA_SUCCESS);
+                            updateUi();
+                        }
+
+                        @Override
+                        public void onFailure(Exception exception) {
+                            exception.printStackTrace();
+                            espApp.setCurrentStatus(GetDataStatus.GET_DATA_FAILED);
+                            updateUi();
+                        }
+                    });
+                } else {
+                    espApp.setCurrentStatus(GetDataStatus.GET_DATA_SUCCESS);
+                    updateUi();
+                }
             }
 
             @Override
             public void onFailure(Exception exception) {
-
                 exception.printStackTrace();
                 espApp.setCurrentStatus(GetDataStatus.GET_DATA_FAILED);
                 updateUi();

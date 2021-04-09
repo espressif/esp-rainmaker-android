@@ -446,7 +446,7 @@ public class AddScheduleActivity extends AppCompatActivity {
     private void confirmForRemoveSchedule() {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.dialog_title_remove_schedule);
+        builder.setTitle(R.string.dialog_title_remove);
         builder.setMessage(R.string.dialog_msg_remove_schedule);
 
         // Set up the buttons

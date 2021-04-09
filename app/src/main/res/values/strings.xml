@@ -23,6 +23,10 @@
     <string name="progress_claiming">Claiming in progress...</string>
     <string name="progress_add_sch">Adding Schedule...</string>
     <string name="progress_update_sch">Updating Schedule...</string>
+    <string name="progress_create_group">Creating group...</string>
+    <string name="progress_update_group">Updating group...</string>
+    <string name="progress_remove_group">Removing group...</string>
+    <string name="progress_remove_device">Removing device...</string>
 
     <!--Error Messages-->
     <string name="error_title">Error!</string>
@@ -70,6 +74,12 @@
     <string name="error_schedule_action">Please select action for schedule</string>
     <string name="error_schedule_add">Failed to add schedule for few devices</string>
     <string name="error_schedule_remove">Failed to remove schedule for device</string>
+    <string name="error_group_device_remove">Failed to remove device from group</string>
+    <string name="error_group_name_empty">Group name cannot be empty</string>
+    <string name="error_group_name_update">Failed to update group name</string>
+    <string name="error_group_create">Failed to create group</string>
+    <string name="error_group_update">Failed to update group</string>
+    <string name="error_group_remove">Failed to remove group</string>
 
     <!--Screen titles-->
     <string name="title_activity_settings">Settings</string>
@@ -93,6 +103,7 @@
     <string name="powered_by_esp">Powered by ESPRESSIF</string>
     <string name="no_devices">No devices added</string>
     <string name="no_schedules">No Schedules added</string>
+    <string name="no_groups">No Groups created</string>
     <string name="add_device_txt">You can provision a device by scanning the QR code or you can do it manually my tapping on + icon on right-top of this screen.</string>
     <string name="signup_confirm_msg">Enter verification code.</string>
     <string name="node_offline">Node Offline</string>
@@ -179,8 +190,11 @@
     <string name="title_activity_repeat_days">Repeat</string>
     <string name="title_activity_actions">Actions</string>
     <string name="title_activity_schedules">Schedules</string>
-    <string name="title_activity_select_device">Select Device</string>
+    <string name="title_activity_select_devices">Select Devices</string>
     <string name="title_activity_select_actions">Select Actions</string>
+    <string name="title_activity_manage_groups">Manage Groups</string>
+    <string name="title_activity_create_group">Create Group</string>
+    <string name="title_activity_edit_group">Edit Group</string>
 
     <!--Dialog texts-->
     <string name="dialog_title_login_failed">Sign-in failed</string>
@@ -196,10 +210,12 @@
     <string name="dialog_msg_for_gps">Location services are disabled. Please enable them to continue</string>
     <string name="dialog_msg_delete_node">Are you sure?</string>
     <string name="dialog_msg_device_selection">Choose Provisioning Transport</string>
-    <string name="dialog_title_remove_schedule">Remove</string>
+    <string name="dialog_title_remove">Remove</string>
     <string name="dialog_msg_remove_schedule">Are you sure to remove this schedule?</string>
+    <string name="dialog_msg_remove_group">Are you sure to remove this group?</string>
     <string name="dialog_msg_ble_device_disconnection">Device disconnected</string>
     <string name="dialog_msg_connect_device_manually">Device connection failed. \nDo you want to connect device manually ?</string>
+    <string name="dialog_title_group_name">Enter Group Name</string>
 
     <!--Node Details-->
     <string name="node_id">Node Id</string>
@@ -247,6 +263,11 @@
     <string name="schedule_actions">Actions</string>
     <string name="msg_schedule_added">Schedule added</string>
     <string name="msg_schedule_updated">Schedule updated</string>
+    <string name="group_all_devices">All Devices</string>
+    <string name="success_group_name_update">Group name updated successfully</string>
+    <string name="success_group_create">Group created successfully</string>
+    <string name="success_group_update">Group updated successfully</string>
+    <string name="success_group_remove">Group removed successfully</string>
 
     <string name="prov_step_1">Sending Wi-Fi credentials</string>
     <string name="prov_step_2">Confirming Wi-Fi connection</string>

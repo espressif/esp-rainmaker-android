@@ -34,13 +34,14 @@ import com.auth0.android.jwt.DecodeException;
 import com.auth0.android.jwt.JWT;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
-import com.espressif.EspDatabase;
+import com.espressif.db.EspDatabase;
 import com.espressif.JsonDataParser;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.ui.models.Action;
 import com.espressif.ui.models.ApiResponse;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
+import com.espressif.ui.models.Group;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.UpdateEvent;
@@ -1818,6 +1819,249 @@ public class ApiManager {
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
                 listener.onFailure(new RuntimeException("Claim verify failed"));
+            }
+        });
+    }
+
+    public void createGroup(JsonObject body, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Create Group...");
+
+        apiInterface.createGroup(AppConstants.URL_USER_NODE_GROUP, accessToken, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        listener.onSuccess(null);
+
+                    } else {
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to create group"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to create group"));
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onFailure(new RuntimeException("Failed to create group"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onFailure(new RuntimeException("Failed to create group"));
+            }
+        });
+    }
+
+    public void updateGroup(final String groupId, JsonObject body, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Update Group for group id : " + groupId);
+
+        apiInterface.updateGroup(AppConstants.URL_USER_NODE_GROUP, accessToken, groupId, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        getUserGroups(groupId, listener);
+
+                    } else {
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to update group"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to update group"));
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onFailure(new RuntimeException("Failed to update group"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onFailure(new RuntimeException("Failed to update group"));
+            }
+        });
+    }
+
+    public void removeGroup(final String groupId, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Remove Group, group id : " + groupId);
+
+        apiInterface.removeGroup(AppConstants.URL_USER_NODE_GROUP, accessToken, groupId).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        espDatabase.getGroupDao().delete(espApp.groupMap.get(groupId));
+                        espApp.groupMap.remove(groupId);
+                        listener.onSuccess(null);
+
+                    } else {
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to remove group"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to remove group"));
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onFailure(new RuntimeException("Failed to remove group"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.e(TAG, "ON FAILURE");
+                t.printStackTrace();
+                listener.onFailure(new RuntimeException("Failed to remove group"));
+            }
+        });
+    }
+
+    public void getUserGroups(final String groupId, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Get user groups...");
+
+        apiInterface.getUserGroups(AppConstants.URL_USER_NODE_GROUP, accessToken, groupId, true).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        JSONObject jsonObject = new JSONObject(jsonResponse);
+                        JSONArray groupJsonArray = jsonObject.optJSONArray(AppConstants.KEY_GROUPS);
+
+                        if (TextUtils.isEmpty(groupId)) {
+                            espDatabase.getGroupDao().deleteAll();
+                        }
+
+                        if (groupJsonArray != null) {
+
+                            for (int groupIndex = 0; groupIndex < groupJsonArray.length(); groupIndex++) {
+
+                                JSONObject groupJson = groupJsonArray.optJSONObject(groupIndex);
+
+                                if (groupJson != null) {
+
+                                    // Node ID
+                                    String gId = groupJson.optString(AppConstants.KEY_GROUP_ID);
+                                    String groupName = groupJson.optString(AppConstants.KEY_GROUP_NAME);
+                                    JSONArray nodesArray = groupJson.optJSONArray(AppConstants.KEY_NODES);
+                                    ArrayList<String> nodesOfGroup = new ArrayList<>();
+
+                                    if (nodesArray != null) {
+                                        for (int nodeIndex = 0; nodeIndex < nodesArray.length(); nodeIndex++) {
+                                            nodesOfGroup.add(nodesArray.optString(nodeIndex));
+                                        }
+                                    }
+
+                                    Group group = new Group(groupName);
+                                    group.setGroupId(gId);
+                                    group.setNodeList(nodesOfGroup);
+                                    espApp.groupMap.put(gId, group);
+                                    espDatabase.getGroupDao().insertOrUpdate(group);
+                                }
+                            }
+                        }
+
+                        listener.onSuccess(null);
+
+                    } else {
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to get user groups"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to get user groups"));
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onFailure(new RuntimeException("Failed to get user groups"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onFailure(new RuntimeException("Failed to get user groups"));
             }
         });
     }

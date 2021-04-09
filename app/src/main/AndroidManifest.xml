@@ -162,6 +162,21 @@
             android:label="@string/title_activity_add_device"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="com.espressif.ui.activities.GroupsActivity"
+            android:label="@string/title_activity_manage_groups"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="com.espressif.ui.activities.GroupDetailActivity"
+            android:label="@string/title_activity_create_group"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="com.espressif.ui.activities.GroupNodeSelectionActivity"
+            android:label="@string/title_activity_select_devices"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
 
     </application>
 

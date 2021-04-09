@@ -76,6 +76,7 @@ android {
         buildConfigField "boolean", "isQRCodeSupported", localProperties.getProperty("isQRCodeSupported", "true")
         buildConfigField "boolean", "isScheduleSupported", localProperties.getProperty("isScheduleSupported", "true")
         buildConfigField "boolean", "isLocalControlSupported", localProperties.getProperty("isLocalControlSupported", "true")
+        buildConfigField "boolean", "isNodeGroupingSupported", localProperties.getProperty("isNodeGroupingSupported", "true")
 
         def clientId = localProperties.getProperty("clientId", defaultClientId)
         def authUrl = localProperties.getProperty("authUrl", defaultAuthUrl)
@@ -172,8 +173,8 @@ dependencies {
     implementation('com.amazonaws:aws-android-sdk-mobile-client:2.15.2') { transitive = true }
 
     // Room dependencies
-    implementation 'android.arch.persistence.room:runtime:1.1.1'
-    annotationProcessor 'android.arch.persistence.room:compiler:1.1.1'
+    implementation 'android.arch.persistence.room:runtime:2.2.6'
+    annotationProcessor 'android.arch.persistence.room:compiler:2.2.6'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test:runner:1.3.0'
