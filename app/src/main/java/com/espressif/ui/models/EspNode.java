@@ -35,6 +35,9 @@ public class EspNode implements Parcelable {
     private String nodeId;
 
     @Ignore
+    private String userRole;
+
+    @Ignore
     private String configVersion;
 
     @Ignore
@@ -79,6 +82,12 @@ public class EspNode implements Parcelable {
     @Ignore
     private boolean isSelected;
 
+    @Ignore
+    private ArrayList<String> primaryUsers;
+
+    @Ignore
+    private ArrayList<String> secondaryUsers;
+
     public EspNode() {
     }
 
@@ -89,6 +98,7 @@ public class EspNode implements Parcelable {
     public EspNode(EspNode node) {
 
         nodeId = node.getNodeId();
+        userRole = node.getUserRole();
         configVersion = node.getConfigVersion();
         nodeName = node.getNodeName();
         fwVersion = node.getFwVersion();
@@ -104,6 +114,8 @@ public class EspNode implements Parcelable {
         configData = node.getConfigData();
         paramData = node.getParamData();
         isSelected = node.isSelected();
+        primaryUsers = node.getPrimaryUsers();
+        secondaryUsers = node.getSecondaryUsers();
     }
 
     public String getNodeId() {
@@ -112,6 +124,14 @@ public class EspNode implements Parcelable {
 
     public void setNodeId(String nodeId) {
         this.nodeId = nodeId;
+    }
+
+    public String getUserRole() {
+        return userRole;
+    }
+
+    public void setUserRole(String userRole) {
+        this.userRole = userRole;
     }
 
     public String getConfigVersion() {
@@ -234,9 +254,32 @@ public class EspNode implements Parcelable {
         isSelected = selected;
     }
 
+    public ArrayList<String> getPrimaryUsers() {
+        if (primaryUsers == null) {
+            primaryUsers = new ArrayList<>();
+        }
+        return primaryUsers;
+    }
+
+    public void setPrimaryUsers(ArrayList<String> primaryUsers) {
+        this.primaryUsers = primaryUsers;
+    }
+
+    public ArrayList<String> getSecondaryUsers() {
+        if (secondaryUsers == null) {
+            secondaryUsers = new ArrayList<>();
+        }
+        return secondaryUsers;
+    }
+
+    public void setSecondaryUsers(ArrayList<String> secondaryUsers) {
+        this.secondaryUsers = secondaryUsers;
+    }
+
     protected EspNode(Parcel in) {
 
         nodeId = in.readString();
+        userRole = in.readString();
         configVersion = in.readString();
         nodeName = in.readString();
         fwVersion = in.readString();
@@ -252,6 +295,8 @@ public class EspNode implements Parcelable {
         configData = in.readString();
         paramData = in.readString();
         isSelected = in.readByte() != 0;
+        primaryUsers = in.createStringArrayList();
+        secondaryUsers = in.createStringArrayList();
     }
 
     public static final Creator<EspNode> CREATOR = new Creator<EspNode>() {
@@ -275,6 +320,7 @@ public class EspNode implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
 
         dest.writeString(nodeId);
+        dest.writeString(userRole);
         dest.writeString(configVersion);
         dest.writeString(nodeName);
         dest.writeString(fwVersion);
@@ -290,5 +336,7 @@ public class EspNode implements Parcelable {
         dest.writeString(configData);
         dest.writeString(paramData);
         dest.writeByte((byte) (isSelected ? 1 : 0));
+        dest.writeStringList(primaryUsers);
+        dest.writeStringList(secondaryUsers);
     }
 }

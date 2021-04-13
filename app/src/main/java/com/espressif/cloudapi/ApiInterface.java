@@ -123,4 +123,37 @@ public interface ApiInterface {
     Call<ResponseBody> getUserGroups(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
                                      @Query(AppConstants.KEY_GROUP_ID) String groupId,
                                      @Query(AppConstants.KEY_NODE_LIST) boolean shouldGetNodeList);
+
+    // Feature : Node Sharing
+
+    // Get sharing requests
+    @GET
+    Call<ResponseBody> getSharingRequests(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                          @Query(AppConstants.KEY_PRIMARY_USER) boolean isPrimaryUser,
+                                          @Query(AppConstants.KEY_START_REQ_ID) String startRequestId,
+                                          @Query(AppConstants.KEY_START_USER_NAME) String startUserName);
+
+    // Update sharing request
+    @PUT
+    Call<ResponseBody> updateSharingRequest(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                            @Body JsonObject body);
+
+    // Remove sharing request
+    @DELETE
+    Call<ResponseBody> removeSharingRequest(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                            @Query(AppConstants.KEY_REQ_ID) String requestId);
+
+    // Share node with the user
+    @PUT
+    Call<ResponseBody> shareNodeWithUser(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonObject body);
+
+    // Get node sharing information
+    @GET
+    Call<ResponseBody> getNodeSharing(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                      @Query(AppConstants.KEY_NODE_ID) String nodeId);
+
+    // Remove the sharing of node
+    @DELETE
+    Call<ResponseBody> removeSharing(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                     @Query(AppConstants.KEY_NODES) String nodes, @Query(AppConstants.KEY_USER_NAME) String userName);
 }

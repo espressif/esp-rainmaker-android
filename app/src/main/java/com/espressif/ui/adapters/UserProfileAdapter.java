@@ -15,7 +15,8 @@
 package com.espressif.ui.adapters;
 
 import android.content.Context;
-import android.text.TextUtils;
+import android.content.Intent;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,58 +25,81 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.activities.SharingRequestsActivity;
+import com.espressif.ui.user_module.ChangePasswordActivity;
 
 import java.util.ArrayList;
 
-public class UserProfileAdapter extends RecyclerView.Adapter<UserProfileAdapter.MyViewHolder> {
+public class UserProfileAdapter extends RecyclerView.Adapter<UserProfileAdapter.ProfileViewHolder> {
 
     private Context context;
     private ArrayList<String> userInfoList;
-    private ArrayList<String> userInfoValueList;
-    private View.OnClickListener mOnItemClickListener;
-    private boolean isUserInfoView;
+    private int pendingReqCnt;
 
-    public UserProfileAdapter(Context context, ArrayList<String> userInfoList, ArrayList<String> userInfoValueList, boolean isUserInfo) {
+    public UserProfileAdapter(Context context, ArrayList<String> userInfoList, int pendingReqCnt) {
 
         this.context = context;
         this.userInfoList = userInfoList;
-        this.userInfoValueList = userInfoValueList;
-        this.isUserInfoView = isUserInfo;
+        this.pendingReqCnt = pendingReqCnt;
     }
 
     @Override
-    public MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public ProfileViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
 
-        if (isUserInfoView) {
-
-            LayoutInflater layoutInflater = LayoutInflater.from(context);
-            View v = layoutInflater.inflate(R.layout.item_user_profile, parent, false);
-            MyViewHolder vh = new MyViewHolder(v); // pass the view to View Holder
-            return vh;
-
-        } else {
-            LayoutInflater layoutInflater = LayoutInflater.from(context);
-            View v = layoutInflater.inflate(R.layout.item_user_profile_terms, parent, false);
-            MyViewHolder vh = new MyViewHolder(v); // pass the view to View Holder
-            return vh;
-        }
+        LayoutInflater layoutInflater = LayoutInflater.from(context);
+        View v = layoutInflater.inflate(R.layout.item_user_profile, parent, false);
+        ProfileViewHolder profileViewHolder = new ProfileViewHolder(v);
+        return profileViewHolder;
     }
 
     @Override
-    public void onBindViewHolder(@NonNull MyViewHolder myViewHolder, final int position) {
+    public void onBindViewHolder(@NonNull final ProfileViewHolder profileViewHolder, final int position) {
 
-        if (isUserInfoView) {
+        profileViewHolder.tvUserInfoLabel.setText(userInfoList.get(position));
 
-            myViewHolder.tvUserInfoLabel.setText(userInfoList.get(position));
-
-            if (userInfoValueList != null && !TextUtils.isEmpty(userInfoValueList.get(position))) {
-
-                myViewHolder.tvUserInfoValue.setText(userInfoValueList.get(position));
+        if (userInfoList.get(position).equals(context.getString(R.string.title_activity_sharing_requests))) {
+            if (pendingReqCnt > 0) {
+                profileViewHolder.tvCount.setVisibility(View.VISIBLE);
+                profileViewHolder.tvCount.setText("" + pendingReqCnt);
+            } else {
+                profileViewHolder.tvCount.setVisibility(View.GONE);
             }
-        } else {
-            myViewHolder.tvUserInfoLabel.setText(userInfoList.get(position));
         }
+
+        profileViewHolder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                int position = profileViewHolder.getAdapterPosition();
+                String str = userInfoList.get(position);
+
+                if (str.equals(context.getString(R.string.title_activity_sharing_requests))) {
+
+                    context.startActivity(new Intent(context, SharingRequestsActivity.class));
+
+                } else if (str.equals(context.getString(R.string.title_activity_change_password))) {
+
+                    context.startActivity(new Intent(context, ChangePasswordActivity.class));
+
+                } else if (str.equals(context.getString(R.string.documentation))) {
+
+                    Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.DOCUMENTATION_URL));
+                    context.startActivity(openURL);
+
+                } else if (str.equals(context.getString(R.string.privacy_policy))) {
+
+                    Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.PRIVACY_URL));
+                    context.startActivity(openURL);
+
+                } else if (str.equals(context.getString(R.string.terms_of_use))) {
+
+                    Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.TERMS_URL));
+                    context.startActivity(openURL);
+                }
+            }
+        });
     }
 
     @Override
@@ -83,23 +107,23 @@ public class UserProfileAdapter extends RecyclerView.Adapter<UserProfileAdapter.
         return userInfoList.size();
     }
 
-    public void setOnItemClickListener(View.OnClickListener itemClickListener) {
-        mOnItemClickListener = itemClickListener;
+    public void updatePendingRequestCount(int count) {
+
+        this.pendingReqCnt = count;
+        notifyDataSetChanged();
     }
 
-    public class MyViewHolder extends RecyclerView.ViewHolder {
+    static class ProfileViewHolder extends RecyclerView.ViewHolder {
 
-        // init the item view's
-        TextView tvUserInfoLabel, tvUserInfoValue;
+        TextView tvUserInfoLabel;
+        TextView tvCount;
 
-        public MyViewHolder(View itemView) {
+        public ProfileViewHolder(View itemView) {
             super(itemView);
 
-            // get the reference of item view's
             tvUserInfoLabel = itemView.findViewById(R.id.tv_info);
-            tvUserInfoValue = itemView.findViewById(R.id.tv_value);
+            tvCount = itemView.findViewById(R.id.tv_count);
             itemView.setTag(this);
-            itemView.setOnClickListener(mOnItemClickListener);
         }
     }
 }

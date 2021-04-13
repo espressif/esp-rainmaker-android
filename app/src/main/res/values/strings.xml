@@ -27,6 +27,9 @@
     <string name="progress_update_group">Updating group...</string>
     <string name="progress_remove_group">Removing group...</string>
     <string name="progress_remove_device">Removing device...</string>
+    <string name="progress_remove_node">Removing Node...</string>
+    <string name="progress_accepting">Accepting...</string>
+    <string name="progress_declining">Declining...</string>
 
     <!--Error Messages-->
     <string name="error_title">Error!</string>
@@ -80,6 +83,10 @@
     <string name="error_group_create">Failed to create group</string>
     <string name="error_group_update">Failed to update group</string>
     <string name="error_group_remove">Failed to remove group</string>
+    <string name="error_get_sharing_request">Failed to get sharing requests</string>
+    <string name="error_add_member">Failed to add a member</string>
+    <string name="error_remove_member">Failed to delete member</string>
+    <string name="error_remove_sharing_req">Failed to remove sharing request</string>
 
     <!--Screen titles-->
     <string name="title_activity_settings">Settings</string>
@@ -104,6 +111,7 @@
     <string name="no_devices">No devices added</string>
     <string name="no_schedules">No Schedules added</string>
     <string name="no_groups">No Groups created</string>
+    <string name="no_sharing_requests">No sharing requests</string>
     <string name="add_device_txt">You can provision a device by scanning the QR code or you can do it manually my tapping on + icon on right-top of this screen.</string>
     <string name="signup_confirm_msg">Enter verification code.</string>
     <string name="node_offline">Node Offline</string>
@@ -168,6 +176,9 @@
     <string name="btn_update">Update</string>
     <string name="btn_logout">Logout</string>
     <string name="btn_done">Done</string>
+    <string name="btn_add">Add</string>
+    <string name="btn_accept">Accept</string>
+    <string name="btn_deny">Decline</string>
 
     <!--Screen titles-->
     <string name="title_activity_devices">Devices</string>
@@ -195,6 +206,7 @@
     <string name="title_activity_manage_groups">Manage Groups</string>
     <string name="title_activity_create_group">Create Group</string>
     <string name="title_activity_edit_group">Edit Group</string>
+    <string name="title_activity_sharing_requests">Sharing Requests</string>
 
     <!--Dialog texts-->
     <string name="dialog_title_login_failed">Sign-in failed</string>
@@ -216,6 +228,7 @@
     <string name="dialog_msg_ble_device_disconnection">Device disconnected</string>
     <string name="dialog_msg_connect_device_manually">Device connection failed. \nDo you want to connect device manually ?</string>
     <string name="dialog_title_group_name">Enter Group Name</string>
+    <string name="dialog_title_user_email">User Email</string>
 
     <!--Node Details-->
     <string name="node_id">Node Id</string>
@@ -223,6 +236,9 @@
     <string name="node_type">Type</string>
     <string name="node_fw_version">Firmware Version</string>
     <string name="node_config_version">Config Version</string>
+    <string name="node_shared_with">Shared with</string>
+    <string name="node_shared_by">Shared by</string>
+    <string name="pending_requests">Pending for acceptance</string>
 
     <!-- Instruction Strings -->
     <string name="pop_instruction">Enter your proof of possession PIN for</string>
@@ -268,6 +284,14 @@
     <string name="success_group_create">Group created successfully</string>
     <string name="success_group_update">Group updated successfully</string>
     <string name="success_group_remove">Group removed successfully</string>
+    <string name="wants_to_share">wants to share</string>
+    <string name="with_you">with you</string>
+    <string name="and">and</string>
+    <string name="devices">devices</string>
+    <string name="device">device</string>
+    <string name="node">node</string>
+    <string name="expires_in">Expires in</string>
+    <string name="expire_days">days</string>
 
     <string name="prov_step_1">Sending Wi-Fi credentials</string>
     <string name="prov_step_2">Confirming Wi-Fi connection</string>

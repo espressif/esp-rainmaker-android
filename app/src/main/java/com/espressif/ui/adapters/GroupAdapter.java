@@ -77,10 +77,6 @@ public class GroupAdapter extends RecyclerView.Adapter<GroupAdapter.GroupViewHol
                         for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
 
                             String deviceName = devices.get(deviceIndex).getUserVisibleName();
-                            if (TextUtils.isEmpty(deviceName)) {
-                                deviceName = devices.get(deviceIndex).getDeviceName();
-                            }
-
                             if (deviceNames.length() != 0) {
                                 deviceNames.append(", ");
                             }

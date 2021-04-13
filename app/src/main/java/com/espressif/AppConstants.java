@@ -66,6 +66,10 @@ public class AppConstants {
     public static final String URL_CLAIM_VERIFY = BuildConfig.CLAIM_BASE_URL + "/claim/verify";
     public static final String URL_USER_NODE_GROUP = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/node_group";
+    public static final String URL_USER_NODES_SHARING_REQUESTS = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/user/nodes/sharing/requests";
+    public static final String URL_USER_NODES_SHARING = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/user/nodes/sharing";
 
     // UI Types of Device
     public static final String UI_TYPE_TOGGLE = "esp.ui.toggle";
@@ -151,6 +155,7 @@ public class AppConstants {
     public static final String KEY_MINUTES = "m";
     public static final String KEY_ENABLED = "enabled";
     public static final String KEY_ID = "id";
+    public static final String KEY_ROLE = "role";
     public static final String KEY_STATUS = "status";
     public static final String KEY_TIME = "Time";
     public static final String KEY_CONNECTIVITY = "connectivity";
@@ -165,8 +170,10 @@ public class AppConstants {
     public static final String KEY_CLAIM_INIT_RESPONSE = "claim_initiate_response";
     public static final String KEY_REQ_ID = "request_id";
     public static final String KEY_REQ_STATUS = "request_status";
+    public static final String KEY_REQ_TIME = "request_timestamp";
     public static final String KEY_REQ_CONFIRMED = "confirmed";
     public static final String KEY_REQ_TIMEDOUT = "timedout";
+    public static final String KEY_REQ_TIMESTAMP = "request_timestamp";
     public static final String KEY_USER_REQUEST = "user_request";
     public static final String KEY_GROUP_ID = "group_id";
     public static final String KEY_GROUP_NAME = "group_name";
@@ -174,6 +181,19 @@ public class AppConstants {
     public static final String KEY_NODES = "nodes";
     public static final String KEY_NODE_LIST = "node_list";
     public static final String KEY_GROUP = "group";
+    public static final String KEY_NODE_IDS = "node_ids";
+    public static final String KEY_NODE_SHARING = "node_sharing";
+    public static final String KEY_USERS = "users";
+    public static final String KEY_PRIMARY_USER = "primary_user";
+    public static final String KEY_START_REQ_ID = "start_request_id";
+    public static final String KEY_START_USER_NAME = "start_user_name";
+    public static final String KEY_NEXT_REQ_ID = "next_request_id";
+    public static final String KEY_NEXT_USER_NAME = "next_user_name";
+    public static final String KEY_PRIMARY_USER_NAME = "primary_user_name";
+    public static final String KEY_USER_NAME = "user_name";
+    public static final String KEY_REQ_ACCEPT = "accept";
+    public static final String KEY_SHARING_REQUESTS = "sharing_requests";
+    public static final String KEY_METADATA = "metadata";
 
     public static final String KEY_OPERATION = "operation";
     public static final String KEY_OPERATION_ADD = "add";
@@ -181,6 +201,14 @@ public class AppConstants {
     public static final String KEY_OPERATION_REMOVE = "remove";
     public static final String KEY_OPERATION_ENABLE = "enable";
     public static final String KEY_OPERATION_DISABLE = "disable";
+
+    public static final String KEY_REQ_STATUS_DECLINED = "declined";
+    public static final String KEY_REQ_STATUS_PENDING = "pending";
+
+    public static final String KEY_USER_ROLE_PRIMARY = "primary";
+    public static final String KEY_USER_ROLE_SECONDARY = "secondary";
+    public static final String KEY_PRIMARY_USERS = "primary_users";
+    public static final String KEY_SECONDARY_USERS = "secondary_users";
 
     // Device capability
     public static final String CAPABILITY_WIFI_SACN = "wifi_scan";

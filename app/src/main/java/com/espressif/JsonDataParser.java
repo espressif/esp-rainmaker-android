@@ -163,6 +163,7 @@ public class JsonDataParser {
                 JSONObject deviceObj = devicesJsonArray.optJSONObject(i);
                 Device device = new Device(nodeId);
                 device.setDeviceName(deviceObj.optString(AppConstants.KEY_NAME));
+                device.setUserVisibleName(deviceObj.optString(AppConstants.KEY_NAME));
                 device.setDeviceType(deviceObj.optString(AppConstants.KEY_TYPE));
                 device.setPrimaryParamName(deviceObj.optString(AppConstants.KEY_PRIMARY));
 

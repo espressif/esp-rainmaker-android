@@ -123,7 +123,7 @@ public class EspDeviceActivity extends AppCompatActivity {
         }
     }
 
-    public void setDeviceName(String deviceName) {
+    public void updateDeviceNameInTitle(String deviceName) {
         tvTitle.setText(deviceName);
     }
 
@@ -181,22 +181,7 @@ public class EspDeviceActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progress_get_params);
         tvNodeOffline = findViewById(R.id.tv_device_offline);
 
-        boolean isParamTypeNameAvailable = false;
-
-        for (int i = 0; i < device.getParams().size(); i++) {
-
-            Param p = device.getParams().get(i);
-            if (p != null && p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-                isParamTypeNameAvailable = true;
-                tvTitle.setText(p.getLabelValue());
-                break;
-            }
-        }
-
-        if (!isParamTypeNameAvailable) {
-            tvTitle.setText(device.getDeviceName());
-        }
-
+        tvTitle.setText(device.getUserVisibleName());
         tvBack.setVisibility(View.VISIBLE);
 
         paramRecyclerView = findViewById(R.id.rv_dynamic_param_list);
@@ -460,21 +445,7 @@ public class EspDeviceActivity extends AppCompatActivity {
             attrRecyclerView.setVisibility(View.VISIBLE);
         }
 
-        boolean isParamTypeNameAvailable = false;
-
-        for (int i = 0; i < device.getParams().size(); i++) {
-
-            Param p = device.getParams().get(i);
-            if (p != null && p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-                isParamTypeNameAvailable = true;
-                tvTitle.setText(p.getLabelValue());
-                break;
-            }
-        }
-
-        if (!isParamTypeNameAvailable) {
-            tvTitle.setText(device.getDeviceName());
-        }
+        tvTitle.setText(device.getUserVisibleName());
 
         if (espApp.getCurrentStatus().equals(GetDataStatus.GET_DATA_FAILED) && !isNetworkAvailable) {
             if (!snackbar.isShown()) {
