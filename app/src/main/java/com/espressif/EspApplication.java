@@ -21,6 +21,7 @@ import com.espressif.cloudapi.ApiManager;
 import com.espressif.mdns.mDNSDevice;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.ui.models.EspNode;
+import com.espressif.ui.models.Group;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.user_module.AppHelper;
 
@@ -35,6 +36,7 @@ public class EspApplication extends Application {
     public HashMap<String, EspNode> nodeMap;
     public HashMap<String, Schedule> scheduleMap;
     public HashMap<String, mDNSDevice> mDNSDeviceMap;
+    public HashMap<String, Group> groupMap;
 
     public enum GetDataStatus {
         FETCHING_DATA,
@@ -47,12 +49,13 @@ public class EspApplication extends Application {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "ESP Application is created");
-        AppHelper.init(this);
-        ApiManager.getInstance(this);
-        ESPProvisionManager.getInstance(this);
         nodeMap = new HashMap<>();
         scheduleMap = new HashMap<>();
         mDNSDeviceMap = new HashMap<>();
+        groupMap = new HashMap<>();
+        AppHelper.init(this);
+        ApiManager.getInstance(this);
+        ESPProvisionManager.getInstance(this);
     }
 
     public GetDataStatus getCurrentStatus() {

@@ -67,6 +67,20 @@ Schedule can be enabled/disabled by setting true/false value of `isScheduleSuppo
 Schedule feature is optional but enabled by default.
 Add `isScheduleSupported=false` in `local.properties` file to disable this feature.
 
+### Node Grouping
+
+Node Grouping allows you to create abstract or logical groups of devices like lights, switches, fans etc.
+List of operations that are supported in node grouping :
+
+ - Create groups.
+ - Edit groups (rename or add/remove device).
+ - Remove groups.
+ - List groups.
+
+Grouping can be enabled/disabled by setting true/false value of `isNodeGroupingSupported` field in `local.properties`.
+Grouping feature is optional but enabled by default.
+Add `isNodeGroupingSupported=false` in `local.properties` file to disable this feature.
+
 ## Additional Settings:
 
 Settings associated with provisioning a device can be modified in the `local.properties` file.
@@ -81,6 +95,7 @@ Add below lines in `local.properties` and customize as per your requirement.
  isFilterPrefixEditable=true
  isQRCodeSupported=true
  isScheduleSupported=true
+ isNodeGroupingSupported=true
  isLocalControlSupported=true
  ```  
 

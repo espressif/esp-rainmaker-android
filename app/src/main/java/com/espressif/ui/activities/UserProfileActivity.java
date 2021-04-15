@@ -31,7 +31,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUser;
 import com.espressif.AppConstants;
-import com.espressif.EspDatabase;
+import com.espressif.db.EspDatabase;
 import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.rainmaker.BuildConfig;
@@ -112,10 +112,13 @@ public class UserProfileActivity extends AppCompatActivity {
                 SharedPreferences.Editor editor = sharedPreferences.edit();
                 editor.clear();
                 editor.apply();
-                EspDatabase.getInstance(getApplicationContext()).getNodeDao().deleteAll();
-                if (((EspApplication) getApplicationContext()).nodeMap != null) {
-                    ((EspApplication) getApplicationContext()).nodeMap.clear();
-                }
+                EspApplication espApp = (EspApplication) getApplicationContext();
+                EspDatabase.getInstance(espApp).getNodeDao().deleteAll();
+                EspDatabase.getInstance(espApp).getGroupDao().deleteAll();
+                espApp.nodeMap.clear();
+                espApp.scheduleMap.clear();
+                espApp.mDNSDeviceMap.clear();
+                espApp.groupMap.clear();
 
                 Intent loginActivity = new Intent(getApplicationContext(), MainActivity.class);
                 loginActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

@@ -76,11 +76,34 @@ public class EspNode implements Parcelable {
     @ColumnInfo(name = "param_data")
     private String paramData;
 
+    @Ignore
+    private boolean isSelected;
+
     public EspNode() {
     }
 
     public EspNode(String id) {
         nodeId = id;
+    }
+
+    public EspNode(EspNode node) {
+
+        nodeId = node.getNodeId();
+        configVersion = node.getConfigVersion();
+        nodeName = node.getNodeName();
+        fwVersion = node.getFwVersion();
+        nodeType = node.getNodeType();
+        isOnline = node.isOnline();
+        timeStampOfStatus = node.getTimeStampOfStatus();
+        devices = node.getDevices();
+        attributes = node.getAttributes();
+        services = node.getServices();
+        isAvailableLocally = node.isAvailableLocally();
+        ipAddress = node.getIpAddress();
+        port = node.getPort();
+        configData = node.getConfigData();
+        paramData = node.getParamData();
+        isSelected = node.isSelected();
     }
 
     public String getNodeId() {
@@ -203,6 +226,14 @@ public class EspNode implements Parcelable {
         this.paramData = paramData;
     }
 
+    public boolean isSelected() {
+        return isSelected;
+    }
+
+    public void setSelected(boolean selected) {
+        isSelected = selected;
+    }
+
     protected EspNode(Parcel in) {
 
         nodeId = in.readString();
@@ -220,6 +251,7 @@ public class EspNode implements Parcelable {
         port = in.readInt();
         configData = in.readString();
         paramData = in.readString();
+        isSelected = in.readByte() != 0;
     }
 
     public static final Creator<EspNode> CREATOR = new Creator<EspNode>() {
@@ -257,5 +289,6 @@ public class EspNode implements Parcelable {
         dest.writeInt(port);
         dest.writeString(configData);
         dest.writeString(paramData);
+        dest.writeByte((byte) (isSelected ? 1 : 0));
     }
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.espressif;
+package com.espressif.db;
 
 import androidx.room.Dao;
 import androidx.room.Delete;
@@ -20,6 +20,7 @@ import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Update;
 
+import com.espressif.AppConstants;
 import com.espressif.ui.models.EspNode;
 
 import java.util.List;

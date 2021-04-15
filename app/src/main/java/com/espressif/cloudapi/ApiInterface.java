@@ -23,6 +23,7 @@ import io.reactivex.Observable;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
+import retrofit2.http.DELETE;
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
@@ -98,4 +99,28 @@ public interface ApiInterface {
     // Claiming verify
     @POST
     Call<ResponseBody> verifyClaiming(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonObject body);
+
+    // Feature : Node Grouping
+
+    // Create group
+    @POST
+    Call<ResponseBody> createGroup(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                   @Body JsonObject body);
+
+    // Update group
+    @PUT
+    Call<ResponseBody> updateGroup(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                   @Query(AppConstants.KEY_GROUP_ID) String groupId,
+                                   @Body JsonObject body);
+
+    // Removes group
+    @DELETE
+    Call<ResponseBody> removeGroup(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                   @Query(AppConstants.KEY_GROUP_ID) String groupId);
+
+    // Get user group
+    @GET
+    Call<ResponseBody> getUserGroups(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                     @Query(AppConstants.KEY_GROUP_ID) String groupId,
+                                     @Query(AppConstants.KEY_NODE_LIST) boolean shouldGetNodeList);
 }
