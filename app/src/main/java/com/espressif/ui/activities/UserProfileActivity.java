@@ -19,47 +19,58 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUser;
 import com.espressif.AppConstants;
+import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.db.EspDatabase;
 import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.UserProfileAdapter;
+import com.espressif.ui.models.SharingRequest;
 import com.espressif.ui.user_module.AppHelper;
-import com.espressif.ui.user_module.ChangePasswordActivity;
-import com.google.android.material.card.MaterialCardView;
 
 import java.util.ArrayList;
 
 public class UserProfileActivity extends AppCompatActivity {
 
-    private UserProfileAdapter termsInfoAdapter;
-    private ArrayList<String> termsInfoList;
-
     private TextView tvTitle, tvBack, tvCancel;
+
+    private RecyclerView rvUserInfo;
     private TextView tvAppVersion;
+
+    private UserProfileAdapter userInfoAdapter;
     private SharedPreferences sharedPreferences;
+
+    private ArrayList<String> userInfoList;
+    private ArrayList<SharingRequest> pendingRequests;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user_profile);
         overridePendingTransition(R.anim.anim_left_to_right, R.anim.scale_in);
-
+        pendingRequests = new ArrayList<>();
         sharedPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
         initViews();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        getSharingRequests();
     }
 
     private View.OnClickListener backButtonClickListener = new View.OnClickListener() {
@@ -80,11 +91,14 @@ public class UserProfileActivity extends AppCompatActivity {
         tvTitle.setText(R.string.title_activity_user_profile);
         tvBack.setVisibility(View.VISIBLE);
         tvCancel.setVisibility(View.GONE);
+        tvBack.setOnClickListener(backButtonClickListener);
 
-        RecyclerView userInfoView = findViewById(R.id.rv_user_info);
-        RecyclerView termsInfoView = findViewById(R.id.rv_terms);
-        MaterialCardView logoutView = findViewById(R.id.card_view_logout);
+        TextView tvEmail = findViewById(R.id.tv_email);
+        tvEmail.setText(sharedPreferences.getString(AppConstants.KEY_EMAIL, ""));
+
+        rvUserInfo = findViewById(R.id.rv_user_profile);
         tvAppVersion = findViewById(R.id.tv_app_version);
+        RelativeLayout logoutView = findViewById(R.id.layout_logout);
 
         String version = "";
         try {
@@ -97,7 +111,6 @@ public class UserProfileActivity extends AppCompatActivity {
         String appVersion = getString(R.string.app_version) + " - v" + version;
         tvAppVersion.setText(appVersion);
 
-        tvBack.setOnClickListener(backButtonClickListener);
         logoutView.setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -115,74 +128,67 @@ public class UserProfileActivity extends AppCompatActivity {
                 EspApplication espApp = (EspApplication) getApplicationContext();
                 EspDatabase.getInstance(espApp).getNodeDao().deleteAll();
                 EspDatabase.getInstance(espApp).getGroupDao().deleteAll();
+                espApp.setCurrentStatus(EspApplication.GetDataStatus.FETCHING_DATA);
                 espApp.nodeMap.clear();
                 espApp.scheduleMap.clear();
                 espApp.mDNSDeviceMap.clear();
                 espApp.groupMap.clear();
 
-                Intent loginActivity = new Intent(getApplicationContext(), MainActivity.class);
+                Intent loginActivity = new Intent(espApp, MainActivity.class);
                 loginActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(loginActivity);
                 finish();
             }
         });
 
-        LinearLayoutManager llm1 = new LinearLayoutManager(getApplicationContext());
-        llm1.setOrientation(RecyclerView.VERTICAL);
-        userInfoView.setLayoutManager(llm1); // set LayoutManager to RecyclerView
-
         LinearLayoutManager llm2 = new LinearLayoutManager(getApplicationContext());
         llm2.setOrientation(RecyclerView.VERTICAL);
-        termsInfoView.setLayoutManager(llm2); // set LayoutManager to RecyclerView
+        rvUserInfo.setLayoutManager(llm2);
+        DividerItemDecoration itemDecor = new DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
+        rvUserInfo.addItemDecoration(itemDecor);
 
-        ArrayList<String> userInfoList = new ArrayList<>();
-        userInfoList.add(getString(R.string.hint_email));
-        ArrayList<String> userInfoValues = new ArrayList<>();
-        userInfoValues.add(sharedPreferences.getString(AppConstants.KEY_EMAIL, ""));
-        UserProfileAdapter userInfoAdapter = new UserProfileAdapter(this, userInfoList, userInfoValues, true);
-        userInfoView.setAdapter(userInfoAdapter);
+        userInfoList = new ArrayList<>();
 
-        termsInfoList = new ArrayList<>();
-
-        if (!ApiManager.isOAuthLogin) {
-            termsInfoList.add(getString(R.string.title_activity_change_password));
+        if (BuildConfig.isNodeSharingSupported) {
+            userInfoList.add(getString(R.string.title_activity_sharing_requests));
         }
-        termsInfoList.add(getString(R.string.documentation));
-        termsInfoList.add(getString(R.string.privacy_policy));
-        termsInfoList.add(getString(R.string.terms_of_use));
-        termsInfoAdapter = new UserProfileAdapter(this, termsInfoList, null, false);
-        termsInfoView.setAdapter(termsInfoAdapter);
-        termsInfoAdapter.setOnItemClickListener(onItemClickListener);
+        if (!ApiManager.isOAuthLogin) {
+            userInfoList.add(getString(R.string.title_activity_change_password));
+        }
+        userInfoList.add(getString(R.string.documentation));
+        userInfoList.add(getString(R.string.privacy_policy));
+        userInfoList.add(getString(R.string.terms_of_use));
+        userInfoAdapter = new UserProfileAdapter(this, userInfoList, 0);
+        rvUserInfo.setAdapter(userInfoAdapter);
     }
 
-    private View.OnClickListener onItemClickListener = new View.OnClickListener() {
+    private void getSharingRequests() {
 
-        @Override
-        public void onClick(View view) {
+        pendingRequests.clear();
+        ApiManager apiManager = ApiManager.getInstance(getApplicationContext());
+        apiManager.getSharingRequests(false, new ApiResponseListener() {
 
-            RecyclerView.ViewHolder viewHolder = (RecyclerView.ViewHolder) view.getTag();
-            int position = viewHolder.getAdapterPosition();
-            String str = termsInfoList.get(position);
+            @Override
+            public void onSuccess(Bundle data) {
 
-            if (str.equals(getString(R.string.title_activity_change_password))) {
-
-                startActivity(new Intent(UserProfileActivity.this, ChangePasswordActivity.class));
-
-            } else if (str.equals(getString(R.string.documentation))) {
-
-                Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.DOCUMENTATION_URL));
-                startActivity(openURL);
-
-            } else if (str.equals(getString(R.string.privacy_policy))) {
-
-                Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.PRIVACY_URL));
-                startActivity(openURL);
-
-            } else if (str.equals(getString(R.string.terms_of_use))) {
-
-                Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.TERMS_URL));
-                startActivity(openURL);
+                if (data != null) {
+                    ArrayList<SharingRequest> requests = data.getParcelableArrayList(AppConstants.KEY_SHARING_REQUESTS);
+                    if (requests != null && requests.size() > 0) {
+                        for (int i = 0; i < requests.size(); i++) {
+                            SharingRequest req = requests.get(i);
+                            if (AppConstants.KEY_REQ_STATUS_PENDING.equals(req.getReqStatus())) {
+                                pendingRequests.add(req);
+                            }
+                        }
+                    }
+                }
+                int count = pendingRequests.size();
+                userInfoAdapter.updatePendingRequestCount(count);
             }
-        }
-    };
+
+            @Override
+            public void onFailure(Exception exception) {
+            }
+        });
+    }
 }

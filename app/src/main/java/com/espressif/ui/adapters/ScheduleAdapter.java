@@ -91,10 +91,6 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
             for (int i = 0; i < actions.size(); i++) {
 
                 String deviceName = actions.get(i).getDevice().getUserVisibleName();
-                if (TextUtils.isEmpty(deviceName)) {
-                    deviceName = actions.get(i).getDevice().getDeviceName();
-                }
-
                 if (deviceNames.length() != 0) {
                     deviceNames.append(", ");
                 }

@@ -177,6 +177,11 @@
             android:label="@string/title_activity_select_devices"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="com.espressif.ui.activities.SharingRequestsActivity"
+            android:label="@string/title_activity_sharing_requests"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
 
     </application>
 

@@ -77,6 +77,7 @@ android {
         buildConfigField "boolean", "isScheduleSupported", localProperties.getProperty("isScheduleSupported", "true")
         buildConfigField "boolean", "isLocalControlSupported", localProperties.getProperty("isLocalControlSupported", "true")
         buildConfigField "boolean", "isNodeGroupingSupported", localProperties.getProperty("isNodeGroupingSupported", "true")
+        buildConfigField "boolean", "isNodeSharingSupported", localProperties.getProperty("isNodeSharingSupported", "true")
 
         def clientId = localProperties.getProperty("clientId", defaultClientId)
         def authUrl = localProperties.getProperty("authUrl", defaultAuthUrl)

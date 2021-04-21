@@ -22,43 +22,82 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.rainmaker.R;
+import com.espressif.ui.models.EspNode;
+import com.espressif.ui.models.SharingRequest;
 
 import java.util.ArrayList;
 
-public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.MyViewHolder> {
+public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.NodeDetailViewHolder> {
 
     private Context context;
     private ArrayList<String> nodeInfoList;
     private ArrayList<String> nodeInfoValueList;
+    private ArrayList<SharingRequest> sharingRequests;
+    private SharedUserAdapter userAdapter;
+    private EspNode node;
 
-    public NodeDetailsAdapter(Context context, ArrayList<String> nodeInfoList, ArrayList<String> nodeValueList) {
+    public NodeDetailsAdapter(Context context, ArrayList<String> nodeInfoList, ArrayList<String> nodeValueList,
+                              EspNode node, ArrayList<SharingRequest> sharingRequests) {
         this.context = context;
         this.nodeInfoList = nodeInfoList;
         this.nodeInfoValueList = nodeValueList;
+        this.sharingRequests = sharingRequests;
+        this.node = node;
     }
 
     @Override
-    public MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public NodeDetailViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
 
-        // infalte the item Layout
         LayoutInflater layoutInflater = LayoutInflater.from(context);
         View v = layoutInflater.inflate(R.layout.item_node_info, parent, false);
-        // set the view's size, margins, paddings and layout parameters
-        MyViewHolder vh = new MyViewHolder(v); // pass the view to View Holder
+        NodeDetailViewHolder vh = new NodeDetailViewHolder(v);
         return vh;
     }
 
     @Override
-    public void onBindViewHolder(@NonNull MyViewHolder myViewHolder, final int position) {
+    public void onBindViewHolder(@NonNull NodeDetailViewHolder myViewHolder, final int position) {
 
         // set the data in items
         myViewHolder.tvNodeInfoLabel.setText(nodeInfoList.get(position));
 
-        if (!TextUtils.isEmpty(nodeInfoValueList.get(position))) {
+        if (nodeInfoList.get(position).equals(context.getString(R.string.node_shared_with))
+                || nodeInfoList.get(position).equals(context.getString(R.string.node_shared_by))) {
 
+            myViewHolder.rvSharedUsers.setVisibility(View.VISIBLE);
+            myViewHolder.tvNodeInfoValue.setVisibility(View.GONE);
+
+            // set a LinearLayoutManager with default orientation
+            LinearLayoutManager linearLayoutManager = new LinearLayoutManager(context);
+            linearLayoutManager.setOrientation(RecyclerView.VERTICAL);
+            myViewHolder.rvSharedUsers.setLayoutManager(linearLayoutManager);
+            DividerItemDecoration itemDecor = new DividerItemDecoration(context, DividerItemDecoration.VERTICAL);
+            myViewHolder.rvSharedUsers.addItemDecoration(itemDecor);
+            userAdapter = new SharedUserAdapter(context, node, sharingRequests, false);
+            myViewHolder.rvSharedUsers.setAdapter(userAdapter);
+
+        } else if (nodeInfoList.get(position).equals(context.getString(R.string.pending_requests))) {
+
+            myViewHolder.rvSharedUsers.setVisibility(View.VISIBLE);
+            myViewHolder.tvNodeInfoValue.setVisibility(View.GONE);
+
+            // set a LinearLayoutManager with default orientation
+            LinearLayoutManager linearLayoutManager = new LinearLayoutManager(context);
+            linearLayoutManager.setOrientation(RecyclerView.VERTICAL);
+            myViewHolder.rvSharedUsers.setLayoutManager(linearLayoutManager);
+            DividerItemDecoration itemDecor = new DividerItemDecoration(context, DividerItemDecoration.VERTICAL);
+            myViewHolder.rvSharedUsers.addItemDecoration(itemDecor);
+            userAdapter = new SharedUserAdapter(context, node, sharingRequests, true);
+            myViewHolder.rvSharedUsers.setAdapter(userAdapter);
+
+        } else if (!TextUtils.isEmpty(nodeInfoValueList.get(position))) {
+
+            myViewHolder.rvSharedUsers.setVisibility(View.GONE);
+            myViewHolder.tvNodeInfoValue.setVisibility(View.VISIBLE);
             myViewHolder.tvNodeInfoValue.setText(nodeInfoValueList.get(position));
         }
     }
@@ -68,17 +107,17 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
         return nodeInfoList.size();
     }
 
-    public class MyViewHolder extends RecyclerView.ViewHolder {
+    static class NodeDetailViewHolder extends RecyclerView.ViewHolder {
 
-        // init the item view's
         TextView tvNodeInfoLabel, tvNodeInfoValue;
+        RecyclerView rvSharedUsers;
 
-        public MyViewHolder(View itemView) {
+        public NodeDetailViewHolder(View itemView) {
             super(itemView);
 
-            // get the reference of item view's
             tvNodeInfoLabel = itemView.findViewById(R.id.tv_node_label);
             tvNodeInfoValue = itemView.findViewById(R.id.tv_node_value);
+            rvSharedUsers = itemView.findViewById(R.id.rv_users_list);
         }
     }
 }

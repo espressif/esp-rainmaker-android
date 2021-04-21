@@ -75,25 +75,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.MyVi
         EspNode node = espApp.nodeMap.get(device.getNodeId());
 
         // set the data in items
-        boolean isParamTypeNameAvailable = false;
-
-        for (int i = 0; i < device.getParams().size(); i++) {
-
-            Param p = device.getParams().get(i);
-            if (p != null && p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-
-                if (!TextUtils.isEmpty(p.getLabelValue())) {
-
-                    isParamTypeNameAvailable = true;
-                    myViewHolder.tvDeviceName.setText(p.getLabelValue());
-                }
-                break;
-            }
-        }
-
-        if (!isParamTypeNameAvailable) {
-            myViewHolder.tvDeviceName.setText(device.getDeviceName());
-        }
+        myViewHolder.tvDeviceName.setText(device.getUserVisibleName());
 
         if (TextUtils.isEmpty(device.getDeviceType())) {
 

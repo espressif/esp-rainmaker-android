@@ -81,6 +81,25 @@ Grouping can be enabled/disabled by setting true/false value of `isNodeGroupingS
 Grouping feature is optional but enabled by default.
 Add `isNodeGroupingSupported=false` in `local.properties` file to disable this feature.
 
+### Node Sharing
+
+Node Sharing allows a user to share nodes with other registered users and allow them to monitor and control these nodes.
+List of operations that are supported in node sharing :
+
+For primary users:
+- Register requests to share nodes.
+- View pending requests.
+- Cancel a pending request, if required.
+- Remove node sharing.
+
+For secondary users:
+- View pending requests.
+- Accept/decline pending requests.
+
+Sharing can be enabled/disabled by setting true/false value of `isNodeSharingSupported` field in `local.properties`.
+Sharing feature is optional but enabled by default.
+Add `isNodeSharingSupported=false` in `local.properties` file to disable this feature.
+
 ## Additional Settings:
 
 Settings associated with provisioning a device can be modified in the `local.properties` file.
@@ -95,8 +114,9 @@ Add below lines in `local.properties` and customize as per your requirement.
  isFilterPrefixEditable=true
  isQRCodeSupported=true
  isScheduleSupported=true
- isNodeGroupingSupported=true
  isLocalControlSupported=true
+ isNodeGroupingSupported=true
+ isNodeSharingSupported=true
  ```  
 
 Description of each key can be found below.

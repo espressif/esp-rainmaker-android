@@ -175,11 +175,7 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
 
             boolean expanded = device.isExpanded();
             paramRecyclerView.setVisibility(expanded ? View.VISIBLE : View.GONE);
-            if (!TextUtils.isEmpty(device.getUserVisibleName())) {
-                tvDeviceName.setText(device.getUserVisibleName());
-            } else {
-                tvDeviceName.setText(device.getDeviceName());
-            }
+            tvDeviceName.setText(device.getUserVisibleName());
         }
     }
 }

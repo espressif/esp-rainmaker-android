@@ -16,14 +16,17 @@ package com.espressif.ui.activities;
 
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
-import android.widget.ImageView;
+import android.view.WindowManager;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -33,15 +36,22 @@ import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
+import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.NodeDetailsAdapter;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
-import com.google.android.material.card.MaterialCardView;
+import com.espressif.ui.models.SharingRequest;
 
 import java.util.ArrayList;
 
 public class NodeDetailsActivity extends AppCompatActivity {
+
+    private TextView tvTitle, tvBack, tvCancel;
+    private RecyclerView nodeInfoRecyclerView;
+    private ContentLoadingProgressBar progressBarNodeDetails;
+    private ConstraintLayout layoutNodeDetails;
+    private RelativeLayout layoutRemoveNodeLoading;
 
     private EspNode node;
     private EspApplication espApp;
@@ -49,15 +59,8 @@ public class NodeDetailsActivity extends AppCompatActivity {
     private NodeDetailsAdapter nodeDetailsAdapter;
     private ArrayList<String> nodeInfoList;
     private ArrayList<String> nodeInfoValueList;
-
-    private TextView tvTitle, tvBack, tvCancel;
-    private MaterialCardView btnRemoveDevice;
-    private TextView txtRemoveDeviceBtn;
-    private ImageView removeDeviceImage;
-    private RecyclerView nodeInfoRecyclerView;
-    private TextView txtRemoveMultiDeviceInfo;
-    private ContentLoadingProgressBar progressBar;
-    private AlertDialog userDialog;
+    private ArrayList<SharingRequest> pendingRequests;
+    private String nodeId;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -66,13 +69,20 @@ public class NodeDetailsActivity extends AppCompatActivity {
 
         nodeInfoList = new ArrayList<>();
         nodeInfoValueList = new ArrayList<>();
+        pendingRequests = new ArrayList<>();
         espApp = (EspApplication) getApplicationContext();
         apiManager = ApiManager.getInstance(getApplicationContext());
-        String nodeId = getIntent().getStringExtra(AppConstants.KEY_NODE_ID);
+        nodeId = getIntent().getStringExtra(AppConstants.KEY_NODE_ID);
         node = espApp.nodeMap.get(nodeId);
+        initViews();
         setNodeInfo();
 
-        initViews();
+        if (BuildConfig.isNodeSharingSupported) {
+            getNodeSharingInfo();
+            progressBarNodeDetails.setVisibility(View.VISIBLE);
+        } else {
+            progressBarNodeDetails.setVisibility(View.GONE);
+        }
     }
 
     private View.OnClickListener removeDeviceBtnClickListener = new View.OnClickListener() {
@@ -93,6 +103,16 @@ public class NodeDetailsActivity extends AppCompatActivity {
         }
     };
 
+    public void addPendingRequest(SharingRequest request) {
+        pendingRequests.add(request);
+        setNodeInfo();
+    }
+
+    public void clearPendingRequest() {
+        pendingRequests.clear();
+        setNodeInfo();
+    }
+
     private void initViews() {
 
         tvTitle = findViewById(R.id.main_toolbar_title);
@@ -101,82 +121,163 @@ public class NodeDetailsActivity extends AppCompatActivity {
 
         tvTitle.setText(R.string.title_activity_node_details);
         tvBack.setVisibility(View.VISIBLE);
-        tvCancel.setVisibility(View.GONE);
+        tvCancel.setVisibility(View.VISIBLE);
+        tvCancel.setText(R.string.btn_remove);
 
         nodeInfoRecyclerView = findViewById(R.id.rv_node_details_list);
-        btnRemoveDevice = findViewById(R.id.btn_remove);
-        txtRemoveDeviceBtn = findViewById(R.id.text_btn);
-        removeDeviceImage = findViewById(R.id.iv_remove);
-        progressBar = findViewById(R.id.progress_indicator);
-        txtRemoveMultiDeviceInfo = findViewById(R.id.tv_txt_remove);
+        progressBarNodeDetails = findViewById(R.id.progress_get_node_details);
+        layoutNodeDetails = findViewById(R.id.layout_node_details);
+        layoutRemoveNodeLoading = findViewById(R.id.rl_progress_remove_node);
 
-        tvBack.setOnClickListener(backButtonClickListener);
-        btnRemoveDevice.setOnClickListener(removeDeviceBtnClickListener);
-
-        // set a LinearLayoutManager with default orientation
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getApplicationContext());
         linearLayoutManager.setOrientation(RecyclerView.VERTICAL);
-        nodeInfoRecyclerView.setLayoutManager(linearLayoutManager); // set LayoutManager to RecyclerView
+        nodeInfoRecyclerView.setLayoutManager(linearLayoutManager);
 
-        nodeDetailsAdapter = new NodeDetailsAdapter(this, nodeInfoList, nodeInfoValueList);
+        nodeDetailsAdapter = new NodeDetailsAdapter(this, nodeInfoList, nodeInfoValueList, node, pendingRequests);
         nodeInfoRecyclerView.setAdapter(nodeDetailsAdapter);
 
-        if (node.getDevices() != null && node.getDevices().size() > 1) {
-            txtRemoveMultiDeviceInfo.setVisibility(View.VISIBLE);
-        } else {
-            txtRemoveMultiDeviceInfo.setVisibility(View.GONE);
-        }
+        tvBack.setOnClickListener(backButtonClickListener);
+        tvCancel.setOnClickListener(removeDeviceBtnClickListener);
     }
 
     private void setNodeInfo() {
 
-        nodeInfoList.add(getString(R.string.node_id));
-        nodeInfoList.add(getString(R.string.node_name));
-        nodeInfoList.add(getString(R.string.node_type));
-        nodeInfoList.add(getString(R.string.node_fw_version));
-        nodeInfoList.add(getString(R.string.node_config_version));
+        nodeInfoList.clear();
+        nodeInfoValueList.clear();
 
+        nodeInfoList.add(getString(R.string.node_id));
         nodeInfoValueList.add(node.getNodeId());
+
+        nodeInfoList.add(getString(R.string.node_name));
         nodeInfoValueList.add(node.getNodeName());
+
+        nodeInfoList.add(getString(R.string.node_type));
         nodeInfoValueList.add(node.getNodeType());
+
+        nodeInfoList.add(getString(R.string.node_fw_version));
         nodeInfoValueList.add(node.getFwVersion());
-        nodeInfoValueList.add(node.getConfigVersion());
 
         ArrayList<Param> attributes = node.getAttributes();
 
         if (attributes != null && attributes.size() > 0) {
-
             for (int i = 0; i < attributes.size(); i++) {
-
                 Param param = attributes.get(i);
                 nodeInfoList.add(param.getName());
                 nodeInfoValueList.add(param.getLabelValue());
             }
         }
+
+        if (BuildConfig.isNodeSharingSupported) {
+
+            boolean shouldDisplaySharingView = true;
+            String userRole = node.getUserRole();
+
+            if (!TextUtils.isEmpty(userRole)) {
+                if (!userRole.equals(AppConstants.KEY_USER_ROLE_PRIMARY)) {
+                    ArrayList<String> members = node.getSecondaryUsers();
+                    if (members.size() <= 0) {
+                        shouldDisplaySharingView = false;
+                    }
+                }
+            } else {
+                shouldDisplaySharingView = false;
+            }
+
+            if (shouldDisplaySharingView) {
+                if (AppConstants.KEY_USER_ROLE_PRIMARY.equals(userRole)) {
+                    nodeInfoList.add(getString(R.string.node_shared_with));
+                    nodeInfoValueList.add(getString(R.string.node_shared_with)); // Just added to maintain sequence for key and value
+
+                    if (pendingRequests.size() > 0) {
+                        nodeInfoList.add(getString(R.string.pending_requests));
+                        nodeInfoValueList.add(getString(R.string.pending_requests));
+                    }
+                } else {
+                    nodeInfoList.add(getString(R.string.node_shared_by));
+                    nodeInfoValueList.add(getString(R.string.node_shared_by)); // Just added to maintain sequence for key and value
+                }
+            }
+        }
+        nodeDetailsAdapter.notifyDataSetChanged();
+    }
+
+    private void getNodeSharingInfo() {
+
+        apiManager.getNodeSharing(node.getNodeId(), new ApiResponseListener() {
+
+            @Override
+            public void onSuccess(Bundle data) {
+
+                String userRole = node.getUserRole();
+                if (!TextUtils.isEmpty(userRole) && userRole.equals(AppConstants.KEY_USER_ROLE_PRIMARY)) {
+                    getSharingRequests();
+                } else {
+                    setNodeInfo();
+                    progressBarNodeDetails.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onFailure(Exception exception) {
+                setNodeInfo();
+                progressBarNodeDetails.setVisibility(View.GONE);
+            }
+        });
+    }
+
+    private void getSharingRequests() {
+
+        apiManager.getSharingRequests(true, new ApiResponseListener() {
+
+            @Override
+            public void onSuccess(Bundle data) {
+
+                if (data != null) {
+                    ArrayList<SharingRequest> requests = data.getParcelableArrayList(AppConstants.KEY_SHARING_REQUESTS);
+                    if (requests != null && requests.size() > 0) {
+                        for (int i = 0; i < requests.size(); i++) {
+                            SharingRequest req = requests.get(i);
+                            if (req.getNodeIds().contains(nodeId) && AppConstants.KEY_REQ_STATUS_PENDING.equals(req.getReqStatus())) {
+                                pendingRequests.add(req);
+                            }
+                        }
+                    }
+                }
+                setNodeInfo();
+                progressBarNodeDetails.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onFailure(Exception exception) {
+                setNodeInfo();
+                progressBarNodeDetails.setVisibility(View.GONE);
+            }
+        });
     }
 
     private void showLoading() {
-
-        btnRemoveDevice.setEnabled(false);
-        btnRemoveDevice.setAlpha(0.5f);
-        txtRemoveDeviceBtn.setText(R.string.btn_removing);
-        progressBar.setVisibility(View.VISIBLE);
-        removeDeviceImage.setVisibility(View.GONE);
+        layoutNodeDetails.setAlpha(0.3f);
+        layoutRemoveNodeLoading.setVisibility(View.VISIBLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
     }
 
-    public void hideLoading() {
-
-        btnRemoveDevice.setEnabled(true);
-        btnRemoveDevice.setAlpha(1f);
-        txtRemoveDeviceBtn.setText(R.string.btn_remove);
-        progressBar.setVisibility(View.GONE);
-        removeDeviceImage.setVisibility(View.VISIBLE);
+    private void hideLoading() {
+        layoutNodeDetails.setAlpha(1);
+        layoutRemoveNodeLoading.setVisibility(View.GONE);
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
     }
 
     private void confirmForRemoveNode() {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage(R.string.dialog_msg_delete_node);
+
+        if (node.getDevices() != null && node.getDevices().size() > 1) {
+            builder.setTitle(R.string.dialog_msg_delete_node);
+            builder.setMessage(R.string.text_remove_node);
+        } else {
+            builder.setTitle(R.string.dialog_msg_delete_node);
+        }
 
         // Set up the buttons
         builder.setPositiveButton(R.string.btn_yes, new DialogInterface.OnClickListener() {
@@ -198,8 +299,8 @@ public class NodeDetailsActivity extends AppCompatActivity {
             }
         });
 
-        userDialog = builder.create();
-        userDialog.show();
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
     }
 
     private void removeDevice() {

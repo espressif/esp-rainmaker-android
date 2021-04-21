@@ -958,7 +958,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                                     params.get(position).setLabelValue(value);
 
                                     if (params.get(position).getParamType() != null && params.get(position).getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-                                        ((EspDeviceActivity) context).setDeviceName(value);
+                                        ((EspDeviceActivity) context).updateDeviceNameInTitle(value);
                                     }
                                     ((EspDeviceActivity) context).startUpdateValueTask();
                                 }

@@ -560,9 +560,6 @@ public class AddScheduleActivity extends AppCompatActivity {
 
             String deviceName = selectedDevices.get(i).getUserVisibleName();
 
-            if (TextUtils.isEmpty(deviceName)) {
-                deviceName = selectedDevices.get(i).getDeviceName();
-            }
             if (deviceNames == null) {
                 deviceNames = deviceName;
             } else {

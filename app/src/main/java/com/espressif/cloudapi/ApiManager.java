@@ -44,8 +44,10 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Schedule;
+import com.espressif.ui.models.SharingRequest;
 import com.espressif.ui.models.UpdateEvent;
 import com.espressif.ui.user_module.AppHelper;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import org.greenrobot.eventbus.EventBus;
@@ -364,6 +366,10 @@ public class ApiManager {
                                         } else {
                                             espNode = new EspNode(nodeId);
                                         }
+
+                                        // User role
+                                        String role = nodeJson.optString(AppConstants.KEY_ROLE);
+                                        espNode.setUserRole(role);
 
                                         // Node Config
                                         JSONObject configJson = nodeJson.optJSONObject(AppConstants.KEY_CONFIG);
@@ -731,6 +737,10 @@ public class ApiManager {
                                         } else {
                                             espNode = new EspNode(nodeId);
                                         }
+
+                                        // User role
+                                        String role = nodeJson.optString(AppConstants.KEY_ROLE);
+                                        espNode.setUserRole(role);
 
                                         // Node Config
                                         JSONObject configJson = nodeJson.optJSONObject(AppConstants.KEY_CONFIG);
@@ -2062,6 +2072,448 @@ public class ApiManager {
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
                 listener.onFailure(new RuntimeException("Failed to get user groups"));
+            }
+        });
+    }
+
+    public void getSharingRequests(boolean isPrimaryUser, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Get sharing requests");
+        ArrayList<SharingRequest> sharingRequests = new ArrayList<>();
+        getSharingRequests("", "", isPrimaryUser, sharingRequests, listener);
+    }
+
+    private void getSharingRequests(final String startReqId, final String startUserName, final boolean isPrimaryUser,
+                                    final ArrayList<SharingRequest> sharingRequests, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Get sharing request, start request id : " + startReqId);
+        apiInterface.getSharingRequests(AppConstants.URL_USER_NODES_SHARING_REQUESTS, accessToken, isPrimaryUser,
+                startReqId, startUserName).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Get sharing requests, Response code : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+                        if (response.body() != null) {
+                            String jsonResponse = response.body().string();
+                            JSONObject jsonObject = new JSONObject(jsonResponse);
+                            JSONArray nodeJsonArray = jsonObject.optJSONArray(AppConstants.KEY_SHARING_REQUESTS);
+
+                            if (nodeJsonArray != null) {
+
+                                for (int nodeIndex = 0; nodeIndex < nodeJsonArray.length(); nodeIndex++) {
+
+                                    JSONObject nodeJson = nodeJsonArray.optJSONObject(nodeIndex);
+
+                                    if (nodeJson != null) {
+
+                                        String reqId = nodeJson.optString(AppConstants.KEY_REQ_ID);
+                                        if (TextUtils.isEmpty(reqId)) {
+                                            continue;
+                                        }
+                                        SharingRequest sharingReq = new SharingRequest(reqId);
+                                        sharingReq.setReqStatus(nodeJson.optString(AppConstants.KEY_REQ_STATUS));
+                                        sharingReq.setReqTime(nodeJson.optLong(AppConstants.KEY_REQ_TIME, 0));
+                                        sharingReq.setUserName(nodeJson.optString(AppConstants.KEY_USER_NAME));
+                                        sharingReq.setPrimaryUserName(nodeJson.optString(AppConstants.KEY_PRIMARY_USER_NAME));
+                                        sharingReq.setReqTime(nodeJson.optLong(AppConstants.KEY_REQ_TIMESTAMP));
+                                        JSONObject metadataJson = nodeJson.optJSONObject(AppConstants.KEY_METADATA);
+                                        if (metadataJson != null) {
+                                            sharingReq.setMetadata(metadataJson.toString());
+                                        }
+
+                                        JSONArray nodeIdListJson = nodeJson.optJSONArray(AppConstants.KEY_NODE_IDS);
+                                        ArrayList<String> nodeIds = new ArrayList<>();
+
+                                        if (nodeIdListJson != null) {
+                                            for (int k = 0; k < nodeIdListJson.length(); k++) {
+                                                nodeIds.add(nodeIdListJson.optString(k));
+                                            }
+                                        }
+                                        sharingReq.setNodeIds(nodeIds);
+                                        sharingRequests.add(sharingReq);
+                                    }
+                                }
+                            }
+
+                            String nextId = jsonObject.optString(AppConstants.KEY_NEXT_REQ_ID);
+                            String nextUserName = jsonObject.optString(AppConstants.KEY_NEXT_USER_NAME);
+
+                            if (!TextUtils.isEmpty(nextId)) {
+                                getSharingRequests(nextId, nextUserName, isPrimaryUser, sharingRequests, listener);
+                            } else {
+                                Bundle data = new Bundle();
+                                Log.d(TAG, "Number of sharing request : " + sharingRequests.size());
+                                data.putParcelableArrayList(AppConstants.KEY_SHARING_REQUESTS, sharingRequests);
+                                listener.onSuccess(data);
+                            }
+
+                        } else {
+                            Log.e(TAG, "Response received : null");
+                            listener.onFailure(new RuntimeException("Failed to get sharing requests"));
+                        }
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to get sharing requests"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to get sharing requests"));
+                        }
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    listener.onFailure(e);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onFailure(new Exception(t));
+            }
+        });
+    }
+
+    public void updateSharingRequest(final String requestId, final boolean requestAccepted, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Update sharing request status with : " + requestAccepted + " for request id : " + requestId);
+
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_REQ_ACCEPT, requestAccepted);
+        body.addProperty(AppConstants.KEY_REQ_ID, requestId);
+
+        apiInterface.updateSharingRequest(AppConstants.URL_USER_NODES_SHARING_REQUESTS, accessToken, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonResponse = response.body().string();
+                        Log.e(TAG, "onResponse Success : " + jsonResponse);
+                        listener.onSuccess(null);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to update sharing request"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to update sharing request"));
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onFailure(new RuntimeException("Failed to update sharing request"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onFailure(new RuntimeException("Failed to update sharing request"));
+            }
+        });
+    }
+
+    public void removeSharingRequest(final String requestId, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Remove sharing request : " + requestId);
+
+        apiInterface.removeSharingRequest(AppConstants.URL_USER_NODES_SHARING_REQUESTS, accessToken, requestId).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        listener.onSuccess(null);
+
+                    } else {
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to remove sharing request"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to remove sharing request"));
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onFailure(new RuntimeException("Failed to remove sharing request"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onFailure(new RuntimeException("Failed to remove sharing request"));
+            }
+        });
+    }
+
+    public void shareNodeWithUser(final String nodeId, final String email, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Share Node " + nodeId + " with + User " + email);
+
+        JsonObject body = new JsonObject();
+        JsonArray nodes = new JsonArray();
+        nodes.add(nodeId);
+        body.add(AppConstants.KEY_NODES, nodes);
+        body.addProperty(AppConstants.KEY_USER_NAME, email);
+
+        ArrayList<Device> devices = espApp.nodeMap.get(nodeId).getDevices();
+        JsonArray devicesJsonArr = new JsonArray();
+
+        for (int i = 0; i < devices.size(); i++) {
+            JsonObject deviceJson = new JsonObject();
+            deviceJson.addProperty(AppConstants.KEY_NAME, devices.get(i).getUserVisibleName());
+            devicesJsonArr.add(deviceJson);
+        }
+
+        JsonObject metadataJson = new JsonObject();
+        metadataJson.add(AppConstants.KEY_DEVICES, devicesJsonArr);
+        body.add(AppConstants.KEY_METADATA, metadataJson);
+
+        apiInterface.shareNodeWithUser(AppConstants.URL_USER_NODES_SHARING, accessToken, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Response code  : " + response.code());
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonResponse = response.body().string();
+                        JSONObject jsonObject = new JSONObject(jsonResponse);
+                        String requestId = jsonObject.optString(AppConstants.KEY_REQ_ID);
+                        Bundle bundle = new Bundle();
+                        bundle.putString(AppConstants.KEY_REQ_ID, requestId);
+                        bundle.putString(AppConstants.KEY_EMAIL, email);
+                        listener.onSuccess(bundle);
+
+                    } else {
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Node sharing failed"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Node sharing failed"));
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onFailure(new RuntimeException("Node sharing failed"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onFailure(new RuntimeException("Node sharing failed"));
+            }
+        });
+    }
+
+    public void getNodeSharing(final String nodeId, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Get Node Sharing information for node : " + nodeId);
+
+        apiInterface.getNodeSharing(AppConstants.URL_USER_NODES_SHARING, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.e(TAG, "Sharing response : " + jsonResponse);
+                        JSONObject jsonObject = new JSONObject(jsonResponse);
+                        JSONArray nodeSharingJsonArray = jsonObject.optJSONArray(AppConstants.KEY_NODE_SHARING);
+
+                        ArrayList<String> primaryUsers = new ArrayList<>();
+                        ArrayList<String> secondaryUsers = new ArrayList<>();
+
+                        if (nodeSharingJsonArray != null && nodeSharingJsonArray.length() > 0) {
+
+                            JSONObject nodeSharingJson = nodeSharingJsonArray.optJSONObject(0);
+
+                            if (nodeSharingJson != null) {
+
+                                JSONObject usersJson = nodeSharingJson.optJSONObject(AppConstants.KEY_USERS);
+
+                                if (usersJson != null) {
+
+                                    JSONArray primaryJsonArray = usersJson.optJSONArray(AppConstants.KEY_USER_ROLE_PRIMARY);
+                                    JSONArray secondaryJsonArray = usersJson.optJSONArray(AppConstants.KEY_USER_ROLE_SECONDARY);
+
+                                    if (primaryJsonArray != null && primaryJsonArray.length() > 0) {
+                                        for (int i = 0; i < primaryJsonArray.length(); i++) {
+                                            String email = primaryJsonArray.optString(i);
+                                            primaryUsers.add(email);
+                                        }
+                                    }
+
+                                    if (secondaryJsonArray != null && secondaryJsonArray.length() > 0) {
+                                        for (int i = 0; i < secondaryJsonArray.length(); i++) {
+                                            String email = secondaryJsonArray.optString(i);
+                                            secondaryUsers.add(email);
+                                        }
+                                    }
+
+                                    EspNode node = espApp.nodeMap.get(nodeId);
+                                    if (node != null) {
+                                        node.setPrimaryUsers(primaryUsers);
+                                        node.setSecondaryUsers(secondaryUsers);
+                                    }
+                                }
+                            }
+                        }
+
+                        Bundle data = new Bundle();
+                        data.putStringArrayList(AppConstants.KEY_PRIMARY_USERS, primaryUsers);
+                        data.putStringArrayList(AppConstants.KEY_SECONDARY_USERS, secondaryUsers);
+                        listener.onSuccess(data);
+
+                    } else {
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to get node sharing info"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to get node sharing info"));
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onFailure(new RuntimeException("Failed to get node sharing info"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onFailure(new RuntimeException("Failed to get node sharing info"));
+            }
+        });
+    }
+
+    public void removeSharing(final String nodeId, final String email, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Remove user : " + email + " from sharing, for nodes : " + nodeId);
+
+        apiInterface.removeSharing(AppConstants.URL_USER_NODES_SHARING, accessToken, nodeId, email).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        espApp.nodeMap.get(nodeId).getSecondaryUsers().remove(email);
+                        listener.onSuccess(null);
+
+                    } else {
+
+                        String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Error Response : " + jsonErrResponse);
+
+                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+
+                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+
+                            if (!TextUtils.isEmpty(err)) {
+                                listener.onFailure(new CloudException(err));
+                            } else {
+                                listener.onFailure(new RuntimeException("Failed to remove sharing"));
+                            }
+
+                        } else {
+                            listener.onFailure(new RuntimeException("Failed to remove sharing"));
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onFailure(new RuntimeException("Failed to remove sharing"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onFailure(new RuntimeException("Failed to remove sharing"));
             }
         });
     }
