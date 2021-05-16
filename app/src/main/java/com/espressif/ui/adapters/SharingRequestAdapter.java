@@ -55,6 +55,7 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
         this.apiManager = ApiManager.getInstance(context);
     }
 
+    @NonNull
     @Override
     public SharingRequestVH onCreateViewHolder(ViewGroup parent, int viewType) {
 
@@ -65,7 +66,7 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
     }
 
     @Override
-    public void onBindViewHolder(@NonNull final SharingRequestVH myViewHolder, final int position) {
+    public void onBindViewHolder(@NonNull final SharingRequestVH sharingRequestVH, final int position) {
 
         SharingRequest sharingReq = pendingRequests.get(position);
         StringBuilder text = new StringBuilder();
@@ -84,35 +85,40 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
 
                     text.append(" ");
                     text.append(context.getString(R.string.wants_to_share));
-                    text.append(" ");
+                    ArrayList<String> deviceNames = new ArrayList<>();
 
                     for (int i = 0; i < deviceJsonArray.length(); i++) {
-
                         JSONObject deviceObj = deviceJsonArray.optJSONObject(i);
                         if (deviceObj != null) {
-
                             String deviceName = deviceObj.optString(AppConstants.KEY_NAME);
+                            deviceNames.add(deviceName);
+                        }
+                    }
 
-                            if (i != 0) {
+                    int deviceListSize = deviceNames.size();
+                    if (deviceListSize == 0) {
+                        text = new StringBuilder();
+                        text.append(displayGeneralText(sharingReq));
+                    } else if (deviceListSize == 1) {
+                        text.append(" ");
+                        text.append(deviceNames.get(0));
+                    } else {
 
-                                if (i == (deviceJsonArray.length() - 1)) {
-                                    text.append(" ");
-                                    text.append(context.getString(R.string.and));
-                                    text.append(" ");
-                                } else {
-                                    text.append(", ");
-                                }
+                        for (int i = 0; i < deviceNames.size(); i++) {
+                            text.append(" ");
+                            if (i == (deviceListSize - 1)) {
+                                text.append(context.getString(R.string.and));
+                                text.append(" ");
+                                text.append(deviceNames.get(i));
+                            } else {
+                                text.append(deviceNames.get(i));
+                                text.append(",");
                             }
-                            text.append(deviceName);
-
-                        } else {
-                            text = new StringBuilder();
-                            text.append(displayGeneralText(sharingReq));
                         }
                     }
 
                     text.append(" ");
-                    if (deviceJsonArray.length() > 1) {
+                    if (deviceListSize > 1) {
                         text.append(context.getString(R.string.devices));
                     } else {
                         text.append(context.getString(R.string.device));
@@ -133,9 +139,9 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
             text.append(displayGeneralText(sharingReq));
         }
 
-        myViewHolder.tvUserName.setText(text.toString());
+        sharingRequestVH.tvUserName.setText(text.toString());
 
-        myViewHolder.layoutBtnAccept.setOnClickListener(new View.OnClickListener() {
+        sharingRequestVH.layoutBtnAccept.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
@@ -154,7 +160,17 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
                     }
 
                     @Override
-                    public void onFailure(Exception exception) {
+                    public void onResponseFailure(Exception exception) {
+                        if (exception instanceof CloudException) {
+                            Toast.makeText(context, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(context, R.string.error_get_sharing_request, Toast.LENGTH_SHORT).show();
+                        }
+                        ((SharingRequestsActivity) context).hideLoading();
+                    }
+
+                    @Override
+                    public void onNetworkFailure(Exception exception) {
                         if (exception instanceof CloudException) {
                             Toast.makeText(context, exception.getMessage(), Toast.LENGTH_SHORT).show();
                         } else {
@@ -166,7 +182,7 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
             }
         });
 
-        myViewHolder.layoutBtnDecline.setOnClickListener(new View.OnClickListener() {
+        sharingRequestVH.layoutBtnDecline.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
@@ -184,7 +200,17 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
                     }
 
                     @Override
-                    public void onFailure(Exception exception) {
+                    public void onResponseFailure(Exception exception) {
+                        if (exception instanceof CloudException) {
+                            Toast.makeText(context, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(context, R.string.error_get_sharing_request, Toast.LENGTH_SHORT).show();
+                        }
+                        ((SharingRequestsActivity) context).hideLoading();
+                    }
+
+                    @Override
+                    public void onNetworkFailure(Exception exception) {
                         if (exception instanceof CloudException) {
                             Toast.makeText(context, exception.getMessage(), Toast.LENGTH_SHORT).show();
                         } else {
@@ -205,6 +231,7 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
         text.append(context.getString(R.string.wants_to_share));
         text.append(" ");
         text.append(context.getString(R.string.node));
+        text.append(" ");
 
         ArrayList<String> nodeIds = request.getNodeIds();
         for (int i = 0; i < nodeIds.size(); i++) {

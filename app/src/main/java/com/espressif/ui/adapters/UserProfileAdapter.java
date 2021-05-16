@@ -28,6 +28,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.SharingRequestsActivity;
+import com.espressif.ui.activities.VoiceServicesActivity;
 import com.espressif.ui.user_module.ChangePasswordActivity;
 
 import java.util.ArrayList;
@@ -97,6 +98,10 @@ public class UserProfileAdapter extends RecyclerView.Adapter<UserProfileAdapter.
 
                     Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.TERMS_URL));
                     context.startActivity(openURL);
+
+                } else if (str.equals(context.getString(R.string.voice_services))) {
+
+                    context.startActivity(new Intent(context, VoiceServicesActivity.class));
                 }
             }
         });

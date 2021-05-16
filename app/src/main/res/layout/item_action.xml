@@ -8,7 +8,7 @@
     android:layout_marginTop="@dimen/margin_8"
     android:layout_marginEnd="@dimen/margin_8"
     android:layout_marginBottom="@dimen/margin_8"
-    card_view:cardBackgroundColor="@color/color_background"
+    card_view:cardBackgroundColor="@android:color/white"
     card_view:cardCornerRadius="8dp"
     card_view:cardElevation="1dp"
     card_view:cardUseCompatPadding="true">

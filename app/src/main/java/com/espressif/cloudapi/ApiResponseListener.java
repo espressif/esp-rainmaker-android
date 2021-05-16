@@ -23,5 +23,7 @@ public interface ApiResponseListener {
 
     void onSuccess(Bundle data);
 
-    void onFailure(Exception exception);
+    void onResponseFailure(Exception exception);
+
+    void onNetworkFailure(Exception exception);
 }

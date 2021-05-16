@@ -109,8 +109,13 @@ public class mDNSApiManager {
                     }
 
                     @Override
-                    public void onFailure(Exception exception) {
-                        listener.onFailure(exception);
+                    public void onResponseFailure(Exception exception) {
+                        listener.onResponseFailure(exception);
+                    }
+
+                    @Override
+                    public void onNetworkFailure(Exception exception) {
+                        listener.onResponseFailure(exception);
                     }
                 });
 
@@ -130,13 +135,18 @@ public class mDNSApiManager {
                     }
 
                     @Override
-                    public void onFailure(Exception exception) {
-                        listener.onFailure(exception);
+                    public void onResponseFailure(Exception exception) {
+                        listener.onResponseFailure(exception);
+                    }
+
+                    @Override
+                    public void onNetworkFailure(Exception exception) {
+                        listener.onResponseFailure(exception);
                     }
                 });
             }
         } else {
-            listener.onFailure(new RuntimeException("Device not available locally."));
+            listener.onResponseFailure(new RuntimeException("Device not available locally."));
         }
     }
 
@@ -197,8 +207,13 @@ public class mDNSApiManager {
                     }
 
                     @Override
-                    public void onFailure(Exception exception) {
-                        listener.onFailure(exception);
+                    public void onResponseFailure(Exception exception) {
+                        listener.onResponseFailure(exception);
+                    }
+
+                    @Override
+                    public void onNetworkFailure(Exception exception) {
+                        listener.onResponseFailure(exception);
                     }
                 });
 
@@ -218,13 +233,18 @@ public class mDNSApiManager {
                     }
 
                     @Override
-                    public void onFailure(Exception exception) {
-                        listener.onFailure(exception);
+                    public void onResponseFailure(Exception exception) {
+                        listener.onResponseFailure(exception);
+                    }
+
+                    @Override
+                    public void onNetworkFailure(Exception exception) {
+                        listener.onResponseFailure(exception);
                     }
                 });
             }
         } else {
-            listener.onFailure(new RuntimeException("Device not available locally."));
+            listener.onResponseFailure(new RuntimeException("Device not available locally."));
         }
     }
 
@@ -258,7 +278,7 @@ public class mDNSApiManager {
                             if (status.equals(Constants.Status.Success)) {
                                 listener.onSuccess(null);
                             } else {
-                                listener.onFailure(new RuntimeException("Failed to update param."));
+                                listener.onResponseFailure(new RuntimeException("Failed to update param."));
                             }
 
                         } catch (InvalidProtocolBufferException e) {
@@ -267,18 +287,18 @@ public class mDNSApiManager {
 
                     } else {
                         Log.e(TAG, "returnData is null");
-                        listener.onFailure(new RuntimeException("Response not received."));
+                        listener.onResponseFailure(new RuntimeException("Response not received."));
                     }
                 }
 
                 @Override
                 public void onFailure(Exception e) {
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 }
             });
 
         } else {
-            listener.onFailure(new RuntimeException("Device not available locally."));
+            listener.onResponseFailure(new RuntimeException("Device not available locally."));
         }
     }
 
@@ -303,7 +323,7 @@ public class mDNSApiManager {
 
             @Override
             public void onFailure(Exception e) {
-                listener.onFailure(e);
+                listener.onResponseFailure(e);
             }
         });
     }
@@ -320,13 +340,13 @@ public class mDNSApiManager {
                 if (returnData != null) {
                     processGetPropertyValue(returnData, listener);
                 } else {
-                    listener.onFailure(new RuntimeException("Response not received."));
+                    listener.onResponseFailure(new RuntimeException("Response not received."));
                 }
             }
 
             @Override
             public void onFailure(Exception e) {
-                listener.onFailure(e);
+                listener.onResponseFailure(e);
             }
         });
     }
@@ -411,12 +431,12 @@ public class mDNSApiManager {
                 }
                 listener.onSuccess(bundle);
             } else {
-                listener.onFailure(new RuntimeException("Failed to get data from device"));
+                listener.onResponseFailure(new RuntimeException("Failed to get data from device"));
             }
 
         } catch (InvalidProtocolBufferException e) {
             e.printStackTrace();
-            listener.onFailure(e);
+            listener.onResponseFailure(e);
         }
     }
 }

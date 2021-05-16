@@ -15,6 +15,7 @@ def defaultTransport = "Both"
 def defaultSecurity = "Sec1"
 def defaultPoP = ""
 def defaultPrefix = "PROV_"
+def defaultWiFiScanSrc = "Device"
 
 def defaultAwsRegion = "us-east-1"
 def defaultUserPoolId = "us-east-1_kWz4M6MfD"
@@ -43,7 +44,7 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 23
         targetSdkVersion 30
-        versionCode 16
+        versionCode 28
         versionName "2.3.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -68,6 +69,15 @@ android {
             throw new GradleException("Invalid 'security' value. Please check 'security' value in local.properties file.")
         } else {
             buildConfigField "String", "SECURITY", '"' + security + '"'
+        }
+
+        def wifiScanSrc = localProperties.getProperty("wifiScanSource", defaultWiFiScanSrc)
+        if (wifiScanSrc == null) {
+            throw new GradleException("WiFi scan source not found. Define it in the local.properties file.")
+        } else if (!wifiScanSrc.equalsIgnoreCase("Device") && !wifiScanSrc.equalsIgnoreCase("Phone")) {
+            throw new GradleException("Invalid 'wifiScanSource' value. Please check 'wifiScanSource' value in local.properties file.")
+        } else {
+            buildConfigField "String", "WIFI_SCAN_SRC", '"' + wifiScanSrc + '"'
         }
 
         buildConfigField "boolean", "isFilterPrefixEditable", localProperties.getProperty("isFilterPrefixEditable", "true")
@@ -151,6 +161,7 @@ dependencies {
     implementation 'com.google.android.material:material:1.1.0'
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'com.larswerkman:HoloColorPicker:1.5'
 
     implementation 'com.google.protobuf:protobuf-lite:3.0.1'
     implementation 'com.google.crypto.tink:tink-android:1.1.0'
@@ -166,16 +177,17 @@ dependencies {
 
     implementation 'com.aventrix.jnanoid:jnanoid:2.0.0'
     implementation 'com.budiyev.android:code-scanner:2.1.0'
-    implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.0.8'
+    implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.0.9'
 
-    implementation 'com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.22.5'
+    implementation 'com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.19.0'
     implementation 'com.github.warkiz.tickseekbar:tickseekbar:0.1.4'
     implementation('com.amazonaws:aws-android-sdk-iot:2.15.2') { transitive = true }
     implementation('com.amazonaws:aws-android-sdk-mobile-client:2.15.2') { transitive = true }
 
     // Room dependencies
-    implementation 'android.arch.persistence.room:runtime:2.2.6'
-    annotationProcessor 'android.arch.persistence.room:compiler:2.2.6'
+    def room_version = "2.3.0"
+    implementation "android.arch.persistence.room:runtime:$room_version"
+    annotationProcessor "android.arch.persistence.room:compiler:$room_version"
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test:runner:1.3.0'

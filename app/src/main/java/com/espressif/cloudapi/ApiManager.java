@@ -44,6 +44,7 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Schedule;
+import com.espressif.ui.models.Service;
 import com.espressif.ui.models.SharingRequest;
 import com.espressif.ui.models.UpdateEvent;
 import com.espressif.ui.user_module.AppHelper;
@@ -57,7 +58,6 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -96,7 +96,6 @@ public class ApiManager {
     private SharedPreferences sharedPreferences;
     private static ArrayList<String> nodeIds = new ArrayList<>();
     private static ArrayList<String> scheduleIds = new ArrayList<>();
-    private boolean isGetNodesRunning = false;
 
     private static ApiManager apiManager;
 
@@ -153,43 +152,27 @@ public class ApiManager {
                             listener.onSuccess(null);
 
                         } else {
-
                             String jsonErrResponse = response.errorBody().string();
-                            Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                            if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                                JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                                String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                                if (!TextUtils.isEmpty(err)) {
-                                    listener.onFailure(new CloudException(err));
-                                } else {
-                                    listener.onFailure(new RuntimeException("Failed to login"));
-                                }
-
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to login"));
-                            }
+                            processError(jsonErrResponse, listener, "Failed to login");
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
-                        listener.onFailure(e);
+                        listener.onResponseFailure(e);
                     } catch (JSONException e) {
                         e.printStackTrace();
-                        listener.onFailure(e);
+                        listener.onResponseFailure(e);
                     }
                 }
 
                 @Override
                 public void onFailure(Call<ResponseBody> call, Throwable t) {
                     t.printStackTrace();
-                    listener.onFailure(new Exception(t));
+                    listener.onNetworkFailure(new Exception(t));
                 }
             });
         } catch (Exception e) {
             e.printStackTrace();
-            listener.onFailure(e);
+            listener.onNetworkFailure(e);
         }
     }
 
@@ -223,7 +206,15 @@ public class ApiManager {
                 editor.putString(AppConstants.KEY_EMAIL, email);
                 editor.apply();
             }
-            Log.d(TAG, "==============>>>>>>>>>>> USER ID : " + userId);
+
+            try {
+                jwt = new JWT(accessToken);
+            } catch (DecodeException e) {
+                e.printStackTrace();
+            }
+            Date expiresAt = jwt.getExpiresAt();
+            Log.e(TAG, "==============>>>>>>>>>>> USER ID : " + userId);
+            Log.e(TAG, "Token expires At : " + expiresAt);
         }
     }
 
@@ -272,35 +263,19 @@ public class ApiManager {
 
                                 } else {
                                     Log.e(TAG, "Response received : null");
-                                    listener.onFailure(new RuntimeException("Failed to get Supported Versions"));
+                                    listener.onResponseFailure(new RuntimeException("Failed to get Supported Versions"));
                                 }
 
                             } else {
-
                                 String jsonErrResponse = response.errorBody().string();
-                                Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                                if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                                    JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                                    String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                                    if (!TextUtils.isEmpty(err)) {
-                                        listener.onFailure(new CloudException(err));
-                                    } else {
-                                        listener.onFailure(new RuntimeException("Failed to get Supported Versions"));
-                                    }
-
-                                } else {
-                                    listener.onFailure(new RuntimeException("Failed to get Supported Versions"));
-                                }
+                                processError(jsonErrResponse, listener, "Failed to get Supported Versions");
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
-                            listener.onFailure(e);
+                            listener.onResponseFailure(e);
                         } catch (IOException e) {
                             e.printStackTrace();
-                            listener.onFailure(e);
+                            listener.onResponseFailure(e);
                         }
                     }
 
@@ -308,7 +283,7 @@ public class ApiManager {
                     public void onFailure(Call<ResponseBody> call, Throwable t) {
                         Log.e(TAG, "Error in receiving Supported Versions");
                         t.printStackTrace();
-                        listener.onFailure(new Exception(t));
+                        listener.onNetworkFailure(new Exception(t));
                     }
                 });
     }
@@ -321,10 +296,6 @@ public class ApiManager {
     public void getNodes(final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Nodes");
-        if (isGetNodesRunning) {
-            return;
-        }
-        isGetNodesRunning = true;
         nodeIds.clear();
         scheduleIds.clear();
         getNodesFromCloud("", listener);
@@ -405,7 +376,9 @@ public class ApiManager {
                                             espDatabase.getNodeDao().insertOrUpdate(espNode);
 
                                             ArrayList<Device> devices = espNode.getDevices();
+                                            ArrayList<Service> services = espNode.getServices();
                                             JSONObject scheduleJson = paramsJson.optJSONObject(AppConstants.KEY_SCHEDULE);
+                                            JSONObject timeJson = paramsJson.optJSONObject(AppConstants.KEY_TIME);
 
                                             // If node is available on local network then ignore param values received from cloud.
                                             if (!espApp.mDNSDeviceMap.containsKey(nodeId) && devices != null) {
@@ -597,6 +570,29 @@ public class ApiManager {
                                             } else {
                                                 Log.e(TAG, "Schedule JSON is null");
                                             }
+
+                                            // Timezone
+                                            if (timeJson != null && services != null) {
+                                                for (int serviceIdx = 0; serviceIdx < services.size(); serviceIdx++) {
+                                                    Service service = services.get(serviceIdx);
+                                                    if (AppConstants.SERVICE_TYPE_TIME.equals(service.getType())) {
+                                                        ArrayList<Param> timeParams = service.getParams();
+                                                        if (timeParams != null) {
+                                                            for (int paramIdx = 0; paramIdx < timeParams.size(); paramIdx++) {
+                                                                Param timeParam = timeParams.get(paramIdx);
+                                                                String dataType = timeParam.getDataType();
+                                                                if (!TextUtils.isEmpty(dataType)) {
+                                                                    if (dataType.equalsIgnoreCase("string")) {
+                                                                        timeParam.setLabelValue(timeJson.optString(timeParam.getName()));
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                Log.e(TAG, "Time JSON is not available");
+                                            }
                                         }
 
                                         // Node Status
@@ -657,60 +653,31 @@ public class ApiManager {
                                     }
                                 }
 
-                                if (!BuildConfig.isNodeGroupingSupported) {
-                                    isGetNodesRunning = false;
-                                    espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_SUCCESS);
-                                }
                                 listener.onSuccess(null);
                             }
 
                         } else {
                             Log.e(TAG, "Response received : null");
-                            isGetNodesRunning = false;
-                            espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
-                            listener.onFailure(new RuntimeException("Failed to get User device mapping"));
+                            listener.onResponseFailure(new RuntimeException("Failed to get User device mapping"));
                         }
 
                     } else {
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-                            isGetNodesRunning = false;
-                            espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to get User device mapping"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to get User device mapping"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to get User device mapping");
                     }
                 } catch (JSONException e) {
-                    isGetNodesRunning = false;
-                    espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 } catch (IOException e) {
-                    isGetNodesRunning = false;
-                    espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                isGetNodesRunning = false;
-                espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
                 t.printStackTrace();
-                listener.onFailure(new Exception(t));
+                listener.onNetworkFailure(new Exception(t));
             }
         });
     }
@@ -730,10 +697,6 @@ public class ApiManager {
                     if (response.isSuccessful()) {
 
                         if (response.body() != null) {
-
-                            if (espApp.nodeMap == null) {
-                                espApp.nodeMap = new HashMap<>();
-                            }
 
                             String jsonResponse = response.body().string();
                             Log.e(TAG, "onResponse Success : " + jsonResponse);
@@ -809,41 +772,25 @@ public class ApiManager {
 
                         } else {
                             Log.e(TAG, "Response received : null");
-                            listener.onFailure(new RuntimeException("Failed to get Node Details"));
+                            listener.onResponseFailure(new RuntimeException("Failed to get Node Details"));
                         }
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to get Node Details"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to get Node Details"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to get Node Details");
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new Exception(t));
+                listener.onNetworkFailure(new Exception(t));
             }
         });
     }
@@ -893,41 +840,25 @@ public class ApiManager {
 
                         } else {
                             Log.e(TAG, "Response received : null");
-                            listener.onFailure(new RuntimeException("Failed to get Node status"));
+                            listener.onResponseFailure(new RuntimeException("Failed to get Node status"));
                         }
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to get Node status"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to get Node status"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to get Node status");
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new Exception(t));
+                listener.onNetworkFailure(new Exception(t));
             }
         });
     }
@@ -972,42 +903,26 @@ public class ApiManager {
                             listener.onSuccess(data);
 
                         } else {
-                            listener.onFailure(new RuntimeException("Failed to add device"));
+                            listener.onResponseFailure(new RuntimeException("Failed to add device"));
                         }
 
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to add device"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to add device"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to add device");
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new Exception(t));
+                listener.onNetworkFailure(new Exception(t));
             }
         });
     }
@@ -1043,42 +958,23 @@ public class ApiManager {
                             listener.onSuccess(null);
 
                         } else {
-                            listener.onFailure(new RuntimeException("Failed to delete this node."));
+                            listener.onResponseFailure(new RuntimeException("Failed to delete this node."));
                         }
 
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to delete this node."));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to delete this node."));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to delete this node.");
                     }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    listener.onFailure(e);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new Exception(t));
+                listener.onNetworkFailure(new Exception(t));
             }
         });
     }
@@ -1299,42 +1195,26 @@ public class ApiManager {
                             listener.onSuccess(null);
 
                         } else {
-                            listener.onFailure(new RuntimeException("Failed to get param values"));
+                            listener.onResponseFailure(new RuntimeException("Failed to get param values"));
                         }
 
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to get param values"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to get param values"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to get param values");
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new Exception(t));
+                listener.onNetworkFailure(new Exception(t));
             }
         });
     }
@@ -1362,42 +1242,26 @@ public class ApiManager {
                             listener.onSuccess(null);
 
                         } else {
-                            listener.onFailure(new RuntimeException("Failed to update param value"));
+                            listener.onResponseFailure(new RuntimeException("Failed to update param value"));
                         }
 
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to update param value"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to update param value"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to update param value");
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new Exception(t));
+                listener.onNetworkFailure(new Exception(t));
             }
         });
     }
@@ -1471,7 +1335,7 @@ public class ApiManager {
                         if (isAllReqSuccessful) {
                             listener.onSuccess(null);
                         } else {
-                            listener.onFailure(new RuntimeException("Failed to update schedule for few devices"));
+                            listener.onResponseFailure(new RuntimeException("Failed to update schedule for few devices"));
                         }
                     }
                 })
@@ -1576,94 +1440,15 @@ public class ApiManager {
         }
     };
 
-    public boolean isTokenExpired() {
-
-        Log.d(TAG, "Check isTokenExpired");
-
-        idToken = sharedPreferences.getString(AppConstants.KEY_ID_TOKEN, "");
-        accessToken = sharedPreferences.getString(AppConstants.KEY_ACCESS_TOKEN, "");
-        refreshToken = sharedPreferences.getString(AppConstants.KEY_REFRESH_TOKEN, "");
-
-        JWT jwt = null;
-        try {
-            jwt = new JWT(accessToken);
-        } catch (DecodeException e) {
-            e.printStackTrace();
-        }
-
-        Date expiresAt = jwt.getExpiresAt();
-        Calendar calendar = Calendar.getInstance();
-        Date currentTIme = calendar.getTime();
-        Log.e(TAG, "Token expires At : " + expiresAt);
-
-        if (currentTIme.after(expiresAt)) {
-            Log.e(TAG, "Token has expired");
-            return true;
-        } else {
-            Log.d(TAG, "Token has not expired");
-            return false;
-        }
-    }
-
-    public void getNewToken(final ApiResponseListener listener) {
-
+    public String getNewToken() {
+        String newAccToken = "";
+        Log.d(TAG, "Getting new access token ");
         if (isOAuthLogin) {
-
-            getNewTokenForOAuth(listener);
-
+            newAccToken = getNewTokenForOAuthUser();
         } else {
-
-            AuthenticationHandler authenticationHandler = new AuthenticationHandler() {
-
-                @Override
-                public void onSuccess(CognitoUserSession cognitoUserSession, CognitoDevice newDevice) {
-
-                    Log.d(TAG, " -- Auth Success");
-                    AppHelper.setCurrSession(cognitoUserSession);
-                    SharedPreferences.Editor editor = sharedPreferences.edit();
-                    editor.putString(AppConstants.KEY_ID_TOKEN, cognitoUserSession.getIdToken().getJWTToken());
-                    editor.putString(AppConstants.KEY_ACCESS_TOKEN, cognitoUserSession.getAccessToken().getJWTToken());
-                    editor.putString(AppConstants.KEY_REFRESH_TOKEN, cognitoUserSession.getRefreshToken().getToken());
-                    editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, false);
-                    editor.apply();
-
-                    AppHelper.newDevice(newDevice);
-                    getTokenAndUserId();
-                    listener.onSuccess(null);
-                }
-
-                @Override
-                public void getAuthenticationDetails(AuthenticationContinuation authenticationContinuation, String userId) {
-                    Log.d(TAG, "getAuthenticationDetails " + userId);
-                    Locale.setDefault(Locale.US);
-                    getUserAuthentication(authenticationContinuation, userName);
-                }
-
-                @Override
-                public void getMFACode(MultiFactorAuthenticationContinuation continuation) {
-                    Log.d(TAG, "getMFACode ");
-                }
-
-                @Override
-                public void authenticationChallenge(ChallengeContinuation continuation) {
-                    // Nothing to do for this app.
-                    /*
-                     * For Custom authentication challenge, implement your logic to present challenge to the
-                     * user and pass the user's responses to the continuation.
-                     */
-                    Log.d(TAG, "authenticationChallenge : " + continuation.getChallengeName());
-                }
-
-                @Override
-                public void onFailure(Exception exception) {
-                    Log.e(TAG, "onFailure ");
-                    exception.printStackTrace();
-                    listener.onFailure(exception);
-                }
-            };
-
-            AppHelper.getPool().getUser(userName).getSessionInBackground(authenticationHandler);
+            newAccToken = getNewTokenForCognitoUser();
         }
+        return newAccToken;
     }
 
     private void getUserAuthentication(AuthenticationContinuation continuation, String username) {
@@ -1673,78 +1458,106 @@ public class ApiManager {
             userName = username;
             AppHelper.setUser(username);
         }
-
         AuthenticationDetails authenticationDetails = new AuthenticationDetails(userName, "", null);
         continuation.setAuthenticationDetails(authenticationDetails);
         continuation.continueTask();
     }
 
-    public void getNewTokenForOAuth(final ApiResponseListener listener) {
+    public String getNewTokenForCognitoUser() {
 
-        Log.d(TAG, "Get New Token For OAuth");
+        Log.d(TAG, "Get New Token For Cognito user");
+
+        AuthenticationHandler authenticationHandler = new AuthenticationHandler() {
+
+            @Override
+            public void onSuccess(CognitoUserSession cognitoUserSession, CognitoDevice newDevice) {
+
+                Log.e(TAG, " -- Auth Success");
+                AppHelper.setCurrSession(cognitoUserSession);
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString(AppConstants.KEY_ID_TOKEN, cognitoUserSession.getIdToken().getJWTToken());
+                editor.putString(AppConstants.KEY_ACCESS_TOKEN, cognitoUserSession.getAccessToken().getJWTToken());
+                editor.putString(AppConstants.KEY_REFRESH_TOKEN, cognitoUserSession.getRefreshToken().getToken());
+                editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, false);
+                editor.apply();
+
+                AppHelper.newDevice(newDevice);
+                getTokenAndUserId();
+            }
+
+            @Override
+            public void getAuthenticationDetails(AuthenticationContinuation authenticationContinuation, String userId) {
+                Log.d(TAG, "getAuthenticationDetails " + userId);
+                Locale.setDefault(Locale.US);
+                getUserAuthentication(authenticationContinuation, userName);
+            }
+
+            @Override
+            public void getMFACode(MultiFactorAuthenticationContinuation continuation) {
+                Log.d(TAG, "getMFACode ");
+            }
+
+            @Override
+            public void authenticationChallenge(ChallengeContinuation continuation) {
+                // Nothing to do for this app.
+                /*
+                 * For Custom authentication challenge, implement your logic to present challenge to the
+                 * user and pass the user's responses to the continuation.
+                 */
+                Log.d(TAG, "authenticationChallenge : " + continuation.getChallengeName());
+            }
+
+            @Override
+            public void onFailure(Exception exception) {
+                Log.e(TAG, "onFailure ");
+                exception.printStackTrace();
+                accessToken = null;
+            }
+        };
+
+        AppHelper.getPool().getUser(userName).getSession(authenticationHandler);
+        return accessToken;
+    }
+
+    public String getNewTokenForOAuthUser() {
+
+        Log.d(TAG, "Get New Token For OAuth User");
         HashMap<String, String> body = new HashMap<>();
         body.put("user_name", userId);
         body.put("refreshtoken", refreshToken);
 
-        apiInterface.getOAuthLoginToken(AppConstants.URL_OAUTH_LOGIN, body).enqueue(new Callback<ResponseBody>() {
+        try {
+            Response<ResponseBody> response = apiInterface.getOAuthLoginToken(AppConstants.URL_OAUTH_LOGIN, body).execute();
 
-            @Override
-            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-
-                Log.d(TAG, "onResponse code  : " + response.code());
+            if (response.isSuccessful()) {
+                ResponseBody responseBody = response.body();
+                String jsonResponse = responseBody.string();
+                Log.e(TAG, "Response Body : " + jsonResponse);
+                JSONObject jsonObject = null;
                 try {
-                    if (response.isSuccessful()) {
-
-                        String jsonResponse = response.body().string();
-                        JSONObject jsonObject = new JSONObject(jsonResponse);
-                        idToken = jsonObject.getString("idtoken");
-                        accessToken = jsonObject.getString("accesstoken");
-                        isOAuthLogin = true;
-
-                        SharedPreferences.Editor editor = sharedPreferences.edit();
-                        editor.putString(AppConstants.KEY_ID_TOKEN, idToken);
-                        editor.putString(AppConstants.KEY_ACCESS_TOKEN, accessToken);
-                        editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, true);
-                        editor.apply();
-
-                        getTokenAndUserId();
-                        listener.onSuccess(null);
-
-                    } else {
-
-                        String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to get new token"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to get new token"));
-                        }
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    listener.onFailure(e);
+                    jsonObject = new JSONObject(jsonResponse);
+                    idToken = jsonObject.getString("idtoken");
+                    accessToken = jsonObject.getString("accesstoken");
+                    isOAuthLogin = true;
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    return null;
                 }
-            }
 
-            @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                t.printStackTrace();
-                listener.onFailure(new Exception(t));
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString(AppConstants.KEY_ID_TOKEN, idToken);
+                editor.putString(AppConstants.KEY_ACCESS_TOKEN, accessToken);
+                editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, true);
+                editor.apply();
+                getTokenAndUserId();
+                return accessToken;
+            } else {
+                return null;
             }
-        });
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public void initiateClaim(JsonObject body, final ApiResponseListener listener) {
@@ -1767,35 +1580,19 @@ public class ApiManager {
                         listener.onSuccess(data);
 
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Claim init failed"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Claim init failed"));
-                        }
+                        processError(jsonErrResponse, listener, "Claim init failed");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    listener.onFailure(new RuntimeException("Claim init failed"));
+                    listener.onResponseFailure(new RuntimeException("Claim init failed"));
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new RuntimeException("Claim init failed"));
+                listener.onNetworkFailure(new RuntimeException("Claim init failed"));
             }
         });
     }
@@ -1809,7 +1606,7 @@ public class ApiManager {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                Log.d(TAG, "Response code  : " + response.code());
+                Log.d(TAG, "Verify Claiming, Response code  : " + response.code());
 
                 try {
                     if (response.isSuccessful()) {
@@ -1820,35 +1617,19 @@ public class ApiManager {
                         listener.onSuccess(data);
 
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Claim verify failed"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Claim verify failed"));
-                        }
+                        processError(jsonErrResponse, listener, "Claim verify failed");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    listener.onFailure(new RuntimeException("Claim verify failed"));
+                    listener.onResponseFailure(new RuntimeException("Claim verify failed"));
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new RuntimeException("Claim verify failed"));
+                listener.onNetworkFailure(new RuntimeException("Claim verify failed"));
             }
         });
     }
@@ -1862,7 +1643,7 @@ public class ApiManager {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                Log.d(TAG, "Response code  : " + response.code());
+                Log.d(TAG, "Create Group, Response code  : " + response.code());
 
                 try {
                     if (response.isSuccessful()) {
@@ -1871,35 +1652,19 @@ public class ApiManager {
                         listener.onSuccess(null);
 
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to create group"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to create group"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to create group");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    listener.onFailure(new RuntimeException("Failed to create group"));
+                    listener.onResponseFailure(new RuntimeException("Failed to create group"));
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new RuntimeException("Failed to create group"));
+                listener.onNetworkFailure(new RuntimeException("Failed to create group"));
             }
         });
     }
@@ -1913,7 +1678,7 @@ public class ApiManager {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                Log.d(TAG, "Response code  : " + response.code());
+                Log.d(TAG, "Update Group, Response code  : " + response.code());
 
                 try {
                     if (response.isSuccessful()) {
@@ -1922,35 +1687,19 @@ public class ApiManager {
                         getUserGroups(groupId, listener);
 
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to update group"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to update group"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to update group");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    listener.onFailure(new RuntimeException("Failed to update group"));
+                    listener.onResponseFailure(new RuntimeException("Failed to update group"));
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new RuntimeException("Failed to update group"));
+                listener.onNetworkFailure(new RuntimeException("Failed to update group"));
             }
         });
     }
@@ -1964,7 +1713,7 @@ public class ApiManager {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                Log.d(TAG, "Response code  : " + response.code());
+                Log.d(TAG, "Remove Group, Response code  : " + response.code());
 
                 try {
                     if (response.isSuccessful()) {
@@ -1975,28 +1724,12 @@ public class ApiManager {
                         listener.onSuccess(null);
 
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to remove group"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to remove group"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to remove group");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    listener.onFailure(new RuntimeException("Failed to remove group"));
+                    listener.onResponseFailure(new RuntimeException("Failed to remove group"));
                 }
             }
 
@@ -2004,7 +1737,7 @@ public class ApiManager {
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 Log.e(TAG, "ON FAILURE");
                 t.printStackTrace();
-                listener.onFailure(new RuntimeException("Failed to remove group"));
+                listener.onNetworkFailure(new RuntimeException("Failed to remove group"));
             }
         });
     }
@@ -2018,7 +1751,7 @@ public class ApiManager {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                Log.d(TAG, "Response code  : " + response.code());
+                Log.d(TAG, "Get Groups, Response code  : " + response.code());
 
                 try {
                     if (response.isSuccessful()) {
@@ -2059,58 +1792,22 @@ public class ApiManager {
                                 }
                             }
                         }
-                        if (isGetNodesRunning) {
-                            isGetNodesRunning = false;
-                            espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_SUCCESS);
-                        }
                         listener.onSuccess(null);
 
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-                            if (isGetNodesRunning) {
-                                isGetNodesRunning = false;
-                                espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
-                            }
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to get user groups"));
-                            }
-
-                        } else {
-                            if (isGetNodesRunning) {
-                                isGetNodesRunning = false;
-                                espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
-                            }
-                            listener.onFailure(new RuntimeException("Failed to get user groups"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to get user groups");
                     }
                 } catch (Exception e) {
-                    if (isGetNodesRunning) {
-                        isGetNodesRunning = false;
-                        espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
-                    }
                     e.printStackTrace();
-                    listener.onFailure(new RuntimeException("Failed to get user groups"));
+                    listener.onResponseFailure(new RuntimeException("Failed to get user groups"));
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                if (isGetNodesRunning) {
-                    isGetNodesRunning = false;
-                    espApp.setCurrentStatus(EspApplication.GetDataStatus.GET_DATA_FAILED);
-                }
                 t.printStackTrace();
-                listener.onFailure(new RuntimeException("Failed to get user groups"));
+                listener.onNetworkFailure(new RuntimeException("Failed to get user groups"));
             }
         });
     }
@@ -2138,6 +1835,7 @@ public class ApiManager {
                     if (response.isSuccessful()) {
                         if (response.body() != null) {
                             String jsonResponse = response.body().string();
+                            Log.d(TAG, "Response : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
                             JSONArray nodeJsonArray = jsonObject.optJSONArray(AppConstants.KEY_SHARING_REQUESTS);
 
@@ -2192,41 +1890,26 @@ public class ApiManager {
 
                         } else {
                             Log.e(TAG, "Response received : null");
-                            listener.onFailure(new RuntimeException("Failed to get sharing requests"));
+                            listener.onResponseFailure(new RuntimeException("Failed to get sharing requests"));
                         }
 
                     } else {
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to get sharing requests"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to get sharing requests"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to get sharing requests");
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    listener.onFailure(e);
+                    listener.onResponseFailure(e);
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new Exception(t));
+                listener.onNetworkFailure(new Exception(t));
             }
         });
     }
@@ -2244,7 +1927,7 @@ public class ApiManager {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                Log.d(TAG, "Response code  : " + response.code());
+                Log.d(TAG, "Update Sharing request, Response code  : " + response.code());
 
                 try {
                     if (response.isSuccessful()) {
@@ -2253,33 +1936,18 @@ public class ApiManager {
                         listener.onSuccess(null);
                     } else {
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to update sharing request"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to update sharing request"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to update sharing request");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    listener.onFailure(new RuntimeException("Failed to update sharing request"));
+                    listener.onResponseFailure(new RuntimeException("Failed to update sharing request"));
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new RuntimeException("Failed to update sharing request"));
+                listener.onNetworkFailure(new RuntimeException("Failed to update sharing request"));
             }
         });
     }
@@ -2293,44 +1961,26 @@ public class ApiManager {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                Log.d(TAG, "Response code  : " + response.code());
+                Log.d(TAG, "Remove Sharing request, Response code  : " + response.code());
 
                 try {
                     if (response.isSuccessful()) {
-
                         String jsonResponse = response.body().string();
                         listener.onSuccess(null);
-
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to remove sharing request"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to remove sharing request"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to remove sharing request");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    listener.onFailure(new RuntimeException("Failed to remove sharing request"));
+                    listener.onResponseFailure(new RuntimeException("Failed to remove sharing request"));
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new RuntimeException("Failed to remove sharing request"));
+                listener.onNetworkFailure(new RuntimeException("Failed to remove sharing request"));
             }
         });
     }
@@ -2365,7 +2015,7 @@ public class ApiManager {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                Log.d(TAG, "Response code  : " + response.code());
+                Log.d(TAG, "Share node, Response code  : " + response.code());
                 try {
                     if (response.isSuccessful()) {
                         String jsonResponse = response.body().string();
@@ -2377,35 +2027,19 @@ public class ApiManager {
                         listener.onSuccess(bundle);
 
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Node sharing failed"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Node sharing failed"));
-                        }
+                        processError(jsonErrResponse, listener, "Node sharing failed");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    listener.onFailure(new RuntimeException("Node sharing failed"));
+                    listener.onResponseFailure(new RuntimeException("Node sharing failed"));
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new RuntimeException("Node sharing failed"));
+                listener.onNetworkFailure(new RuntimeException("Node sharing failed"));
             }
         });
     }
@@ -2419,7 +2053,7 @@ public class ApiManager {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                Log.d(TAG, "Response code  : " + response.code());
+                Log.d(TAG, "Get node sharing info, Response code  : " + response.code());
 
                 try {
                     if (response.isSuccessful()) {
@@ -2474,35 +2108,19 @@ public class ApiManager {
                         listener.onSuccess(data);
 
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to get node sharing info"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to get node sharing info"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to get node sharing info");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    listener.onFailure(new RuntimeException("Failed to get node sharing info"));
+                    listener.onResponseFailure(new RuntimeException("Failed to get node sharing info"));
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new RuntimeException("Failed to get node sharing info"));
+                listener.onNetworkFailure(new RuntimeException("Failed to get node sharing info"));
             }
         });
     }
@@ -2516,8 +2134,7 @@ public class ApiManager {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                Log.d(TAG, "Response code  : " + response.code());
-
+                Log.d(TAG, "Remove Sharing, Response code  : " + response.code());
                 try {
                     if (response.isSuccessful()) {
 
@@ -2526,37 +2143,44 @@ public class ApiManager {
                         listener.onSuccess(null);
 
                     } else {
-
                         String jsonErrResponse = response.errorBody().string();
-                        Log.e(TAG, "Error Response : " + jsonErrResponse);
-
-                        if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-
-                            JSONObject jsonObject = new JSONObject(jsonErrResponse);
-                            String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
-
-                            if (!TextUtils.isEmpty(err)) {
-                                listener.onFailure(new CloudException(err));
-                            } else {
-                                listener.onFailure(new RuntimeException("Failed to remove sharing"));
-                            }
-
-                        } else {
-                            listener.onFailure(new RuntimeException("Failed to remove sharing"));
-                        }
+                        processError(jsonErrResponse, listener, "Failed to remove sharing");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    listener.onFailure(new RuntimeException("Failed to remove sharing"));
+                    listener.onResponseFailure(new RuntimeException("Failed to remove sharing"));
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                listener.onFailure(new RuntimeException("Failed to remove sharing"));
+                listener.onNetworkFailure(new RuntimeException("Failed to remove sharing"));
             }
         });
+    }
+
+    private void processError(String jsonErrResponse, ApiResponseListener listener, String errMsg) {
+
+        Log.e(TAG, "Error Response : " + jsonErrResponse);
+        try {
+            if (jsonErrResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+
+                JSONObject jsonObject = new JSONObject(jsonErrResponse);
+                String err = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+
+                if (!TextUtils.isEmpty(err)) {
+                    listener.onResponseFailure(new CloudException(err));
+                } else {
+                    listener.onResponseFailure(new RuntimeException(errMsg));
+                }
+            } else {
+                listener.onResponseFailure(new RuntimeException(errMsg));
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+            listener.onResponseFailure(new RuntimeException(errMsg));
+        }
     }
 
     private Runnable stopRequestStatusPollingTask = new Runnable() {
@@ -2571,7 +2195,6 @@ public class ApiManager {
     };
 
     public void cancelRequestStatusPollingTask() {
-
         handler.removeCallbacks(stopRequestStatusPollingTask);
     }
 }

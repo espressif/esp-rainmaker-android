@@ -20,7 +20,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.core.widget.ContentLoadingProgressBar;
@@ -36,7 +35,6 @@ public class ForgotPasswordFragment extends Fragment {
     private EditText etEmail;
     private MaterialCardView btnResetPassword;
     private TextView txtResetPasswordBtn;
-    private ImageView arrowImage;
     private ContentLoadingProgressBar progressBar;
     private String email;
 
@@ -59,7 +57,7 @@ public class ForgotPasswordFragment extends Fragment {
         // Inflate the layout for this fragment
         View rootView = inflater.inflate(R.layout.fragment_forgot_password, container, false);
         Bundle extras = getArguments();
-        init(rootView, extras);
+        initViews(rootView, extras);
         return rootView;
     }
 
@@ -71,12 +69,12 @@ public class ForgotPasswordFragment extends Fragment {
         }
     };
 
-    private void init(View view, Bundle extras) {
+    private void initViews(View view, Bundle extras) {
 
         etEmail = view.findViewById(R.id.et_email);
         btnResetPassword = view.findViewById(R.id.btn_reset_password);
         txtResetPasswordBtn = view.findViewById(R.id.text_btn);
-        arrowImage = view.findViewById(R.id.iv_arrow);
+        view.findViewById(R.id.iv_arrow).setVisibility(View.GONE);
         progressBar = view.findViewById(R.id.progress_indicator);
 
         if (extras != null) {
@@ -114,7 +112,6 @@ public class ForgotPasswordFragment extends Fragment {
         btnResetPassword.setAlpha(0.5f);
         txtResetPasswordBtn.setText(R.string.btn_resetting_password);
         progressBar.setVisibility(View.VISIBLE);
-        arrowImage.setVisibility(View.GONE);
     }
 
     public void hideLoading() {
@@ -123,6 +120,5 @@ public class ForgotPasswordFragment extends Fragment {
         btnResetPassword.setAlpha(1f);
         txtResetPasswordBtn.setText(R.string.btn_reset_password);
         progressBar.setVisibility(View.GONE);
-        arrowImage.setVisibility(View.VISIBLE);
     }
 }

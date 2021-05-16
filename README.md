@@ -9,7 +9,11 @@ For more details :
 ## Setup
  
 To build this app, you will need a development machine, with Android Studio installed.
-Download the source code and open this project in Android Studio.
+
+To get this app please clone this repository using the below command and open this project in Android Studio:
+```
+ git clone https://github.com/espressif/esp-rainmaker-android.git
+```
 You are now ready to run this demo.
 
 ## Features

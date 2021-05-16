@@ -14,55 +14,43 @@
 
 package com.espressif.ui.activities;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import com.espressif.AppConstants;
+import com.espressif.EspApplication;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.user_module.AppHelper;
 
-public class SplashActivity extends AppCompatActivity {
+public class SplashActivity extends Activity {
 
     private static final String TAG = SplashActivity.class.getSimpleName();
-
-    private String email;
-    private String accessToken;
-
-    private Handler handler;
-    private SharedPreferences sharedPreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 
-        handler = new Handler();
-        sharedPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
-        email = sharedPreferences.getString(AppConstants.KEY_EMAIL, "");
-        accessToken = sharedPreferences.getString(AppConstants.KEY_ACCESS_TOKEN, "");
-
-        Log.d(TAG, "Email : " + email);
+        SharedPreferences sharedPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
+        String email = sharedPreferences.getString(AppConstants.KEY_EMAIL, "");
+        String accessToken = sharedPreferences.getString(AppConstants.KEY_ACCESS_TOKEN, "");
 
         if (TextUtils.isEmpty(email) || TextUtils.isEmpty(accessToken)) {
-
-            handler.postDelayed(launchLoginScreenTask, 1500);
-
+            Log.d(TAG, "Email : " + email);
+            launchLoginScreen();
         } else {
-
             AppHelper.setUser(email);
-            handler.postDelayed(launchHomeScreenTask, 1500);
+            launchHomeScreen();
         }
     }
 
     public void launchHomeScreen() {
-
+        ((EspApplication) getApplicationContext()).changeAppState(EspApplication.AppState.GETTING_DATA, null);
         Intent espMainActivity = new Intent(getApplicationContext(), EspMainActivity.class);
         espMainActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(espMainActivity);
@@ -70,26 +58,9 @@ public class SplashActivity extends AppCompatActivity {
     }
 
     public void launchLoginScreen() {
-
         Intent espMainActivity = new Intent(getApplicationContext(), MainActivity.class);
         espMainActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(espMainActivity);
         finish();
     }
-
-    private Runnable launchLoginScreenTask = new Runnable() {
-
-        @Override
-        public void run() {
-            launchLoginScreen();
-        }
-    };
-
-    private Runnable launchHomeScreenTask = new Runnable() {
-
-        @Override
-        public void run() {
-            launchHomeScreen();
-        }
-    };
 }

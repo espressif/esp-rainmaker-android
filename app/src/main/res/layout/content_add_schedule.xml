@@ -24,6 +24,8 @@
                 android:id="@+id/rl_schedule_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/margin_16"
+                android:background="@android:color/white"
                 android:padding="@dimen/margin_16">
 
                 <TextView
@@ -32,10 +34,9 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentStart="true"
                     android:layout_centerVertical="true"
-                    android:text="Schedule Name"
+                    android:text="Name"
                     android:textColor="@color/colorPrimaryDark"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:textSize="18sp" />
 
                 <TextView
                     android:id="@+id/tv_schedule_name"
@@ -61,13 +62,6 @@
 
             </RelativeLayout>
 
-            <View
-                android:id="@+id/divider_1"
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:alpha="0.3"
-                android:background="@color/colorPrimaryDark" />
-
             <TimePicker
                 android:id="@+id/time_picker"
                 android:layout_width="wrap_content"
@@ -77,17 +71,12 @@
                 android:soundEffectsEnabled="true"
                 android:timePickerMode="spinner" />
 
-            <View
-                android:id="@+id/divider_2"
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:alpha="0.3"
-                android:background="@color/colorPrimaryDark" />
-
             <RelativeLayout
                 android:id="@+id/rl_repeat"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/margin_8"
+                android:background="@android:color/white"
                 android:padding="@dimen/margin_16">
 
                 <TextView
@@ -115,6 +104,7 @@
                 android:id="@+id/days_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@android:color/white"
                 android:orientation="horizontal"
                 android:weightSum="7">
 
@@ -190,17 +180,12 @@
 
             </LinearLayout>
 
-            <View
-                android:id="@+id/divider_3"
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:alpha="0.3"
-                android:background="@color/colorPrimaryDark" />
-
             <RelativeLayout
                 android:id="@+id/rl_actions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/margin_16"
+                android:background="@android:color/white"
                 android:padding="@dimen/margin_16">
 
                 <TextView
@@ -225,32 +210,18 @@
 
             </RelativeLayout>
 
-            <View
-                android:id="@+id/divider_5"
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:alpha="0.1"
-                android:background="@color/colorPrimaryDark" />
-
             <TextView
                 android:id="@+id/tv_action_device_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/tv_actions"
-                android:alpha="0.7"
+                android:background="@android:color/white"
                 android:padding="@dimen/margin_8"
                 android:paddingStart="@dimen/margin_16"
                 android:text="Light, Switch, Bedroom Fan"
-                android:textColor="@color/colorPrimaryDark"
+                android:textColor="@color/color_dark_gray"
                 android:textSize="15sp"
                 android:visibility="visible" />
-
-            <View
-                android:id="@+id/divider_6"
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:alpha="0.3"
-                android:background="@color/colorPrimaryDark" />
 
             <include
                 android:id="@+id/btn_remove_schedule"

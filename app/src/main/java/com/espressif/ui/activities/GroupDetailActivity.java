@@ -50,6 +50,7 @@ import com.espressif.ui.adapters.GroupNodeAdapter;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -61,22 +62,12 @@ public class GroupDetailActivity extends AppCompatActivity {
     private static final int REQ_ADD_NODE_SELECTION = 10;
     private static final int REQ_EDIT_NODE_SELECTION = 11;
 
-    private EspApplication espApp;
-    private ApiManager apiManager;
-
-    private TextView tvTitle, tvBack, tvCancel;
-
+    private MaterialToolbar toolbar;
     private TextView tvGroupName;
     private RelativeLayout rlGroupName, rlAddDevice, rlDevices;
-    private String groupName;
     private CardView btnNext;
     private TextView txtNextBtn;
     private RecyclerView rvDevices, rvNodes;
-    private ArrayList<EspNode> nodes = new ArrayList<>();
-    private ArrayList<Device> devices = new ArrayList<>();
-    private GroupDeviceAdapter deviceAdapter;
-    private GroupNodeAdapter nodeAdapter;
-    private Group group;
     private RelativeLayout layoutProgress;
     private ConstraintLayout layoutGroupDetail;
 
@@ -84,6 +75,16 @@ public class GroupDetailActivity extends AppCompatActivity {
     private TextView txtRemoveGroupBtn;
     private ImageView removeGroupImage;
     private ContentLoadingProgressBar progressBar;
+
+    private GroupDeviceAdapter deviceAdapter;
+    private GroupNodeAdapter nodeAdapter;
+
+    private EspApplication espApp;
+    private ApiManager apiManager;
+    private Group group;
+    private String groupName;
+    private ArrayList<EspNode> nodes = new ArrayList<>();
+    private ArrayList<Device> devices = new ArrayList<>();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -96,14 +97,6 @@ public class GroupDetailActivity extends AppCompatActivity {
         initViews();
         updateUI();
     }
-
-    private View.OnClickListener backButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-            finish();
-        }
-    };
 
     private View.OnClickListener nextBtnClickListener = new View.OnClickListener() {
 
@@ -166,14 +159,18 @@ public class GroupDetailActivity extends AppCompatActivity {
 
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_create_group);
-        tvBack.setVisibility(View.VISIBLE);
-        tvCancel.setVisibility(View.GONE);
-        tvBack.setText(R.string.btn_cancel);
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        getSupportActionBar().setTitle(R.string.title_activity_create_group);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         layoutGroupDetail = findViewById(R.id.layout_group_detail);
         layoutProgress = findViewById(R.id.layout_progress);
@@ -195,7 +192,6 @@ public class GroupDetailActivity extends AppCompatActivity {
         progressBar = btnRemoveGroup.findViewById(R.id.progress_indicator);
         btnRemoveGroup.setVisibility(View.GONE);
 
-        tvBack.setOnClickListener(backButtonClickListener);
         rlAddDevice.setOnClickListener(addDeviceClickListener);
         rlGroupName.setOnClickListener(groupNameClickListener);
         btnRemoveGroup.setOnClickListener(removeGroupBtnClickListener);
@@ -217,14 +213,14 @@ public class GroupDetailActivity extends AppCompatActivity {
     private void updateUI() {
 
         if (group == null) {
-            tvTitle.setText(R.string.title_activity_create_group);
+            getSupportActionBar().setTitle(R.string.title_activity_create_group);
             rlAddDevice.setVisibility(View.GONE);
             rlDevices.setVisibility(View.GONE);
             btnRemoveGroup.setVisibility(View.GONE);
             btnNext.setVisibility(View.VISIBLE);
             setEnableNextBtn(false);
         } else {
-            tvTitle.setText(R.string.title_activity_edit_group);
+            getSupportActionBar().setTitle(R.string.title_activity_edit_group);
             groupName = group.getGroupName();
             tvGroupName.setText(groupName);
             rlAddDevice.setVisibility(View.VISIBLE);
@@ -300,7 +296,17 @@ public class GroupDetailActivity extends AppCompatActivity {
                             }
 
                             @Override
-                            public void onFailure(Exception exception) {
+                            public void onResponseFailure(Exception exception) {
+                                hideLoading();
+                                if (exception instanceof CloudException) {
+                                    Toast.makeText(GroupDetailActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(GroupDetailActivity.this, R.string.error_group_name_update, Toast.LENGTH_SHORT).show();
+                                }
+                            }
+
+                            @Override
+                            public void onNetworkFailure(Exception exception) {
                                 hideLoading();
                                 if (exception instanceof CloudException) {
                                     Toast.makeText(GroupDetailActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
@@ -367,7 +373,17 @@ public class GroupDetailActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Exception exception) {
+            public void onResponseFailure(Exception exception) {
+                hideLoading();
+                if (exception instanceof CloudException) {
+                    Toast.makeText(GroupDetailActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(GroupDetailActivity.this, R.string.error_group_device_remove, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
                 hideLoading();
                 if (exception instanceof CloudException) {
                     Toast.makeText(GroupDetailActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
@@ -391,7 +407,18 @@ public class GroupDetailActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Exception exception) {
+            public void onResponseFailure(Exception exception) {
+                exception.printStackTrace();
+                hideRemoveGroupLoading();
+                if (exception instanceof CloudException) {
+                    Toast.makeText(GroupDetailActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(GroupDetailActivity.this, R.string.error_group_remove, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
                 exception.printStackTrace();
                 hideRemoveGroupLoading();
                 if (exception instanceof CloudException) {
@@ -407,7 +434,7 @@ public class GroupDetailActivity extends AppCompatActivity {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.dialog_title_remove);
-        builder.setMessage(R.string.dialog_msg_remove_group);
+        builder.setMessage(R.string.dialog_msg_confirmation);
 
         // Set up the buttons
         builder.setPositiveButton(R.string.btn_confirm, new DialogInterface.OnClickListener() {

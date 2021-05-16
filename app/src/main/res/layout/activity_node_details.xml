@@ -34,8 +34,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_horizontal"
-                        android:layout_marginTop="@dimen/margin_24"
-                        android:src="@drawable/ic_provisioning" />
+                        android:src="@drawable/ic_node_details" />
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_node_details_list"

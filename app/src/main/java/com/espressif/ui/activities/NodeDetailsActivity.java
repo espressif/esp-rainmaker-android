@@ -17,10 +17,11 @@ package com.espressif.ui.activities;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -41,13 +42,14 @@ import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.NodeDetailsAdapter;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
+import com.espressif.ui.models.Service;
 import com.espressif.ui.models.SharingRequest;
+import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.ArrayList;
 
 public class NodeDetailsActivity extends AppCompatActivity {
 
-    private TextView tvTitle, tvBack, tvCancel;
     private RecyclerView nodeInfoRecyclerView;
     private ContentLoadingProgressBar progressBarNodeDetails;
     private ConstraintLayout layoutNodeDetails;
@@ -85,23 +87,26 @@ public class NodeDetailsActivity extends AppCompatActivity {
         }
     }
 
-    private View.OnClickListener removeDeviceBtnClickListener = new View.OnClickListener() {
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        menu.add(Menu.NONE, 1, Menu.NONE, R.string.btn_remove).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        return true;
+    }
 
-        @Override
-        public void onClick(View v) {
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
 
-            confirmForRemoveNode();
+        switch (item.getItemId()) {
+
+            case 1:
+                confirmForRemoveNode();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
         }
-    };
-
-    private View.OnClickListener backButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            finish();
-        }
-    };
+    }
 
     public void addPendingRequest(SharingRequest request) {
         pendingRequests.add(request);
@@ -115,14 +120,18 @@ public class NodeDetailsActivity extends AppCompatActivity {
 
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_node_details);
-        tvBack.setVisibility(View.VISIBLE);
-        tvCancel.setVisibility(View.VISIBLE);
-        tvCancel.setText(R.string.btn_remove);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        getSupportActionBar().setTitle(R.string.title_activity_node_details);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         nodeInfoRecyclerView = findViewById(R.id.rv_node_details_list);
         progressBarNodeDetails = findViewById(R.id.progress_get_node_details);
@@ -135,21 +144,14 @@ public class NodeDetailsActivity extends AppCompatActivity {
 
         nodeDetailsAdapter = new NodeDetailsAdapter(this, nodeInfoList, nodeInfoValueList, node, pendingRequests);
         nodeInfoRecyclerView.setAdapter(nodeDetailsAdapter);
-
-        tvBack.setOnClickListener(backButtonClickListener);
-        tvCancel.setOnClickListener(removeDeviceBtnClickListener);
     }
 
     private void setNodeInfo() {
 
         nodeInfoList.clear();
         nodeInfoValueList.clear();
-
         nodeInfoList.add(getString(R.string.node_id));
         nodeInfoValueList.add(node.getNodeId());
-
-        nodeInfoList.add(getString(R.string.node_name));
-        nodeInfoValueList.add(node.getNodeName());
 
         nodeInfoList.add(getString(R.string.node_type));
         nodeInfoValueList.add(node.getNodeType());
@@ -157,6 +159,25 @@ public class NodeDetailsActivity extends AppCompatActivity {
         nodeInfoList.add(getString(R.string.node_fw_version));
         nodeInfoValueList.add(node.getFwVersion());
 
+        // Display time zone of device.
+        ArrayList<Service> services = node.getServices();
+        Service tzService = null;
+
+        for (int i = 0; i < services.size(); i++) {
+
+            Service s = services.get(i);
+            if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_TIME)) {
+                tzService = s;
+                break;
+            }
+        }
+
+        if (tzService != null) {
+            nodeInfoList.add(getString(R.string.node_timezone));
+            nodeInfoValueList.add(getString(R.string.node_timezone));// TODO
+        }
+
+        // Attributes
         ArrayList<Param> attributes = node.getAttributes();
 
         if (attributes != null && attributes.size() > 0) {
@@ -167,6 +188,7 @@ public class NodeDetailsActivity extends AppCompatActivity {
             }
         }
 
+        // Sharing information
         if (BuildConfig.isNodeSharingSupported) {
 
             boolean shouldDisplaySharingView = true;
@@ -218,7 +240,13 @@ public class NodeDetailsActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Exception exception) {
+            public void onResponseFailure(Exception e) {
+                setNodeInfo();
+                progressBarNodeDetails.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
                 setNodeInfo();
                 progressBarNodeDetails.setVisibility(View.GONE);
             }
@@ -248,7 +276,13 @@ public class NodeDetailsActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Exception exception) {
+            public void onResponseFailure(Exception e) {
+                setNodeInfo();
+                progressBarNodeDetails.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
                 setNodeInfo();
                 progressBarNodeDetails.setVisibility(View.GONE);
             }
@@ -316,7 +350,18 @@ public class NodeDetailsActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Exception exception) {
+            public void onResponseFailure(Exception exception) {
+                hideLoading();
+                exception.printStackTrace();
+                if (exception instanceof CloudException) {
+                    Toast.makeText(NodeDetailsActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(NodeDetailsActivity.this, R.string.error_delete_node, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
                 hideLoading();
                 exception.printStackTrace();
                 if (exception instanceof CloudException) {

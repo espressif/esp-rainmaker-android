@@ -38,13 +38,13 @@ public class GroupNodeAdapter extends RecyclerView.Adapter<GroupNodeAdapter.Grou
 
     private Activity context;
     private Group group;
-    private ArrayList<EspNode> nodedList;
+    private ArrayList<EspNode> nodeList;
     private boolean isSelection;
 
-    public GroupNodeAdapter(Activity context, Group group, ArrayList<EspNode> nodedList, boolean isSelection) {
+    public GroupNodeAdapter(Activity context, Group group, ArrayList<EspNode> nodeList, boolean isSelection) {
         this.context = context;
         this.group = group;
-        this.nodedList = nodedList;
+        this.nodeList = nodeList;
         this.isSelection = isSelection;
     }
 
@@ -58,55 +58,58 @@ public class GroupNodeAdapter extends RecyclerView.Adapter<GroupNodeAdapter.Grou
     }
 
     @Override
-    public void onBindViewHolder(@NonNull final GroupNodeVH myViewHolder, final int position) {
+    public void onBindViewHolder(@NonNull final GroupNodeVH groupNodeVh, final int position) {
 
-        EspNode node = nodedList.get(position);
-        myViewHolder.tvNodeName.setText(node.getNodeName());
+        EspNode node = nodeList.get(position);
+        groupNodeVh.tvNodeName.setText(node.getNodeName());
 
         if (isSelection) {
-            myViewHolder.cbDevice.setVisibility(View.VISIBLE);
-            myViewHolder.ivRemove.setVisibility(View.GONE);
+            groupNodeVh.cbDevice.setVisibility(View.VISIBLE);
+            groupNodeVh.ivRemove.setVisibility(View.GONE);
         } else {
-            myViewHolder.cbDevice.setVisibility(View.GONE);
-            myViewHolder.ivRemove.setVisibility(View.VISIBLE);
+            groupNodeVh.cbDevice.setVisibility(View.GONE);
+            groupNodeVh.ivRemove.setVisibility(View.VISIBLE);
         }
 
-        myViewHolder.ivRemove.setOnClickListener(new View.OnClickListener() {
+        GridLayoutManager linearLayoutManager = new GridLayoutManager(context, 2);
+        groupNodeVh.rvDevices.setLayoutManager(linearLayoutManager);
+
+        groupNodeVh.ivRemove.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View view) {
 
                 if (context instanceof GroupDetailActivity) {
-                    String nodeId = nodedList.get(myViewHolder.getAdapterPosition()).getNodeId();
+                    String nodeId = nodeList.get(groupNodeVh.getAdapterPosition()).getNodeId();
                     ((GroupDetailActivity) context).removeDevice(nodeId);
                 }
             }
         });
 
-        myViewHolder.cbDevice.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        groupNodeVh.cbDevice.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                nodedList.get(myViewHolder.getAdapterPosition()).setSelected(isChecked);
+                nodeList.get(groupNodeVh.getAdapterPosition()).setSelected(isChecked);
             }
         });
 
-        myViewHolder.itemView.setOnClickListener(new View.OnClickListener() {
+        groupNodeVh.itemView.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View view) {
-                myViewHolder.cbDevice.toggle();
+                groupNodeVh.cbDevice.toggle();
             }
         });
         GroupDeviceAdapter adapter = new GroupDeviceAdapter(context, group, node.getDevices(), isSelection, false);
-        myViewHolder.rvDevices.setAdapter(adapter);
+        groupNodeVh.rvDevices.setAdapter(adapter);
     }
 
     @Override
     public int getItemCount() {
-        return nodedList.size();
+        return nodeList.size();
     }
 
-    public class GroupNodeVH extends RecyclerView.ViewHolder {
+    static class GroupNodeVH extends RecyclerView.ViewHolder {
 
         TextView tvNodeName;
         ImageView ivRemove;
@@ -120,9 +123,6 @@ public class GroupNodeAdapter extends RecyclerView.Adapter<GroupNodeAdapter.Grou
             ivRemove = itemView.findViewById(R.id.iv_remove);
             cbDevice = itemView.findViewById(R.id.cb_node);
             rvDevices = itemView.findViewById(R.id.rv_device_list);
-
-            GridLayoutManager linearLayoutManager = new GridLayoutManager(context, 2);
-            rvDevices.setLayoutManager(linearLayoutManager);
         }
     }
 }

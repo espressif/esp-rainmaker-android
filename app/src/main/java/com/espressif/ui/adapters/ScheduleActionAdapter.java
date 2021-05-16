@@ -15,7 +15,6 @@
 package com.espressif.ui.adapters;
 
 import android.app.Activity;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -49,9 +48,7 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
 
     @Override
     public ActionViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater
-                .from(parent.getContext())
-                .inflate(R.layout.item_action, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_action, parent, false);
         return new ActionViewHolder(view);
     }
 
@@ -74,6 +71,10 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
                 itr.remove();
             }
         }
+
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(context);
+        linearLayoutManager.setOrientation(RecyclerView.VERTICAL);
+        holder.paramRecyclerView.setLayoutManager(linearLayoutManager);
 
         paramAdapter = new ScheduleParamAdapter(context, this, device, params);
         holder.paramRecyclerView.setAdapter(paramAdapter);
@@ -123,6 +124,8 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
                 int selectedState = 0;
                 if (isChecked) {
                     selectedState = 1;
+                    d.setExpanded(true);
+                    holder.ivExpandArrow.animate().rotation(90).setInterpolator(new LinearInterpolator()).setDuration(200);
                 }
                 d.setSelectedState(selectedState);
 
@@ -150,7 +153,7 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
         return deviceList == null ? 0 : deviceList.size();
     }
 
-    public class ActionViewHolder extends RecyclerView.ViewHolder {
+    static class ActionViewHolder extends RecyclerView.ViewHolder {
 
         private TextView tvDeviceName;
         private ImageView ivExpandArrow;
@@ -164,11 +167,6 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
             ivExpandArrow = itemView.findViewById(R.id.iv_expand_arrow);
             ivDeviceSelect = itemView.findViewById(R.id.iv_device_select);
             paramRecyclerView = itemView.findViewById(R.id.rv_param_list);
-
-            // set a LinearLayoutManager with default orientation
-            LinearLayoutManager linearLayoutManager = new LinearLayoutManager(context);
-            linearLayoutManager.setOrientation(RecyclerView.VERTICAL);
-            paramRecyclerView.setLayoutManager(linearLayoutManager); // set LayoutManager to RecyclerView
         }
 
         private void bind(Device device) {

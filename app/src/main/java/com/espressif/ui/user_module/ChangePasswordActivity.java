@@ -21,7 +21,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
@@ -30,17 +29,16 @@ import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.GenericHandler;
 import com.espressif.rainmaker.R;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputLayout;
 
 public class ChangePasswordActivity extends AppCompatActivity {
 
-    private TextView tvTitle, tvBack, tvCancel;
     private EditText etOldPassword, etNewPassword, etConfirmNewPassword;
     private TextInputLayout layoutOldPassword, layoutNewPassword, layoutConfirmPassword;
     private MaterialCardView btnSetPassword;
     private TextView txtSetPasswordBtn;
-    private ImageView arrowImage;
     private ContentLoadingProgressBar progressBar;
     private AlertDialog userDialog;
 
@@ -48,21 +46,23 @@ public class ChangePasswordActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_change_password);
-        init();
+        initViews();
     }
 
-    private void init() {
+    private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_change_password);
-        tvBack.setVisibility(View.VISIBLE);
-        tvCancel.setVisibility(View.VISIBLE);
-
-        tvBack.setOnClickListener(backButtonClickListener);
-        tvCancel.setOnClickListener(cancelButtonClickListener);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        toolbar.setTitle(R.string.title_activity_change_password);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         etOldPassword = findViewById(R.id.et_old_password);
         etNewPassword = findViewById(R.id.et_new_password);
@@ -72,7 +72,7 @@ public class ChangePasswordActivity extends AppCompatActivity {
         layoutConfirmPassword = findViewById(R.id.layout_confirm_new_password);
         btnSetPassword = findViewById(R.id.btn_set_password);
         txtSetPasswordBtn = findViewById(R.id.text_btn);
-        arrowImage = findViewById(R.id.iv_arrow);
+        findViewById(R.id.iv_arrow).setVisibility(View.GONE);
         progressBar = findViewById(R.id.progress_indicator);
 
         txtSetPasswordBtn.setText(R.string.btn_set_password);
@@ -90,24 +90,6 @@ public class ChangePasswordActivity extends AppCompatActivity {
             }
         });
     }
-
-    private View.OnClickListener backButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            finish();
-        }
-    };
-
-    private View.OnClickListener cancelButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            finish();
-        }
-    };
 
     private View.OnClickListener setPasswordBtnClickListener = new View.OnClickListener() {
 
@@ -208,7 +190,6 @@ public class ChangePasswordActivity extends AppCompatActivity {
         btnSetPassword.setAlpha(0.5f);
         txtSetPasswordBtn.setText(R.string.btn_setting_password);
         progressBar.setVisibility(View.VISIBLE);
-        arrowImage.setVisibility(View.GONE);
     }
 
     public void hideLoading() {
@@ -217,6 +198,5 @@ public class ChangePasswordActivity extends AppCompatActivity {
         btnSetPassword.setAlpha(1f);
         txtSetPasswordBtn.setText(R.string.btn_set_password);
         progressBar.setVisibility(View.GONE);
-        arrowImage.setVisibility(View.VISIBLE);
     }
 }

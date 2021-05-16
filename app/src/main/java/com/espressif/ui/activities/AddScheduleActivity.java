@@ -23,6 +23,8 @@ import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.LinearInterpolator;
@@ -51,6 +53,7 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -72,7 +75,6 @@ public class AddScheduleActivity extends AppCompatActivity {
 
     private RelativeLayout rlScheduleName, rlActions, rlRepeat;
     private TextView tvScheduleName, tvActionDevices;
-    private TextView tvTitle, tvBack, tvDone;
     private TimePicker timePicker;
     private MaterialCardView btnRemoveSchedule;
     private TextView txtRemoveScheduleBtn;
@@ -180,18 +182,41 @@ public class AddScheduleActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        menu.add(Menu.NONE, 1, Menu.NONE, R.string.btn_save).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()) {
+
+            case 1:
+                saveSchedule();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvDone = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_add_schedule);
-        tvDone.setText(R.string.btn_save);
-        tvBack.setVisibility(View.VISIBLE);
-        tvDone.setVisibility(View.VISIBLE);
-        tvBack.setOnClickListener(backBtnClickListener);
-        tvDone.setOnClickListener(doneBtnClickListener);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        getSupportActionBar().setTitle(R.string.title_activity_add_schedule);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         btnRemoveSchedule = findViewById(R.id.btn_remove_schedule);
         txtRemoveScheduleBtn = findViewById(R.id.text_btn);
@@ -227,7 +252,7 @@ public class AddScheduleActivity extends AppCompatActivity {
 
             operation = AppConstants.KEY_OPERATION_EDIT;
             scheduleName = schedule.getName();
-            tvTitle.setText(R.string.title_activity_schedule_details);
+            getSupportActionBar().setTitle(R.string.title_activity_schedule_details);
 
             HashMap<String, Integer> triggers = schedule.getTriggers();
             int daysValue = triggers.get(AppConstants.KEY_DAYS);
@@ -356,22 +381,6 @@ public class AddScheduleActivity extends AppCompatActivity {
         }
     };
 
-    private View.OnClickListener doneBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-            saveSchedule();
-        }
-    };
-
-    private View.OnClickListener backBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-            finish();
-        }
-    };
-
     private View.OnClickListener removeScheduleBtnClickListener = new View.OnClickListener() {
 
         @Override
@@ -447,7 +456,7 @@ public class AddScheduleActivity extends AppCompatActivity {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.dialog_title_remove);
-        builder.setMessage(R.string.dialog_msg_remove_schedule);
+        builder.setMessage(R.string.dialog_msg_confirmation);
 
         // Set up the buttons
         builder.setPositiveButton(R.string.btn_confirm, new DialogInterface.OnClickListener() {
@@ -517,7 +526,16 @@ public class AddScheduleActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onFailure(Exception exception) {
+                    public void onResponseFailure(Exception exception) {
+                        Log.e(TAG, "Failure");
+                        exception.printStackTrace();
+                        hideRemoveScheduleLoading();
+                        String errMsg = getString(R.string.error_schedule_remove) + " " + deviceName;
+                        Toast.makeText(AddScheduleActivity.this, errMsg, Toast.LENGTH_LONG).show();
+                    }
+
+                    @Override
+                    public void onNetworkFailure(Exception exception) {
                         Log.e(TAG, "Failure");
                         exception.printStackTrace();
                         hideRemoveScheduleLoading();
@@ -776,7 +794,22 @@ public class AddScheduleActivity extends AppCompatActivity {
                 }
 
                 @Override
-                public void onFailure(Exception exception) {
+                public void onResponseFailure(Exception exception) {
+
+                    Log.e(TAG, "Failed to add schedule for few devices");
+                    exception.printStackTrace();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            Toast.makeText(AddScheduleActivity.this, R.string.error_schedule_add, Toast.LENGTH_LONG).show();
+                            hideAddScheduleLoading();
+                        }
+                    });
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
 
                     Log.e(TAG, "Failed to add schedule for few devices");
                     exception.printStackTrace();

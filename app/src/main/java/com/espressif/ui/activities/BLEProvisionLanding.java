@@ -25,17 +25,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.ListView;
-import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -43,6 +38,10 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.widget.ContentLoadingProgressBar;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.AppConstants;
 import com.espressif.provisioning.DeviceConnectionEvent;
@@ -81,9 +80,8 @@ public class BLEProvisionLanding extends AppCompatActivity {
     private MaterialCardView btnScan;
     private TextView btnPrefix;
     private TextView txtScanBtn;
-    private ImageView arrowImage;
-    private ListView listView;
-    private ProgressBar progressBar;
+    private RecyclerView rvBleDevices;
+    private ContentLoadingProgressBar progressBar;
     private RelativeLayout prefixLayout;
     private TextView textPrefix;
 
@@ -106,10 +104,11 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bleprovision_landing);
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        toolbar.setTitle(R.string.title_activity_connect_device);
-        setSupportActionBar(toolbar);
-        securityType = getIntent().getStringExtra(AppConstants.KEY_SECURITY_TYPE);
+
+        securityType = AppConstants.SECURITY_1;
+        if (AppConstants.SECURITY_0.equalsIgnoreCase(BuildConfig.SECURITY)) {
+            securityType = AppConstants.SECURITY_0;
+        }
 
         // Use this check to determine whether BLE is supported on the device.  Then you can
         // selectively disable BLE-related features.
@@ -250,13 +249,27 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
     private void initViews() {
 
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        toolbar.setTitle(R.string.title_activity_connect_device);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ESPProvisionManager provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
+                provisionManager.getEspDevice().disconnectDevice();
+                finish();
+            }
+        });
+
         btnScan = findViewById(R.id.btn_scan);
         txtScanBtn = findViewById(R.id.text_btn);
-        arrowImage = findViewById(R.id.iv_arrow);
+        findViewById(R.id.iv_arrow).setVisibility(View.GONE);
         txtScanBtn.setText(R.string.btn_scan_again);
-        arrowImage.setVisibility(View.GONE);
 
-        listView = findViewById(R.id.ble_devices_list);
+        rvBleDevices = findViewById(R.id.rv_device_list);
         progressBar = findViewById(R.id.ble_landing_progress_indicator);
         prefixLayout = findViewById(R.id.prefix_layout);
         prefixLayout.setVisibility(View.GONE);
@@ -273,11 +286,15 @@ public class BLEProvisionLanding extends AppCompatActivity {
             prefixLayout.setVisibility(View.GONE);
         }
 
-        adapter = new BleDeviceListAdapter(this, R.layout.item_ble_scan, deviceList);
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getApplicationContext());
+        linearLayoutManager.setOrientation(RecyclerView.VERTICAL);
+        rvBleDevices.setLayoutManager(linearLayoutManager);
+        DividerItemDecoration itemDecor = new DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
+        rvBleDevices.addItemDecoration(itemDecor);
 
-        // Assign adapter to ListView
-        listView.setAdapter(adapter);
-        listView.setOnItemClickListener(onDeviceCLickListener);
+        adapter = new BleDeviceListAdapter(this, deviceList);
+        rvBleDevices.setAdapter(adapter);
+
         btnScan.setOnClickListener(btnScanClickListener);
         btnPrefix.setOnClickListener(btnPrefixChangeClickListener);
     }
@@ -298,23 +315,17 @@ public class BLEProvisionLanding extends AppCompatActivity {
     }
 
     private void requestBluetoothEnable() {
-
         Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
         startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         Log.d(TAG, "Requested user enables Bluetooth.");
     }
 
     private boolean hasLocationPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-        }
-        return true;
+        return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestLocationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_FINE_LOCATION);
-        }
+        requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_FINE_LOCATION);
     }
 
     private void startScan() {
@@ -363,14 +374,14 @@ public class BLEProvisionLanding extends AppCompatActivity {
             btnScan.setEnabled(false);
             btnScan.setAlpha(0.5f);
             progressBar.setVisibility(View.VISIBLE);
-            listView.setVisibility(View.GONE);
+            rvBleDevices.setVisibility(View.GONE);
 
         } else {
 
             btnScan.setEnabled(true);
             btnScan.setAlpha(1f);
             progressBar.setVisibility(View.GONE);
-            listView.setVisibility(View.VISIBLE);
+            rvBleDevices.setVisibility(View.VISIBLE);
         }
     }
 
@@ -446,7 +457,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
         public void onClick(View v) {
 
             bluetoothDevices.clear();
-            adapter.clear();
+            adapter.notifyDataSetChanged();
             startScan();
         }
     };
@@ -479,7 +490,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
                 bleDevice.setName(scanResult.getScanRecord().getDeviceName());
                 bleDevice.setBluetoothDevice(device);
 
-                listView.setVisibility(View.VISIBLE);
+                rvBleDevices.setVisibility(View.VISIBLE);
                 bluetoothDevices.put(device, serviceUuid);
                 deviceList.add(bleDevice);
                 adapter.notifyDataSetChanged();
@@ -499,31 +510,38 @@ public class BLEProvisionLanding extends AppCompatActivity {
         }
     };
 
-    private AdapterView.OnItemClickListener onDeviceCLickListener = new AdapterView.OnItemClickListener() {
+    public void deviceClick(int deviceClickedPosition) {
 
-        @Override
-        public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+        stopScan();
+        isConnecting = true;
+        isDeviceConnected = false;
+        btnScan.setVisibility(View.GONE);
+        rvBleDevices.setVisibility(View.GONE);
+        progressBar.setVisibility(View.VISIBLE);
+        this.position = deviceClickedPosition;
+        BleDevice bleDevice = deviceList.get(deviceClickedPosition);
+        String uuid = bluetoothDevices.get(bleDevice.getBluetoothDevice());
+        Log.d(TAG, "=================== Connect to device : " + bleDevice.getName() + " UUID : " + uuid);
 
-            stopScan();
-            isConnecting = true;
-            isDeviceConnected = false;
-            btnScan.setVisibility(View.GONE);
-            listView.setVisibility(View.GONE);
-            progressBar.setVisibility(View.VISIBLE);
-            BLEProvisionLanding.this.position = position;
-            BleDevice bleDevice = adapter.getItem(position);
-            String uuid = bluetoothDevices.get(bleDevice.getBluetoothDevice());
-            Log.d(TAG, "=================== Connect to device : " + bleDevice.getName() + " UUID : " + uuid);
+        if (ActivityCompat.checkSelfPermission(BLEProvisionLanding.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
-            if (ActivityCompat.checkSelfPermission(BLEProvisionLanding.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                provisionManager.getEspDevice().connectBLEDevice(bleDevice.getBluetoothDevice(), uuid);
-                handler.postDelayed(disconnectDeviceTask, DEVICE_CONNECT_TIMEOUT);
-            } else {
-                Log.e(TAG, "Not able to connect device as Location permission is not granted.");
-                Toast.makeText(BLEProvisionLanding.this, "Please give location permission to connect device", Toast.LENGTH_LONG).show();
+            boolean isSec1 = true;
+            if (AppConstants.SECURITY_0.equalsIgnoreCase(BuildConfig.SECURITY)) {
+                isSec1 = false;
             }
+            if (isSec1) {
+                provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_1);
+            } else {
+                provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_0);
+            }
+
+            provisionManager.getEspDevice().connectBLEDevice(bleDevice.getBluetoothDevice(), uuid);
+            handler.postDelayed(disconnectDeviceTask, DEVICE_CONNECT_TIMEOUT);
+        } else {
+            Log.e(TAG, "Not able to connect device as Location permission is not granted.");
+            Toast.makeText(BLEProvisionLanding.this, "Please give location permission to connect device", Toast.LENGTH_LONG).show();
         }
-    };
+    }
 
     private Runnable disconnectDeviceTask = new Runnable() {
 
@@ -591,32 +609,32 @@ public class BLEProvisionLanding extends AppCompatActivity {
     }
 
     private void goToPopActivity() {
-
         finish();
         Intent popIntent = new Intent(getApplicationContext(), ProofOfPossessionActivity.class);
         popIntent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceList.get(position).getName());
+        popIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(popIntent);
     }
 
     private void goToWifiScanListActivity() {
-
         finish();
         Intent wifiListIntent = new Intent(getApplicationContext(), WiFiScanActivity.class);
         wifiListIntent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceList.get(position).getName());
+        wifiListIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiListIntent);
     }
 
     private void goToWiFiConfigActivity() {
-
         finish();
         Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
+        wifiConfigIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiConfigIntent);
     }
 
     private void goToClaimingActivity() {
-
         finish();
         Intent claimingIntent = new Intent(getApplicationContext(), ClaimingActivity.class);
+        claimingIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(claimingIntent);
     }
 }

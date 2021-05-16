@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
-    <include layout="@layout/main_tool_bar" />
+    <include layout="@layout/toolbar" />
 
     <FrameLayout
         android:id="@+id/ScrollView01"
@@ -87,7 +87,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
                 android:text="@string/resend_code"
-                android:textColor="@color/color_purple"
+                android:textColor="@color/colorPrimary"
                 android:textSize="14sp"
                 android:textStyle="bold"
                 app:layout_constraintEnd_toEndOf="parent"

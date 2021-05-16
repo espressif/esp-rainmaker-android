@@ -18,8 +18,11 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.ImageView;
+import android.view.WindowManager;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -40,13 +43,12 @@ import com.espressif.ui.adapters.AttrParamAdapter;
 import com.espressif.ui.adapters.ParamAdapter;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-
-import static com.espressif.EspApplication.GetDataStatus;
 
 public class EspDeviceActivity extends AppCompatActivity {
 
@@ -55,8 +57,7 @@ public class EspDeviceActivity extends AppCompatActivity {
     private static final int NODE_DETAILS_ACTIVITY_REQUEST = 10;
     private static final int UPDATE_INTERVAL = 5000;
 
-    private TextView tvTitle, tvBack, tvNoParam, tvNodeOffline;
-    private ImageView ivNodeInfo;
+    private TextView tvNoParam, tvNodeOffline;
     private RecyclerView paramRecyclerView;
     private RecyclerView attrRecyclerView;
     private SwipeRefreshLayout swipeRefreshLayout;
@@ -73,8 +74,9 @@ public class EspDeviceActivity extends AppCompatActivity {
     private ContentLoadingProgressBar progressBar;
     private boolean isNodeOnline;
     private long timeStampOfStatus;
-    private boolean isNetworkAvailable = false;
+    private boolean isNetworkAvailable = true;
     private boolean shouldGetParams = true;
+    private RelativeLayout rlProgress, rlParam;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -115,6 +117,27 @@ public class EspDeviceActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        menu.add(Menu.NONE, 1, Menu.NONE, R.string.btn_info).setIcon(R.drawable.ic_node_info).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()) {
+
+            case 1:
+                goToNodeDetailsActivity();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
@@ -124,7 +147,7 @@ public class EspDeviceActivity extends AppCompatActivity {
     }
 
     public void updateDeviceNameInTitle(String deviceName) {
-        tvTitle.setText(deviceName);
+        getSupportActionBar().setTitle(deviceName);
     }
 
     public boolean isNodeOnline() {
@@ -142,25 +165,11 @@ public class EspDeviceActivity extends AppCompatActivity {
         handler.removeCallbacks(updateValuesTask);
     }
 
-    private View.OnClickListener backButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            finish();
-        }
-    };
-
-    private View.OnClickListener infoBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            Intent intent = new Intent(EspDeviceActivity.this, NodeDetailsActivity.class);
-            intent.putExtra(AppConstants.KEY_NODE_ID, device.getNodeId());
-            startActivityForResult(intent, NODE_DETAILS_ACTIVITY_REQUEST);
-        }
-    };
+    private void goToNodeDetailsActivity() {
+        Intent intent = new Intent(EspDeviceActivity.this, NodeDetailsActivity.class);
+        intent.putExtra(AppConstants.KEY_NODE_ID, device.getNodeId());
+        startActivityForResult(intent, NODE_DETAILS_ACTIVITY_REQUEST);
+    }
 
     private Runnable updateValuesTask = new Runnable() {
 
@@ -174,33 +183,40 @@ public class EspDeviceActivity extends AppCompatActivity {
 
     private void initViews() {
 
-        tvTitle = findViewById(R.id.esp_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+
         tvNoParam = findViewById(R.id.tv_no_params);
-        ivNodeInfo = findViewById(R.id.btn_info);
         progressBar = findViewById(R.id.progress_get_params);
         tvNodeOffline = findViewById(R.id.tv_device_offline);
 
-        tvTitle.setText(device.getUserVisibleName());
-        tvBack.setVisibility(View.VISIBLE);
+        rlParam = findViewById(R.id.params_parent_layout);
+        rlProgress = findViewById(R.id.rl_progress);
+
+        getSupportActionBar().setTitle(device.getUserVisibleName());
 
         paramRecyclerView = findViewById(R.id.rv_dynamic_param_list);
         attrRecyclerView = findViewById(R.id.rv_static_param_list);
         swipeRefreshLayout = findViewById(R.id.swipe_container);
 
-        tvBack.setOnClickListener(backButtonClickListener);
-        ivNodeInfo.setOnClickListener(infoBtnClickListener);
-
-        // set a LinearLayoutManager with default orientation
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getApplicationContext());
         linearLayoutManager.setOrientation(RecyclerView.VERTICAL);
-        paramRecyclerView.setLayoutManager(linearLayoutManager); // set LayoutManager to RecyclerView
+        paramRecyclerView.setLayoutManager(linearLayoutManager);
 
         LinearLayoutManager linearLayoutManager1 = new LinearLayoutManager(getApplicationContext());
         linearLayoutManager1.setOrientation(RecyclerView.VERTICAL);
-        attrRecyclerView.setLayoutManager(linearLayoutManager1); // set LayoutManager to RecyclerView
+        attrRecyclerView.setLayoutManager(linearLayoutManager1);
 
-        paramAdapter = new ParamAdapter(this, device.getNodeId(), device.getDeviceName(), paramList);
+        paramAdapter = new ParamAdapter(this, device, paramList);
         paramRecyclerView.setAdapter(paramAdapter);
 
         attrAdapter = new AttrParamAdapter(this, device.getNodeId(), device.getDeviceName(), attributeList);
@@ -240,7 +256,22 @@ public class EspDeviceActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Exception exception) {
+            public void onResponseFailure(Exception exception) {
+
+                isNetworkAvailable = true;
+                hideLoading();
+                snackbar.dismiss();
+                swipeRefreshLayout.setRefreshing(false);
+                if (exception instanceof CloudException) {
+                    Toast.makeText(EspDeviceActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(EspDeviceActivity.this, "Failed to get node details", Toast.LENGTH_SHORT).show();
+                }
+                updateUi();
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
 
                 hideLoading();
                 swipeRefreshLayout.setRefreshing(false);
@@ -265,7 +296,6 @@ public class EspDeviceActivity extends AppCompatActivity {
 
                     @Override
                     public void run() {
-
                         isNetworkAvailable = true;
                         hideLoading();
                         swipeRefreshLayout.setRefreshing(false);
@@ -276,7 +306,22 @@ public class EspDeviceActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Exception exception) {
+            public void onResponseFailure(Exception exception) {
+
+                stopUpdateValueTask();
+                isNetworkAvailable = true;
+                hideLoading();
+                swipeRefreshLayout.setRefreshing(false);
+                if (exception instanceof CloudException) {
+                    Toast.makeText(EspDeviceActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(EspDeviceActivity.this, "Failed to get param values", Toast.LENGTH_SHORT).show();
+                }
+                updateUi();
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
 
                 stopUpdateValueTask();
                 hideLoading();
@@ -375,7 +420,7 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         if (!isNodeOnline) {
 
-            if (espApp.getCurrentStatus().equals(GetDataStatus.GET_DATA_SUCCESS)) {
+            if (espApp.getAppState().equals(EspApplication.AppState.GET_DATA_SUCCESS)) {
 
                 tvNodeOffline.setVisibility(View.VISIBLE);
 
@@ -411,7 +456,6 @@ public class EspDeviceActivity extends AppCompatActivity {
                         tvNodeOffline.setText(offlineText);
                     }
                 }
-
             } else {
                 tvNodeOffline.setVisibility(View.INVISIBLE);
             }
@@ -445,9 +489,9 @@ public class EspDeviceActivity extends AppCompatActivity {
             attrRecyclerView.setVisibility(View.VISIBLE);
         }
 
-        tvTitle.setText(device.getUserVisibleName());
+        getSupportActionBar().setTitle(device.getUserVisibleName());
 
-        if (espApp.getCurrentStatus().equals(GetDataStatus.GET_DATA_FAILED) && !isNetworkAvailable) {
+        if (!isNetworkAvailable) {
             if (!snackbar.isShown()) {
                 snackbar = Snackbar.make(findViewById(R.id.params_parent_layout), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
             }
@@ -465,5 +509,20 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         progressBar.setVisibility(View.GONE);
         swipeRefreshLayout.setVisibility(View.VISIBLE);
+    }
+
+    public void showParamUpdateLoading(String msg) {
+        rlParam.setAlpha(0.3f);
+        rlProgress.setVisibility(View.VISIBLE);
+        TextView progressText = findViewById(R.id.tv_loading);
+        progressText.setText(msg);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+    }
+
+    public void hideParamUpdateLoading() {
+        rlParam.setAlpha(1);
+        rlProgress.setVisibility(View.GONE);
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
     }
 }

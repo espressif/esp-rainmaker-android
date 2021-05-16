@@ -124,7 +124,7 @@
                     android:layout_marginTop="@dimen/margin_24"
                     android:layout_marginBottom="@dimen/margin_24"
                     android:text="@string/forgot_password"
-                    android:textColor="@color/color_purple"
+                    android:textColor="@color/colorPrimary"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     app:layout_constraintEnd_toEndOf="parent"

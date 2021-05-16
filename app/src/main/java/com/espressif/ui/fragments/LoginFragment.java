@@ -118,7 +118,14 @@ public class LoginFragment extends Fragment {
                 }
 
                 @Override
-                public void onFailure(Exception exception) {
+                public void onResponseFailure(Exception exception) {
+//                    hideGitHubLoginLoading();
+//                    hideGoogleLoginLoading();
+                    Toast.makeText(getActivity(), R.string.error_login, Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
 //                    hideGitHubLoginLoading();
 //                    hideGoogleLoginLoading();
                     Toast.makeText(getActivity(), R.string.error_login, Toast.LENGTH_SHORT).show();

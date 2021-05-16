@@ -30,6 +30,7 @@
     <string name="progress_remove_node">Removing Node...</string>
     <string name="progress_accepting">Accepting...</string>
     <string name="progress_declining">Declining...</string>
+    <string name="progress_wifi_scan">Scanning for Wi-Fi...</string>
 
     <!--Error Messages-->
     <string name="error_title">Error!</string>
@@ -52,6 +53,7 @@
     <string name="error_confirmation_code_empty">Confirmation code cannot be empty</string>
     <string name="error_verification_code_empty">Verification code cannot be empty</string>
     <string name="error_ssid_empty">Network name cannot be empty</string>
+    <string name="error_network_select">No network selected</string>
     <string name="error_password_not_matched">Passwords not matched</string>
     <string name="error_agree_terms_n_condition">Please agree to privacy policy and terms of Use.</string>
     <string name="error_provisioning">Reset your board to factory defaults and retry</string>
@@ -87,6 +89,9 @@
     <string name="error_add_member">Failed to add a member</string>
     <string name="error_remove_member">Failed to delete member</string>
     <string name="error_remove_sharing_req">Failed to remove sharing request</string>
+    <string name="error_update_timezone">Failed to update timezone</string>
+    <string name="error_camera_permission">Camera permission is not given. App will not be able to scan QR code to add device.</string>
+    <string name="error_location_permission">Location permission is not given. It will be require to add BLE or SoftAP devices.</string>
 
     <!--Screen titles-->
     <string name="title_activity_settings">Settings</string>
@@ -167,7 +172,7 @@
     <string name="btn_no_qr_code">I don\'t have a QR code</string>
     <string name="btn_add_device">Add Device</string>
     <string name="btn_add_schedule">Add Schedule</string>
-    <string name="btn_scan_again">Scan Again</string>
+    <string name="btn_scan_again">Rescan</string>
     <string name="btn_sign_out">Sign Out</string>
     <string name="btn_skip">Skip</string>
     <string name="btn_next">Next</string>
@@ -179,6 +184,9 @@
     <string name="btn_add">Add</string>
     <string name="btn_accept">Accept</string>
     <string name="btn_deny">Decline</string>
+    <string name="btn_get_permission">Get Permission</string>
+    <string name="btn_start">Start</string>
+    <string name="btn_info">Node Info</string>
 
     <!--Screen titles-->
     <string name="title_activity_devices">Devices</string>
@@ -207,6 +215,7 @@
     <string name="title_activity_create_group">Create Group</string>
     <string name="title_activity_edit_group">Edit Group</string>
     <string name="title_activity_sharing_requests">Sharing Requests</string>
+    <string name="title_activity_voice_services">Voice Services</string>
 
     <!--Dialog texts-->
     <string name="dialog_title_login_failed">Sign-in failed</string>
@@ -223,12 +232,12 @@
     <string name="dialog_msg_delete_node">Are you sure?</string>
     <string name="dialog_msg_device_selection">Choose Provisioning Transport</string>
     <string name="dialog_title_remove">Remove</string>
-    <string name="dialog_msg_remove_schedule">Are you sure to remove this schedule?</string>
-    <string name="dialog_msg_remove_group">Are you sure to remove this group?</string>
+    <string name="dialog_msg_confirmation">Are you sure?</string>
     <string name="dialog_msg_ble_device_disconnection">Device disconnected</string>
     <string name="dialog_msg_connect_device_manually">Device connection failed. \nDo you want to connect device manually ?</string>
     <string name="dialog_title_group_name">Enter Group Name</string>
     <string name="dialog_title_user_email">User Email</string>
+    <string name="dialog_title_logout">Logout</string>
 
     <!--Node Details-->
     <string name="node_id">Node Id</string>
@@ -236,6 +245,7 @@
     <string name="node_type">Type</string>
     <string name="node_fw_version">Firmware Version</string>
     <string name="node_config_version">Config Version</string>
+    <string name="node_timezone">Timezone</string>
     <string name="node_shared_with">Shared with</string>
     <string name="node_shared_by">Shared by</string>
     <string name="pending_requests">Pending for acceptance</string>
@@ -261,6 +271,7 @@
     <string name="documentation">Documentation</string>
     <string name="privacy_policy">Privacy Policy</string>
     <string name="terms_of_use">Terms of Use</string>
+    <string name="voice_services">Voice Services</string>
     <string name="looking_for_qr_code">Looking for QR Code</string>
     <string name="position_camera_for_qr_code">Please position the camera to point at the QR Code.</string>
     <string name="app_version">App Version</string>
@@ -274,7 +285,6 @@
     <string name="device_no_param">Device has no parameters</string>
     <string name="process_take_time">This may take time.</string>
     <string name="not_set">Not set</string>
-    <string name="msg_fetch_data">Fetching data from cloud</string>
     <string name="msg_no_internet">No internet connection</string>
     <string name="schedule_actions">Actions</string>
     <string name="msg_schedule_added">Schedule added</string>
@@ -292,6 +302,12 @@
     <string name="node">node</string>
     <string name="expires_in">Expires in</string>
     <string name="expire_days">days</string>
+    <string name="select_timezone">Select Timezone</string>
+    <string name="select_network">Select Network</string>
+    <string name="email">Email</string>
+    <string name="supported_services">Supported Services</string>
+    <string name="text_alexa">Amazon Alexa</string>
+    <string name="text_gva">Google Assistant</string>
 
     <string name="prov_step_1">Sending Wi-Fi credentials</string>
     <string name="prov_step_2">Confirming Wi-Fi connection</string>
@@ -306,7 +322,7 @@
 
     <string name="schedule_on_day">On</string>
     <string name="schedule_once">Once</string>
-    <string name="schedule_daily">Daily</string>
+    <string name="schedule_daily">Every day</string>
     <string name="schedule_weekends">On Weekends</string>
     <string name="schedule_weekdays">On Weekdays</string>
 

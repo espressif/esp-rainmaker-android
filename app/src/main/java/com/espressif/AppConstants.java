@@ -30,6 +30,7 @@ public class AppConstants {
     public static final String HANDLER_RM_CLAIM = "rmaker_claim";
 
     public static final String ESP_PREFERENCES = "Esp_Preferences";
+    public static final String PREF_FILE_WIFI_NETWORKS = "wifi_networks";
     public static final String ESP_DATABASE_NAME = "esp_db";
     public static final String NODE_TABLE = "node_table";
     public static final String GROUP_TABLE = "group_table";
@@ -41,7 +42,8 @@ public class AppConstants {
         EVENT_DEVICE_ADDED,
         EVENT_DEVICE_REMOVED,
         EVENT_ADD_DEVICE_TIME_OUT,
-        EVENT_DEVICE_STATUS_UPDATE
+        EVENT_DEVICE_STATUS_UPDATE,
+        EVENT_STATE_CHANGE_UPDATE
     }
 
     public static final String CURRENT_VERSION = "v1";
@@ -73,8 +75,10 @@ public class AppConstants {
 
     // UI Types of Device
     public static final String UI_TYPE_TOGGLE = "esp.ui.toggle";
+    public static final String UI_TYPE_PUSH_BTN_BIG = "esp.ui.push-btn-big";
     public static final String UI_TYPE_SLIDER = "esp.ui.slider";
     public static final String UI_TYPE_HUE_SLIDER = "esp.ui.hue-slider";
+    public static final String UI_TYPE_HUE_CIRCLE = "esp.ui.hue-circle";
     public static final String UI_TYPE_DROP_DOWN = "esp.ui.dropdown";
 
     // ESP Device Types
@@ -102,6 +106,7 @@ public class AppConstants {
     public static final String PARAM_TYPE_BRIGHTNESS = "esp.param.brightness";
     public static final String PARAM_TYPE_TEMPERATURE = "esp.param.temperature";
     public static final String PARAM_TYPE_TZ = "esp.param.tz";
+    public static final String PARAM_TYPE_TZ_POSIX = "esp.param.tz_posix";
 
     // Keys used to pass data between activities and to store data in SharedPreference.
     public static final String KEY_DEVICE_NAME_PREFIX = "device_prefix";
@@ -118,6 +123,7 @@ public class AppConstants {
     public static final String KEY_SSID = "ssid";
     public static final String KEY_PASSWORD = "password";
     public static final String KEY_SECURITY_TYPE = "security_type";
+    public static final String KEY_SHOULD_SAVE_PWD = "save_password";
 
     // Keys used in JSON responses and used to pass data between activities.
     public static final String KEY_NAME = "name";
@@ -216,4 +222,7 @@ public class AppConstants {
     public static final String CAPABILITY_WIFI_SACN = "wifi_scan";
     public static final String CAPABILITY_NO_POP = "no_pop";
     public static final String CAPABILITY_CLAIM = "claim";
+
+    public static final String WIFI_SCAN_FROM_DEVICE = "Device";
+    public static final String WIFI_SCAN_FROM_PHONE = "Phone";
 }

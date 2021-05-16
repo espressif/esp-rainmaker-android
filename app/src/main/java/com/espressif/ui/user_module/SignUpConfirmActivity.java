@@ -34,6 +34,7 @@ import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.GenericHa
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.VerificationHandler;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 
 public class SignUpConfirmActivity extends AppCompatActivity {
@@ -47,7 +48,6 @@ public class SignUpConfirmActivity extends AppCompatActivity {
     private ContentLoadingProgressBar progressBar;
     private TextView tvResendCode;
     private AlertDialog userDialog;
-    private TextView tvTitle, tvBack, tvCancel;
 
     private String email, password;
 
@@ -55,27 +55,29 @@ public class SignUpConfirmActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up_confirm);
-        init();
+        initViews();
     }
 
     @Override
     public void onBackPressed() {
-
         setResult(RESULT_CANCELED, getIntent());
         super.onBackPressed();
     }
 
-    private void init() {
+    private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_sign_up_confirm);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.VISIBLE);
-
-        tvCancel.setOnClickListener(cancelButtonClickListener);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        toolbar.setTitle(R.string.title_activity_sign_up_confirm);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         tvConfMsg = findViewById(R.id.tv_sign_up_confirm_msg_1);
         etEmail = findViewById(R.id.et_email);

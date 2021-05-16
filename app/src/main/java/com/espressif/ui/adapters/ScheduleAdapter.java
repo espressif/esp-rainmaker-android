@@ -17,7 +17,6 @@ package com.espressif.ui.adapters;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,7 +45,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyViewHolder> {
+public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.ScheduleViewHolder> {
 
     private final String TAG = ScheduleAdapter.class.getSimpleName();
 
@@ -63,25 +62,25 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
     }
 
     @Override
-    public MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public ScheduleViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
 
         // infalte the item Layout
         LayoutInflater layoutInflater = LayoutInflater.from(context);
         View v = layoutInflater.inflate(R.layout.item_schedule, parent, false);
         // set the view's size, margins, paddings and layout parameters
-        MyViewHolder vh = new MyViewHolder(v); // pass the view to View Holder
+        ScheduleViewHolder vh = new ScheduleViewHolder(v); // pass the view to View Holder
         return vh;
     }
 
     @Override
-    public void onBindViewHolder(@NonNull final MyViewHolder myViewHolder, final int position) {
+    public void onBindViewHolder(@NonNull final ScheduleViewHolder scheduleViewHolder, final int position) {
 
         Schedule schedule = scheduleList.get(position);
-        myViewHolder.tvScheduleName.setText(scheduleList.get(position).getName());
-        myViewHolder.switchSchedule.setOnCheckedChangeListener(null);
-        myViewHolder.switchSchedule.setChecked(scheduleList.get(position).isEnabled());
-        myViewHolder.progressBar.setVisibility(View.GONE);
-        myViewHolder.switchSchedule.setVisibility(View.VISIBLE);
+        scheduleViewHolder.tvScheduleName.setText(scheduleList.get(position).getName());
+        scheduleViewHolder.switchSchedule.setOnCheckedChangeListener(null);
+        scheduleViewHolder.switchSchedule.setChecked(scheduleList.get(position).isEnabled());
+        scheduleViewHolder.progressBar.setVisibility(View.GONE);
+        scheduleViewHolder.switchSchedule.setVisibility(View.VISIBLE);
 
         // Display action devices
         StringBuilder deviceNames = new StringBuilder();
@@ -97,26 +96,22 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
                 deviceNames.append(deviceName);
             }
         }
-        myViewHolder.tvActionDevices.setText(deviceNames);
+        scheduleViewHolder.tvActionDevices.setText(deviceNames);
 
         // Display days and time of schedule
         StringBuilder scheduleTimeText = new StringBuilder();
 
         HashMap<String, Integer> triggers = schedule.getTriggers();
         int daysValue = triggers.get(AppConstants.KEY_DAYS);
-        String days = getDaysText(daysValue);
-        scheduleTimeText.append(days);
-
         int mins = triggers.get(AppConstants.KEY_MINUTES);
         int h = mins / 60;
         int m = mins % 60;
 
         if (h < 12) {
-
             if (h < 10) {
-                scheduleTimeText.append(" at 0" + h + ":");
+                scheduleTimeText.append("0" + h + ":");
             } else {
-                scheduleTimeText.append(" at " + h + ":");
+                scheduleTimeText.append(h + ":");
             }
 
             if (m < 10) {
@@ -124,14 +119,12 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
             } else {
                 scheduleTimeText.append(m + " AM");
             }
-
         } else {
             h = h - 12;
-
             if (h < 10) {
-                scheduleTimeText.append(" at 0" + h + ":");
+                scheduleTimeText.append("0" + h + ":");
             } else {
-                scheduleTimeText.append(" at " + h + ":");
+                scheduleTimeText.append(h + ":");
             }
 
             if (m < 10) {
@@ -140,30 +133,33 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
                 scheduleTimeText.append(m + " PM");
             }
         }
-        myViewHolder.tvScheduleTime.setText(scheduleTimeText);
 
-        myViewHolder.itemView.setOnClickListener(new View.OnClickListener() {
+        scheduleViewHolder.tvScheduleTime.setText(scheduleTimeText);
+        String days = getDaysText(daysValue);
+        scheduleViewHolder.tvScheduleDays.setText(days);
+
+        scheduleViewHolder.itemView.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
 
-                Schedule s = scheduleList.get(myViewHolder.getAdapterPosition());
+                Schedule s = scheduleList.get(scheduleViewHolder.getAdapterPosition());
                 Intent intent = new Intent(context, AddScheduleActivity.class);
                 intent.putExtra(AppConstants.KEY_SCHEDULE, s);
                 context.startActivity(intent);
             }
         });
 
-        myViewHolder.switchSchedule.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        scheduleViewHolder.switchSchedule.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
 
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
-                myViewHolder.switchSchedule.setVisibility(View.GONE);
-                myViewHolder.progressBar.setVisibility(View.VISIBLE);
+                scheduleViewHolder.switchSchedule.setVisibility(View.GONE);
+                scheduleViewHolder.progressBar.setVisibility(View.VISIBLE);
 
                 Set<String> nodeIdList = new HashSet<>();
-                Schedule schedule = scheduleList.get(myViewHolder.getAdapterPosition());
+                Schedule schedule = scheduleList.get(scheduleViewHolder.getAdapterPosition());
                 ArrayList<Action> actions = schedule.getActions();
                 String operation = AppConstants.KEY_OPERATION_DISABLE;
 
@@ -206,15 +202,15 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
 
                             @Override
                             public void run() {
-                                myViewHolder.switchSchedule.setVisibility(View.VISIBLE);
-                                myViewHolder.progressBar.setVisibility(View.GONE);
+                                scheduleViewHolder.switchSchedule.setVisibility(View.VISIBLE);
+                                scheduleViewHolder.progressBar.setVisibility(View.GONE);
                                 fragment.updateScheduleList();
                             }
                         });
                     }
 
                     @Override
-                    public void onFailure(final Exception exception) {
+                    public void onResponseFailure(Exception exception) {
 
                         exception.printStackTrace();
                         final String msg = exception.getMessage();
@@ -223,8 +219,26 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
 
                             @Override
                             public void run() {
-                                myViewHolder.switchSchedule.setVisibility(View.VISIBLE);
-                                myViewHolder.progressBar.setVisibility(View.GONE);
+                                scheduleViewHolder.switchSchedule.setVisibility(View.VISIBLE);
+                                scheduleViewHolder.progressBar.setVisibility(View.GONE);
+                                Toast.makeText(context, "" + msg, Toast.LENGTH_LONG).show();
+                                fragment.updateScheduleList();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onNetworkFailure(final Exception exception) {
+
+                        exception.printStackTrace();
+                        final String msg = exception.getMessage();
+
+                        context.runOnUiThread(new Runnable() {
+
+                            @Override
+                            public void run() {
+                                scheduleViewHolder.switchSchedule.setVisibility(View.VISIBLE);
+                                scheduleViewHolder.progressBar.setVisibility(View.GONE);
                                 Toast.makeText(context, "" + msg, Toast.LENGTH_LONG).show();
                                 fragment.updateScheduleList();
                             }
@@ -295,22 +309,21 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.MyView
         return daysText.toString();
     }
 
-    public static class MyViewHolder extends RecyclerView.ViewHolder {
+    static class ScheduleViewHolder extends RecyclerView.ViewHolder {
 
-        // init the item view's
         SwitchCompat switchSchedule;
-        TextView tvScheduleName, tvActionDevices, tvScheduleTime;
+        TextView tvScheduleName, tvActionDevices, tvScheduleTime, tvScheduleDays;
         ContentLoadingProgressBar progressBar;
 
-        public MyViewHolder(View itemView) {
+        public ScheduleViewHolder(View itemView) {
             super(itemView);
 
-            // get the reference of item view's
             switchSchedule = itemView.findViewById(R.id.sch_enable_switch);
             tvScheduleName = itemView.findViewById(R.id.tv_schedule_name);
             progressBar = itemView.findViewById(R.id.sch_progress_indicator);
             tvActionDevices = itemView.findViewById(R.id.tv_action_devices);
             tvScheduleTime = itemView.findViewById(R.id.tv_schedule_time);
+            tvScheduleDays = itemView.findViewById(R.id.tv_schedule_days);
         }
     }
 }

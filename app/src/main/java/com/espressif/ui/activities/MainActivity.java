@@ -39,6 +39,7 @@ import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.Authentic
 import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.VerificationHandler;
 import com.amazonaws.services.cognitoidentityprovider.model.UserNotConfirmedException;
 import com.espressif.AppConstants;
+import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.TabsPagerAdapter;
@@ -112,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void launchHomeScreen() {
-
+        ((EspApplication) getApplicationContext()).changeAppState(EspApplication.AppState.GETTING_DATA, null);
         Intent espMainActivity = new Intent(getApplicationContext(), EspMainActivity.class);
         espMainActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(espMainActivity);
@@ -120,7 +121,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void launchSignUpConfirmActivity(CognitoUserCodeDeliveryDetails cognitoUserCodeDeliveryDetails) {
-
         Intent intent = new Intent(this, SignUpConfirmActivity.class);
         intent.putExtra("name", email);
         intent.putExtra("password", password);

@@ -43,6 +43,7 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Service;
 import com.espressif.ui.models.UpdateEvent;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.JsonObject;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -64,7 +65,6 @@ public class ProvisionActivity extends AppCompatActivity {
     private static final long ADD_DEVICE_REQ_TIME = 5000;
     private static final long NODE_STATUS_REQ_TIME = 35000;
 
-    private TextView tvTitle, tvBack, tvCancel;
     private ImageView tick1, tick2, tick3, tick4, tick5;
     private ContentLoadingProgressBar progress1, progress2, progress3, progress4, progress5;
     private TextView tvErrAtStep1, tvErrAtStep2, tvErrAtStep3, tvErrAtStep4, tvErrAtStep5, tvProvError;
@@ -112,6 +112,8 @@ public class ProvisionActivity extends AppCompatActivity {
     protected void onDestroy() {
 
         apiManager.cancelRequestStatusPollingTask();
+        handler.removeCallbacks(getNodeStatusTask);
+        handler.removeCallbacks(nodeStatusReqFailed);
         EventBus.getDefault().unregister(this);
         super.onDestroy();
     }
@@ -164,9 +166,11 @@ public class ProvisionActivity extends AppCompatActivity {
 
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(false);
+        getSupportActionBar().setDisplayShowHomeEnabled(false);
+        getSupportActionBar().setTitle(R.string.title_activity_provisioning);
 
         tick1 = findViewById(R.id.iv_tick_1);
         tick2 = findViewById(R.id.iv_tick_2);
@@ -186,10 +190,6 @@ public class ProvisionActivity extends AppCompatActivity {
         tvErrAtStep4 = findViewById(R.id.tv_prov_error_4);
         tvErrAtStep5 = findViewById(R.id.tv_prov_error_5);
         tvProvError = findViewById(R.id.tv_prov_error);
-
-        tvTitle.setText(R.string.title_activity_provisioning);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.GONE);
 
         btnOk = findViewById(R.id.btn_ok);
         txtOkBtn = findViewById(R.id.text_btn);
@@ -245,6 +245,7 @@ public class ProvisionActivity extends AppCompatActivity {
     private void doStep5() {
 
         Log.d(TAG, "================= Do step 5 =================");
+        Log.d(TAG, "Received node id : " + receivedNodeId);
         tick4.setImageResource(R.drawable.ic_checkbox_on);
         tick4.setVisibility(View.VISIBLE);
         progress4.setVisibility(View.GONE);
@@ -252,17 +253,23 @@ public class ProvisionActivity extends AppCompatActivity {
         progress5.setVisibility(View.VISIBLE);
         handler.postDelayed(nodeStatusReqFailed, NODE_STATUS_REQ_TIME);
 
-        apiManager.getNodes(new ApiResponseListener() {
+        apiManager.getNodeDetails(receivedNodeId, new ApiResponseListener() {
 
             @Override
             public void onSuccess(Bundle data) {
-                Log.e(TAG, "Get nodes - success");
+                Log.e(TAG, "Get node details - success");
                 handler.postDelayed(getNodeStatusTask, 1000);
             }
 
             @Override
-            public void onFailure(Exception exception) {
-                Log.e(TAG, "Get nodes - failure");
+            public void onResponseFailure(Exception exception) {
+                Log.e(TAG, "Get node details - failure");
+                handler.postDelayed(getNodeStatusTask, 1000);
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                Log.e(TAG, "Get node details - failure");
                 handler.postDelayed(getNodeStatusTask, 1000);
             }
         });
@@ -493,6 +500,7 @@ public class ProvisionActivity extends AppCompatActivity {
 
     private void addDeviceToCloud(final ApiResponseListener responseListener) {
 
+        Log.d(TAG, "Add device to cloud, count : " + addDeviceReqCount);
         apiManager.addNode(receivedNodeId, secretKey, new ApiResponseListener() {
 
             @Override
@@ -501,9 +509,15 @@ public class ProvisionActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Exception exception) {
+            public void onResponseFailure(Exception exception) {
                 exception.printStackTrace();
-                responseListener.onFailure(exception);
+                responseListener.onNetworkFailure(exception);
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                exception.printStackTrace();
+                responseListener.onNetworkFailure(exception);
             }
         });
     }
@@ -530,7 +544,31 @@ public class ProvisionActivity extends AppCompatActivity {
                 }
 
                 @Override
-                public void onFailure(Exception exception) {
+                public void onResponseFailure(Exception exception) {
+
+                    if (addDeviceReqCount == 7) {
+
+                        runOnUiThread(new Runnable() {
+
+                            @Override
+                            public void run() {
+
+                                tick3.setImageResource(R.drawable.ic_error);
+                                tick3.setVisibility(View.VISIBLE);
+                                progress3.setVisibility(View.GONE);
+                                tvErrAtStep3.setVisibility(View.VISIBLE);
+                                tvErrAtStep3.setText(R.string.error_prov_step_3);
+                                tvProvError.setVisibility(View.VISIBLE);
+                                hideLoading();
+                            }
+                        });
+                    } else {
+                        handler.postDelayed(addDeviceTask, ADD_DEVICE_REQ_TIME);
+                    }
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
 
                     if (addDeviceReqCount == 7) {
 
@@ -623,7 +661,16 @@ public class ProvisionActivity extends AppCompatActivity {
                                         }
 
                                         @Override
-                                        public void onFailure(Exception exception) {
+                                        public void onResponseFailure(Exception exception) {
+                                            Log.e(TAG, "Failed to send time zone value");
+                                            handler.removeCallbacks(getNodeStatusTask);
+                                            tick5.setImageResource(R.drawable.ic_alert);
+                                            tick5.setVisibility(View.VISIBLE);
+                                            progress5.setVisibility(View.GONE);
+                                        }
+
+                                        @Override
+                                        public void onNetworkFailure(Exception exception) {
                                             Log.e(TAG, "Failed to send time zone value");
                                             handler.removeCallbacks(getNodeStatusTask);
                                             tick5.setImageResource(R.drawable.ic_alert);
@@ -647,7 +694,13 @@ public class ProvisionActivity extends AppCompatActivity {
                 }
 
                 @Override
-                public void onFailure(Exception exception) {
+                public void onResponseFailure(Exception exception) {
+                    handler.removeCallbacks(getNodeStatusTask);
+                    handler.postDelayed(getNodeStatusTask, 2000);
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
                     handler.removeCallbacks(getNodeStatusTask);
                     handler.postDelayed(getNodeStatusTask, 2000);
                 }
