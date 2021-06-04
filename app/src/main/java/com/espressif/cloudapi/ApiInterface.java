@@ -56,7 +56,7 @@ public interface ApiInterface {
 
     // Get Nodes
     @GET
-    Call<ResponseBody> getNodes(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token);
+    Call<ResponseBody> getNodes(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query(AppConstants.KEY_START_ID) String startId);
 
     // Get Node Details
     @GET

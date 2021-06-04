@@ -408,12 +408,11 @@ public class EspMainActivity extends AppCompatActivity {
                     }
 
                     if (devices.size() > 0) {
-
                         ivAddDevice.setVisibility(View.VISIBLE);
-
                     } else {
                         ivAddDevice.setVisibility(View.GONE);
                     }
+
                 } else if (viewPager.getCurrentItem() == 1) {
 
                     schedules.clear();
@@ -429,9 +428,7 @@ public class EspMainActivity extends AppCompatActivity {
                     }
 
                     if (schedules.size() > 0) {
-
                         ivAddDevice.setVisibility(View.VISIBLE);
-
                     } else {
                         ivAddDevice.setVisibility(View.GONE);
                     }
@@ -555,41 +552,39 @@ public class EspMainActivity extends AppCompatActivity {
 
     private void getNodesFromCloud() {
 
-        apiManager.getNodes(new ApiResponseListener() {
+        apiManager.getNodes(apiResponseListener);
+    }
 
-            @Override
-            public void onSuccess(Bundle data) {
+    private ApiResponseListener apiResponseListener = new ApiResponseListener() {
 
-                if (BuildConfig.isNodeGroupingSupported) {
-                    apiManager.getUserGroups(null, new ApiResponseListener() {
+        @Override
+        public void onSuccess(Bundle data) {
 
-                        @Override
-                        public void onSuccess(Bundle data) {
-                            espApp.setCurrentStatus(GetDataStatus.GET_DATA_SUCCESS);
-                            updateUi();
-                        }
+            if (BuildConfig.isNodeGroupingSupported) {
+                apiManager.getUserGroups(null, new ApiResponseListener() {
 
-                        @Override
-                        public void onFailure(Exception exception) {
-                            exception.printStackTrace();
-                            espApp.setCurrentStatus(GetDataStatus.GET_DATA_FAILED);
-                            updateUi();
-                        }
-                    });
-                } else {
-                    espApp.setCurrentStatus(GetDataStatus.GET_DATA_SUCCESS);
-                    updateUi();
-                }
-            }
+                    @Override
+                    public void onSuccess(Bundle data) {
+                        updateUi();
+                    }
 
-            @Override
-            public void onFailure(Exception exception) {
-                exception.printStackTrace();
-                espApp.setCurrentStatus(GetDataStatus.GET_DATA_FAILED);
+                    @Override
+                    public void onFailure(Exception exception) {
+                        exception.printStackTrace();
+                        updateUi();
+                    }
+                });
+            } else {
                 updateUi();
             }
-        });
-    }
+        }
+
+        @Override
+        public void onFailure(Exception exception) {
+            exception.printStackTrace();
+            updateUi();
+        }
+    };
 
     private void goToAddDeviceActivity() {
 
