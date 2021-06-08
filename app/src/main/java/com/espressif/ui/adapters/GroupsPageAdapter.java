@@ -90,6 +90,23 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
         ArrayList<Device> devices = new ArrayList<>();
         ArrayList<EspNode> nodes = new ArrayList<>();
 
+        GridLayoutManager linearLayoutManager = new GridLayoutManager(context, 2);
+        viewHolder.rvDevices.setLayoutManager(linearLayoutManager);
+        viewHolder.rvDevices.setHasFixedSize(true);
+
+        viewHolder.rvNodes.setLayoutManager(new LinearLayoutManager(context));
+        viewHolder.rvNodes.setHasFixedSize(true);
+
+        viewHolder.swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+
+            @Override
+            public void onRefresh() {
+                isRefreshing = true;
+                notifyDataSetChanged();
+                ((EspMainActivity) context).refreshDeviceList();
+            }
+        });
+
         EspDeviceAdapter deviceAdapter = new EspDeviceAdapter(context, devices);
         viewHolder.rvDevices.setAdapter(deviceAdapter);
 
@@ -130,7 +147,6 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
 
         if (devices.size() <= 0 && nodes.size() <= 0) {
 
-            viewHolder.ivNoDevice.setVisibility(View.VISIBLE);
             viewHolder.tvNoDevice.setText(R.string.no_devices);
             viewHolder.rlNoDevices.setVisibility(View.VISIBLE);
             viewHolder.tvNoDevice.setVisibility(View.VISIBLE);
@@ -139,7 +155,7 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
             viewHolder.rvNodes.setVisibility(View.GONE);
 
             if (position == 0) {
-
+                viewHolder.ivNoDevice.setVisibility(View.VISIBLE);
                 viewHolder.btnAddDevice.setVisibility(View.VISIBLE);
                 viewHolder.btnAddDevice.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -159,6 +175,7 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
                     }
                 });
             } else {
+                viewHolder.ivNoDevice.setVisibility(View.GONE);
                 viewHolder.btnAddDevice.setVisibility(View.GONE);
             }
         } else {
@@ -192,7 +209,7 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
         return groups.size();
     }
 
-    public class GroupPageViewHolder extends RecyclerView.ViewHolder {
+    static class GroupPageViewHolder extends RecyclerView.ViewHolder {
 
         private CardView btnAddDevice;
         private TextView txtAddDeviceBtn;
@@ -225,22 +242,6 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
 
             ((SimpleItemAnimator) rvDevices.getItemAnimator()).setSupportsChangeAnimations(false);
             ((SimpleItemAnimator) rvNodes.getItemAnimator()).setSupportsChangeAnimations(false);
-
-            GridLayoutManager linearLayoutManager = new GridLayoutManager(context, 2);
-            rvDevices.setLayoutManager(linearLayoutManager);
-            rvDevices.setHasFixedSize(true);
-
-            rvNodes.setLayoutManager(new LinearLayoutManager(context));
-            rvNodes.setHasFixedSize(true);
-
-            swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-
-                @Override
-                public void onRefresh() {
-                    isRefreshing = true;
-                    ((EspMainActivity) context).refreshDeviceList();
-                }
-            });
         }
     }
 

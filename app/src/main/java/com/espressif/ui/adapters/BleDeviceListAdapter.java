@@ -15,40 +15,66 @@
 package com.espressif.ui.adapters;
 
 import android.app.Activity;
-import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.espressif.rainmaker.R;
+import com.espressif.ui.activities.BLEProvisionLanding;
 import com.espressif.ui.models.BleDevice;
 
 import java.util.ArrayList;
 
-public class BleDeviceListAdapter extends ArrayAdapter<BleDevice> {
+public class BleDeviceListAdapter extends RecyclerView.Adapter<BleDeviceListAdapter.BLEDeviceViewHolder> {
 
-    private Context context;
+    private Activity context;
     private ArrayList<BleDevice> bluetoothDevices;
 
-    public BleDeviceListAdapter(Context context, int resource, ArrayList<BleDevice> bluetoothDevices) {
-        super(context, resource, bluetoothDevices);
+    public BleDeviceListAdapter(Activity context, ArrayList<BleDevice> bluetoothDevices) {
         this.context = context;
         this.bluetoothDevices = bluetoothDevices;
     }
 
-    public View getView(int position, View convertView, ViewGroup parent) {
+    @Override
+    public BLEDeviceViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
 
-        BleDevice btDevice = bluetoothDevices.get(position);
+        LayoutInflater layoutInflater = LayoutInflater.from(context);
+        View v = layoutInflater.inflate(R.layout.item_ble_scan, parent, false);
+        BLEDeviceViewHolder vh = new BLEDeviceViewHolder(v); // pass the view to View Holder
+        return vh;
+    }
 
-        //get the inflater and inflate the XML layout for each item
-        LayoutInflater inflater = (LayoutInflater) context.getSystemService(Activity.LAYOUT_INFLATER_SERVICE);
-        View view = inflater.inflate(R.layout.item_ble_scan, null);
+    @Override
+    public void onBindViewHolder(@NonNull final BLEDeviceViewHolder holder, int position) {
 
-        TextView bleDeviceNameText = view.findViewById(R.id.tv_ble_device_name);
-        bleDeviceNameText.setText(btDevice.getName());
+        BleDevice bleDevice = bluetoothDevices.get(position);
+        holder.tvBleDeviceName.setText(bleDevice.getName());
 
-        return view;
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                ((BLEProvisionLanding) context).deviceClick(holder.getAdapterPosition());
+            }
+        });
+    }
+
+    @Override
+    public int getItemCount() {
+        return bluetoothDevices.size();
+    }
+
+    static class BLEDeviceViewHolder extends RecyclerView.ViewHolder {
+
+        TextView tvBleDeviceName;
+
+        public BLEDeviceViewHolder(View itemView) {
+            super(itemView);
+            tvBleDeviceName = itemView.findViewById(R.id.tv_ble_device_name);
+        }
     }
 }

@@ -31,6 +31,7 @@ import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.R;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 
 import org.greenrobot.eventbus.EventBus;
@@ -41,7 +42,6 @@ public class WiFiConfigActivity extends AppCompatActivity {
 
     private static final String TAG = WiFiConfigActivity.class.getSimpleName();
 
-    private TextView tvTitle, tvBack, tvCancel;
     private MaterialCardView btnNext;
     private TextView txtNextBtn;
 
@@ -102,20 +102,24 @@ public class WiFiConfigActivity extends AppCompatActivity {
         }
     };
 
-    private View.OnClickListener cancelBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-            provisionManager.getEspDevice().disconnectDevice();
-            finish();
-        }
-    };
-
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        getSupportActionBar().setTitle(R.string.title_activity_wifi_config);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (provisionManager.getEspDevice() != null) {
+                    provisionManager.getEspDevice().disconnectDevice();
+                }
+                finish();
+            }
+        });
+
         etSsid = findViewById(R.id.et_ssid_input);
         etPassword = findViewById(R.id.et_password_input);
 
@@ -125,11 +129,6 @@ public class WiFiConfigActivity extends AppCompatActivity {
             TextView tvInstructionMsg = findViewById(R.id.setup_instructions_view);
             tvInstructionMsg.setText(msg);
         }
-
-        tvTitle.setText(R.string.title_activity_wifi_config);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.VISIBLE);
-        tvCancel.setOnClickListener(cancelBtnClickListener);
 
         btnNext = findViewById(R.id.btn_next);
         txtNextBtn = findViewById(R.id.text_btn);

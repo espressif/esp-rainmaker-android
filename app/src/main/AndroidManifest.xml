@@ -38,11 +38,8 @@
 
         <activity
             android:name="com.espressif.ui.activities.SplashActivity"
-            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
-            android:label="@string/app_name"
             android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.NoActionBar"
-            android:windowSoftInputMode="adjustPan">
+            android:theme="@android:style/Theme.NoDisplay">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -112,11 +109,6 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
-            android:name="com.espressif.ui.activities.UserProfileActivity"
-            android:label="@string/title_activity_settings"
-            android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.NoActionBar" />
-        <activity
             android:name="com.espressif.ui.activities.EspDeviceActivity"
             android:label="@string/title_activity_esp_device"
             android:screenOrientation="portrait"
@@ -154,12 +146,12 @@
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name="com.espressif.ui.activities.AddScheduleActivity"
-            android:label="@string/title_activity_add_device"
+            android:label="@string/title_activity_add_schedule"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name="com.espressif.ui.activities.ScheduleActionsActivity"
-            android:label="@string/title_activity_add_device"
+            android:label="@string/title_activity_actions"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
@@ -180,6 +172,11 @@
         <activity
             android:name="com.espressif.ui.activities.SharingRequestsActivity"
             android:label="@string/title_activity_sharing_requests"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="com.espressif.ui.activities.VoiceServicesActivity"
+            android:label="@string/title_activity_voice_services"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
 

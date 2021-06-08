@@ -282,7 +282,20 @@ public class SharedUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                         }
 
                         @Override
-                        public void onFailure(Exception exception) {
+                        public void onResponseFailure(Exception exception) {
+                            addMemberViewHolder.ivRightArrow.setVisibility(View.VISIBLE);
+                            addMemberViewHolder.loadingAddMember.setVisibility(View.GONE);
+                            exception.printStackTrace();
+
+                            if (exception instanceof CloudException) {
+                                Toast.makeText(context, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(context, R.string.error_add_member, Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onNetworkFailure(Exception exception) {
                             addMemberViewHolder.ivRightArrow.setVisibility(View.VISIBLE);
                             addMemberViewHolder.loadingAddMember.setVisibility(View.GONE);
                             exception.printStackTrace();
@@ -384,7 +397,19 @@ public class SharedUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
             }
 
             @Override
-            public void onFailure(Exception exception) {
+            public void onResponseFailure(Exception exception) {
+                memberViewHolder.ivRemoveMember.setVisibility(View.VISIBLE);
+                memberViewHolder.loadingRemoveMember.setVisibility(View.GONE);
+                exception.printStackTrace();
+                if (exception instanceof CloudException) {
+                    Toast.makeText(context, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(context, R.string.error_remove_member, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
                 memberViewHolder.ivRemoveMember.setVisibility(View.VISIBLE);
                 memberViewHolder.loadingRemoveMember.setVisibility(View.GONE);
                 exception.printStackTrace();
@@ -416,7 +441,19 @@ public class SharedUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
             }
 
             @Override
-            public void onFailure(Exception exception) {
+            public void onResponseFailure(Exception exception) {
+                memberViewHolder.ivRemoveMember.setVisibility(View.VISIBLE);
+                memberViewHolder.loadingRemoveMember.setVisibility(View.GONE);
+                exception.printStackTrace();
+                if (exception instanceof CloudException) {
+                    Toast.makeText(context, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(context, R.string.error_remove_sharing_req, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
                 memberViewHolder.ivRemoveMember.setVisibility(View.VISIBLE);
                 memberViewHolder.loadingRemoveMember.setVisibility(View.GONE);
                 exception.printStackTrace();

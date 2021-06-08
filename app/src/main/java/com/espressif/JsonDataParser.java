@@ -353,33 +353,37 @@ public class JsonDataParser {
 
     public static void setAllParams(EspApplication espAppContext, EspNode node, JSONObject paramsJson) {
 
-        ArrayList<Device> devices = node.getDevices();
-        JSONObject scheduleJson = paramsJson.optJSONObject(AppConstants.KEY_SCHEDULE);
         String nodeId = node.getNodeId();
+        ArrayList<Device> devices = node.getDevices();
+        ArrayList<Service> services = node.getServices();
+        JSONObject scheduleJson = paramsJson.optJSONObject(AppConstants.KEY_SCHEDULE);
+        JSONObject timeJson = paramsJson.optJSONObject(AppConstants.KEY_TIME);
 
-        for (int i = 0; i < devices.size(); i++) {
+        if (devices != null) {
+            for (int i = 0; i < devices.size(); i++) {
 
-            ArrayList<Param> params = devices.get(i).getParams();
-            String deviceName = devices.get(i).getDeviceName();
-            JSONObject deviceJson = paramsJson.optJSONObject(deviceName);
+                ArrayList<Param> params = devices.get(i).getParams();
+                String deviceName = devices.get(i).getDeviceName();
+                JSONObject deviceJson = paramsJson.optJSONObject(deviceName);
 
-            if (deviceJson != null) {
+                if (deviceJson != null) {
 
-                for (int j = 0; j < params.size(); j++) {
+                    for (int j = 0; j < params.size(); j++) {
 
-                    Param param = params.get(j);
-                    String key = param.getName();
+                        Param param = params.get(j);
+                        String key = param.getName();
 
-                    if (!param.isDynamicParam()) {
-                        continue;
+                        if (!param.isDynamicParam()) {
+                            continue;
+                        }
+
+                        if (deviceJson.has(key)) {
+                            setDeviceParamValue(deviceJson, devices.get(i), param);
+                        }
                     }
-
-                    if (deviceJson.has(key)) {
-                        setDeviceParamValue(deviceJson, devices.get(i), param);
-                    }
+                } else {
+                    Log.e(TAG, "Device JSON is not available");
                 }
-            } else {
-                Log.e(TAG, "Device JSON is null");
             }
         }
 
@@ -542,7 +546,30 @@ public class JsonDataParser {
                 }
             }
         } else {
-            Log.e(TAG, "Schedule JSON is null");
+            Log.e(TAG, "Schedule JSON is not available");
+        }
+
+        // Timezone
+        if (timeJson != null && services != null) {
+            for (int serviceIdx = 0; serviceIdx < services.size(); serviceIdx++) {
+                Service service = services.get(serviceIdx);
+                if (AppConstants.SERVICE_TYPE_TIME.equals(service.getType())) {
+                    ArrayList<Param> timeParams = service.getParams();
+                    if (timeParams != null) {
+                        for (int paramIdx = 0; paramIdx < timeParams.size(); paramIdx++) {
+                            Param timeParam = timeParams.get(paramIdx);
+                            String dataType = timeParam.getDataType();
+                            if (!TextUtils.isEmpty(dataType)) {
+                                if (dataType.equalsIgnoreCase("string")) {
+                                    timeParam.setLabelValue(timeJson.optString(timeParam.getName()));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            Log.e(TAG, "Time JSON is not available");
         }
     }
 }

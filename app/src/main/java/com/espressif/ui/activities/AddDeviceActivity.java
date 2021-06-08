@@ -28,6 +28,8 @@ import android.os.Vibrator;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -47,6 +49,7 @@ import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.QRCodeScanListener;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.wang.avi.AVLoadingIndicatorView;
 
@@ -66,16 +69,19 @@ public class AddDeviceActivity extends AppCompatActivity {
     private static final int REQUEST_CAMERA_PERMISSION = 1;
     private static final int REQUEST_ACCESS_FINE_LOCATION = 2;
 
-    private TextView tvTitle, tvBack, tvCancel;
-    private MaterialCardView btnAddManually;
+    private CodeScanner codeScanner;
+    //    private CameraSourcePreview cameraPreview;
+    private MaterialCardView btnAddManually, btnGetPermission;
     private TextView txtAddManuallyBtn;
-
     private AVLoadingIndicatorView loader;
+    private LinearLayout layoutQrCode, layoutPermissionErr;
+    private TextView tvPermissionErr;
+    private ImageView ivPermissionErr;
+
     private ESPDevice espDevice;
     private ESPProvisionManager provisionManager;
-    //    private CameraSourcePreview cameraPreview;
-    private CodeScanner codeScanner;
     private boolean isQrCodeDataReceived = false;
+    private String connectedNetwork;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -84,14 +90,12 @@ public class AddDeviceActivity extends AppCompatActivity {
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
         EventBus.getDefault().register(this);
+        connectedNetwork = getWifiSsid();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
-        if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
 //            if (cameraPreview != null) {
 //                try {
@@ -101,21 +105,8 @@ public class AddDeviceActivity extends AppCompatActivity {
 //                }
 //            }
 
-            if (codeScanner != null && !isQrCodeDataReceived) {
-                codeScanner.startPreview();
-            }
-
-            // This condition is to get event of cancel button of "try again" popup. Because Android 10 is not giving event on cancel button click if network is not found.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && espDevice != null && espDevice.getTransportType().equals(ESPConstants.TransportType.TRANSPORT_SOFTAP)) {
-
-                String ssid = getWifiSsid();
-                Log.d(TAG, "Currently connected WiFi SSID : " + ssid);
-                Log.d(TAG, "Device Name  : " + espDevice.getDeviceName());
-                if (!TextUtils.isEmpty(ssid) && !ssid.equals(espDevice.getDeviceName())) {
-                    Log.e(TAG, "Device is not connected");
-                    finish();
-                }
-            }
+        if (codeScanner != null && !isQrCodeDataReceived) {
+            codeScanner.startPreview();
         }
     }
 
@@ -124,13 +115,13 @@ public class AddDeviceActivity extends AppCompatActivity {
      */
     @Override
     protected void onPause() {
-        super.onPause();
-//        if (cameraPreview != null) {
+        //        if (cameraPreview != null) {
 //            cameraPreview.stop();
 //        }
         if (codeScanner != null) {
-            codeScanner.stopPreview();
+            codeScanner.releaseResources();
         }
+        super.onPause();
     }
 
     @Override
@@ -141,9 +132,9 @@ public class AddDeviceActivity extends AppCompatActivity {
 //        if (cameraPreview != null) {
 //            cameraPreview.release();
 //        }
-        if (codeScanner != null) {
-            codeScanner.releaseResources();
-        }
+//        if (codeScanner != null) {
+//            codeScanner.releaseResources();
+//        }
         super.onDestroy();
     }
 
@@ -159,16 +150,33 @@ public class AddDeviceActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
         Log.e(TAG, "onRequestPermissionsResult , requestCode : " + requestCode);
 
-        if (requestCode == REQUEST_CAMERA_PERMISSION) {
-
-            initialiseDetectorsAndSources();
-
-        } else if (requestCode == REQUEST_ACCESS_FINE_LOCATION) {
-
-            initialiseDetectorsAndSources();
+        if (requestCode == REQUEST_CAMERA_PERMISSION && grantResults.length > 0) {
+            if (grantResults[0] == PackageManager.PERMISSION_DENIED) {
+                findViewById(R.id.scanner_view).setVisibility(View.GONE);
+                layoutQrCode.setVisibility(View.GONE);
+                layoutPermissionErr.setVisibility(View.VISIBLE);
+                tvPermissionErr.setText(R.string.error_camera_permission);
+                ivPermissionErr.setImageResource(R.drawable.ic_no_camera_permission);
+            } else {
+                layoutQrCode.setVisibility(View.VISIBLE);
+                layoutPermissionErr.setVisibility(View.GONE);
+                openCamera();
+            }
+        } else if (requestCode == REQUEST_ACCESS_FINE_LOCATION && grantResults.length > 0) {
+            if (grantResults[0] == PackageManager.PERMISSION_DENIED) {
+                findViewById(R.id.scanner_view).setVisibility(View.GONE);
+                layoutQrCode.setVisibility(View.GONE);
+                layoutPermissionErr.setVisibility(View.VISIBLE);
+                tvPermissionErr.setText(R.string.error_location_permission);
+                ivPermissionErr.setImageResource(R.drawable.ic_no_location_permission);
+            } else {
+                findViewById(R.id.scanner_view).setVisibility(View.VISIBLE);
+                layoutQrCode.setVisibility(View.VISIBLE);
+                layoutPermissionErr.setVisibility(View.GONE);
+                scanQrCode();
+            }
         }
     }
 
@@ -180,18 +188,12 @@ public class AddDeviceActivity extends AppCompatActivity {
         switch (event.getEventType()) {
 
             case ESPConstants.EVENT_DEVICE_CONNECTED:
-
                 Log.e(TAG, "Device Connected Event Received");
                 checkDeviceCapabilities();
                 break;
 
             case ESPConstants.EVENT_DEVICE_DISCONNECTED:
-//                Toast.makeText(AddDeviceActivity.this, "Device disconnected", Toast.LENGTH_LONG).show();
-                askForManualDeviceConnection();
-                break;
-
             case ESPConstants.EVENT_DEVICE_CONNECTION_FAILED:
-//                Toast.makeText(AddDeviceActivity.this, "Failed to connect with device", Toast.LENGTH_LONG).show();
                 askForManualDeviceConnection();
                 break;
         }
@@ -235,77 +237,85 @@ public class AddDeviceActivity extends AppCompatActivity {
         }
     };
 
-    private View.OnClickListener cancelBtnClickListener = new View.OnClickListener() {
+    View.OnClickListener btnGetPermissionClickListener = new View.OnClickListener() {
 
         @Override
         public void onClick(View v) {
+            if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
 
-            if (provisionManager.getEspDevice() != null) {
-                provisionManager.getEspDevice().disconnectDevice();
+                ActivityCompat.requestPermissions(AddDeviceActivity.this, new
+                        String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+
+            } else if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+                ActivityCompat.requestPermissions(AddDeviceActivity.this, new
+                        String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_ACCESS_FINE_LOCATION);
             }
-            setResult(RESULT_CANCELED, getIntent());
-            finish();
         }
     };
 
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_add_device);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.VISIBLE);
-        tvCancel.setOnClickListener(cancelBtnClickListener);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        getSupportActionBar().setTitle(R.string.title_activity_add_device);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (provisionManager.getEspDevice() != null) {
+                    provisionManager.getEspDevice().disconnectDevice();
+                }
+                setResult(RESULT_CANCELED, getIntent());
+                finish();
+            }
+        });
 
         CodeScannerView scannerView = findViewById(R.id.scanner_view);
         codeScanner = new CodeScanner(this, scannerView);
 
 //        cameraPreview = findViewById(R.id.preview);
-        btnAddManually = findViewById(R.id.btn_add_device_manually);
-        txtAddManuallyBtn = findViewById(R.id.text_btn);
         loader = findViewById(R.id.loader);
+        layoutQrCode = findViewById(R.id.layout_qr_code_txt);
+        layoutPermissionErr = findViewById(R.id.layout_permission_error);
+        tvPermissionErr = findViewById(R.id.tv_permission_error);
+        ivPermissionErr = findViewById(R.id.iv_permission_error);
 
+        btnAddManually = findViewById(R.id.btn_add_device_manually);
+        txtAddManuallyBtn = btnAddManually.findViewById(R.id.text_btn);
         txtAddManuallyBtn.setText(R.string.btn_no_qr_code);
         btnAddManually.setOnClickListener(btnAddManuallyClickListener);
 
-        initialiseDetectorsAndSources();
-    }
+        btnGetPermission = findViewById(R.id.btn_get_permission);
+        TextView btnPermissionText = btnGetPermission.findViewById(R.id.text_btn);
+        btnPermissionText.setText(R.string.btn_get_permission);
+        btnGetPermission.setOnClickListener(btnGetPermissionClickListener);
 
-    private void initialiseDetectorsAndSources() {
-
-        if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-
-            provisionManager.scanQRCode(codeScanner, qrCodeScanListener);
-//            cameraPreview.setVisibility(View.VISIBLE);
-            findViewById(R.id.scanner_view).setVisibility(View.VISIBLE);
-
-            if (codeScanner != null) {
-                codeScanner.startPreview();
-            }
+        if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            openCamera();
         } else {
-            Log.e(TAG, "All permissions are not granted.");
-            askForPermissions();
+            ActivityCompat.requestPermissions(AddDeviceActivity.this, new
+                    String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
         }
     }
 
-    private void askForPermissions() {
+    private void openCamera() {
+        findViewById(R.id.scanner_view).setVisibility(View.VISIBLE);
+        if (codeScanner != null) {
+            codeScanner.startPreview();
+        }
+        scanQrCode();
+    }
 
-        if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+    private void scanQrCode() {
 
-            ActivityCompat.requestPermissions(AddDeviceActivity.this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
-
-        } else if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
+        if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            provisionManager.scanQRCode(codeScanner, qrCodeScanListener);
+        } else {
             ActivityCompat.requestPermissions(AddDeviceActivity.this, new
                     String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_ACCESS_FINE_LOCATION);
-        } else if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
-            ActivityCompat.requestPermissions(AddDeviceActivity.this, new
-                    String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_ACCESS_FINE_LOCATION);
         }
     }
 
@@ -531,6 +541,7 @@ public class AddDeviceActivity extends AppCompatActivity {
         if (espDevice != null) {
             intent.putExtra(AppConstants.KEY_DEVICE_NAME, espDevice.getDeviceName());
             intent.putExtra(AppConstants.KEY_PROOF_OF_POSSESSION, espDevice.getProofOfPossession());
+            intent.putExtra(AppConstants.KEY_SSID, connectedNetwork);
         }
         startActivity(intent);
     }
@@ -548,6 +559,7 @@ public class AddDeviceActivity extends AppCompatActivity {
         if (espDevice != null) {
             intent.putExtra(AppConstants.KEY_DEVICE_NAME, espDevice.getDeviceName());
             intent.putExtra(AppConstants.KEY_PROOF_OF_POSSESSION, espDevice.getProofOfPossession());
+            intent.putExtra(AppConstants.KEY_SSID, connectedNetwork);
         }
         startActivity(intent);
     }
@@ -555,18 +567,21 @@ public class AddDeviceActivity extends AppCompatActivity {
     private void goToWiFiScanActivity() {
         finish();
         Intent wifiListIntent = new Intent(getApplicationContext(), WiFiScanActivity.class);
+        wifiListIntent.putExtra(AppConstants.KEY_SSID, connectedNetwork);
         startActivity(wifiListIntent);
     }
 
     private void goToWiFiConfigActivity() {
         finish();
         Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
+        wifiConfigIntent.putExtra(AppConstants.KEY_SSID, connectedNetwork);
         startActivity(wifiConfigIntent);
     }
 
     private void goToClaimingActivity() {
         finish();
         Intent claimingIntent = new Intent(getApplicationContext(), ClaimingActivity.class);
+        claimingIntent.putExtra(AppConstants.KEY_SSID, connectedNetwork);
         startActivity(claimingIntent);
     }
 

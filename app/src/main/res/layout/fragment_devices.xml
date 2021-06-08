@@ -20,10 +20,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_toStartOf="@id/iv_more"
+                android:background="@android:color/transparent"
+                app:tabBackground="@drawable/bg_group_tab"
                 app:tabGravity="fill"
-                app:tabSelectedTextColor="@color/colorPrimary"
+                app:tabIndicatorHeight="0dp"
                 app:tabMode="scrollable"
-                app:tabTextAppearance="@android:style/TextAppearance.Material.Widget" />
+                app:tabRippleColor="@null"
+                app:tabTextAppearance="@android:style/TextAppearance.Material.Widget"
+                app:tabTextColor="@android:color/white" />
 
             <ImageView
                 android:id="@+id/iv_more"

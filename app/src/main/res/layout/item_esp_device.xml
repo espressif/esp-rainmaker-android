@@ -60,6 +60,7 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:gravity="end"
+                    android:maxLines="1"
                     android:text="Test"
                     android:textColor="@color/color_dark_gray"
                     android:textSize="20sp"

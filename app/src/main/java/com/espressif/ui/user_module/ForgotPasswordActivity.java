@@ -17,7 +17,6 @@ package com.espressif.ui.user_module;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -29,20 +28,20 @@ import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.ForgotPas
 import com.espressif.rainmaker.R;
 import com.espressif.ui.fragments.ForgotPasswordFragment;
 import com.espressif.ui.fragments.ResetPasswordFragment;
+import com.google.android.material.appbar.MaterialToolbar;
 
 public class ForgotPasswordActivity extends AppCompatActivity {
 
     private AlertDialog userDialog;
     private ForgotPasswordContinuation forgotPasswordContinuation;
-    private TextView tvTitle, tvBack, tvCancel;
-
     private String email;
+    private MaterialToolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_forgot_password);
-        init();
+        initViews();
     }
 
     @Override
@@ -63,14 +62,20 @@ public class ForgotPasswordActivity extends AppCompatActivity {
         }
     }
 
-    private void init() {
+    private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvBack.setOnClickListener(backButtonClickListener);
-        tvCancel.setOnClickListener(cancelButtonClickListener);
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        toolbar.setTitle(R.string.title_activity_forgot_password);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         Fragment forgotPasswordFragment = new ForgotPasswordFragment();
         loadForgotPasswordFragment(forgotPasswordFragment);
@@ -78,9 +83,7 @@ public class ForgotPasswordActivity extends AppCompatActivity {
 
     private void loadForgotPasswordFragment(Fragment forgotPasswordFragment) {
 
-        tvTitle.setText(R.string.title_activity_forgot_password);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.VISIBLE);
+        toolbar.setTitle(R.string.title_activity_forgot_password);
 
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, forgotPasswordFragment);
@@ -89,9 +92,7 @@ public class ForgotPasswordActivity extends AppCompatActivity {
 
     private void loadResetPasswordFragment(Fragment resetPasswordFragment) {
 
-        tvTitle.setText(R.string.title_activity_reset_password);
-        tvBack.setVisibility(View.VISIBLE);
-        tvCancel.setVisibility(View.VISIBLE);
+        toolbar.setTitle(R.string.title_activity_reset_password);
 
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, resetPasswordFragment);

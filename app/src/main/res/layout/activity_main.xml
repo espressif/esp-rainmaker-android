@@ -40,8 +40,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/color_background"
-            app:tabIndicatorColor="@color/color_purple"
-            app:tabTextColor="@color/color_purple" />
+            app:tabIndicatorColor="@color/colorPrimary"
+            app:tabTextColor="@color/colorPrimary" />
 
     </com.google.android.material.appbar.AppBarLayout>
 

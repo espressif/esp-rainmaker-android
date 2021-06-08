@@ -44,11 +44,15 @@ public class HomeScreenPagerAdapter extends FragmentPagerAdapter {
     @Override
     public CharSequence getPageTitle(int position) {
 
-        if (position == 0) {
-            return context.getString(R.string.title_activity_devices);
-        } else {
-            return context.getString(R.string.title_activity_schedules);
+        switch (position) {
+            case 0:
+                return context.getString(R.string.devices_title);
+            case 1:
+                return context.getString(R.string.title_activity_schedules);
+            case 2:
+                return context.getString(R.string.title_activity_user_profile);
         }
+        return "";
     }
 
     @Override

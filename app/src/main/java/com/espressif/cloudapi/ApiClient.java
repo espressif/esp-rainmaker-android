@@ -55,6 +55,7 @@ public class ApiClient {
         InputStream cert = null;
         Certificate ca = null;
         OkHttpClient okHttpClient = null;
+        TokenAuthenticator authAuthenticator;
 
         try {
 
@@ -64,11 +65,8 @@ public class ApiClient {
             ca = cf.generateCertificate(cert);
 
         } catch (CertificateException e) {
-
             e.printStackTrace();
-
         } finally {
-
             try {
                 cert.close();
             } catch (IOException e) {
@@ -79,9 +77,9 @@ public class ApiClient {
         // creating a KeyStore containing our trusted CAs
         String keyStoreType = KeyStore.getDefaultType();
         KeyStore keyStore = null;
+        authAuthenticator = new TokenAuthenticator(context);
 
         try {
-
             keyStore = KeyStore.getInstance(keyStoreType);
             keyStore.load(null, null);
             keyStore.setCertificateEntry("ca", ca);
@@ -96,8 +94,8 @@ public class ApiClient {
             sslContext.init(null, tmf.getTrustManagers(), null);
 
             // creating an OkHttpClient that uses our SSLSocketFactory
-
             okHttpClient = new OkHttpClient.Builder()
+                    .authenticator(authAuthenticator)
                     .sslSocketFactory(sslContext.getSocketFactory(), systemDefaultTrustManager())
                     .connectTimeout(15, TimeUnit.SECONDS)
                     .writeTimeout(15, TimeUnit.SECONDS)

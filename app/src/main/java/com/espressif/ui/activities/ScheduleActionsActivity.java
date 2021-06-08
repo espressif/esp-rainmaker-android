@@ -16,8 +16,9 @@ package com.espressif.ui.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -29,6 +30,7 @@ import com.espressif.AppConstants;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.ScheduleActionAdapter;
 import com.espressif.ui.models.Device;
+import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,8 +41,6 @@ public class ScheduleActionsActivity extends AppCompatActivity {
 
     private ArrayList<Device> devices;
     private ScheduleActionAdapter adapter;
-
-    private TextView tvTitle, tvBack, tvDone;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -88,18 +88,53 @@ public class ScheduleActionsActivity extends AppCompatActivity {
         initViews();
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        menu.add(Menu.NONE, 1, Menu.NONE, R.string.btn_done).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()) {
+
+            case 1:
+                Iterator itr = devices.iterator();
+                while (itr.hasNext()) {
+
+                    Device d = (Device) itr.next();
+                    if (d.getSelectedState() == 0) {
+                        itr.remove();
+                    }
+                }
+                Intent intent = getIntent();
+                intent.putParcelableArrayListExtra(AppConstants.KEY_ACTIONS, devices);
+                setResult(RESULT_OK, intent);
+                finish();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvDone = findViewById(R.id.btn_cancel);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        getSupportActionBar().setTitle(R.string.title_activity_actions);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
 
-        tvTitle.setText(R.string.title_activity_actions);
-        tvDone.setText(R.string.btn_done);
-        tvBack.setVisibility(View.VISIBLE);
-        tvDone.setVisibility(View.VISIBLE);
-        tvBack.setOnClickListener(backBtnClickListener);
-        tvDone.setOnClickListener(doneBtnClickListener);
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         RecyclerView recyclerView = findViewById(R.id.rv_device_schedule);
         ((SimpleItemAnimator) recyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
@@ -109,33 +144,4 @@ public class ScheduleActionsActivity extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
         recyclerView.setHasFixedSize(true);
     }
-
-    private View.OnClickListener backBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            finish();
-        }
-    };
-
-    private View.OnClickListener doneBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            Iterator itr = devices.iterator();
-            while (itr.hasNext()) {
-
-                Device d = (Device) itr.next();
-                if (d.getSelectedState() == 0) {
-                    itr.remove();
-                }
-            }
-            Intent intent = getIntent();
-            intent.putParcelableArrayListExtra(AppConstants.KEY_ACTIONS, devices);
-            setResult(RESULT_OK, intent);
-            finish();
-        }
-    };
 }

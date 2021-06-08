@@ -63,7 +63,15 @@ public class NetworkApiManager {
                 }
 
                 @Override
-                public void onFailure(Exception exception) {
+                public void onResponseFailure(Exception exception) {
+                    Log.e(TAG, "Error : " + exception.getMessage());
+                    Log.e(TAG, "Removing Node id : " + nodeId);
+                    espApp.mDNSDeviceMap.remove(nodeId);
+                    updateParamValue(nodeId, body, listener);
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
                     espApp.mDNSDeviceMap.remove(nodeId);
@@ -94,7 +102,15 @@ public class NetworkApiManager {
                 }
 
                 @Override
-                public void onFailure(Exception exception) {
+                public void onResponseFailure(Exception exception) {
+                    Log.e(TAG, "Error : " + exception.getMessage());
+                    Log.e(TAG, "Removing Node id : " + nodeId);
+                    espApp.mDNSDeviceMap.remove(nodeId);
+                    getParamsValues(nodeId, listener);
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
                     espApp.mDNSDeviceMap.remove(nodeId);
@@ -125,7 +141,15 @@ public class NetworkApiManager {
                 }
 
                 @Override
-                public void onFailure(Exception exception) {
+                public void onResponseFailure(Exception exception) {
+                    Log.e(TAG, "Error : " + exception.getMessage());
+                    Log.e(TAG, "Removing Node id : " + nodeId);
+                    espApp.mDNSDeviceMap.remove(nodeId);
+                    getParamsValues(nodeId, listener);
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
                     espApp.mDNSDeviceMap.remove(nodeId);

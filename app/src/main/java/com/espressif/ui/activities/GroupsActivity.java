@@ -14,12 +14,11 @@
 
 package com.espressif.ui.activities;
 
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Vibrator;
 import android.util.Log;
-import android.view.HapticFeedbackConstants;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -37,6 +36,7 @@ import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.GroupAdapter;
 import com.espressif.ui.models.Group;
+import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,13 +47,11 @@ public class GroupsActivity extends AppCompatActivity {
 
     private static final String TAG = GroupsActivity.class.getSimpleName();
 
-    private TextView tvTitle, tvBack, tvCancel;
-
     private RecyclerView rvGroups;
     private TextView tvNoGroups;
     private RelativeLayout rlNoGroups;
     private SwipeRefreshLayout swipeRefreshLayout;
-    private ImageView ivNoGroups, ivAddGroup;
+    private ImageView ivNoGroups;
 
     private EspApplication espApp;
     private GroupAdapter groupAdapter;
@@ -82,47 +80,47 @@ public class GroupsActivity extends AppCompatActivity {
         getGroups();
     }
 
-    View.OnClickListener addGroupBtnClickListener = new View.OnClickListener() {
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        menu.add(Menu.NONE, 1, Menu.NONE, R.string.btn_add).setIcon(R.drawable.ic_menu_add).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        return true;
+    }
 
-        @Override
-        public void onClick(View v) {
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
 
-            Vibrator vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-            vib.vibrate(HapticFeedbackConstants.VIRTUAL_KEY);
-            goToGroupDetailActivity();
+        switch (item.getItemId()) {
+
+            case 1:
+                goToGroupDetailActivity();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
         }
-    };
-
-    private View.OnClickListener backButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            finish();
-        }
-    };
+    }
 
     private void init() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-        ivAddGroup = findViewById(R.id.btn_add);
-        ivAddGroup.setVisibility(View.VISIBLE);
-
-        tvTitle.setText(R.string.title_activity_manage_groups);
-        tvBack.setVisibility(View.VISIBLE);
-        tvCancel.setVisibility(View.GONE);
-        tvBack.setText(R.string.btn_back);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        getSupportActionBar().setTitle(R.string.title_activity_manage_groups);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         rlNoGroups = findViewById(R.id.rl_no_group);
         tvNoGroups = findViewById(R.id.tv_no_group);
         ivNoGroups = findViewById(R.id.iv_no_group);
         rvGroups = findViewById(R.id.rv_group_list);
         swipeRefreshLayout = findViewById(R.id.swipe_container);
-
-        tvBack.setOnClickListener(backButtonClickListener);
-        ivAddGroup.setOnClickListener(addGroupBtnClickListener);
 
         groupAdapter = new GroupAdapter(this, groups);
         rvGroups.setLayoutManager(new LinearLayoutManager(this));
@@ -187,28 +185,6 @@ public class GroupsActivity extends AppCompatActivity {
     private void getGroups() {
 
         ApiManager apiManager = ApiManager.getInstance(this);
-        if (apiManager.isTokenExpired()) {
-
-            apiManager.getNewToken(new ApiResponseListener() {
-
-                @Override
-                public void onSuccess(Bundle data) {
-                    getGroupsFromCloud();
-                }
-
-                @Override
-                public void onFailure(Exception exception) {
-                    exception.printStackTrace();
-                }
-            });
-
-        } else {
-            getGroupsFromCloud();
-        }
-    }
-
-    private void getGroupsFromCloud() {
-        ApiManager apiManager = ApiManager.getInstance(this);
         apiManager.getUserGroups(null, new ApiResponseListener() {
 
             @Override
@@ -218,7 +194,13 @@ public class GroupsActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Exception exception) {
+            public void onResponseFailure(Exception e) {
+                e.printStackTrace();
+                swipeRefreshLayout.setRefreshing(false);
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
                 exception.printStackTrace();
                 swipeRefreshLayout.setRefreshing(false);
             }

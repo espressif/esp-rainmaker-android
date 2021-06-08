@@ -131,21 +131,22 @@ public class DevicesFragment extends Fragment {
 
     private void updateDeviceUi() {
 
-        switch (espApp.getCurrentStatus()) {
+        switch (espApp.getAppState()) {
 
-            case FETCHING_DATA:
+            case NO_INTERNET:
             case GET_DATA_SUCCESS:
             case GET_DATA_FAILED:
-                updateUiOnSuccess(false);
+                updateUi(false);
                 break;
 
-            case DATA_REFRESHING:
-                updateUiOnSuccess(true);
+            case GETTING_DATA:
+            case REFRESH_DATA:
+                updateUi(true);
                 break;
         }
     }
 
-    private void updateUiOnSuccess(boolean isRefreshing) {
+    private void updateUi(boolean isRefreshing) {
 
         groups.clear();
 

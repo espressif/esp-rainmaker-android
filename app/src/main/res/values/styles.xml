@@ -14,6 +14,11 @@
         <item name="windowNoTitle">true</item>
     </style>
 
+    <style name="AppTheme.AppBarLayout" parent="">
+        <item name="android:textColorPrimary">@android:color/white</item>
+        <item name="colorControlNormal">@android:color/white</item>
+    </style>
+
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.MaterialComponents.Dark.ActionBar" />
 
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.MaterialComponents.Light" />

@@ -46,11 +46,9 @@ public class NodeAdapter extends RecyclerView.Adapter<NodeAdapter.NodeViewHolder
     @Override
     public NodeViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
 
-        // infalte the item Layout
         LayoutInflater layoutInflater = LayoutInflater.from(context);
         View v = layoutInflater.inflate(R.layout.item_node, parent, false);
-        // set the view's size, margins, paddings and layout parameters
-        NodeViewHolder vh = new NodeViewHolder(v); // pass the view to View Holder
+        NodeViewHolder vh = new NodeViewHolder(v);
         return vh;
     }
 
@@ -60,6 +58,8 @@ public class NodeAdapter extends RecyclerView.Adapter<NodeAdapter.NodeViewHolder
         final EspNode node = nodedList.get(position);
         myViewHolder.tvDeviceName.setText(node.getNodeName());
 
+        GridLayoutManager linearLayoutManager = new GridLayoutManager(context, 2);
+        myViewHolder.rvDevices.setLayoutManager(linearLayoutManager);
         EspDeviceAdapter adapter = new EspDeviceAdapter(context, node.getDevices());
         myViewHolder.rvDevices.setAdapter(adapter);
 
@@ -92,9 +92,8 @@ public class NodeAdapter extends RecyclerView.Adapter<NodeAdapter.NodeViewHolder
         notifyDataSetChanged();
     }
 
-    public class NodeViewHolder extends RecyclerView.ViewHolder {
+    static class NodeViewHolder extends RecyclerView.ViewHolder {
 
-        // init the item view's
         TextView tvDeviceName;
         ImageView ivDevice;
         RecyclerView rvDevices;
@@ -103,14 +102,10 @@ public class NodeAdapter extends RecyclerView.Adapter<NodeAdapter.NodeViewHolder
         public NodeViewHolder(View itemView) {
             super(itemView);
 
-            // get the reference of item view's
             tvDeviceName = itemView.findViewById(R.id.tv_node_name);
             ivDevice = itemView.findViewById(R.id.iv_device);
             rvDevices = itemView.findViewById(R.id.rv_device_list);
             ivNodeInfo = itemView.findViewById(R.id.btn_info);
-
-            GridLayoutManager linearLayoutManager = new GridLayoutManager(context, 2);
-            rvDevices.setLayoutManager(linearLayoutManager); // set LayoutManager to RecyclerView
         }
     }
 }

@@ -16,6 +16,7 @@ package com.espressif.ui.adapters;
 
 import android.app.Activity;
 import android.content.DialogInterface;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.InputFilter;
 import android.text.InputType;
@@ -29,6 +30,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -45,122 +47,359 @@ import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.EspDeviceActivity;
+import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.widgets.EspDropDown;
 import com.espressif.ui.widgets.PaletteBar;
 import com.google.gson.JsonObject;
+import com.larswerkman.holocolorpicker.ColorPicker;
 import com.warkiz.tickseekbar.OnSeekChangeListener;
 import com.warkiz.tickseekbar.SeekParams;
 import com.warkiz.tickseekbar.TickSeekBar;
 
 import java.util.ArrayList;
 
-public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder> {
+public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private final String TAG = ParamAdapter.class.getSimpleName();
 
+    private final int VIEW_TYPE_PARAM = 1;
+    private final int VIEW_TYPE_PUSH_BTN_BIG = 2;
+    private final int VIEW_TYPE_HUE = 3;
+
     private Activity context;
+    private Device device;
     private ArrayList<Param> params;
     private NetworkApiManager networkApiManager;
     private String nodeId, deviceName;
 
-    public ParamAdapter(Activity context, String nodeId, String deviceName, ArrayList<Param> deviceList) {
+    public ParamAdapter(Activity context, Device device, ArrayList<Param> paramList) {
         this.context = context;
-        this.nodeId = nodeId;
-        this.deviceName = deviceName;
-        this.params = deviceList;
+        this.device = device;
+        this.nodeId = device.getNodeId();
+        this.deviceName = device.getDeviceName();
         networkApiManager = new NetworkApiManager(context.getApplicationContext());
+
+        int firstParamIndex = -1;
+        for (int i = 0; i < paramList.size(); i++) {
+
+            Param param = paramList.get(i);
+            if (param != null && AppConstants.UI_TYPE_HUE_CIRCLE.equalsIgnoreCase(param.getUiType())) {
+                firstParamIndex = i;
+                break;
+            }
+        }
+
+        if (firstParamIndex != -1) {
+            Param paramToBeMoved = paramList.remove(firstParamIndex);
+            paramList.add(0, paramToBeMoved);
+        } else {
+
+            for (int i = 0; i < paramList.size(); i++) {
+
+                Param param = paramList.get(i);
+                if (param != null) {
+                    String dataType = param.getDataType();
+                    if (AppConstants.UI_TYPE_PUSH_BTN_BIG.equalsIgnoreCase(param.getUiType())
+                            && (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("bool") || dataType.equalsIgnoreCase("boolean")))) {
+                        firstParamIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            if (firstParamIndex != -1) {
+                Param paramToBeMoved = paramList.remove(firstParamIndex);
+                paramList.add(0, paramToBeMoved);
+            }
+        }
+        this.params = paramList;
     }
 
-    @NonNull
     @Override
-    public MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
 
-        // infalte the item Layout
         LayoutInflater layoutInflater = LayoutInflater.from(context);
-        View v = layoutInflater.inflate(R.layout.item_param, parent, false);
-        // set the view's size, margins, paddings and layout parameters
-        MyViewHolder vh = new MyViewHolder(v); // pass the view to View Holder
-        return vh;
+        switch (viewType) {
+
+            case VIEW_TYPE_PUSH_BTN_BIG:
+                View switchView = layoutInflater.inflate(R.layout.item_param_switch, parent, false);
+                return new SwitchViewHolder(switchView);
+
+            case VIEW_TYPE_HUE:
+                View hueView = layoutInflater.inflate(R.layout.item_param_hue, parent, false);
+                return new HueViewHolder(hueView);
+
+            case VIEW_TYPE_PARAM:
+            default:
+                View paramView = layoutInflater.inflate(R.layout.item_param, parent, false);
+                return new ParamViewHolder(paramView);
+        }
     }
 
     @Override
-    public void onBindViewHolder(@NonNull final MyViewHolder myViewHolder, final int position) {
+    public int getItemViewType(int position) {
+
+        Param param = params.get(position);
+
+        if (param != null) {
+
+            String dataType = param.getDataType();
+
+            if (AppConstants.UI_TYPE_HUE_CIRCLE.equalsIgnoreCase(param.getUiType())) {
+
+                return VIEW_TYPE_HUE;
+
+            } else if (AppConstants.UI_TYPE_PUSH_BTN_BIG.equalsIgnoreCase(param.getUiType())
+                    && (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("bool") || dataType.equalsIgnoreCase("boolean")))) {
+
+                return VIEW_TYPE_PUSH_BTN_BIG;
+            }
+        }
+        return VIEW_TYPE_PARAM;
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, int position) {
 
         final Param param = params.get(position);
 
-        if (AppConstants.UI_TYPE_SLIDER.equalsIgnoreCase(param.getUiType())) {
+        if (holder.getItemViewType() == VIEW_TYPE_PARAM) {
 
-            String dataType = param.getDataType();
+            final ParamViewHolder paramViewHolder = (ParamViewHolder) holder;
 
-            if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
-                    || dataType.equalsIgnoreCase("integer")
-                    || dataType.equalsIgnoreCase("float")
-                    || dataType.equalsIgnoreCase("double"))) {
+            if (AppConstants.UI_TYPE_SLIDER.equalsIgnoreCase(param.getUiType())) {
 
-                int max = param.getMaxBounds();
-                int min = param.getMinBounds();
+                String dataType = param.getDataType();
 
-                if ((min < max)) {
+                if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
+                        || dataType.equalsIgnoreCase("integer")
+                        || dataType.equalsIgnoreCase("float")
+                        || dataType.equalsIgnoreCase("double"))) {
 
-                    displaySlider(myViewHolder, param, position);
-                } else {
-                    displayLabel(myViewHolder, param, position);
-                }
-            }
+                    int max = param.getMaxBounds();
+                    int min = param.getMinBounds();
 
-        } else if (AppConstants.UI_TYPE_HUE_SLIDER.equalsIgnoreCase(param.getUiType())) {
+                    if ((min < max)) {
 
-            displayPalette(myViewHolder, param, position);
-        } else if (AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())) {
-
-            String dataType = param.getDataType();
-
-            if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("bool")
-                    || dataType.equalsIgnoreCase("boolean"))) {
-
-                displayToggle(myViewHolder, param);
-
-            } else {
-                displayLabel(myViewHolder, param, position);
-            }
-
-        } else if (AppConstants.UI_TYPE_DROP_DOWN.equalsIgnoreCase(param.getUiType())) {
-
-            String dataType = param.getDataType();
-
-            if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("string"))) {
-
-                displaySpinner(myViewHolder, param, position);
-
-            } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
-                    || dataType.equalsIgnoreCase("integer"))) {
-
-                int max = param.getMaxBounds();
-                int min = param.getMinBounds();
-                int stepCount = (int) param.getStepCount();
-                if (stepCount == 0) {
-                    stepCount = 1;
-                }
-                ArrayList<String> spinnerValues = new ArrayList<>();
-                for (int i = min; i <= max; i = i + stepCount) {
-                    spinnerValues.add(String.valueOf(i));
-                }
-
-                if ((min < max)) {
-                    displaySpinner(myViewHolder, param, position);
-                } else {
-                    if (spinnerValues.size() > 0) {
-                        displaySpinner(myViewHolder, param, position);
+                        displaySlider(paramViewHolder, param, position);
                     } else {
-                        displayLabel(myViewHolder, param, position);
+                        displayLabel(paramViewHolder, param, position);
                     }
                 }
+            } else if (AppConstants.UI_TYPE_HUE_SLIDER.equalsIgnoreCase(param.getUiType())) {
+
+                displayPalette(paramViewHolder, param, position);
+            } else if (AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())) {
+
+                String dataType = param.getDataType();
+
+                if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("bool")
+                        || dataType.equalsIgnoreCase("boolean"))) {
+
+                    displayToggle(paramViewHolder, param);
+
+                } else {
+                    displayLabel(paramViewHolder, param, position);
+                }
+
+            } else if (AppConstants.UI_TYPE_DROP_DOWN.equalsIgnoreCase(param.getUiType())) {
+
+                String dataType = param.getDataType();
+
+                if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("string"))) {
+
+                    displaySpinner(paramViewHolder, param, position);
+
+                } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
+                        || dataType.equalsIgnoreCase("integer"))) {
+
+                    int max = param.getMaxBounds();
+                    int min = param.getMinBounds();
+                    int stepCount = (int) param.getStepCount();
+                    if (stepCount == 0) {
+                        stepCount = 1;
+                    }
+                    ArrayList<String> spinnerValues = new ArrayList<>();
+                    for (int i = min; i <= max; i = i + stepCount) {
+                        spinnerValues.add(String.valueOf(i));
+                    }
+
+                    if ((min < max)) {
+                        displaySpinner(paramViewHolder, param, position);
+                    } else {
+                        if (spinnerValues.size() > 0) {
+                            displaySpinner(paramViewHolder, param, position);
+                        } else {
+                            displayLabel(paramViewHolder, param, position);
+                        }
+                    }
+                } else {
+                    displayLabel(paramViewHolder, param, position);
+                }
             } else {
-                displayLabel(myViewHolder, param, position);
+                displayLabel(paramViewHolder, param, position);
             }
-        } else {
-            displayLabel(myViewHolder, param, position);
+        } else if (holder.getItemViewType() == VIEW_TYPE_PUSH_BTN_BIG) {
+
+            final SwitchViewHolder switchViewHolder = (SwitchViewHolder) holder;
+
+            if (param.getSwitchStatus()) {
+                switchViewHolder.ivSwitch.setImageResource(R.drawable.ic_switch_on);
+            } else {
+                switchViewHolder.ivSwitch.setImageResource(R.drawable.ic_switch_off);
+            }
+
+            if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
+
+                if (((EspDeviceActivity) context).isNodeOnline()) {
+
+                    switchViewHolder.ivSwitch.setAlpha(1f);
+                    switchViewHolder.ivSwitch.setEnabled(true);
+
+                    switchViewHolder.ivSwitch.setOnClickListener(new View.OnClickListener() {
+
+                        @Override
+                        public void onClick(View v) {
+                            ((EspDeviceActivity) context).stopUpdateValueTask();
+                            ((EspDeviceActivity) context).showParamUpdateLoading("Updating...");
+
+                            JsonObject jsonParam = new JsonObject();
+                            JsonObject body = new JsonObject();
+
+                            jsonParam.addProperty(param.getName(), !param.getSwitchStatus());
+                            body.add(deviceName, jsonParam);
+
+                            networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+
+                                @Override
+                                public void onSuccess(Bundle data) {
+                                    param.setSwitchStatus(!param.getSwitchStatus());
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                    ((EspDeviceActivity) context).hideParamUpdateLoading();
+                                    if (param.getSwitchStatus()) {
+                                        switchViewHolder.ivSwitch.setImageResource(R.drawable.ic_switch_on);
+                                    } else {
+                                        switchViewHolder.ivSwitch.setImageResource(R.drawable.ic_switch_off);
+                                    }
+                                }
+
+                                @Override
+                                public void onResponseFailure(Exception exception) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                    ((EspDeviceActivity) context).hideParamUpdateLoading();
+                                    if (param.getSwitchStatus()) {
+                                        switchViewHolder.ivSwitch.setImageResource(R.drawable.ic_switch_on);
+                                    } else {
+                                        switchViewHolder.ivSwitch.setImageResource(R.drawable.ic_switch_off);
+                                    }
+                                }
+
+                                @Override
+                                public void onNetworkFailure(Exception exception) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                    ((EspDeviceActivity) context).hideParamUpdateLoading();
+                                    if (param.getSwitchStatus()) {
+                                        switchViewHolder.ivSwitch.setImageResource(R.drawable.ic_switch_on);
+                                    } else {
+                                        switchViewHolder.ivSwitch.setImageResource(R.drawable.ic_switch_off);
+                                    }
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    switchViewHolder.ivSwitch.setAlpha(0.5f);
+                    switchViewHolder.ivSwitch.setEnabled(false);
+                }
+            } else {
+                switchViewHolder.ivSwitch.setEnabled(false);
+            }
+
+        } else if (holder.getItemViewType() == VIEW_TYPE_HUE) {
+
+            final HueViewHolder hueViewHolder = (HueViewHolder) holder;
+
+            int hueColor = (int) param.getValue();
+
+            float[] hsv = new float[3];
+            hsv[0] = hueColor;
+            hsv[1] = 10.0f;
+            hsv[2] = 10.0f;
+
+            Log.e(TAG, "hsv[0] : " + hsv[0]);
+            int mCurrentIntColor = Color.HSVToColor(hsv);
+            hueViewHolder.colorPickerView.setShowOldCenterColor(false);
+            hueViewHolder.colorPickerView.setColor(mCurrentIntColor);
+
+            if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
+
+                if (((EspDeviceActivity) context).isNodeOnline()) {
+
+                    hueViewHolder.colorPickerView.setAlpha(1f);
+                    hueViewHolder.colorPickerView.setEnabled(true);
+
+                    hueViewHolder.colorPickerView.setOnColorChangedListener(new ColorPicker.OnColorChangedListener() {
+
+                        @Override
+                        public void onColorChanged(int color) {
+                            Log.e(TAG, "====================== onColorChanged : Stop updates");
+                            ((EspDeviceActivity) context).stopUpdateValueTask();
+                        }
+                    });
+
+                    hueViewHolder.colorPickerView.setOnColorSelectedListener(new ColorPicker.OnColorSelectedListener() {
+                        @Override
+                        public void onColorSelected(int color) {
+                            Log.e(TAG, "====================== onColorSelected : " + color);
+                            Log.e(TAG, "Color  : " + hueViewHolder.colorPickerView.getColor());
+                            float[] newHsv = new float[3];
+                            Color.colorToHSV(color, newHsv);
+                            int hue = (int) newHsv[0];
+                            Log.e(TAG, "New Hue color : " + hue);
+
+                            JsonObject jsonParam = new JsonObject();
+                            JsonObject body = new JsonObject();
+                            jsonParam.addProperty(param.getName(), hue);
+                            body.add(deviceName, jsonParam);
+
+                            ((EspDeviceActivity) context).stopUpdateValueTask();
+                            ((EspDeviceActivity) context).showParamUpdateLoading("Updating...");
+                            Log.e(TAG, "Body : " + body.toString());
+
+                            networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+
+                                @Override
+                                public void onSuccess(Bundle data) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                    ((EspDeviceActivity) context).hideParamUpdateLoading();
+                                }
+
+                                @Override
+                                public void onResponseFailure(Exception exception) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                    ((EspDeviceActivity) context).hideParamUpdateLoading();
+                                }
+
+                                @Override
+                                public void onNetworkFailure(Exception exception) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                    ((EspDeviceActivity) context).hideParamUpdateLoading();
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    hueViewHolder.colorPickerView.setAlpha(0.5f);
+                    hueViewHolder.colorPickerView.setEnabled(false);
+                    hueViewHolder.colorPickerView.setOnColorChangedListener(null);
+                    hueViewHolder.colorPickerView.setOnColorChangedListener(null);
+                }
+            } else {
+                hueViewHolder.colorPickerView.setEnabled(false);
+                hueViewHolder.colorPickerView.setOnColorChangedListener(null);
+                hueViewHolder.colorPickerView.setOnColorChangedListener(null);
+            }
         }
     }
 
@@ -169,29 +408,66 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         return params.size();
     }
 
-    public void updateList(ArrayList<Param> updatedDeviceList) {
-        params = updatedDeviceList;
+    public void updateList(ArrayList<Param> paramList) {
+
+        int firstParamIndex = -1;
+        for (int i = 0; i < paramList.size(); i++) {
+
+            Param param = paramList.get(i);
+            if (param != null && AppConstants.UI_TYPE_HUE_SLIDER.equalsIgnoreCase(param.getUiType())) {
+                firstParamIndex = i;
+                break;
+            }
+        }
+
+        if (firstParamIndex != -1) {
+            Param paramToBeMoved = paramList.remove(firstParamIndex);
+            paramList.add(0, paramToBeMoved);
+        } else {
+
+            if (AppConstants.ESP_DEVICE_SWITCH.equals(device.getDeviceType())) {
+
+                for (int i = 0; i < paramList.size(); i++) {
+
+                    Param param = paramList.get(i);
+                    String dataType = param.getDataType();
+
+                    if (param != null && AppConstants.PARAM_TYPE_POWER.equals(param.getParamType())
+                            && AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())
+                            && (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("bool") || dataType.equalsIgnoreCase("boolean")))) {
+                        firstParamIndex = i;
+                        break;
+                    }
+                }
+            }
+            if (firstParamIndex != -1) {
+                Param paramToBeMoved = paramList.remove(firstParamIndex);
+                paramList.add(0, paramToBeMoved);
+            }
+        }
+
+        this.params = paramList;
         notifyDataSetChanged();
     }
 
-    private void displayPalette(MyViewHolder myViewHolder, final Param param, final int position) {
+    private void displayPalette(ParamViewHolder paramViewHolder, final Param param, final int position) {
 
-        myViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
-        myViewHolder.rvPalette.setVisibility(View.VISIBLE);
-        myViewHolder.rvUiTypeDropDown.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
+        paramViewHolder.rvPalette.setVisibility(View.VISIBLE);
+        paramViewHolder.rvUiTypeDropDown.setVisibility(View.GONE);
 
-        myViewHolder.tvLabelPalette.setText(param.getName());
-        myViewHolder.paletteBar.setColor((int) param.getValue());
-        myViewHolder.paletteBar.setThumbCircleRadius(17);
-        myViewHolder.paletteBar.setTrackMarkHeight(10);
+        paramViewHolder.tvLabelPalette.setText(param.getName());
+        paramViewHolder.paletteBar.setColor((int) param.getValue());
+        paramViewHolder.paletteBar.setThumbCircleRadius(17);
+        paramViewHolder.paletteBar.setTrackMarkHeight(10);
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
             if (((EspDeviceActivity) context).isNodeOnline()) {
 
-                myViewHolder.paletteBar.setEnabled(true);
-                myViewHolder.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
+                paramViewHolder.paletteBar.setEnabled(true);
+                paramViewHolder.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
                     @Override
                     public void onColorSelected(int colorInt) {
 
@@ -209,60 +485,91 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                             }
 
                             @Override
-                            public void onFailure(Exception exception) {
+                            public void onResponseFailure(Exception exception) {
+                                ((EspDeviceActivity) context).startUpdateValueTask();
+                            }
+
+                            @Override
+                            public void onNetworkFailure(Exception exception) {
                                 ((EspDeviceActivity) context).startUpdateValueTask();
                             }
                         });
                     }
                 });
             } else {
-                myViewHolder.paletteBar.setEnabled(false);
+                paramViewHolder.paletteBar.setEnabled(false);
             }
         }
     }
 
-    private void displaySlider(final MyViewHolder myViewHolder, final Param param, final int position) {
+    private void displaySlider(final ParamViewHolder paramViewHolder, final Param param, final int position) {
 
-        myViewHolder.rvUiTypeSlider.setVisibility(View.VISIBLE);
-        myViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
-        myViewHolder.rvPalette.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeDropDown.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeSlider.setVisibility(View.VISIBLE);
+        paramViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
+        paramViewHolder.rvPalette.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeDropDown.setVisibility(View.GONE);
 
         double sliderValue = param.getValue();
-        myViewHolder.tvSliderName.setText(param.getName());
+        paramViewHolder.tvSliderName.setText(param.getName());
         float max = param.getMaxBounds();
         float min = param.getMinBounds();
         String dataType = param.getDataType();
 
+        if (AppConstants.PARAM_TYPE_CCT.equals(param.getParamType())) {
+
+            paramViewHolder.ivSliderStart.setImageResource(R.drawable.ic_cct_low);
+            paramViewHolder.ivSliderEnd.setImageResource(R.drawable.ic_cct_high);
+            paramViewHolder.ivSliderStart.setVisibility(View.VISIBLE);
+            paramViewHolder.ivSliderEnd.setVisibility(View.VISIBLE);
+
+        } else if (AppConstants.PARAM_TYPE_BRIGHTNESS.equals(param.getParamType())) {
+
+            paramViewHolder.ivSliderStart.setImageResource(R.drawable.ic_brightness_low);
+            paramViewHolder.ivSliderEnd.setImageResource(R.drawable.ic_brightness_high);
+            paramViewHolder.ivSliderStart.setVisibility(View.VISIBLE);
+            paramViewHolder.ivSliderEnd.setVisibility(View.VISIBLE);
+
+        } else if (AppConstants.PARAM_TYPE_SATURATION.equals(param.getParamType())) {
+
+            paramViewHolder.ivSliderStart.setImageResource(R.drawable.ic_saturation_low);
+            paramViewHolder.ivSliderEnd.setImageResource(R.drawable.ic_saturation_high);
+            paramViewHolder.ivSliderStart.setVisibility(View.VISIBLE);
+            paramViewHolder.ivSliderEnd.setVisibility(View.VISIBLE);
+
+        } else {
+            paramViewHolder.ivSliderStart.setVisibility(View.GONE);
+            paramViewHolder.ivSliderEnd.setVisibility(View.GONE);
+        }
+
         if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
 
-            myViewHolder.intSlider.setVisibility(View.VISIBLE);
-            myViewHolder.floatSlider.setVisibility(View.GONE);
+            paramViewHolder.intSlider.setVisibility(View.VISIBLE);
+            paramViewHolder.floatSlider.setVisibility(View.GONE);
 
-            myViewHolder.intSlider.setMax(max);
-            myViewHolder.intSlider.setMin(min);
-            myViewHolder.intSlider.setTickCount(2);
+            paramViewHolder.intSlider.setMax(max);
+            paramViewHolder.intSlider.setMin(min);
+            paramViewHolder.intSlider.setTickCount(2);
 
             if (sliderValue < min) {
 
-                myViewHolder.intSlider.setProgress(min);
+                paramViewHolder.intSlider.setProgress(min);
 
             } else if (sliderValue > max) {
 
-                myViewHolder.intSlider.setProgress(max);
+                paramViewHolder.intSlider.setProgress(max);
 
             } else {
-                myViewHolder.intSlider.setProgress((int) sliderValue);
+                paramViewHolder.intSlider.setProgress((int) sliderValue);
             }
 
             if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
                 if (((EspDeviceActivity) context).isNodeOnline()) {
 
-                    myViewHolder.intSlider.setEnabled(true);
+                    paramViewHolder.intSlider.setEnabled(true);
 
-                    myViewHolder.intSlider.setOnSeekChangeListener(new OnSeekChangeListener() {
+                    paramViewHolder.intSlider.setOnSeekChangeListener(new OnSeekChangeListener() {
 
                         @Override
                         public void onSeeking(SeekParams seekParams) {
@@ -293,7 +600,12 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                                 }
 
                                 @Override
-                                public void onFailure(Exception exception) {
+                                public void onResponseFailure(Exception exception) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+
+                                @Override
+                                public void onNetworkFailure(Exception exception) {
                                     ((EspDeviceActivity) context).startUpdateValueTask();
                                 }
                             });
@@ -302,12 +614,12 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
                 } else {
 
-                    myViewHolder.intSlider.setEnabled(false);
+                    paramViewHolder.intSlider.setEnabled(false);
                 }
 
             } else {
 
-                myViewHolder.intSlider.setOnTouchListener(new View.OnTouchListener() {
+                paramViewHolder.intSlider.setOnTouchListener(new View.OnTouchListener() {
                     @Override
                     public boolean onTouch(View v, MotionEvent event) {
                         return true;
@@ -316,32 +628,32 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
             }
         } else {
 
-            myViewHolder.intSlider.setVisibility(View.GONE);
-            myViewHolder.floatSlider.setVisibility(View.VISIBLE);
+            paramViewHolder.intSlider.setVisibility(View.GONE);
+            paramViewHolder.floatSlider.setVisibility(View.VISIBLE);
 
-            myViewHolder.floatSlider.setMax(max);
-            myViewHolder.floatSlider.setMin(min);
-            myViewHolder.floatSlider.setTickCount(2);
+            paramViewHolder.floatSlider.setMax(max);
+            paramViewHolder.floatSlider.setMin(min);
+            paramViewHolder.floatSlider.setTickCount(2);
 
             if (sliderValue < min) {
 
-                myViewHolder.floatSlider.setProgress(min);
+                paramViewHolder.floatSlider.setProgress(min);
 
             } else if (sliderValue > max) {
 
-                myViewHolder.floatSlider.setProgress(max);
+                paramViewHolder.floatSlider.setProgress(max);
 
             } else {
-                myViewHolder.floatSlider.setProgress((float) sliderValue);
+                paramViewHolder.floatSlider.setProgress((float) sliderValue);
             }
 
             if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
                 if (((EspDeviceActivity) context).isNodeOnline()) {
 
-                    myViewHolder.floatSlider.setEnabled(true);
+                    paramViewHolder.floatSlider.setEnabled(true);
 
-                    myViewHolder.floatSlider.setOnSeekChangeListener(new OnSeekChangeListener() {
+                    paramViewHolder.floatSlider.setOnSeekChangeListener(new OnSeekChangeListener() {
 
                         @Override
                         public void onSeeking(SeekParams seekParams) {
@@ -372,7 +684,12 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                                 }
 
                                 @Override
-                                public void onFailure(Exception exception) {
+                                public void onResponseFailure(Exception exception) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+
+                                @Override
+                                public void onNetworkFailure(Exception exception) {
                                     ((EspDeviceActivity) context).startUpdateValueTask();
                                 }
                             });
@@ -380,12 +697,12 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                     });
 
                 } else {
-                    myViewHolder.floatSlider.setEnabled(false);
+                    paramViewHolder.floatSlider.setEnabled(false);
                 }
 
             } else {
 
-                myViewHolder.floatSlider.setOnTouchListener(new View.OnTouchListener() {
+                paramViewHolder.floatSlider.setOnTouchListener(new View.OnTouchListener() {
                     @Override
                     public boolean onTouch(View v, MotionEvent event) {
                         return true;
@@ -395,36 +712,36 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         }
     }
 
-    private void displayToggle(final MyViewHolder myViewHolder, final Param param) {
+    private void displayToggle(final ParamViewHolder paramViewHolder, final Param param) {
 
-        myViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeSwitch.setVisibility(View.VISIBLE);
-        myViewHolder.rvPalette.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeDropDown.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeSwitch.setVisibility(View.VISIBLE);
+        paramViewHolder.rvPalette.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeDropDown.setVisibility(View.GONE);
 
-        myViewHolder.tvSwitchName.setText(param.getName());
-        myViewHolder.tvSwitchStatus.setVisibility(View.VISIBLE);
+        paramViewHolder.tvSwitchName.setText(param.getName());
+        paramViewHolder.tvSwitchStatus.setVisibility(View.VISIBLE);
 
         if (param.getSwitchStatus()) {
 
-            myViewHolder.tvSwitchStatus.setText(R.string.text_on);
+            paramViewHolder.tvSwitchStatus.setText(R.string.text_on);
 
         } else {
-            myViewHolder.tvSwitchStatus.setText(R.string.text_off);
+            paramViewHolder.tvSwitchStatus.setText(R.string.text_off);
         }
 
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
-            myViewHolder.toggleSwitch.setVisibility(View.VISIBLE);
-            myViewHolder.toggleSwitch.setOnCheckedChangeListener(null);
-            myViewHolder.toggleSwitch.setChecked(param.getSwitchStatus());
+            paramViewHolder.toggleSwitch.setVisibility(View.VISIBLE);
+            paramViewHolder.toggleSwitch.setOnCheckedChangeListener(null);
+            paramViewHolder.toggleSwitch.setChecked(param.getSwitchStatus());
 
             if (((EspDeviceActivity) context).isNodeOnline()) {
 
-                myViewHolder.toggleSwitch.setEnabled(true);
+                paramViewHolder.toggleSwitch.setEnabled(true);
 
-                myViewHolder.toggleSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                paramViewHolder.toggleSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
 
                     @Override
                     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -433,10 +750,10 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
                         if (isChecked) {
 
-                            myViewHolder.tvSwitchStatus.setText(R.string.text_on);
+                            paramViewHolder.tvSwitchStatus.setText(R.string.text_on);
 
                         } else {
-                            myViewHolder.tvSwitchStatus.setText(R.string.text_off);
+                            paramViewHolder.tvSwitchStatus.setText(R.string.text_off);
                         }
 
                         JsonObject jsonParam = new JsonObject();
@@ -453,7 +770,12 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                             }
 
                             @Override
-                            public void onFailure(Exception exception) {
+                            public void onResponseFailure(Exception exception) {
+                                ((EspDeviceActivity) context).startUpdateValueTask();
+                            }
+
+                            @Override
+                            public void onNetworkFailure(Exception exception) {
                                 ((EspDeviceActivity) context).startUpdateValueTask();
                             }
                         });
@@ -461,57 +783,57 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                 });
 
             } else {
-                myViewHolder.toggleSwitch.setEnabled(false);
+                paramViewHolder.toggleSwitch.setEnabled(false);
             }
 
         } else {
 
-            myViewHolder.toggleSwitch.setVisibility(View.GONE);
+            paramViewHolder.toggleSwitch.setVisibility(View.GONE);
         }
     }
 
-    private void displayLabel(final MyViewHolder myViewHolder, final Param param, final int position) {
+    private void displayLabel(final ParamViewHolder paramViewHolder, final Param param, final int position) {
 
-        myViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeLabel.setVisibility(View.VISIBLE);
-        myViewHolder.rvPalette.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeDropDown.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeLabel.setVisibility(View.VISIBLE);
+        paramViewHolder.rvPalette.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeDropDown.setVisibility(View.GONE);
 
-        myViewHolder.tvLabelName.setText(param.getName());
-        myViewHolder.tvLabelValue.setText(param.getLabelValue());
+        paramViewHolder.tvLabelName.setText(param.getName());
+        paramViewHolder.tvLabelValue.setText(param.getLabelValue());
 
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE) && ((EspDeviceActivity) context).isNodeOnline()) {
 
-            myViewHolder.btnEdit.setVisibility(View.VISIBLE);
+            paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
 
-            myViewHolder.btnEdit.setOnClickListener(new View.OnClickListener() {
+            paramViewHolder.btnEdit.setOnClickListener(new View.OnClickListener() {
 
                 @Override
                 public void onClick(View v) {
-                    askForNewValue(myViewHolder, param, position);
+                    askForNewValue(paramViewHolder, param, position);
                 }
             });
 
         } else {
 
-            myViewHolder.btnEdit.setVisibility(View.GONE);
+            paramViewHolder.btnEdit.setVisibility(View.GONE);
         }
     }
 
-    private void displaySpinner(final MyViewHolder myViewHolder, final Param param, final int position) {
+    private void displaySpinner(final ParamViewHolder paramViewHolder, final Param param, final int position) {
 
-        myViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
-        myViewHolder.rvPalette.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeDropDown.setVisibility(View.VISIBLE);
+        paramViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
+        paramViewHolder.rvPalette.setVisibility(View.GONE);
+        paramViewHolder.rvUiTypeDropDown.setVisibility(View.VISIBLE);
 
-        myViewHolder.tvSpinnerName.setText(param.getName());
-        myViewHolder.spinner.setVisibility(View.VISIBLE);
+        paramViewHolder.tvSpinnerName.setText(param.getName());
+        paramViewHolder.spinner.setVisibility(View.VISIBLE);
 
-        myViewHolder.spinner.setEnabled(false);
-        myViewHolder.spinner.setOnItemSelectedListener(null);
+        paramViewHolder.spinner.setEnabled(false);
+        paramViewHolder.spinner.setOnItemSelectedListener(null);
 
         final String dataType = param.getDataType();
 
@@ -523,7 +845,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                 spinnerValues.addAll(param.getValidStrings());
                 ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(context, android.R.layout.simple_spinner_item, spinnerValues);
                 dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                myViewHolder.spinner.setAdapter(dataAdapter);
+                paramViewHolder.spinner.setAdapter(dataAdapter);
                 boolean isValueFound = false;
                 String value = param.getLabelValue();
 
@@ -533,8 +855,8 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
                         if (value.equals(param.getValidStrings().get(i))) {
                             isValueFound = true;
-                            myViewHolder.spinner.setSelection(i, false);
-                            myViewHolder.spinner.setTag(R.id.position, i);
+                            paramViewHolder.spinner.setSelection(i, false);
+                            paramViewHolder.spinner.setTag(R.id.position, i);
                             break;
                         }
                     }
@@ -542,14 +864,14 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
                 if (!isValueFound) {
                     spinnerValues.add(0, "");
-                    myViewHolder.spinner.setSelection(0, false);
-                    myViewHolder.spinner.setTag(R.id.position, 0);
+                    paramViewHolder.spinner.setSelection(0, false);
+                    paramViewHolder.spinner.setTag(R.id.position, 0);
                     dataAdapter.notifyDataSetChanged();
                     String strInvalidValue = "" + value + " (" + context.getString(R.string.invalid) + ")";
-                    myViewHolder.tvSpinnerValue.setText(strInvalidValue);
-                    myViewHolder.tvSpinnerValue.setVisibility(View.VISIBLE);
+                    paramViewHolder.tvSpinnerValue.setText(strInvalidValue);
+                    paramViewHolder.tvSpinnerValue.setVisibility(View.VISIBLE);
                 } else {
-                    myViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+                    paramViewHolder.tvSpinnerValue.setVisibility(View.GONE);
                 }
             }
         } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
@@ -572,18 +894,18 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
                 ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(context, android.R.layout.simple_spinner_item, spinnerValues);
                 dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                myViewHolder.spinner.setAdapter(dataAdapter);
+                paramViewHolder.spinner.setAdapter(dataAdapter);
 
                 if (sliderValue < min) {
 
-                    myViewHolder.spinner.setSelection(0);
-                    myViewHolder.spinner.setTag(R.id.position, 0);
+                    paramViewHolder.spinner.setSelection(0);
+                    paramViewHolder.spinner.setTag(R.id.position, 0);
 
                 } else if (sliderValue > max) {
 
                     int lastPosition = spinnerValues.size() - 1;
-                    myViewHolder.spinner.setSelection(lastPosition);
-                    myViewHolder.spinner.setTag(R.id.position, lastPosition);
+                    paramViewHolder.spinner.setSelection(lastPosition);
+                    paramViewHolder.spinner.setTag(R.id.position, lastPosition);
 
                 } else {
 
@@ -595,22 +917,22 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
                         if (sliderValue == intValue) {
                             isValueFound = true;
-                            myViewHolder.spinner.setSelection(i, false);
-                            myViewHolder.spinner.setTag(R.id.position, i);
+                            paramViewHolder.spinner.setSelection(i, false);
+                            paramViewHolder.spinner.setTag(R.id.position, i);
                             break;
                         }
                     }
 
                     if (!isValueFound) {
                         spinnerValues.add(0, "");
-                        myViewHolder.spinner.setSelection(0, false);
-                        myViewHolder.spinner.setTag(R.id.position, 0);
+                        paramViewHolder.spinner.setSelection(0, false);
+                        paramViewHolder.spinner.setTag(R.id.position, 0);
                         dataAdapter.notifyDataSetChanged();
                         String strInvalidValue = "" + sliderValue + " (" + context.getString(R.string.invalid) + ")";
-                        myViewHolder.tvSpinnerValue.setText(strInvalidValue);
-                        myViewHolder.tvSpinnerValue.setVisibility(View.VISIBLE);
+                        paramViewHolder.tvSpinnerValue.setText(strInvalidValue);
+                        paramViewHolder.tvSpinnerValue.setVisibility(View.VISIBLE);
                     } else {
-                        myViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+                        paramViewHolder.tvSpinnerValue.setVisibility(View.GONE);
                     }
                 }
             } else {
@@ -620,7 +942,7 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE) && ((EspDeviceActivity) context).isNodeOnline()) {
 
-            myViewHolder.spinner.setSpinnerEventsListener(new EspDropDown.OnSpinnerEventsListener() {
+            paramViewHolder.spinner.setSpinnerEventsListener(new EspDropDown.OnSpinnerEventsListener() {
 
                 @Override
                 public void onSpinnerOpened(Spinner spin) {
@@ -633,18 +955,18 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                 }
             });
 
-            myViewHolder.spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            paramViewHolder.spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
 
                 @Override
                 public void onItemSelected(AdapterView<?> parent, View view, final int pos, long id) {
 
-                    Log.d(TAG, "Dropdown list item clicked position :  " + myViewHolder.spinner.getTag(R.id.position));
+                    Log.d(TAG, "Dropdown list item clicked position :  " + paramViewHolder.spinner.getTag(R.id.position));
 
-                    if ((int) myViewHolder.spinner.getTag(R.id.position) != pos) {
+                    if ((int) paramViewHolder.spinner.getTag(R.id.position) != pos) {
 
                         final String newValue = parent.getItemAtPosition(pos).toString();
-                        myViewHolder.spinner.setVisibility(View.GONE);
-                        myViewHolder.progressBarSpinner.setVisibility(View.VISIBLE);
+                        paramViewHolder.spinner.setVisibility(View.GONE);
+                        paramViewHolder.progressBarSpinner.setVisibility(View.VISIBLE);
 
                         ((EspDeviceActivity) context).stopUpdateValueTask();
 
@@ -671,20 +993,20 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                                     @Override
                                     public void run() {
 
-                                        myViewHolder.progressBarSpinner.setVisibility(View.GONE);
-                                        myViewHolder.spinner.setVisibility(View.VISIBLE);
-                                        myViewHolder.spinner.setTag(R.id.position, pos);
+                                        paramViewHolder.progressBarSpinner.setVisibility(View.GONE);
+                                        paramViewHolder.spinner.setVisibility(View.VISIBLE);
+                                        paramViewHolder.spinner.setTag(R.id.position, pos);
 
                                         if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("string"))) {
 
                                             params.get(position).setLabelValue(newValue);
-                                            myViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+                                            paramViewHolder.tvSpinnerValue.setVisibility(View.GONE);
 
                                         } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
                                                 || dataType.equalsIgnoreCase("integer"))) {
 
                                             params.get(position).setValue(Integer.parseInt(newValue));
-                                            myViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+                                            paramViewHolder.tvSpinnerValue.setVisibility(View.GONE);
                                         }
 
                                         ((EspDeviceActivity) context).startUpdateValueTask();
@@ -693,13 +1015,26 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                             }
 
                             @Override
-                            public void onFailure(Exception exception) {
+                            public void onResponseFailure(Exception exception) {
 
                                 context.runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        myViewHolder.progressBarSpinner.setVisibility(View.GONE);
-                                        myViewHolder.spinner.setVisibility(View.VISIBLE);
+                                        paramViewHolder.progressBarSpinner.setVisibility(View.GONE);
+                                        paramViewHolder.spinner.setVisibility(View.VISIBLE);
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onNetworkFailure(Exception exception) {
+
+                                context.runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        paramViewHolder.progressBarSpinner.setVisibility(View.GONE);
+                                        paramViewHolder.spinner.setVisibility(View.VISIBLE);
                                         ((EspDeviceActivity) context).startUpdateValueTask();
                                     }
                                 });
@@ -712,14 +1047,14 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                 public void onNothingSelected(AdapterView<?> parent) {
                 }
             });
-            myViewHolder.spinner.setEnabled(true);
+            paramViewHolder.spinner.setEnabled(true);
 
         } else {
-            myViewHolder.spinner.setOnItemSelectedListener(null);
+            paramViewHolder.spinner.setOnItemSelectedListener(null);
         }
     }
 
-    private void askForNewValue(final MyViewHolder myViewHolder, final Param param, final int position) {
+    private void askForNewValue(final ParamViewHolder paramViewHolder, final Param param, final int position) {
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(context);
         LayoutInflater inflater = context.getLayoutInflater();
@@ -793,8 +1128,8 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                                 isOn = true;
                             }
 
-                            myViewHolder.btnEdit.setVisibility(View.GONE);
-                            myViewHolder.progressBar.setVisibility(View.VISIBLE);
+                            paramViewHolder.btnEdit.setVisibility(View.GONE);
+                            paramViewHolder.progressBar.setVisibility(View.VISIBLE);
 
                             jsonParam.addProperty(param.getName(), isOn);
                             body.add(deviceName, jsonParam);
@@ -810,16 +1145,16 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                                         @Override
                                         public void run() {
 
-                                            myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                                            myViewHolder.progressBar.setVisibility(View.GONE);
+                                            paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                            paramViewHolder.progressBar.setVisibility(View.GONE);
 
                                             if (finalIsOn) {
 
-                                                myViewHolder.tvLabelValue.setText("true");
+                                                paramViewHolder.tvLabelValue.setText("true");
                                                 params.get(position).setLabelValue("true");
 
                                             } else {
-                                                myViewHolder.tvLabelValue.setText("false");
+                                                paramViewHolder.tvLabelValue.setText("false");
                                                 params.get(position).setLabelValue("false");
                                             }
                                             ((EspDeviceActivity) context).startUpdateValueTask();
@@ -828,16 +1163,32 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                                 }
 
                                 @Override
-                                public void onFailure(Exception exception) {
+                                public void onResponseFailure(Exception exception) {
 
                                     context.runOnUiThread(new Runnable() {
 
                                         @Override
                                         public void run() {
 
-                                            myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                                            myViewHolder.progressBar.setVisibility(View.GONE);
-                                            myViewHolder.tvLabelValue.setText(param.getLabelValue());
+                                            paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                            paramViewHolder.progressBar.setVisibility(View.GONE);
+                                            paramViewHolder.tvLabelValue.setText(param.getLabelValue());
+                                            ((EspDeviceActivity) context).startUpdateValueTask();
+                                        }
+                                    });
+                                }
+
+                                @Override
+                                public void onNetworkFailure(Exception exception) {
+
+                                    context.runOnUiThread(new Runnable() {
+
+                                        @Override
+                                        public void run() {
+
+                                            paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                            paramViewHolder.progressBar.setVisibility(View.GONE);
+                                            paramViewHolder.tvLabelValue.setText(param.getLabelValue());
                                             ((EspDeviceActivity) context).startUpdateValueTask();
                                         }
                                     });
@@ -871,9 +1222,9 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
                                 @Override
                                 public void run() {
-                                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                                    myViewHolder.progressBar.setVisibility(View.GONE);
-                                    myViewHolder.tvLabelValue.setText(value);
+                                    paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    paramViewHolder.progressBar.setVisibility(View.GONE);
+                                    paramViewHolder.tvLabelValue.setText(value);
                                     params.get(position).setLabelValue(value);
                                     ((EspDeviceActivity) context).startUpdateValueTask();
                                 }
@@ -881,15 +1232,30 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                         }
 
                         @Override
-                        public void onFailure(Exception exception) {
+                        public void onResponseFailure(Exception exception) {
 
                             context.runOnUiThread(new Runnable() {
 
                                 @Override
                                 public void run() {
-                                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                                    myViewHolder.progressBar.setVisibility(View.GONE);
-                                    myViewHolder.tvLabelValue.setText(param.getLabelValue());
+                                    paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    paramViewHolder.progressBar.setVisibility(View.GONE);
+                                    paramViewHolder.tvLabelValue.setText(param.getLabelValue());
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onNetworkFailure(Exception exception) {
+
+                            context.runOnUiThread(new Runnable() {
+
+                                @Override
+                                public void run() {
+                                    paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    paramViewHolder.progressBar.setVisibility(View.GONE);
+                                    paramViewHolder.tvLabelValue.setText(param.getLabelValue());
                                     ((EspDeviceActivity) context).startUpdateValueTask();
                                 }
                             });
@@ -912,9 +1278,9 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
 
                                 @Override
                                 public void run() {
-                                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                                    myViewHolder.progressBar.setVisibility(View.GONE);
-                                    myViewHolder.tvLabelValue.setText(value);
+                                    paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    paramViewHolder.progressBar.setVisibility(View.GONE);
+                                    paramViewHolder.tvLabelValue.setText(value);
                                     params.get(position).setLabelValue(value);
                                     ((EspDeviceActivity) context).startUpdateValueTask();
                                 }
@@ -922,15 +1288,30 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                         }
 
                         @Override
-                        public void onFailure(Exception exception) {
+                        public void onResponseFailure(Exception exception) {
 
                             context.runOnUiThread(new Runnable() {
 
                                 @Override
                                 public void run() {
-                                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                                    myViewHolder.progressBar.setVisibility(View.GONE);
-                                    myViewHolder.tvLabelValue.setText(param.getLabelValue());
+                                    paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    paramViewHolder.progressBar.setVisibility(View.GONE);
+                                    paramViewHolder.tvLabelValue.setText(param.getLabelValue());
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onNetworkFailure(Exception exception) {
+
+                            context.runOnUiThread(new Runnable() {
+
+                                @Override
+                                public void run() {
+                                    paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    paramViewHolder.progressBar.setVisibility(View.GONE);
+                                    paramViewHolder.tvLabelValue.setText(param.getLabelValue());
                                     ((EspDeviceActivity) context).startUpdateValueTask();
                                 }
                             });
@@ -952,9 +1333,9 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                                 @Override
                                 public void run() {
 
-                                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                                    myViewHolder.progressBar.setVisibility(View.GONE);
-                                    myViewHolder.tvLabelValue.setText(value);
+                                    paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    paramViewHolder.progressBar.setVisibility(View.GONE);
+                                    paramViewHolder.tvLabelValue.setText(value);
                                     params.get(position).setLabelValue(value);
 
                                     if (params.get(position).getParamType() != null && params.get(position).getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
@@ -966,15 +1347,30 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
                         }
 
                         @Override
-                        public void onFailure(Exception exception) {
+                        public void onResponseFailure(Exception exception) {
 
                             context.runOnUiThread(new Runnable() {
 
                                 @Override
                                 public void run() {
-                                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                                    myViewHolder.progressBar.setVisibility(View.GONE);
-                                    myViewHolder.tvLabelValue.setText(param.getLabelValue());
+                                    paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    paramViewHolder.progressBar.setVisibility(View.GONE);
+                                    paramViewHolder.tvLabelValue.setText(param.getLabelValue());
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onNetworkFailure(Exception exception) {
+
+                            context.runOnUiThread(new Runnable() {
+
+                                @Override
+                                public void run() {
+                                    paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                    paramViewHolder.progressBar.setVisibility(View.GONE);
+                                    paramViewHolder.tvLabelValue.setText(param.getLabelValue());
                                     ((EspDeviceActivity) context).startUpdateValueTask();
                                 }
                             });
@@ -997,9 +1393,9 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         alertDialog.show();
     }
 
-    public static class MyViewHolder extends RecyclerView.ViewHolder {
+    static class ParamViewHolder extends RecyclerView.ViewHolder {
 
-        // init the item view's
+        ImageView ivSliderStart, ivSliderEnd;
         TickSeekBar intSlider, floatSlider;
         SwitchCompat toggleSwitch;
         TextView tvSliderName, tvSwitchName, tvSwitchStatus, tvLabelName, tvLabelValue, tvLabelPalette, tvSpinnerName, tvSpinnerValue;
@@ -1009,10 +1405,11 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
         PaletteBar paletteBar;
         EspDropDown spinner;
 
-        public MyViewHolder(View itemView) {
+        public ParamViewHolder(View itemView) {
             super(itemView);
 
-            // get the reference of item view's
+            ivSliderStart = itemView.findViewById(R.id.iv_slider_start);
+            ivSliderEnd = itemView.findViewById(R.id.iv_slider_end);
             intSlider = itemView.findViewById(R.id.card_int_slider);
             floatSlider = itemView.findViewById(R.id.card_float_slider);
             toggleSwitch = itemView.findViewById(R.id.card_switch);
@@ -1034,6 +1431,26 @@ public class ParamAdapter extends RecyclerView.Adapter<ParamAdapter.MyViewHolder
             rvUiTypeDropDown = itemView.findViewById(R.id.rl_card_drop_down);
             paletteBar = itemView.findViewById(R.id.rl_palette);
             spinner = itemView.findViewById(R.id.card_spinner);
+        }
+    }
+
+    static class HueViewHolder extends RecyclerView.ViewHolder {
+
+        ColorPicker colorPickerView;
+
+        public HueViewHolder(View itemView) {
+            super(itemView);
+            colorPickerView = itemView.findViewById(R.id.hue_color_picker);
+        }
+    }
+
+    static class SwitchViewHolder extends RecyclerView.ViewHolder {
+
+        ImageView ivSwitch;
+
+        public SwitchViewHolder(View itemView) {
+            super(itemView);
+            ivSwitch = itemView.findViewById(R.id.iv_switch);
         }
     }
 }

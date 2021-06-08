@@ -34,10 +34,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/tv_device_offline"
-        android:layout_marginStart="@dimen/margin_32"
-        android:layout_marginTop="@dimen/margin_10"
-        android:layout_marginEnd="@dimen/margin_32"
-        android:layout_marginBottom="@dimen/margin_32"
+        android:paddingStart="@dimen/margin_16"
+        android:paddingTop="@dimen/margin_10"
+        android:paddingEnd="@dimen/margin_16"
+        android:paddingBottom="@dimen/margin_16"
         android:visibility="visible"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 

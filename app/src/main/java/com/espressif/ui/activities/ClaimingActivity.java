@@ -24,6 +24,7 @@ import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.rainmaker.R;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -42,8 +43,6 @@ public class ClaimingActivity extends AppCompatActivity {
 
     private static final String TAG = ClaimingActivity.class.getSimpleName();
 
-    private TextView tvTitle, tvBack, tvCancel;
-
     private MaterialCardView btnOk;
     private TextView txtOkBtn;
 
@@ -54,6 +53,7 @@ public class ClaimingActivity extends AppCompatActivity {
     private String certificateData = "";
     private StringBuilder csrData = new StringBuilder();
     private boolean isClaimingAborted = false;
+    private boolean shouldSendClaimAbortReq = false;
 
     private Handler handler;
     private ApiManager apiManager;
@@ -115,37 +115,41 @@ public class ClaimingActivity extends AppCompatActivity {
         }
     };
 
-    private View.OnClickListener cancelBtnClickListener = new View.OnClickListener() {
+    private void initViews() {
 
-        @Override
-        public void onClick(View v) {
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        toolbar.setTitle(R.string.title_activity_claiming);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
 
-            sendClaimAbortRequest();
+            @Override
+            public void onClick(View v) {
 
-            handler.postDelayed(new Runnable() {
+                if (shouldSendClaimAbortReq) {
+                    sendClaimAbortRequest();
 
-                @Override
-                public void run() {
+                    handler.postDelayed(new Runnable() {
 
+                        @Override
+                        public void run() {
+
+                            if (provisionManager.getEspDevice() != null) {
+                                provisionManager.getEspDevice().disconnectDevice();
+                            }
+                            finish();
+                        }
+                    }, 2000);
+                } else {
                     if (provisionManager.getEspDevice() != null) {
                         provisionManager.getEspDevice().disconnectDevice();
                     }
                     finish();
                 }
-            }, 2000);
-        }
-    };
-
-    private void initViews() {
-
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_claiming);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.GONE);
-        tvCancel.setOnClickListener(cancelBtnClickListener);
+            }
+        });
 
         tvClaimProgress = findViewById(R.id.tv_claiming_progress);
         tvClaimError = findViewById(R.id.tv_claiming_error);
@@ -528,7 +532,27 @@ public class ClaimingActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Exception e) {
+            public void onResponseFailure(Exception e) {
+
+                final String errMsg = e.getMessage();
+                Log.e(TAG, "Failed to start claiming. Error : " + errMsg);
+                e.printStackTrace();
+
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        sendClaimAbortRequest();
+                        tvClaimProgress.setText(R.string.error_claiming_progress);
+                        tvClaimError.setText(errMsg);
+                        displayError();
+                    }
+                });
+            }
+
+            @Override
+            public void onNetworkFailure(Exception e) {
 
                 final String errMsg = e.getMessage();
                 Log.e(TAG, "Failed to start claiming. Error : " + errMsg);
@@ -569,7 +593,27 @@ public class ClaimingActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Exception e) {
+            public void onResponseFailure(Exception e) {
+
+                final String errMsg = e.getMessage();
+                Log.e(TAG, "Failed to verify claiming. Error : " + errMsg);
+                e.printStackTrace();
+
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        sendClaimAbortRequest();
+                        tvClaimProgress.setText(R.string.error_claiming_progress);
+                        tvClaimError.setText(errMsg);
+                        displayError();
+                    }
+                });
+            }
+
+            @Override
+            public void onNetworkFailure(Exception e) {
 
                 final String errMsg = e.getMessage();
                 Log.e(TAG, "Failed to verify claiming. Error : " + errMsg);
@@ -593,12 +637,14 @@ public class ClaimingActivity extends AppCompatActivity {
     private void goToWiFiScanActivity() {
         finish();
         Intent wifiListIntent = new Intent(getApplicationContext(), WiFiScanActivity.class);
+        wifiListIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiListIntent);
     }
 
     private void goToWiFiConfigActivity() {
         finish();
         Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
+        wifiConfigIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiConfigIntent);
     }
 
@@ -629,7 +675,7 @@ public class ClaimingActivity extends AppCompatActivity {
 
         @Override
         public void run() {
-            tvCancel.setVisibility(View.VISIBLE);
+            shouldSendClaimAbortReq = true;
         }
     };
 

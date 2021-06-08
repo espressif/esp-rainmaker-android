@@ -6,7 +6,6 @@
     android:layout_height="wrap_content"
     android:layout_marginTop="8dp"
     android:layout_marginBottom="8dp"
-    card_view:cardBackgroundColor="@color/color_background"
     card_view:cardCornerRadius="8dp"
     card_view:cardElevation="2dp"
     card_view:cardUseCompatPadding="true">
@@ -14,7 +13,7 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="@dimen/margin_8">
+        android:background="@android:color/white">
 
         <ImageView
             android:id="@+id/iv_arrow"
@@ -22,8 +21,7 @@
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:paddingStart="2dp"
-            android:paddingEnd="@dimen/margin_10"
+            android:paddingEnd="@dimen/margin_16"
             android:src="@drawable/ic_side_arrow" />
 
         <LinearLayout
@@ -33,7 +31,7 @@
             android:layout_centerVertical="true"
             android:layout_toStartOf="@id/iv_arrow"
             android:orientation="vertical"
-            android:padding="@dimen/margin_8">
+            android:padding="@dimen/margin_10">
 
             <TextView
                 android:id="@+id/tv_group_name"

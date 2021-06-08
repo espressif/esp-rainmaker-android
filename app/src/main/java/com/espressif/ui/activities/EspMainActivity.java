@@ -26,24 +26,25 @@ import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.HapticFeedbackConstants;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager.widget.ViewPager;
 
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
-import com.espressif.db.EspDatabase;
 import com.espressif.JsonDataParser;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.db.EspDatabase;
 import com.espressif.mdns.mDNSApiManager;
 import com.espressif.mdns.mDNSDevice;
 import com.espressif.mdns.mDNSManager;
@@ -54,11 +55,11 @@ import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.HomeScreenPagerAdapter;
 import com.espressif.ui.fragments.DevicesFragment;
 import com.espressif.ui.fragments.SchedulesFragment;
-import com.espressif.ui.models.Device;
+import com.espressif.ui.fragments.UserProfileFragment;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
-import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.UpdateEvent;
+import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -69,9 +70,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Map;
-
-import static com.espressif.EspApplication.GetDataStatus;
 
 public class EspMainActivity extends AppCompatActivity {
 
@@ -79,22 +77,21 @@ public class EspMainActivity extends AppCompatActivity {
 
     private static final int REQUEST_LOCATION = 1;
 
+    private CollapsingToolbarLayout collapsingToolbarLayout;
+    private Toolbar appbar;
     private BottomNavigationView bottomNavigationView;
     private ViewPager viewPager;
-    private TextView tvTitle;
-    private ImageView ivAddDevice, ivUserProfile;
 
     private Fragment deviceFragment;
     private Fragment scheduleFragment;
     private MenuItem prevMenuItem;
     private HomeScreenPagerAdapter pagerAdapter;
     private Snackbar snackbar;
+    private MenuItem menuAdd;
 
     private ApiManager apiManager;
     private EspApplication espApp;
     private ArrayList<UiUpdateListener> updateListenerArrayList = new ArrayList<>();
-    private ArrayList<Device> devices;
-    private ArrayList<Schedule> schedules;
 
     private mDNSManager mdnsManager;
 
@@ -104,41 +101,24 @@ public class EspMainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_esp_main);
 
-        devices = new ArrayList<>();
-        schedules = new ArrayList<>();
         espApp = (EspApplication) getApplicationContext();
-
         apiManager = ApiManager.getInstance(getApplicationContext());
+        snackbar = Snackbar.make(findViewById(R.id.frame_container), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
 
         if (BuildConfig.isLocalControlSupported) {
             mdnsManager = mDNSManager.getInstance(getApplicationContext(), AppConstants.MDNS_SERVICE_TYPE, listener);
             mdnsManager.initializeNsd();
         }
         initViews();
-
-        snackbar = Snackbar.make(findViewById(R.id.frame_container), R.string.msg_fetch_data, Snackbar.LENGTH_INDEFINITE);
-        snackbar.show();
-
         loadDataFromLocalStorage();
-
-        if (BuildConfig.isLocalControlSupported) {
-            startLocalDeviceDiscovery();
-        }
-
         getSupportedVersions();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
         EventBus.getDefault().register(this);
-
-        if (!espApp.getCurrentStatus().equals(GetDataStatus.FETCHING_DATA)) {
-            getNodes();
-        } else {
-            updateUi();
-        }
+        getNodes();
     }
 
     @Override
@@ -149,7 +129,6 @@ public class EspMainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-
         if (updateListenerArrayList != null) {
             updateListenerArrayList.clear();
         }
@@ -157,6 +136,54 @@ public class EspMainActivity extends AppCompatActivity {
             mdnsManager.stopDiscovery();
         }
         super.onDestroy();
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_toolbar, menu);
+        menuAdd = menu.findItem(R.id.action_add);
+
+        if (espApp.nodeMap.size() > 0) {
+            menuAdd.setVisible(true);
+        } else {
+            menuAdd.setVisible(false);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()) {
+
+            case R.id.action_add:
+                addDeviceBtnCLick();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void addDeviceBtnCLick() {
+
+        Vibrator vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+        vib.vibrate(HapticFeedbackConstants.VIRTUAL_KEY);
+
+        if (viewPager.getCurrentItem() == 0) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+
+                if (!isLocationEnabled()) {
+                    askForLocation();
+                    return;
+                }
+            }
+            goToAddDeviceActivity();
+        } else {
+            goToAddScheduleActivity();
+        }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -171,10 +198,21 @@ public class EspMainActivity extends AppCompatActivity {
                 refreshDeviceList();
                 break;
 
-            case EVENT_DEVICE_STATUS_UPDATE:
-                if (!espApp.getCurrentStatus().equals(GetDataStatus.FETCHING_DATA)) {
-                    updateUi();
+            case EVENT_STATE_CHANGE_UPDATE:
+                Bundle data = event.getData();
+                if (data != null) {
+                    String errMsg = data.getString(AppConstants.KEY_ERROR_MSG);
+                    if (!TextUtils.isEmpty(errMsg)) {
+                        Toast.makeText(EspMainActivity.this, errMsg, Toast.LENGTH_SHORT).show();
+                    }
                 }
+                updateUi();
+                break;
+
+            case EVENT_DEVICE_STATUS_UPDATE:
+//                if (!espApp.getCurrentStatus().equals(GetDataStatus.FETCHING_DATA)) {
+//                    updateUi();
+//                }
                 break;
         }
     }
@@ -197,29 +235,6 @@ public class EspMainActivity extends AppCompatActivity {
         }
     }
 
-    View.OnClickListener addDeviceBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            Vibrator vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
-            vib.vibrate(HapticFeedbackConstants.VIRTUAL_KEY);
-
-            if (tvTitle.getText().toString().equals(getString(R.string.title_activity_devices))) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-
-                    if (!isLocationEnabled()) {
-                        askForLocation();
-                        return;
-                    }
-                }
-                goToAddDeviceActivity();
-            } else {
-                goToAddScheduleActivity();
-            }
-        }
-    };
-
     BottomNavigationView.OnNavigationItemSelectedListener navigationItemSelectedListener = new BottomNavigationView.OnNavigationItemSelectedListener() {
 
         @Override
@@ -228,14 +243,31 @@ public class EspMainActivity extends AppCompatActivity {
             switch (menuItem.getItemId()) {
 
                 case R.id.action_devices:
-                    tvTitle.setText(pagerAdapter.getPageTitle(0));
+                    collapsingToolbarLayout.setTitle(pagerAdapter.getPageTitle(0));
                     viewPager.setCurrentItem(0);
+                    if (espApp.nodeMap.size() > 0) {
+                        menuAdd.setVisible(true);
+                    } else {
+                        menuAdd.setVisible(false);
+                    }
                     updateUi();
                     return true;
 
                 case R.id.action_schedules:
-                    tvTitle.setText(pagerAdapter.getPageTitle(1));
+                    collapsingToolbarLayout.setTitle(pagerAdapter.getPageTitle(1));
                     viewPager.setCurrentItem(1);
+                    if (espApp.scheduleMap.size() > 0) {
+                        menuAdd.setVisible(true);
+                    } else {
+                        menuAdd.setVisible(false);
+                    }
+                    updateUi();
+                    return true;
+
+                case R.id.action_user:
+                    collapsingToolbarLayout.setTitle(pagerAdapter.getPageTitle(2));
+                    viewPager.setCurrentItem(2);
+                    menuAdd.setVisible(false);
                     updateUi();
                     return true;
             }
@@ -252,36 +284,46 @@ public class EspMainActivity extends AppCompatActivity {
     }
 
     public void refreshDeviceList() {
-
-        espApp.setCurrentStatus(GetDataStatus.DATA_REFRESHING);
         getNodes();
+    }
+
+    public void updateActionBar() {
+
+        if (menuAdd != null) {
+            switch (viewPager.getCurrentItem()) {
+                case 0:
+                    if (espApp.nodeMap.size() > 0) {
+                        menuAdd.setVisible(true);
+                    } else {
+                        menuAdd.setVisible(false);
+                    }
+                    break;
+
+                case 1:
+                    if (espApp.scheduleMap.size() > 0) {
+                        menuAdd.setVisible(true);
+                    } else {
+                        menuAdd.setVisible(false);
+                    }
+                    break;
+
+                default:
+                    menuAdd.setVisible(false);
+                    break;
+            }
+        }
     }
 
     private void initViews() {
 
-        tvTitle = findViewById(R.id.esp_toolbar_title);
-        ivAddDevice = findViewById(R.id.btn_add_device);
-        ivUserProfile = findViewById(R.id.btn_user_profile);
+        collapsingToolbarLayout = findViewById(R.id.collapsing_toolbar_layout);
+        collapsingToolbarLayout.setTitle(getResources().getString(R.string.devices_title));
+        appbar = findViewById(R.id.appbar);
+        setSupportActionBar(appbar);
+
         bottomNavigationView = findViewById(R.id.bottom_navigation_view);
         viewPager = findViewById(R.id.view_pager);
-
-        tvTitle.setText(R.string.title_activity_devices);
-        ivAddDevice.setOnClickListener(addDeviceBtnClickListener);
-
-        ivUserProfile.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                startActivity(new Intent(EspMainActivity.this, UserProfileActivity.class));
-            }
-        });
-
-        if (BuildConfig.isScheduleSupported) {
-
-            bottomNavigationView.setOnNavigationItemSelectedListener(navigationItemSelectedListener);
-        } else {
-            bottomNavigationView.setVisibility(View.GONE);
-        }
+        bottomNavigationView.setOnNavigationItemSelectedListener(navigationItemSelectedListener);
         setupViewPager();
     }
 
@@ -312,7 +354,29 @@ public class EspMainActivity extends AppCompatActivity {
                     }
                     bottomNavigationView.getMenu().getItem(position).setChecked(true);
                     prevMenuItem = bottomNavigationView.getMenu().getItem(position);
-                    tvTitle.setText(pagerAdapter.getPageTitle(position));
+                    collapsingToolbarLayout.setTitle(pagerAdapter.getPageTitle(position));
+
+                    switch (position) {
+                        case 0:
+                            if (espApp.nodeMap.size() > 0) {
+                                menuAdd.setVisible(true);
+                            } else {
+                                menuAdd.setVisible(false);
+                            }
+                            break;
+
+                        case 1:
+                            if (espApp.scheduleMap.size() > 0) {
+                                menuAdd.setVisible(true);
+                            } else {
+                                menuAdd.setVisible(false);
+                            }
+                            break;
+
+                        case 2:
+                            menuAdd.setVisible(false);
+                            break;
+                    }
                     updateUi();
                 }
 
@@ -321,139 +385,63 @@ public class EspMainActivity extends AppCompatActivity {
                 }
             });
         }
+        pagerAdapter.addFragment(new UserProfileFragment());
         viewPager.setAdapter(pagerAdapter);
-    }
-
-    private void loadDataFromLocalStorage() {
-
-        EspDatabase espDatabase = EspDatabase.getInstance(getApplicationContext());
-        ArrayList<EspNode> nodeList = (ArrayList<EspNode>) espDatabase.getNodeDao().getNodesFromStorage();
-        Log.d(TAG, "Node list from Local storage : " + nodeList.size());
-        devices.clear();
-
-        for (int nodeIndex = 0; nodeIndex < nodeList.size(); nodeIndex++) {
-
-            EspNode node = nodeList.get(nodeIndex);
-
-            if (node != null) {
-
-                String configData = node.getConfigData();
-                String paramData = node.getParamData();
-
-                try {
-                    node = JsonDataParser.setNodeConfig(node, new JSONObject(configData));
-                    JSONObject paramsJson = new JSONObject(paramData);
-                    JsonDataParser.setAllParams(espApp, node, paramsJson);
-                    espApp.nodeMap.put(node.getNodeId(), node);
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        // Set all devices offline
-        for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
-
-            String key = entry.getKey();
-            EspNode node = entry.getValue();
-
-            if (node != null) {
-                node.setOnline(false);
-                ArrayList<Device> espDevices = node.getDevices();
-                devices.addAll(espDevices);
-            }
-        }
-
-        if (BuildConfig.isNodeGroupingSupported) {
-            ArrayList<Group> groupList = (ArrayList<Group>) espDatabase.getGroupDao().getGroupsFromStorage();
-            for (int groupIndex = 0; groupIndex < groupList.size(); groupIndex++) {
-
-                Group group = groupList.get(groupIndex);
-                if (group != null) {
-                    espApp.groupMap.put(group.getGroupId(), group);
-                }
-            }
-        }
-        Log.d(TAG, "Device list size from local storage : " + devices.size());
     }
 
     private void updateUi() {
 
-        switch (espApp.getCurrentStatus()) {
+        switch (espApp.getAppState()) {
 
-            case FETCHING_DATA:
-                if (devices.size() > 0) {
-                    ivAddDevice.setVisibility(View.VISIBLE);
-                } else {
-                    ivAddDevice.setVisibility(View.GONE);
+            case NO_INTERNET:
+                if (snackbar == null) {
+                    snackbar = Snackbar.make(findViewById(R.id.frame_container), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
                 }
+                Log.e(TAG, "Display No internet");
+                snackbar.show();
                 break;
 
             case GET_DATA_SUCCESS:
                 snackbar.dismiss();
+
                 if (viewPager.getCurrentItem() == 0) {
-
-                    devices.clear();
-
-                    for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
-
-                        String key = entry.getKey();
-                        EspNode node = entry.getValue();
-
-                        if (node != null) {
-                            ArrayList<Device> espDevices = node.getDevices();
-                            devices.addAll(espDevices);
+                    if (menuAdd != null) {
+                        if (espApp.nodeMap.size() > 0) {
+                            menuAdd.setVisible(true);
+                        } else {
+                            menuAdd.setVisible(false);
                         }
-                    }
-
-                    if (devices.size() > 0) {
-                        ivAddDevice.setVisibility(View.VISIBLE);
-                    } else {
-                        ivAddDevice.setVisibility(View.GONE);
                     }
 
                 } else if (viewPager.getCurrentItem() == 1) {
-
-                    schedules.clear();
-
-                    for (Map.Entry<String, Schedule> entry : espApp.scheduleMap.entrySet()) {
-
-                        String key = entry.getKey();
-                        Schedule schedule = entry.getValue();
-
-                        if (schedule != null) {
-                            schedules.add(schedule);
-                        }
-                    }
-
-                    if (schedules.size() > 0) {
-                        ivAddDevice.setVisibility(View.VISIBLE);
+                    if (espApp.scheduleMap.size() > 0) {
+                        menuAdd.setVisible(true);
                     } else {
-                        ivAddDevice.setVisibility(View.GONE);
+                        menuAdd.setVisible(false);
                     }
                 }
                 break;
 
             case GET_DATA_FAILED:
-
-                for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
-
-                    EspNode node = entry.getValue();
-
-                    if (node != null && !espApp.mDNSDeviceMap.containsKey(node.getNodeId())) {
-                        node.setOnline(false);
-                    }
-                }
-
-                TextView tvSnackbarText = snackbar.getView().findViewById(com.google.android.material.R.id.snackbar_text);
-                tvSnackbarText.setText(R.string.msg_no_internet);
-
-                if (!snackbar.isShown()) {
-                    snackbar = Snackbar.make(findViewById(R.id.frame_container), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
-                    snackbar.show();
-                }
+                snackbar.dismiss();
+                // TODO Display toast
+//                for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
+//
+//                    EspNode node = entry.getValue();
+//
+//                    if (node != null && !espApp.mDNSDeviceMap.containsKey(node.getNodeId())) {
+////                        node.setOnline(false);
+//                    }
+//                }
                 break;
+
+            case GETTING_DATA:
+            case REFRESH_DATA:
+                break;
+
+            case NO_USER_LOGIN:
+                finish();
+                return;
         }
 
         if (updateListenerArrayList != null) {
@@ -501,15 +489,19 @@ public class EspMainActivity extends AppCompatActivity {
                         }
                     }
                 }
-
                 getNodes();
             }
 
             @Override
-            public void onFailure(Exception exception) {
+            public void onResponseFailure(Exception exception) {
+                Bundle data = new Bundle();
+                data.putString(AppConstants.KEY_ERROR_MSG, exception.getMessage());
+                espApp.changeAppState(EspApplication.AppState.GET_DATA_FAILED, data);
+            }
 
-                espApp.setCurrentStatus(GetDataStatus.GET_DATA_FAILED);
-                updateUi();
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                espApp.changeAppState(EspApplication.AppState.NO_INTERNET, null);
             }
         });
     }
@@ -521,70 +513,72 @@ public class EspMainActivity extends AppCompatActivity {
         return version;
     }
 
-    private void getNodes() {
+    private void loadDataFromLocalStorage() {
 
-        if (BuildConfig.isLocalControlSupported) {
-            startLocalDeviceDiscovery();
-        }
+        EspDatabase espDatabase = EspDatabase.getInstance(getApplicationContext());
+        ArrayList<EspNode> nodeList = (ArrayList<EspNode>) espDatabase.getNodeDao().getNodesFromStorage();
 
-        if (apiManager.isTokenExpired()) {
+        for (int nodeIndex = 0; nodeIndex < nodeList.size(); nodeIndex++) {
 
-            apiManager.getNewToken(new ApiResponseListener() {
+            EspNode node = nodeList.get(nodeIndex);
 
-                @Override
-                public void onSuccess(Bundle data) {
+            if (node != null) {
 
-                    getNodesFromCloud();
-                }
+                String configData = node.getConfigData();
+                String paramData = node.getParamData();
 
-                @Override
-                public void onFailure(Exception exception) {
-                    exception.printStackTrace();
-                    espApp.setCurrentStatus(GetDataStatus.GET_DATA_FAILED);
-                    updateUi();
-                }
-            });
+                if (configData != null) {
+                    try {
+                        node = JsonDataParser.setNodeConfig(node, new JSONObject(configData));
+                        if (paramData != null) {
+                            JSONObject paramsJson = new JSONObject(paramData);
+                            JsonDataParser.setAllParams(espApp, node, paramsJson);
+                        } else {
+                            Log.e(TAG, "Param configuration is not available.");
+                        }
+                        espApp.nodeMap.put(node.getNodeId(), node);
 
-        } else {
-            getNodesFromCloud();
-        }
-    }
-
-    private void getNodesFromCloud() {
-
-        apiManager.getNodes(apiResponseListener);
-    }
-
-    private ApiResponseListener apiResponseListener = new ApiResponseListener() {
-
-        @Override
-        public void onSuccess(Bundle data) {
-
-            if (BuildConfig.isNodeGroupingSupported) {
-                apiManager.getUserGroups(null, new ApiResponseListener() {
-
-                    @Override
-                    public void onSuccess(Bundle data) {
-                        updateUi();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
-
-                    @Override
-                    public void onFailure(Exception exception) {
-                        exception.printStackTrace();
-                        updateUi();
-                    }
-                });
-            } else {
-                updateUi();
+                } else {
+                    Log.e(TAG, "Node configuration is not available.");
+                }
             }
         }
 
-        @Override
-        public void onFailure(Exception exception) {
-            exception.printStackTrace();
-            updateUi();
+        // Set all devices offline
+//        for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
+//
+//            String key = entry.getKey();
+//            EspNode node = entry.getValue();
+//
+//            if (node != null) {
+//                node.setOnline(false);
+//                ArrayList<Device> espDevices = node.getDevices();
+//                devices.addAll(espDevices);
+//            }
+//        }
+
+        if (BuildConfig.isNodeGroupingSupported) {
+            ArrayList<Group> groupList = (ArrayList<Group>) espDatabase.getGroupDao().getGroupsFromStorage();
+            for (int groupIndex = 0; groupIndex < groupList.size(); groupIndex++) {
+
+                Group group = groupList.get(groupIndex);
+                if (group != null) {
+                    espApp.groupMap.put(group.getGroupId(), group);
+                }
+            }
         }
-    };
+        Log.d(TAG, "Node list size from local storage : " + espApp.nodeMap.size());
+    }
+
+    private void getNodes() {
+        if (BuildConfig.isLocalControlSupported) {
+            startLocalDeviceDiscovery();
+        }
+        espApp.refreshData();
+    }
 
     private void goToAddDeviceActivity() {
 
@@ -716,7 +710,6 @@ public class EspMainActivity extends AppCompatActivity {
                 }
             }
         });
-
         builder.show();
     }
 
@@ -886,7 +879,12 @@ public class EspMainActivity extends AppCompatActivity {
                             }
 
                             @Override
-                            public void onFailure(Exception exception) {
+                            public void onResponseFailure(Exception exception) {
+                                // Nothing to do
+                            }
+
+                            @Override
+                            public void onNetworkFailure(Exception exception) {
                                 // Nothing to do
                             }
                         });
@@ -894,7 +892,12 @@ public class EspMainActivity extends AppCompatActivity {
                 }
 
                 @Override
-                public void onFailure(Exception exception) {
+                public void onResponseFailure(Exception exception) {
+                    // Nothing to do
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
                     // Nothing to do
                 }
             });

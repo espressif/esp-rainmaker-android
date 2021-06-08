@@ -31,7 +31,6 @@ import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.GroupDetailActivity;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Group;
-import com.espressif.ui.models.Param;
 import com.google.android.material.checkbox.MaterialCheckBox;
 
 import java.util.ArrayList;
@@ -126,6 +125,10 @@ public class GroupDeviceAdapter extends RecyclerView.Adapter<GroupDeviceAdapter.
 
                 myViewHolder.ivDevice.setImageResource(R.drawable.ic_device_temp_sensor);
 
+            } else if (AppConstants.ESP_DEVICE_OUTLET.equals(device.getDeviceType())) {
+
+                myViewHolder.ivDevice.setImageResource(R.drawable.ic_device_outlet);
+
             } else {
                 myViewHolder.ivDevice.setImageResource(R.drawable.ic_device);
             }
@@ -166,7 +169,7 @@ public class GroupDeviceAdapter extends RecyclerView.Adapter<GroupDeviceAdapter.
         return deviceList.size();
     }
 
-    public static class GroupDeviceVH extends RecyclerView.ViewHolder {
+    static class GroupDeviceVH extends RecyclerView.ViewHolder {
 
         TextView tvDeviceName;
         ImageView ivDevice, ivRemove;

@@ -15,6 +15,8 @@
 package com.espressif.ui.activities;
 
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.RelativeLayout;
@@ -40,6 +42,7 @@ import com.espressif.ui.adapters.GroupNodeAdapter;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -48,9 +51,6 @@ import java.util.Map;
 
 public class GroupNodeSelectionActivity extends AppCompatActivity {
 
-    private final String TAG = "GroupNodeSelection";
-
-    private TextView tvTitle, tvBack, tvCancel;
     private String groupName;
     private ArrayList<EspNode> nodes = new ArrayList<>();
     private ArrayList<Device> devices = new ArrayList<>();
@@ -71,35 +71,41 @@ public class GroupNodeSelectionActivity extends AppCompatActivity {
         initViews();
     }
 
-    private View.OnClickListener cancelBtnClickListener = new View.OnClickListener() {
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        menu.add(Menu.NONE, 1, Menu.NONE, R.string.btn_done).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        return true;
+    }
 
-        @Override
-        public void onClick(View v) {
-            finish();
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()) {
+
+            case 1:
+                saveSelectedDevices();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
         }
-    };
-
-    private View.OnClickListener doneBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-            saveSelectedDevices();
-        }
-    };
+    }
 
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_select_devices);
-        tvBack.setText(R.string.btn_back);
-        tvCancel.setText(R.string.btn_done);
-        tvBack.setVisibility(View.VISIBLE);
-        tvCancel.setVisibility(View.VISIBLE);
-        tvBack.setOnClickListener(cancelBtnClickListener);
-        tvCancel.setOnClickListener(doneBtnClickListener);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        getSupportActionBar().setTitle(R.string.title_activity_select_devices);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         rvDevices = findViewById(R.id.rv_device_list);
         rvNodes = findViewById(R.id.rv_node_list);
@@ -192,7 +198,17 @@ public class GroupNodeSelectionActivity extends AppCompatActivity {
                 }
 
                 @Override
-                public void onFailure(Exception exception) {
+                public void onResponseFailure(Exception exception) {
+                    hideLoading();
+                    if (exception instanceof CloudException) {
+                        Toast.makeText(GroupNodeSelectionActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(GroupNodeSelectionActivity.this, R.string.error_group_create, Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
                     hideLoading();
                     if (exception instanceof CloudException) {
                         Toast.makeText(GroupNodeSelectionActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
@@ -214,7 +230,17 @@ public class GroupNodeSelectionActivity extends AppCompatActivity {
                 }
 
                 @Override
-                public void onFailure(Exception exception) {
+                public void onResponseFailure(Exception exception) {
+                    hideLoading();
+                    if (exception instanceof CloudException) {
+                        Toast.makeText(GroupNodeSelectionActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(GroupNodeSelectionActivity.this, R.string.error_group_update, Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
                     hideLoading();
                     if (exception instanceof CloudException) {
                         Toast.makeText(GroupNodeSelectionActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();

@@ -35,6 +35,7 @@ import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.SharingRequestAdapter;
 import com.espressif.ui.models.SharingRequest;
+import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.ArrayList;
 
@@ -42,7 +43,6 @@ public class SharingRequestsActivity extends AppCompatActivity {
 
     private static final String TAG = SharingRequestsActivity.class.getSimpleName();
 
-    private TextView tvTitle, tvBack, tvCancel;
     private RecyclerView recyclerView;
     private TextView tvNoRequest;
     private RelativeLayout rlNoRequest;
@@ -67,24 +67,20 @@ public class SharingRequestsActivity extends AppCompatActivity {
         getSharingRequests();
     }
 
-    private View.OnClickListener backButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-            finish();
-        }
-    };
-
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
-
-        tvTitle.setText(R.string.title_activity_sharing_requests);
-        tvBack.setVisibility(View.VISIBLE);
-        tvCancel.setVisibility(View.GONE);
-        tvBack.setOnClickListener(backButtonClickListener);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        toolbar.setTitle(R.string.title_activity_sharing_requests);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         progressBar = findViewById(R.id.progress_get_sharing_requests);
         rlNoRequest = findViewById(R.id.rl_no_request);
@@ -162,7 +158,18 @@ public class SharingRequestsActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Exception exception) {
+            public void onResponseFailure(Exception exception) {
+                progressBar.setVisibility(View.GONE);
+                swipeRefreshLayout.setRefreshing(false);
+                if (exception instanceof CloudException) {
+                    Toast.makeText(SharingRequestsActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(SharingRequestsActivity.this, R.string.error_get_sharing_request, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
                 progressBar.setVisibility(View.GONE);
                 swipeRefreshLayout.setRefreshing(false);
                 if (exception instanceof CloudException) {

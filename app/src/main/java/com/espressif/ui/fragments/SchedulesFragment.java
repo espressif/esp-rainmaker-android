@@ -47,6 +47,7 @@ import com.google.android.material.card.MaterialCardView;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Map;
 
 public class SchedulesFragment extends Fragment {
@@ -97,6 +98,12 @@ public class SchedulesFragment extends Fragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        updateScheduleUi();
+    }
+
+    @Override
     public void onDestroy() {
         ((EspMainActivity) getActivity()).removeUpdateListener(updateListener);
         super.onDestroy();
@@ -136,8 +143,8 @@ public class SchedulesFragment extends Fragment {
         swipeRefreshLayout = view.findViewById(R.id.swipe_container);
 
         btnAddSchedule = view.findViewById(R.id.btn_add_schedule);
-        txtAddScheduleBtn = view.findViewById(R.id.text_btn);
-        arrowImage = view.findViewById(R.id.iv_arrow);
+        txtAddScheduleBtn = btnAddSchedule.findViewById(R.id.text_btn);
+        arrowImage = btnAddSchedule.findViewById(R.id.iv_arrow);
         txtAddScheduleBtn.setText(R.string.btn_add_schedule);
         btnAddSchedule.setVisibility(View.GONE);
         arrowImage.setVisibility(View.GONE);
@@ -161,21 +168,22 @@ public class SchedulesFragment extends Fragment {
 
     private void updateScheduleUi() {
 
-        switch (espApp.getCurrentStatus()) {
+        switch (espApp.getAppState()) {
 
-            case FETCHING_DATA:
+            case NO_INTERNET:
             case GET_DATA_SUCCESS:
             case GET_DATA_FAILED:
-                updateUiOnSuccess(false);
+                updateUi(false);
                 break;
 
-            case DATA_REFRESHING:
-                updateUiOnSuccess(true);
+            case GETTING_DATA:
+            case REFRESH_DATA:
+                updateUi(true);
                 break;
         }
     }
 
-    private void updateUiOnSuccess(boolean isRefreshing) {
+    private void updateUi(boolean isRefreshing) {
 
         schedules.clear();
         for (Map.Entry<String, Schedule> entry : espApp.scheduleMap.entrySet()) {
@@ -190,12 +198,22 @@ public class SchedulesFragment extends Fragment {
 
         Log.d(TAG, "Schedules size : " + schedules.size());
 
-        // Sort schedule list to display alphabetically.
+        // Sort schedule list by time.
         Collections.sort(schedules, new Comparator<Schedule>() {
 
             @Override
             public int compare(Schedule s1, Schedule s2) {
-                return s1.getName().compareToIgnoreCase(s2.getName());
+                HashMap<String, Integer> t1 = s1.getTriggers();
+                HashMap<String, Integer> t2 = s2.getTriggers();
+                Integer m1 = t1.get(AppConstants.KEY_MINUTES);
+                Integer m2 = t2.get(AppConstants.KEY_MINUTES);
+                if (m1 == null) {
+                    m1 = 0;
+                }
+                if (m2 == null) {
+                    m2 = 0;
+                }
+                return m1.compareTo(m2);
             }
         });
 
@@ -243,17 +261,7 @@ public class SchedulesFragment extends Fragment {
 
         scheduleAdapter.updateList(schedules);
         swipeRefreshLayout.setRefreshing(isRefreshing);
-    }
-
-    private void updateUiOnFailure() {
-
-        swipeRefreshLayout.setRefreshing(false);
-        tvNoSchedule.setText(R.string.error_schedule_not_received);
-        rlNoSchedules.setVisibility(View.VISIBLE);
-        tvNoSchedule.setVisibility(View.VISIBLE);
-        tvAddSchedule.setVisibility(View.GONE);
-        ivNoSchedule.setVisibility(View.VISIBLE);
-        recyclerView.setVisibility(View.GONE);
+        ((EspMainActivity) getActivity()).updateActionBar();
     }
 
     private void goToAddScheduleActivity() {

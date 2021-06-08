@@ -24,7 +24,6 @@ import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -38,6 +37,7 @@ import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.R;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 
 import org.greenrobot.eventbus.EventBus;
@@ -56,10 +56,8 @@ public class ProvisionLanding extends AppCompatActivity {
     private static final int REQUEST_FINE_LOCATION = 10;
     private static final int WIFI_SETTINGS_ACTIVITY_REQUEST = 11;
 
-    private TextView tvTitle, tvBack, tvCancel;
     private MaterialCardView btnConnect;
     private TextView txtConnectBtn;
-    private ImageView arrowImage;
     private TextView tvConnectDeviceInstruction, tvDeviceName;
     private ContentLoadingProgressBar progressBar;
 
@@ -134,7 +132,6 @@ public class ProvisionLanding extends AppCompatActivity {
                 btnConnect.setAlpha(1f);
                 txtConnectBtn.setText(R.string.btn_connect);
                 progressBar.setVisibility(View.GONE);
-                arrowImage.setVisibility(View.VISIBLE);
 
                 checkDeviceCapabilities();
                 break;
@@ -145,7 +142,6 @@ public class ProvisionLanding extends AppCompatActivity {
                 btnConnect.setAlpha(1f);
                 txtConnectBtn.setText(R.string.btn_connect);
                 progressBar.setVisibility(View.GONE);
-                arrowImage.setVisibility(View.VISIBLE);
                 Toast.makeText(this, R.string.error_device_connect_failed, Toast.LENGTH_SHORT).show();
                 break;
         }
@@ -166,7 +162,6 @@ public class ProvisionLanding extends AppCompatActivity {
         btnConnect.setAlpha(0.5f);
         txtConnectBtn.setText(R.string.btn_connecting);
         progressBar.setVisibility(View.VISIBLE);
-        arrowImage.setVisibility(View.GONE);
 
         if (ActivityCompat.checkSelfPermission(ProvisionLanding.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
@@ -177,33 +172,28 @@ public class ProvisionLanding extends AppCompatActivity {
         }
     }
 
-    private View.OnClickListener cancelButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            if (provisionManager.getEspDevice() != null) {
-                provisionManager.getEspDevice().disconnectDevice();
-            }
-            finish();
-        }
-    };
-
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        getSupportActionBar().setTitle(R.string.title_activity_connect_device);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
 
-        tvTitle.setText(R.string.title_activity_connect_device);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.VISIBLE);
-
-        tvCancel.setOnClickListener(cancelButtonClickListener);
+            @Override
+            public void onClick(View v) {
+                if (provisionManager.getEspDevice() != null) {
+                    provisionManager.getEspDevice().disconnectDevice();
+                }
+                finish();
+            }
+        });
 
         btnConnect = findViewById(R.id.btn_connect);
         txtConnectBtn = findViewById(R.id.text_btn);
-        arrowImage = findViewById(R.id.iv_arrow);
+        findViewById(R.id.iv_arrow).setVisibility(View.GONE);
         progressBar = findViewById(R.id.progress_indicator);
         tvConnectDeviceInstruction = findViewById(R.id.tv_connect_device_instruction);
         tvDeviceName = findViewById(R.id.tv_device_name);
@@ -294,6 +284,7 @@ public class ProvisionLanding extends AppCompatActivity {
 
         finish();
         Intent popIntent = new Intent(getApplicationContext(), ProofOfPossessionActivity.class);
+        popIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(popIntent);
     }
 
@@ -301,6 +292,7 @@ public class ProvisionLanding extends AppCompatActivity {
 
         finish();
         Intent wifiListIntent = new Intent(getApplicationContext(), WiFiScanActivity.class);
+        wifiListIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiListIntent);
     }
 
@@ -308,6 +300,7 @@ public class ProvisionLanding extends AppCompatActivity {
 
         finish();
         Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
+        wifiConfigIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiConfigIntent);
     }
 
@@ -322,16 +315,11 @@ public class ProvisionLanding extends AppCompatActivity {
     }
 
     private boolean hasLocationPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-        }
-        return true;
+        return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestLocationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_FINE_LOCATION);
-        }
+        requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_FINE_LOCATION);
     }
 
     private void alertForClaimingNotSupported() {

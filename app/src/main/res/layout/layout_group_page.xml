@@ -3,8 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    app:layout_behavior="@string/appbar_scrolling_view_behavior">
+    android:layout_height="match_parent">
 
     <RelativeLayout
         android:id="@+id/rl_no_device"
@@ -29,8 +28,9 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="@dimen/margin_24"
             android:text="@string/no_devices"
-            android:textColor="@color/colorPrimaryDark"
-            android:textSize="18sp" />
+            android:textColor="@android:color/white"
+            android:textSize="20sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tv_add_device"

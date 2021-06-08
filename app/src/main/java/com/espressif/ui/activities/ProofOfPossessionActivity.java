@@ -34,6 +34,7 @@ import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 
 import org.greenrobot.eventbus.EventBus;
@@ -49,7 +50,6 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
 
     private static final String TAG = ProofOfPossessionActivity.class.getSimpleName();
 
-    private TextView tvTitle, tvBack, tvCancel;
     private MaterialCardView btnNext;
     private TextView txtNextBtn;
 
@@ -137,31 +137,26 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         }
     };
 
-    private View.OnClickListener cancelBtnClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            if (provisionManager.getEspDevice() != null) {
-                provisionManager.getEspDevice().disconnectDevice();
-            }
-            finish();
-        }
-    };
-
     private void initViews() {
 
-        tvTitle = findViewById(R.id.main_toolbar_title);
-        tvBack = findViewById(R.id.btn_back);
-        tvCancel = findViewById(R.id.btn_cancel);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        toolbar.setTitle(R.string.title_activity_pop);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (provisionManager.getEspDevice() != null) {
+                    provisionManager.getEspDevice().disconnectDevice();
+                }
+                finish();
+            }
+        });
+
         tvPopInstruction = findViewById(R.id.tv_pop);
         etPop = findViewById(R.id.et_pop);
-
-        tvTitle.setText(R.string.title_activity_pop);
-        tvBack.setVisibility(View.GONE);
-        tvCancel.setVisibility(View.VISIBLE);
-
-        tvCancel.setOnClickListener(cancelBtnClickListener);
 
         btnNext = findViewById(R.id.btn_next);
         txtNextBtn = findViewById(R.id.text_btn);
@@ -217,6 +212,7 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
     private void goToClaimingActivity() {
 
         Intent claimingIntent = new Intent(getApplicationContext(), ClaimingActivity.class);
+        claimingIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(claimingIntent);
         finish();
     }
@@ -224,6 +220,7 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
     private void goToWiFiScanListActivity() {
 
         Intent wifiListIntent = new Intent(getApplicationContext(), WiFiScanActivity.class);
+        wifiListIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiListIntent);
         finish();
     }
@@ -231,6 +228,7 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
     private void goToWiFiConfigActivity() {
 
         Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
+        wifiConfigIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiConfigIntent);
         finish();
     }
