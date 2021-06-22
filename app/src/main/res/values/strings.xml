@@ -238,6 +238,8 @@
     <string name="dialog_title_group_name">Enter Group Name</string>
     <string name="dialog_title_user_email">User Email</string>
     <string name="dialog_title_logout">Logout</string>
+    <string name="dialog_title_no_network">Network failure</string>
+    <string name="dialog_msg_no_network">Please check your phone\'s network</string>
 
     <!--Node Details-->
     <string name="node_id">Node Id</string>

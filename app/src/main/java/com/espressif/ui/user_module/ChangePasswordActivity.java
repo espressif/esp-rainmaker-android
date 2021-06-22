@@ -14,7 +14,6 @@
 
 package com.espressif.ui.user_module;
 
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.KeyEvent;
@@ -23,12 +22,14 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.widget.ContentLoadingProgressBar;
 
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.GenericHandler;
+import com.espressif.cloudapi.ApiManager;
+import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.Utils;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputLayout;
@@ -40,7 +41,6 @@ public class ChangePasswordActivity extends AppCompatActivity {
     private MaterialCardView btnSetPassword;
     private TextView txtSetPasswordBtn;
     private ContentLoadingProgressBar progressBar;
-    private AlertDialog userDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,55 +133,38 @@ public class ChangePasswordActivity extends AppCompatActivity {
         }
 
         showLoading();
-        AppHelper.getPool().getUser(AppHelper.getCurrUser()).changePasswordInBackground(oldPassword, newPassword, callback);
+        ApiManager apiManager = ApiManager.getInstance(getApplicationContext());
+        apiManager.changePassword(oldPassword, newPassword, new ApiResponseListener() {
+            @Override
+            public void onSuccess(Bundle data) {
+                hideLoading();
+                Utils.showAlertDialog(ChangePasswordActivity.this, getString(R.string.success), getString(R.string.password_change_success), true);
+                clearInput();
+            }
+
+            @Override
+            public void onResponseFailure(Exception exception) {
+                hideLoading();
+                if (exception instanceof CloudException) {
+                    Utils.showAlertDialog(ChangePasswordActivity.this, getString(R.string.password_change_failure), exception.getMessage(), false);
+                } else {
+                    Utils.showAlertDialog(ChangePasswordActivity.this, "", getString(R.string.password_change_failure), false);
+                }
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                hideLoading();
+                Utils.showAlertDialog(ChangePasswordActivity.this, getString(R.string.dialog_title_no_network), getString(R.string.dialog_msg_no_network), false);
+            }
+        });
     }
-
-    GenericHandler callback = new GenericHandler() {
-
-        @Override
-        public void onSuccess() {
-
-            hideLoading();
-            showDialogMessage(getString(R.string.success), getString(R.string.password_change_success), true);
-            clearInput();
-        }
-
-        @Override
-        public void onFailure(Exception exception) {
-
-            exception.printStackTrace();
-            hideLoading();
-            showDialogMessage(getString(R.string.password_change_failure), AppHelper.formatException(exception), false);
-        }
-    };
 
     private void clearInput() {
 
         etOldPassword.setText("");
         etNewPassword.setText("");
         etConfirmNewPassword.setText("");
-    }
-
-    private void showDialogMessage(String title, String body, final boolean exitActivity) {
-
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
-
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-
-                try {
-                    userDialog.dismiss();
-                    if (exitActivity) {
-                        onBackPressed();
-                    }
-                } catch (Exception e) {
-                    onBackPressed();
-                }
-            }
-        });
-        userDialog = builder.create();
-        userDialog.show();
     }
 
     private void showLoading() {

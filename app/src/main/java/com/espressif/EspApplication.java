@@ -16,22 +16,22 @@ package com.espressif;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUser;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.db.EspDatabase;
 import com.espressif.mdns.mDNSDevice;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
+import com.espressif.ui.activities.MainActivity;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.UpdateEvent;
-import com.espressif.ui.user_module.AppHelper;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -69,7 +69,6 @@ public class EspApplication extends Application {
         mDNSDeviceMap = new HashMap<>();
         groupMap = new HashMap<>();
         appPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
-        AppHelper.init(this);
         apiManager = ApiManager.getInstance(this);
         ESPProvisionManager.getInstance(this);
     }
@@ -100,6 +99,14 @@ public class EspApplication extends Application {
                 break;
 
             case NO_USER_LOGIN:
+                Intent loginActivity = new Intent(this, MainActivity.class);
+                loginActivity.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        | Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(loginActivity);
+                appState = newState;
+                break;
+
             case GET_DATA_SUCCESS:
             case NO_INTERNET:
                 appState = newState;
@@ -164,9 +171,23 @@ public class EspApplication extends Application {
     public void logout() {
         // Do logout and clear all data
         if (!ApiManager.isOAuthLogin) {
-            String username = AppHelper.getCurrUser();
-            CognitoUser user = AppHelper.getPool().getUser(username);
-            user.signOut();
+
+            apiManager.logout(new ApiResponseListener() {
+
+                @Override
+                public void onSuccess(Bundle data) {
+                }
+
+                @Override
+                public void onResponseFailure(Exception exception) {
+                    // Ignore failure
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
+                    // Ignore failure
+                }
+            });
         }
 
         EspDatabase.getInstance(this).getNodeDao().deleteAll();

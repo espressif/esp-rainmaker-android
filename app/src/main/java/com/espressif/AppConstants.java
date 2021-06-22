@@ -51,6 +51,17 @@ public class AppConstants {
     public static final String HEADER_AUTHORIZATION = "Authorization";
 
     // Cloud API End point Urls
+    public static final String URL_LOGIN = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/login";
+    public static final String URL_LOGOUT = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/logout";
+    public static final String URL_USER = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/user";
+    public static final String URL_FORGOT_PASSWORD = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/forgotpassword";
+    public static final String URL_CHANGE_PASSWORD = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/password";
+
     public static final String URL_SUPPORTED_VERSIONS = BuildConfig.BASE_URL + "/apiversions";
     public static final String URL_OAUTH_LOGIN = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/login";
@@ -124,6 +135,8 @@ public class AppConstants {
     public static final String KEY_PASSWORD = "password";
     public static final String KEY_SECURITY_TYPE = "security_type";
     public static final String KEY_SHOULD_SAVE_PWD = "save_password";
+    public static final String KEY_NEW_PASSWORD = "newpassword";
+    public static final String KEY_VERIFICATION_CODE = "verification_code";
 
     // Keys used in JSON responses and used to pass data between activities.
     public static final String KEY_NAME = "name";

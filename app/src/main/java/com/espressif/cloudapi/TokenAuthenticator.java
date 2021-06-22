@@ -47,23 +47,18 @@ public class TokenAuthenticator implements Authenticator {
 
         if (!TextUtils.isEmpty(newToken)) {
             Log.d(TAG, "Retrying with new token");
-//            Add new header to rejected request and retry it
+            // Add new header to rejected request and retry it
             return response.request().newBuilder()
                     .header(AppConstants.HEADER_AUTHORIZATION, newToken)
                     .build();
         } else {
-            gotoLoginScreen();
+            doLogout();
             return null;
         }
     }
 
-    private void gotoLoginScreen() {
-        ((EspApplication) context).logout();
+    private void doLogout() {
         Log.d(TAG, "Logout and display Login screen");
-        Intent i = new Intent(context, MainActivity.class);
-        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        context.startActivity(i);
+        ((EspApplication) context).logout();
     }
 }

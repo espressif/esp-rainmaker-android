@@ -14,51 +14,33 @@
 
 package com.espressif.ui.activities;
 
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager.widget.ViewPager;
 
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoDevice;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserCodeDeliveryDetails;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserSession;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.AuthenticationContinuation;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.AuthenticationDetails;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.ChallengeContinuation;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.MultiFactorAuthenticationContinuation;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.AuthenticationHandler;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.VerificationHandler;
-import com.amazonaws.services.cognitoidentityprovider.model.UserNotConfirmedException;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
+import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.Utils;
 import com.espressif.ui.adapters.TabsPagerAdapter;
 import com.espressif.ui.fragments.LoginFragment;
-import com.espressif.ui.user_module.AppHelper;
-import com.espressif.ui.user_module.SignUpConfirmActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.tabs.TabLayout;
-
-import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
-    private static final int SIGN_UP_CONFIRM_ACTIVITY_REQUEST = 11;
+
+    public static final int SIGN_UP_CONFIRM_ACTIVITY_REQUEST = 10;
 
     private ViewPager viewPager;
-    private AlertDialog userDialog;
-    private String email, password;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,33 +61,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        Log.d(TAG, "On activity result");
 
         if (requestCode == SIGN_UP_CONFIRM_ACTIVITY_REQUEST) {
 
             if (resultCode == RESULT_OK) {
-                Log.d(TAG, "Result received from Sign up confirm");
+
+                String userName = data.getStringExtra(AppConstants.KEY_USER_NAME);
+                String password = data.getStringExtra(AppConstants.KEY_PASSWORD);
                 viewPager.setCurrentItem(0);
-
                 Fragment page = getSupportFragmentManager().findFragmentByTag("android:switcher:" + R.id.view_pager + ":" + viewPager.getCurrentItem());
-
                 if (page != null && page instanceof LoginFragment) {
-
-                    if (data != null) {
-                        email = data.getStringExtra("email");
-                        password = data.getStringExtra("password");
-                        ((LoginFragment) page).updateUi(email, password);
-                    } else {
-                        ((LoginFragment) page).hideLoginLoading();
-                    }
-                }
-            } else {
-
-                Fragment page = getSupportFragmentManager().findFragmentByTag("android:switcher:" + R.id.view_pager + ":" + viewPager.getCurrentItem());
-
-                if (page != null && page instanceof LoginFragment) {
-
-                    ((LoginFragment) page).hideLoginLoading();
+                    ((LoginFragment) page).doLoginWithNewUser(userName, password);
                 }
             }
         }
@@ -120,144 +89,46 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
-    private void launchSignUpConfirmActivity(CognitoUserCodeDeliveryDetails cognitoUserCodeDeliveryDetails) {
-        Intent intent = new Intent(this, SignUpConfirmActivity.class);
-        intent.putExtra("name", email);
-        intent.putExtra("password", password);
-        intent.putExtra("destination", cognitoUserCodeDeliveryDetails.getDestination());
-        intent.putExtra("deliveryMed", cognitoUserCodeDeliveryDetails.getDeliveryMedium());
-        intent.putExtra("attribute", cognitoUserCodeDeliveryDetails.getAttributeName());
-        startActivityForResult(intent, SIGN_UP_CONFIRM_ACTIVITY_REQUEST);
-    }
+    public void signInUser(final String email, String password) {
 
-    public void signInUser(String email, String password) {
-
-        this.email = email;
-        this.password = password;
-        AppHelper.getPool().getUser(email).getSessionInBackground(authenticationHandler);
-    }
-
-    AuthenticationHandler authenticationHandler = new AuthenticationHandler() {
-
-        @Override
-        public void onSuccess(CognitoUserSession cognitoUserSession, CognitoDevice device) {
-
-            Log.d(TAG, " -- Auth Success");
-            AppHelper.setCurrSession(cognitoUserSession);
-            SharedPreferences sharedPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString(AppConstants.KEY_EMAIL, email);
-            editor.putString(AppConstants.KEY_ID_TOKEN, cognitoUserSession.getIdToken().getJWTToken());
-            editor.putString(AppConstants.KEY_ACCESS_TOKEN, cognitoUserSession.getAccessToken().getJWTToken());
-            editor.putString(AppConstants.KEY_REFRESH_TOKEN, cognitoUserSession.getRefreshToken().getToken());
-            editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, false);
-            editor.apply();
-
-            AppHelper.newDevice(device);
-            ApiManager.getInstance(getApplicationContext()).getTokenAndUserId();
-            Fragment page = getSupportFragmentManager().findFragmentByTag("android:switcher:" + R.id.view_pager + ":" + viewPager.getCurrentItem());
-            if (page != null && page instanceof LoginFragment) {
-                ((LoginFragment) page).hideLoginLoading();
-            }
-            launchHomeScreen();
-        }
-
-        @Override
-        public void getAuthenticationDetails(AuthenticationContinuation authenticationContinuation, String username) {
-
-            Log.d(TAG, "getAuthenticationDetails ");
-            Locale.setDefault(Locale.US);
-            getUserAuthentication(authenticationContinuation, username);
-        }
-
-        @Override
-        public void getMFACode(MultiFactorAuthenticationContinuation multiFactorAuthenticationContinuation) {
-            // Nothing to do here
-            Log.d(TAG, "getMFACode");
-        }
-
-        @Override
-        public void onFailure(Exception e) {
-
-            e.printStackTrace();
-
-            if (e instanceof UserNotConfirmedException) {
-
-                AppHelper.getPool().getUser(email).resendConfirmationCodeInBackground(resendConfCodeHandler);
-
-            } else {
-                Fragment page = getSupportFragmentManager().findFragmentByTag("android:switcher:" + R.id.view_pager + ":" + viewPager.getCurrentItem());
-                if (page != null && page instanceof LoginFragment) {
-                    ((LoginFragment) page).hideLoginLoading();
-                }
-                showDialogMessage(getString(R.string.dialog_title_login_failed), AppHelper.formatException(e));
-            }
-        }
-
-        @Override
-        public void authenticationChallenge(ChallengeContinuation continuation) {
-
-            // Nothing to do for this app.
-            /*
-             * For Custom authentication challenge, implement your logic to present challenge to the
-             * user and pass the user's responses to the continuation.
-             */
-            Log.d(TAG, "authenticationChallenge : " + continuation.getChallengeName());
-        }
-    };
-
-    VerificationHandler resendConfCodeHandler = new VerificationHandler() {
-
-        @Override
-        public void onSuccess(CognitoUserCodeDeliveryDetails cognitoUserCodeDeliveryDetails) {
-            launchSignUpConfirmActivity(cognitoUserCodeDeliveryDetails);
-        }
-
-        @Override
-        public void onFailure(Exception exception) {
-
-            showDialogMessage(getString(R.string.dialog_title_conf_code_req_fail), AppHelper.formatException(exception));
-        }
-    };
-
-    private void getUserAuthentication(AuthenticationContinuation continuation, String username) {
-
-        if (username != null) {
-            email = username;
-            AppHelper.setUser(username);
-        }
-
-        if (this.password == null) {
-
-            if (TextUtils.isEmpty(password)) {
-
-                Fragment page = getSupportFragmentManager().findFragmentByTag("android:switcher:" + R.id.view_pager + ":" + viewPager.getCurrentItem());
-                if (page != null && page instanceof LoginFragment) {
-                    ((LoginFragment) page).hideLoginLoading();
-                }
-                return;
-            }
-        }
-
-        AuthenticationDetails authenticationDetails = new AuthenticationDetails(email, password, null);
-        continuation.setAuthenticationDetails(authenticationDetails);
-        continuation.continueTask();
-    }
-
-    private void showDialogMessage(String title, String body) {
-
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+        showLoginLoading();
+        ApiManager apiManager = ApiManager.getInstance(getApplicationContext());
+        apiManager.login(email, password, new ApiResponseListener() {
             @Override
-            public void onClick(DialogInterface dialog, int which) {
-                try {
-                    userDialog.dismiss();
-                } catch (Exception e) {
-                    e.printStackTrace();
+            public void onSuccess(Bundle data) {
+                hideLoginLoading();
+                launchHomeScreen();
+            }
+
+            @Override
+            public void onResponseFailure(Exception exception) {
+                hideLoginLoading();
+                if (exception instanceof CloudException) {
+                    Utils.showAlertDialog(MainActivity.this, getString(R.string.dialog_title_login_failed), exception.getMessage(), false);
+                } else {
+                    Utils.showAlertDialog(MainActivity.this, "", getString(R.string.dialog_title_login_failed), false);
                 }
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                hideLoginLoading();
+                Utils.showAlertDialog(MainActivity.this, getString(R.string.dialog_title_no_network), getString(R.string.dialog_msg_no_network), false);
             }
         });
-        userDialog = builder.create();
-        userDialog.show();
+    }
+
+    private void showLoginLoading() {
+        Fragment page = getSupportFragmentManager().findFragmentByTag("android:switcher:" + R.id.view_pager + ":" + viewPager.getCurrentItem());
+        if (page != null && page instanceof LoginFragment) {
+            ((LoginFragment) page).showLoginLoading();
+        }
+    }
+
+    private void hideLoginLoading() {
+        Fragment page = getSupportFragmentManager().findFragmentByTag("android:switcher:" + R.id.view_pager + ":" + viewPager.getCurrentItem());
+        if (page != null && page instanceof LoginFragment) {
+            ((LoginFragment) page).hideLoginLoading();
+        }
     }
 }

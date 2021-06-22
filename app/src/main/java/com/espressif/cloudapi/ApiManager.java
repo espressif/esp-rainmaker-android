@@ -22,20 +22,13 @@ import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoDevice;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserSession;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.AuthenticationContinuation;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.AuthenticationDetails;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.ChallengeContinuation;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.MultiFactorAuthenticationContinuation;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.AuthenticationHandler;
 import com.auth0.android.jwt.Claim;
 import com.auth0.android.jwt.DecodeException;
 import com.auth0.android.jwt.JWT;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
-import com.espressif.db.EspDatabase;
 import com.espressif.JsonDataParser;
+import com.espressif.db.EspDatabase;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.ui.models.Action;
 import com.espressif.ui.models.ApiResponse;
@@ -47,7 +40,6 @@ import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
 import com.espressif.ui.models.SharingRequest;
 import com.espressif.ui.models.UpdateEvent;
-import com.espressif.ui.user_module.AppHelper;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -62,7 +54,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import io.reactivex.Observable;
@@ -117,13 +108,76 @@ public class ApiManager {
         getTokenAndUserId();
     }
 
+    public void login(final String userName, String password, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Login...");
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_USER_NAME, userName);
+        body.addProperty(AppConstants.KEY_PASSWORD, password);
+
+        apiInterface.login(AppConstants.URL_LOGIN, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Login, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.d(TAG, " -- Auth Success : response : " + jsonResponse);
+                        JSONObject jsonObject = new JSONObject(jsonResponse);
+                        idToken = jsonObject.getString("idtoken");
+                        accessToken = jsonObject.getString("accesstoken");
+                        refreshToken = jsonObject.getString("refreshtoken");
+                        isOAuthLogin = false;
+
+                        EspDatabase.getInstance(espApp).getNodeDao().deleteAll();
+                        EspDatabase.getInstance(espApp).getGroupDao().deleteAll();
+                        espApp.nodeMap.clear();
+                        espApp.scheduleMap.clear();
+                        espApp.mDNSDeviceMap.clear();
+                        espApp.groupMap.clear();
+
+                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                        editor.putString(AppConstants.KEY_EMAIL, userName);
+                        editor.putString(AppConstants.KEY_ID_TOKEN, idToken);
+                        editor.putString(AppConstants.KEY_ACCESS_TOKEN, accessToken);
+                        editor.putString(AppConstants.KEY_REFRESH_TOKEN, refreshToken);
+                        editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, false);
+                        editor.apply();
+
+                        getTokenAndUserId();
+                        listener.onSuccess(null);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to login");
+                        accessToken = null;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    accessToken = null;
+                    listener.onResponseFailure(new RuntimeException("Failed to login"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                accessToken = null;
+                listener.onNetworkFailure(new RuntimeException("Failed to login"));
+            }
+        });
+    }
+
     public void getOAuthToken(String code, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get OAuth Token");
         String url = BuildConfig.TOKEN_URL;
 
         try {
-            apiInterface.loginWithGithub(url, "application/x-www-form-urlencoded",
+            apiInterface.oauthLogin(url, "application/x-www-form-urlencoded",
                     "authorization_code", BuildConfig.CLIENT_ID, code,
                     BuildConfig.REDIRECT_URI).enqueue(new Callback<ResponseBody>() {
 
@@ -176,6 +230,201 @@ public class ApiManager {
         }
     }
 
+    public void createUser(String email, String password, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Create user...");
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_USER_NAME, email);
+        body.addProperty(AppConstants.KEY_PASSWORD, password);
+
+        apiInterface.createUser(AppConstants.URL_USER, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Create user, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.e(TAG, "Response : " + jsonResponse);
+                        listener.onSuccess(null);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to create user");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to create user"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to create user"));
+            }
+        });
+    }
+
+    public void confirmUser(String email, String verificationCode, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Confirm user...");
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_USER_NAME, email);
+        body.addProperty(AppConstants.KEY_VERIFICATION_CODE, verificationCode);
+
+        apiInterface.confirmUser(AppConstants.URL_USER, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Confirm user, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.e(TAG, "Response : " + jsonResponse);
+                        listener.onSuccess(null);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to confirm user");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to confirm user"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to confirm user"));
+            }
+        });
+    }
+
+    public void forgotPassword(String email, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Forgot password...");
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_USER_NAME, email);
+
+        apiInterface.forgotPassword(AppConstants.URL_FORGOT_PASSWORD, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Forgot password, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.e(TAG, "Response : " + jsonResponse);
+                        listener.onSuccess(null);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to send forgot password request");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to send forgot password request"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to send forgot password request"));
+            }
+        });
+    }
+
+    public void resetPassword(String email, String newPassword, String verificationCode, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Reset password...");
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_USER_NAME, email);
+        body.addProperty(AppConstants.KEY_PASSWORD, newPassword);
+        body.addProperty(AppConstants.KEY_VERIFICATION_CODE, verificationCode);
+
+        apiInterface.forgotPassword(AppConstants.URL_FORGOT_PASSWORD, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Reset password, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.e(TAG, "Response : " + jsonResponse);
+                        listener.onSuccess(null);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to reset password request");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to reset password request"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to reset password request"));
+            }
+        });
+    }
+
+    public void changePassword(String oldPassword, String newPassword, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Change password...");
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_PASSWORD, oldPassword);
+        body.addProperty(AppConstants.KEY_NEW_PASSWORD, newPassword);
+
+        apiInterface.changePassword(AppConstants.URL_CHANGE_PASSWORD, accessToken, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Change password, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.e(TAG, "Response : " + jsonResponse);
+                        listener.onSuccess(null);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to change password");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to change password"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to change password"));
+            }
+        });
+    }
+
     public void getTokenAndUserId() {
 
         userName = sharedPreferences.getString(AppConstants.KEY_EMAIL, "");
@@ -198,7 +447,7 @@ public class ApiManager {
 
             if (isOAuthLogin) {
 
-                Claim claimEmail = jwt.getClaim("email");
+                Claim claimEmail = jwt.getClaim(AppConstants.KEY_EMAIL);
                 String email = claimEmail.asString();
                 userName = email;
 
@@ -216,6 +465,138 @@ public class ApiManager {
             Log.e(TAG, "==============>>>>>>>>>>> USER ID : " + userId);
             Log.e(TAG, "Token expires At : " + expiresAt);
         }
+    }
+
+    public String getNewToken() {
+        String newAccToken = "";
+        Log.d(TAG, "Getting new access token ");
+        if (isOAuthLogin) {
+            newAccToken = getNewTokenForOAuthUser();
+        } else {
+            newAccToken = getNewTokenForCognitoUser();
+        }
+        return newAccToken;
+    }
+
+    public String getNewTokenForCognitoUser() {
+
+        Log.d(TAG, "Get New Token For Cognito user");
+        Log.d(TAG, "Login...");
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_USER_NAME, userName);
+        body.addProperty("refreshtoken", refreshToken);
+
+        try {
+            Response<ResponseBody> response = apiInterface.login(AppConstants.URL_LOGIN, body).execute();
+
+            if (response.isSuccessful()) {
+
+                String jsonResponse = response.body().string();
+                Log.d(TAG, " -- Auth Success : response : " + jsonResponse);
+                JSONObject jsonObject = null;
+
+                try {
+                    jsonObject = new JSONObject(jsonResponse);
+                    idToken = jsonObject.getString("idtoken");
+                    accessToken = jsonObject.getString("accesstoken");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    accessToken = null;
+                }
+
+                isOAuthLogin = false;
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString(AppConstants.KEY_EMAIL, userName);
+                editor.putString(AppConstants.KEY_ID_TOKEN, idToken);
+                editor.putString(AppConstants.KEY_ACCESS_TOKEN, accessToken);
+                editor.putString(AppConstants.KEY_REFRESH_TOKEN, refreshToken);
+                editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, false);
+                editor.apply();
+                getTokenAndUserId();
+
+            } else {
+                accessToken = null;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            accessToken = null;
+        }
+        return accessToken;
+    }
+
+    public String getNewTokenForOAuthUser() {
+
+        Log.d(TAG, "Get New Token For OAuth User");
+        HashMap<String, String> body = new HashMap<>();
+        body.put("user_name", userId);
+        body.put("refreshtoken", refreshToken);
+
+        try {
+            Response<ResponseBody> response = apiInterface.getOAuthLoginToken(AppConstants.URL_OAUTH_LOGIN, body).execute();
+
+            if (response.isSuccessful()) {
+                ResponseBody responseBody = response.body();
+                String jsonResponse = responseBody.string();
+                Log.e(TAG, "Response Body : " + jsonResponse);
+                JSONObject jsonObject = null;
+                try {
+                    jsonObject = new JSONObject(jsonResponse);
+                    idToken = jsonObject.getString("idtoken");
+                    accessToken = jsonObject.getString("accesstoken");
+                    isOAuthLogin = true;
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    return null;
+                }
+
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString(AppConstants.KEY_ID_TOKEN, idToken);
+                editor.putString(AppConstants.KEY_ACCESS_TOKEN, accessToken);
+                editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, true);
+                editor.apply();
+                getTokenAndUserId();
+                return accessToken;
+            } else {
+                return null;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public void logout(final ApiResponseListener listener) {
+
+        Log.d(TAG, "Logout...");
+        apiInterface.logout(AppConstants.URL_LOGOUT).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Logout, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.d(TAG, "Response : " + jsonResponse);
+                        listener.onSuccess(null);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to logout user");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to logout user"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to logout user"));
+            }
+        });
     }
 
     /**
@@ -1439,126 +1820,6 @@ public class ApiManager {
             }
         }
     };
-
-    public String getNewToken() {
-        String newAccToken = "";
-        Log.d(TAG, "Getting new access token ");
-        if (isOAuthLogin) {
-            newAccToken = getNewTokenForOAuthUser();
-        } else {
-            newAccToken = getNewTokenForCognitoUser();
-        }
-        return newAccToken;
-    }
-
-    private void getUserAuthentication(AuthenticationContinuation continuation, String username) {
-
-        Log.d(TAG, "getUserAuthentication");
-        if (username != null) {
-            userName = username;
-            AppHelper.setUser(username);
-        }
-        AuthenticationDetails authenticationDetails = new AuthenticationDetails(userName, "", null);
-        continuation.setAuthenticationDetails(authenticationDetails);
-        continuation.continueTask();
-    }
-
-    public String getNewTokenForCognitoUser() {
-
-        Log.d(TAG, "Get New Token For Cognito user");
-
-        AuthenticationHandler authenticationHandler = new AuthenticationHandler() {
-
-            @Override
-            public void onSuccess(CognitoUserSession cognitoUserSession, CognitoDevice newDevice) {
-
-                Log.e(TAG, " -- Auth Success");
-                AppHelper.setCurrSession(cognitoUserSession);
-                SharedPreferences.Editor editor = sharedPreferences.edit();
-                editor.putString(AppConstants.KEY_ID_TOKEN, cognitoUserSession.getIdToken().getJWTToken());
-                editor.putString(AppConstants.KEY_ACCESS_TOKEN, cognitoUserSession.getAccessToken().getJWTToken());
-                editor.putString(AppConstants.KEY_REFRESH_TOKEN, cognitoUserSession.getRefreshToken().getToken());
-                editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, false);
-                editor.apply();
-
-                AppHelper.newDevice(newDevice);
-                getTokenAndUserId();
-            }
-
-            @Override
-            public void getAuthenticationDetails(AuthenticationContinuation authenticationContinuation, String userId) {
-                Log.d(TAG, "getAuthenticationDetails " + userId);
-                Locale.setDefault(Locale.US);
-                getUserAuthentication(authenticationContinuation, userName);
-            }
-
-            @Override
-            public void getMFACode(MultiFactorAuthenticationContinuation continuation) {
-                Log.d(TAG, "getMFACode ");
-            }
-
-            @Override
-            public void authenticationChallenge(ChallengeContinuation continuation) {
-                // Nothing to do for this app.
-                /*
-                 * For Custom authentication challenge, implement your logic to present challenge to the
-                 * user and pass the user's responses to the continuation.
-                 */
-                Log.d(TAG, "authenticationChallenge : " + continuation.getChallengeName());
-            }
-
-            @Override
-            public void onFailure(Exception exception) {
-                Log.e(TAG, "onFailure ");
-                exception.printStackTrace();
-                accessToken = null;
-            }
-        };
-
-        AppHelper.getPool().getUser(userName).getSession(authenticationHandler);
-        return accessToken;
-    }
-
-    public String getNewTokenForOAuthUser() {
-
-        Log.d(TAG, "Get New Token For OAuth User");
-        HashMap<String, String> body = new HashMap<>();
-        body.put("user_name", userId);
-        body.put("refreshtoken", refreshToken);
-
-        try {
-            Response<ResponseBody> response = apiInterface.getOAuthLoginToken(AppConstants.URL_OAUTH_LOGIN, body).execute();
-
-            if (response.isSuccessful()) {
-                ResponseBody responseBody = response.body();
-                String jsonResponse = responseBody.string();
-                Log.e(TAG, "Response Body : " + jsonResponse);
-                JSONObject jsonObject = null;
-                try {
-                    jsonObject = new JSONObject(jsonResponse);
-                    idToken = jsonObject.getString("idtoken");
-                    accessToken = jsonObject.getString("accesstoken");
-                    isOAuthLogin = true;
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    return null;
-                }
-
-                SharedPreferences.Editor editor = sharedPreferences.edit();
-                editor.putString(AppConstants.KEY_ID_TOKEN, idToken);
-                editor.putString(AppConstants.KEY_ACCESS_TOKEN, accessToken);
-                editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, true);
-                editor.apply();
-                getTokenAndUserId();
-                return accessToken;
-            } else {
-                return null;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
 
     public void initiateClaim(JsonObject body, final ApiResponseListener listener) {
 

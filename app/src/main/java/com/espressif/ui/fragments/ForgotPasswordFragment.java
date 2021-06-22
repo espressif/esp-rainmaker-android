@@ -25,6 +25,7 @@ import android.widget.TextView;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.fragment.app.Fragment;
 
+import com.espressif.AppConstants;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
 import com.espressif.ui.user_module.ForgotPasswordActivity;
@@ -78,8 +79,8 @@ public class ForgotPasswordFragment extends Fragment {
         progressBar = view.findViewById(R.id.progress_indicator);
 
         if (extras != null) {
-            if (extras.containsKey("email")) {
-                this.email = extras.getString("email");
+            if (extras.containsKey(AppConstants.KEY_USER_NAME)) {
+                this.email = extras.getString(AppConstants.KEY_USER_NAME);
                 etEmail.setText(email);
             }
         }

@@ -25,7 +25,6 @@ import android.util.Log;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.user_module.AppHelper;
 
 public class SplashActivity extends Activity {
 
@@ -44,7 +43,6 @@ public class SplashActivity extends Activity {
             Log.d(TAG, "Email : " + email);
             launchLoginScreen();
         } else {
-            AppHelper.setUser(email);
             launchHomeScreen();
         }
     }

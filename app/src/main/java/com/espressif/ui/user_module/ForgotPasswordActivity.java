@@ -14,26 +14,25 @@
 
 package com.espressif.ui.user_module;
 
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.View;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.ForgotPasswordContinuation;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.ForgotPasswordHandler;
+import com.espressif.AppConstants;
+import com.espressif.cloudapi.ApiManager;
+import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.Utils;
 import com.espressif.ui.fragments.ForgotPasswordFragment;
 import com.espressif.ui.fragments.ResetPasswordFragment;
 import com.google.android.material.appbar.MaterialToolbar;
 
 public class ForgotPasswordActivity extends AppCompatActivity {
 
-    private AlertDialog userDialog;
-    private ForgotPasswordContinuation forgotPasswordContinuation;
     private String email;
     private MaterialToolbar toolbar;
 
@@ -53,7 +52,7 @@ public class ForgotPasswordActivity extends AppCompatActivity {
 
             Fragment forgotPasswordFragment = new ForgotPasswordFragment();
             Bundle data = new Bundle();
-            data.putString("email", email);
+            data.putString(AppConstants.KEY_USER_NAME, email);
             forgotPasswordFragment.setArguments(data);
             loadForgotPasswordFragment(forgotPasswordFragment);
 
@@ -73,7 +72,10 @@ public class ForgotPasswordActivity extends AppCompatActivity {
         toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                finish();
+                Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+                if (currentFragment instanceof ResetPasswordFragment) {
+                    onBackPressed();
+                }
             }
         });
 
@@ -99,101 +101,69 @@ public class ForgotPasswordActivity extends AppCompatActivity {
         transaction.commit();
     }
 
-    public void forgotPassword(String email) {
+    public void forgotPassword(final String email) {
 
         this.email = email;
-        AppHelper.getPool().getUser(email).forgotPasswordInBackground(forgotPasswordHandler);
+        ApiManager apiManager = ApiManager.getInstance(getApplicationContext());
+        apiManager.forgotPassword(email, new ApiResponseListener() {
+            @Override
+            public void onSuccess(Bundle data) {
+                hideLoading();
+                getForgotPasswordCode(email);
+            }
+
+            @Override
+            public void onResponseFailure(Exception exception) {
+                hideLoading();
+                if (exception instanceof CloudException) {
+                    Utils.showAlertDialog(ForgotPasswordActivity.this, getString(R.string.dialog_title_forgot_password_failed), exception.getMessage(), false);
+                } else {
+                    Utils.showAlertDialog(ForgotPasswordActivity.this, "", getString(R.string.dialog_title_forgot_password_failed), false);
+                }
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                hideLoading();
+                Utils.showAlertDialog(ForgotPasswordActivity.this, getString(R.string.dialog_title_no_network), getString(R.string.dialog_msg_no_network), false);
+            }
+        });
     }
 
     public void resetPassword(String newPassword, String verificationCode) {
 
-        forgotPasswordContinuation.setPassword(newPassword);
-        forgotPasswordContinuation.setVerificationCode(verificationCode);
-        forgotPasswordContinuation.continueTask();
-    }
-
-    View.OnClickListener backButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-
-            if (currentFragment instanceof ResetPasswordFragment) {
-
-                onBackPressed();
+        ApiManager apiManager = ApiManager.getInstance(getApplicationContext());
+        apiManager.resetPassword(email, newPassword, verificationCode, new ApiResponseListener() {
+            @Override
+            public void onSuccess(Bundle data) {
+                hideLoading();
+                Utils.showAlertDialog(ForgotPasswordActivity.this, getString(R.string.dialog_title_password_changed), "", true);
             }
-        }
-    };
-
-    View.OnClickListener cancelButtonClickListener = new View.OnClickListener() {
-
-        @Override
-        public void onClick(View v) {
-
-            finish();
-        }
-    };
-
-    // Callbacks
-    ForgotPasswordHandler forgotPasswordHandler = new ForgotPasswordHandler() {
-
-        @Override
-        public void onSuccess() {
-
-            hideLoading();
-            showDialogMessage(getString(R.string.dialog_title_password_changed), "", true);
-        }
-
-        @Override
-        public void getResetCode(ForgotPasswordContinuation forgotPasswordContinuation) {
-
-            hideLoading();
-            getForgotPasswordCode(forgotPasswordContinuation);
-        }
-
-        @Override
-        public void onFailure(Exception e) {
-
-            hideLoading();
-            showDialogMessage(getString(R.string.dialog_title_forgot_password_failed), AppHelper.formatException(e), false);
-        }
-    };
-
-    private void getForgotPasswordCode(ForgotPasswordContinuation forgotPasswordContinuation) {
-
-        this.forgotPasswordContinuation = forgotPasswordContinuation;
-
-        Fragment resetPasswordFragment = new ResetPasswordFragment();
-        Bundle data = new Bundle();
-        data.putString("destination", forgotPasswordContinuation.getParameters().getDestination());
-        data.putString("deliveryMed", forgotPasswordContinuation.getParameters().getDeliveryMedium());
-        resetPasswordFragment.setArguments(data);
-        loadResetPasswordFragment(resetPasswordFragment);
-    }
-
-    private void showDialogMessage(String title, String body, final boolean shouldExit) {
-
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
 
             @Override
-            public void onClick(DialogInterface dialog, int which) {
-
-                try {
-                    userDialog.dismiss();
-
-                    if (shouldExit) {
-                        finish();
-                        // TODO Clear back-stack and start new screen.
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
+            public void onResponseFailure(Exception exception) {
+                hideLoading();
+                if (exception instanceof CloudException) {
+                    Utils.showAlertDialog(ForgotPasswordActivity.this, getString(R.string.dialog_title_forgot_password_failed), exception.getMessage(), false);
+                } else {
+                    Utils.showAlertDialog(ForgotPasswordActivity.this, "", getString(R.string.dialog_title_forgot_password_failed), false);
                 }
             }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                hideLoading();
+                Utils.showAlertDialog(ForgotPasswordActivity.this, getString(R.string.dialog_title_no_network), getString(R.string.dialog_msg_no_network), false);
+            }
         });
-        userDialog = builder.create();
-        userDialog.show();
+    }
+
+    private void getForgotPasswordCode(String email) {
+        Fragment resetPasswordFragment = new ResetPasswordFragment();
+        Bundle data = new Bundle();
+        data.putString(AppConstants.KEY_USER_NAME, email);
+        resetPasswordFragment.setArguments(data);
+        loadResetPasswordFragment(resetPasswordFragment);
     }
 
     private void hideLoading() {

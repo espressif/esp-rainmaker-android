@@ -38,13 +38,32 @@ import retrofit2.http.Url;
  */
 public interface ApiInterface {
 
+    @POST
+    Call<ResponseBody> login(@Url String url, @Body JsonObject body);
+
+    @POST
+    Call<ResponseBody> logout(@Url String url);
+
+    @POST
+    Call<ResponseBody> createUser(@Url String url, @Body JsonObject body);
+
+    @POST
+    Call<ResponseBody> confirmUser(@Url String url, @Body JsonObject body);
+
+    @PUT
+    Call<ResponseBody> forgotPassword(@Url String url, @Body JsonObject body);
+
+    @PUT
+    Call<ResponseBody> changePassword(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                      @Body JsonObject body);
+
     @FormUrlEncoded
     @POST
-    Call<ResponseBody> loginWithGithub(@Url String url, @Header("Content-type") String contentType,
-                                       @Field("grant_type") String grant_type,
-                                       @Field("client_id") String client_id,
-                                       @Field("code") String code,
-                                       @Field("redirect_uri") String redirect_uri);
+    Call<ResponseBody> oauthLogin(@Url String url, @Header("Content-type") String contentType,
+                                  @Field("grant_type") String grant_type,
+                                  @Field("client_id") String client_id,
+                                  @Field("code") String code,
+                                  @Field("redirect_uri") String redirect_uri);
 
     // Get Supported Versions
     @GET
