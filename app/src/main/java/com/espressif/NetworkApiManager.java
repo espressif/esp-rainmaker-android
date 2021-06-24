@@ -20,7 +20,7 @@ import android.util.Log;
 
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
-import com.espressif.mdns.mDNSApiManager;
+import com.espressif.local_control.LocalControlApiManager;
 import com.google.gson.JsonObject;
 
 /**
@@ -35,13 +35,13 @@ public class NetworkApiManager {
     private Context context;
     private EspApplication espApp;
     private ApiManager apiManager;
-    private mDNSApiManager dnsMsgHelper;
+    private LocalControlApiManager localControlApiManager;
 
     public NetworkApiManager(Context context) {
         this.context = context;
         espApp = (EspApplication) context.getApplicationContext();
         apiManager = ApiManager.getInstance(context);
-        dnsMsgHelper = new mDNSApiManager(context);
+        localControlApiManager = new LocalControlApiManager(context);
     }
 
     /**
@@ -53,9 +53,9 @@ public class NetworkApiManager {
      */
     public void updateParamValue(final String nodeId, final JsonObject body, final ApiResponseListener listener) {
 
-        if (espApp.mDNSDeviceMap.containsKey(nodeId)) {
+        if (espApp.localDeviceMap.containsKey(nodeId)) {
 
-            dnsMsgHelper.updateParamValue(nodeId, body, new ApiResponseListener() {
+            localControlApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
 
                 @Override
                 public void onSuccess(Bundle data) {
@@ -66,7 +66,7 @@ public class NetworkApiManager {
                 public void onResponseFailure(Exception exception) {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
-                    espApp.mDNSDeviceMap.remove(nodeId);
+                    espApp.localDeviceMap.remove(nodeId);
                     updateParamValue(nodeId, body, listener);
                 }
 
@@ -74,7 +74,7 @@ public class NetworkApiManager {
                 public void onNetworkFailure(Exception exception) {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
-                    espApp.mDNSDeviceMap.remove(nodeId);
+                    espApp.localDeviceMap.remove(nodeId);
                     updateParamValue(nodeId, body, listener);
                 }
             });
@@ -92,9 +92,9 @@ public class NetworkApiManager {
      */
     public void getParamsValues(final String nodeId, final ApiResponseListener listener) {
 
-        if (espApp.mDNSDeviceMap.containsKey(nodeId)) {
+        if (espApp.localDeviceMap.containsKey(nodeId)) {
 
-            dnsMsgHelper.getParamsValues(nodeId, new ApiResponseListener() {
+            localControlApiManager.getParamsValues(nodeId, new ApiResponseListener() {
 
                 @Override
                 public void onSuccess(Bundle data) {
@@ -105,7 +105,7 @@ public class NetworkApiManager {
                 public void onResponseFailure(Exception exception) {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
-                    espApp.mDNSDeviceMap.remove(nodeId);
+                    espApp.localDeviceMap.remove(nodeId);
                     getParamsValues(nodeId, listener);
                 }
 
@@ -113,7 +113,7 @@ public class NetworkApiManager {
                 public void onNetworkFailure(Exception exception) {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
-                    espApp.mDNSDeviceMap.remove(nodeId);
+                    espApp.localDeviceMap.remove(nodeId);
                     getParamsValues(nodeId, listener);
                 }
             });
@@ -131,9 +131,9 @@ public class NetworkApiManager {
      */
     public void getNodeDetails(final String nodeId, final ApiResponseListener listener) {
 
-        if (espApp.mDNSDeviceMap.containsKey(nodeId)) {
+        if (espApp.localDeviceMap.containsKey(nodeId)) {
 
-            dnsMsgHelper.getNodeDetails(nodeId, new ApiResponseListener() {
+            localControlApiManager.getNodeDetails(nodeId, new ApiResponseListener() {
 
                 @Override
                 public void onSuccess(Bundle data) {
@@ -144,7 +144,7 @@ public class NetworkApiManager {
                 public void onResponseFailure(Exception exception) {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
-                    espApp.mDNSDeviceMap.remove(nodeId);
+                    espApp.localDeviceMap.remove(nodeId);
                     getParamsValues(nodeId, listener);
                 }
 
@@ -152,7 +152,7 @@ public class NetworkApiManager {
                 public void onNetworkFailure(Exception exception) {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
-                    espApp.mDNSDeviceMap.remove(nodeId);
+                    espApp.localDeviceMap.remove(nodeId);
                     getParamsValues(nodeId, listener);
                 }
             });

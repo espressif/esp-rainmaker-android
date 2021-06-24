@@ -17,23 +17,40 @@
         android:layout_centerInParent="true"
         android:visibility="gone" />
 
-    <TextView
-        android:id="@+id/tv_device_offline"
+    <RelativeLayout
+        android:id="@+id/rl_node_status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="@dimen/margin_10"
-        android:alpha="0.5"
-        android:textColor="@color/colorPrimaryDark"
-        android:textSize="14sp"
-        android:textStyle="italic" />
+        android:layout_marginTop="@dimen/margin_10">
+
+        <ImageView
+            android:id="@+id/iv_secure_local"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:src="@drawable/ic_lock"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tv_device_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/iv_secure_local"
+            android:alpha="0.5"
+            android:padding="@dimen/margin_8"
+            android:text="@string/local_device_text"
+            android:textColor="@color/colorPrimaryDark"
+            android:textSize="14sp"
+            android:textStyle="italic" />
+
+    </RelativeLayout>
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/tv_device_offline"
+        android:layout_below="@id/rl_node_status"
         android:paddingStart="@dimen/margin_16"
         android:paddingTop="@dimen/margin_10"
         android:paddingEnd="@dimen/margin_16"

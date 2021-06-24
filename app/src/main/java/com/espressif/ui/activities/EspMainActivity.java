@@ -448,7 +448,7 @@ public class EspMainActivity extends AppCompatActivity {
 //
 //                    EspNode node = entry.getValue();
 //
-//                    if (node != null && !espApp.mDNSDeviceMap.containsKey(node.getNodeId())) {
+//                    if (node != null && !espApp.localDeviceMap.containsKey(node.getNodeId())) {
 ////                        node.setOnline(false);
 //                    }
 //                }

@@ -22,6 +22,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,6 +39,7 @@ import com.espressif.EspApplication;
 import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
+import com.espressif.local_control.EspLocalDevice;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.AttrParamAdapter;
 import com.espressif.ui.adapters.ParamAdapter;
@@ -57,7 +59,9 @@ public class EspDeviceActivity extends AppCompatActivity {
     private static final int NODE_DETAILS_ACTIVITY_REQUEST = 10;
     private static final int UPDATE_INTERVAL = 5000;
 
-    private TextView tvNoParam, tvNodeOffline;
+    private RelativeLayout rlNodeStatus;
+    private TextView tvNoParam, tvNodeStatus;
+    private ImageView ivSecureLocal;
     private RecyclerView paramRecyclerView;
     private RecyclerView attrRecyclerView;
     private SwipeRefreshLayout swipeRefreshLayout;
@@ -197,10 +201,13 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         tvNoParam = findViewById(R.id.tv_no_params);
         progressBar = findViewById(R.id.progress_get_params);
-        tvNodeOffline = findViewById(R.id.tv_device_offline);
 
         rlParam = findViewById(R.id.params_parent_layout);
         rlProgress = findViewById(R.id.rl_progress);
+
+        rlNodeStatus = findViewById(R.id.rl_node_status);
+        tvNodeStatus = findViewById(R.id.tv_device_status);
+        ivSecureLocal = findViewById(R.id.iv_secure_local);
 
         getSupportActionBar().setTitle(device.getUserVisibleName());
 
@@ -422,16 +429,22 @@ public class EspDeviceActivity extends AppCompatActivity {
 
             if (espApp.getAppState().equals(EspApplication.AppState.GET_DATA_SUCCESS)) {
 
-                tvNodeOffline.setVisibility(View.VISIBLE);
+                rlNodeStatus.setVisibility(View.VISIBLE);
 
-                if (espApp.mDNSDeviceMap.containsKey(device.getNodeId())) {
+                if (espApp.localDeviceMap.containsKey(device.getNodeId())) {
 
-                    tvNodeOffline.setText(R.string.local_device_text);
+                    EspLocalDevice localDevice = espApp.localDeviceMap.get(device.getNodeId());
+                    if (localDevice.getSecurityType() == 1) {
+                        ivSecureLocal.setVisibility(View.VISIBLE);
+                    } else {
+                        ivSecureLocal.setVisibility(View.GONE);
+                    }
+                    tvNodeStatus.setText(R.string.local_device_text);
 
                 } else {
-
+                    ivSecureLocal.setVisibility(View.GONE);
                     String offlineText = getString(R.string.status_offline);
-                    tvNodeOffline.setText(offlineText);
+                    tvNodeStatus.setText(offlineText);
 
                     if (timeStampOfStatus != 0) {
 
@@ -453,20 +466,27 @@ public class EspDeviceActivity extends AppCompatActivity {
                             String time = formatter.format(calendar.getTime());
                             offlineText = getString(R.string.offline_at) + " " + time;
                         }
-                        tvNodeOffline.setText(offlineText);
+                        tvNodeStatus.setText(offlineText);
                     }
                 }
             } else {
-                tvNodeOffline.setVisibility(View.INVISIBLE);
+                rlNodeStatus.setVisibility(View.INVISIBLE);
             }
 
         } else {
 
-            if (espApp.mDNSDeviceMap.containsKey(device.getNodeId())) {
-                tvNodeOffline.setVisibility(View.VISIBLE);
-                tvNodeOffline.setText(R.string.local_device_text);
+            if (espApp.localDeviceMap.containsKey(device.getNodeId())) {
+
+                rlNodeStatus.setVisibility(View.VISIBLE);
+                EspLocalDevice localDevice = espApp.localDeviceMap.get(device.getNodeId());
+                if (localDevice.getSecurityType() == 1) {
+                    ivSecureLocal.setVisibility(View.VISIBLE);
+                } else {
+                    ivSecureLocal.setVisibility(View.GONE);
+                }
+                tvNodeStatus.setText(R.string.local_device_text);
             } else {
-                tvNodeOffline.setVisibility(View.INVISIBLE);
+                rlNodeStatus.setVisibility(View.INVISIBLE);
             }
         }
 

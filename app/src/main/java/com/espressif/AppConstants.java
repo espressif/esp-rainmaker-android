@@ -36,7 +36,8 @@ public class AppConstants {
     public static final String GROUP_TABLE = "group_table";
     public static final String NOTIFICATION_TABLE = "notification_table";
     public static final String MDNS_SERVICE_TYPE = "_esp_local_ctrl._tcp.";
-    public static final String LOCAL_CONTROL_PATH = "esp_local_ctrl/control";
+    public static final String LOCAL_CONTROL_ENDPOINT = "esp_local_ctrl/control";
+    public static final String LOCAL_SESSION_ENDPOINT = "esp_local_ctrl/session";
 
     public enum UpdateEventType {
 
@@ -113,6 +114,7 @@ public class AppConstants {
     // Service Types
     public static final String SERVICE_TYPE_SCHEDULE = "esp.service.schedule";
     public static final String SERVICE_TYPE_TIME = "esp.service.time";
+    public static final String SERVICE_TYPE_LOCAL_CONTROL = "esp.service.local_control";
 
     // Param Types
     public static final String PARAM_TYPE_NAME = "esp.param.name";
@@ -123,6 +125,8 @@ public class AppConstants {
     public static final String PARAM_TYPE_TEMPERATURE = "esp.param.temperature";
     public static final String PARAM_TYPE_TZ = "esp.param.tz";
     public static final String PARAM_TYPE_TZ_POSIX = "esp.param.tz_posix";
+    public static final String PARAM_TYPE_LOCAL_CONTROL_POP = "esp.param.local_control_pop";
+    public static final String PARAM_TYPE_LOCAL_CONTROL_TYPE = "esp.param.local_control_type";
 
     // Keys used to pass data between activities and to store data in SharedPreference.
     public static final String KEY_DEVICE_NAME_PREFIX = "device_prefix";
@@ -236,6 +240,7 @@ public class AppConstants {
     public static final String KEY_EVENT_DATA_PAYLOAD = "event_data_payload";
     public static final String KEY_NOTIFICATION_MSG = "notification_msg";
     public static final String KEY_PAYLOAD = "payload";
+    public static final String KEY_LOCAL_CONTROL = "Local Control";
 
     public static final String KEY_OPERATION = "operation";
     public static final String KEY_OPERATION_ADD = "add";

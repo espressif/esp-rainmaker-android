@@ -805,7 +805,7 @@ public class ApiManager {
                                         if (configJson != null) {
 
                                             // If node is available on local network then ignore configuration received from cloud.
-                                            if (!espApp.mDNSDeviceMap.containsKey(nodeId)) {
+                                            if (!espApp.localDeviceMap.containsKey(nodeId)) {
                                                 espNode = JsonDataParser.setNodeConfig(espNode, configJson);
                                             } else {
                                                 Log.d(TAG, "Ignore config values for local node :" + nodeId);
@@ -827,9 +827,10 @@ public class ApiManager {
                                             ArrayList<Service> services = espNode.getServices();
                                             JSONObject scheduleJson = paramsJson.optJSONObject(AppConstants.KEY_SCHEDULE);
                                             JSONObject timeJson = paramsJson.optJSONObject(AppConstants.KEY_TIME);
+                                            JSONObject localControlJson = paramsJson.optJSONObject(AppConstants.KEY_LOCAL_CONTROL);
 
                                             // If node is available on local network then ignore param values received from cloud.
-                                            if (!espApp.mDNSDeviceMap.containsKey(nodeId) && devices != null) {
+                                            if (!espApp.localDeviceMap.containsKey(nodeId) && devices != null) {
 
                                                 for (int i = 0; i < devices.size(); i++) {
 
@@ -1041,12 +1042,38 @@ public class ApiManager {
                                             } else {
                                                 Log.e(TAG, "Time JSON is not available");
                                             }
+
+                                            // Local control
+                                            if (localControlJson != null && services != null) {
+                                                for (int serviceIdx = 0; serviceIdx < services.size(); serviceIdx++) {
+                                                    Service service = services.get(serviceIdx);
+                                                    if (AppConstants.SERVICE_TYPE_LOCAL_CONTROL.equals(service.getType())) {
+                                                        ArrayList<Param> localParams = service.getParams();
+                                                        if (localParams != null) {
+                                                            for (int paramIdx = 0; paramIdx < localParams.size(); paramIdx++) {
+                                                                Param localParam = localParams.get(paramIdx);
+                                                                String dataType = localParam.getDataType();
+                                                                if (!TextUtils.isEmpty(dataType)) {
+                                                                    if (dataType.equalsIgnoreCase("string")) {
+                                                                        localParam.setLabelValue(localControlJson.optString(localParam.getName()));
+                                                                    }
+                                                                    if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
+                                                                        localParam.setValue(localControlJson.optInt(localParam.getName()));
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                Log.e(TAG, "Local control JSON is not available");
+                                            }
                                         }
 
                                         // Node Status
                                         JSONObject statusJson = nodeJson.optJSONObject(AppConstants.KEY_STATUS);
 
-                                        if (statusJson != null && !espApp.mDNSDeviceMap.containsKey(nodeId)) {
+                                        if (statusJson != null && !espApp.localDeviceMap.containsKey(nodeId)) {
 
                                             JSONObject connectivityObject = statusJson.optJSONObject(AppConstants.KEY_CONNECTIVITY);
 

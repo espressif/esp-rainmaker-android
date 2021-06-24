@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.espressif.mdns;
+package com.espressif.local_control;
 
 import android.content.Context;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
 import android.util.Log;
 
+import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 
 import java.net.InetAddress;
@@ -164,15 +165,15 @@ public class mDNSManager {
 
                 String serviceName = service.getServiceName();
                 EspApplication espApp = (EspApplication) context.getApplicationContext();
-                Log.i(TAG, "mDNS device list size before remove : " + espApp.mDNSDeviceMap.size());
-                Iterator<Map.Entry<String, mDNSDevice>> itr = espApp.mDNSDeviceMap.entrySet().iterator();
+                Log.i(TAG, "Local device list size before remove : " + espApp.localDeviceMap.size());
+                Iterator<Map.Entry<String, EspLocalDevice>> itr = espApp.localDeviceMap.entrySet().iterator();
 
                 while (itr.hasNext()) {
 
                     // Get the entry at this iteration
-                    Map.Entry<String, mDNSDevice> entry = itr.next();
+                    Map.Entry<String, EspLocalDevice> entry = itr.next();
                     String nodeId = entry.getKey();
-                    mDNSDevice device = entry.getValue();
+                    EspLocalDevice device = entry.getValue();
 
                     // Check if this value is the required value
                     if (device.getServiceName().equals(serviceName)) {
@@ -182,7 +183,7 @@ public class mDNSManager {
                     }
                 }
 
-                Log.i(TAG, "mDNS device list size after remove : " + espApp.mDNSDeviceMap.size());
+                Log.i(TAG, "Local device list size after remove : " + espApp.localDeviceMap.size());
 
                 // If the lost service was in the queue of pending services, remove it
                 Iterator<NsdServiceInfo> iterator = pendingNsdServices.iterator();
@@ -253,18 +254,25 @@ public class mDNSManager {
                 Log.d(TAG, "Host address : " + hostAddress + " and port : " + hostPort);
                 Map<String, byte[]> attr = serviceInfo.getAttributes();
                 HashMap<String, String> endPointList = new HashMap<>();
+                String nodeId = "";
 
                 for (Map.Entry<String, byte[]> entry : attr.entrySet()) {
                     String key = entry.getKey();
                     byte[] value = entry.getValue();
                     Log.i(TAG, "Key : " + key);
                     Log.i(TAG, "Value : " + new String(value));
-                    endPointList.put(key, new String(value));
+
+                    if (key.equals(AppConstants.KEY_NODE_ID)) {
+                        nodeId = new String(value);
+                    } else {
+                        endPointList.put(key, new String(value));
+                    }
                 }
 
                 String addr = hostAddress.toString();
                 addr = addr.replace("/", "");
-                mDNSDevice device = new mDNSDevice();
+                EspLocalDevice device = new EspLocalDevice();
+                device.setNodeId(nodeId);
                 device.setServiceName(serviceInfo.getServiceName());
                 device.setIpAddr(addr);
                 device.setPort(hostPort);
@@ -293,6 +301,6 @@ public class mDNSManager {
 
     public interface mDNSEvenListener {
 
-        void deviceFound(mDNSDevice device);
+        void deviceFound(EspLocalDevice device);
     }
 }
