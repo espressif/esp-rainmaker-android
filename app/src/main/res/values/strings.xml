@@ -116,7 +116,7 @@
     <string name="no_devices">No devices added</string>
     <string name="no_schedules">No Schedules added</string>
     <string name="no_groups">No Groups created</string>
-    <string name="no_sharing_requests">No sharing requests</string>
+    <string name="no_sharing_requests">No notifications</string>
     <string name="add_device_txt">You can provision a device by scanning the QR code or you can do it manually my tapping on + icon on right-top of this screen.</string>
     <string name="signup_confirm_msg">Enter verification code.</string>
     <string name="node_offline">Node Offline</string>
@@ -214,7 +214,7 @@
     <string name="title_activity_manage_groups">Manage Groups</string>
     <string name="title_activity_create_group">Create Group</string>
     <string name="title_activity_edit_group">Edit Group</string>
-    <string name="title_activity_sharing_requests">Sharing Requests</string>
+    <string name="title_activity_sharing_requests">Notifications</string>
     <string name="title_activity_voice_services">Voice Services</string>
 
     <!--Dialog texts-->
@@ -335,6 +335,20 @@
     <string name="day_5">FRI</string>
     <string name="day_6">SAT</string>
     <string name="day_7">SUN</string>
+
+    <!--    Notification strings-->
+    <string name="channel_node_connected">Node Connected</string>
+    <string name="channel_node_disconnected">Node Disconnected</string>
+    <string name="channel_node_added">Node Added</string>
+    <string name="channel_node_removed">Node Removed</string>
+    <string name="channel_node_sharing">Node Sharing</string>
+    <string name="channel_node_alert">Alert Messages</string>
+
+    <string name="notify_node_added">New device(s) are added. Tap to view.</string>
+    <string name="notify_node_removed">Some device(s) are removed. Tap to view.</string>
+    <string name="notify_node_connected">Some device(s) came online. Tap to view.</string>
+    <string name="notify_node_disconnected">Some device(s) went offline. Tap to view.</string>
+    <string name="notify_node_alert">Alert received from a device. Tap to view.</string>
 
     <string-array name="days">
         <item>Sun</item>

@@ -93,10 +93,10 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
 
         GridLayoutManager linearLayoutManager = new GridLayoutManager(context, 2);
         viewHolder.rvDevices.setLayoutManager(linearLayoutManager);
-        viewHolder.rvDevices.setHasFixedSize(true);
+//        viewHolder.rvDevices.setHasFixedSize(true);
 
         viewHolder.rvNodes.setLayoutManager(new LinearLayoutManager(context));
-        viewHolder.rvNodes.setHasFixedSize(true);
+//        viewHolder.rvNodes.setHasFixedSize(true);
 
         viewHolder.swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
 

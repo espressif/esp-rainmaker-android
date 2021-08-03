@@ -15,6 +15,7 @@
 package com.espressif.ui.activities;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -32,18 +33,22 @@ import com.espressif.AppConstants;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
+import com.espressif.db.EspDatabase;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.adapters.NotificationAdapter;
 import com.espressif.ui.adapters.SharingRequestAdapter;
+import com.espressif.ui.models.NotificationEvent;
 import com.espressif.ui.models.SharingRequest;
 import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.ArrayList;
 
-public class SharingRequestsActivity extends AppCompatActivity {
+public class NotificationsActivity extends AppCompatActivity {
 
-    private static final String TAG = SharingRequestsActivity.class.getSimpleName();
+    private static final String TAG = NotificationsActivity.class.getSimpleName();
 
-    private RecyclerView recyclerView;
+    private RelativeLayout rlSharingReq, rlNotifications;
+    private RecyclerView rvSharingReq, rvNotifications;
     private TextView tvNoRequest;
     private RelativeLayout rlNoRequest;
     private SwipeRefreshLayout swipeRefreshLayout;
@@ -51,20 +56,36 @@ public class SharingRequestsActivity extends AppCompatActivity {
     private ContentLoadingProgressBar progressBar;
     private RelativeLayout rlProgress, rlPendingReq;
 
-    private SharingRequestAdapter notificationAdapter;
+    private SharingRequestAdapter sharingRequestAdapter;
+    private NotificationAdapter notificationAdapter;
     private ArrayList<SharingRequest> pendingRequests;
+    private ArrayList<NotificationEvent> notifications;
     private ApiManager apiManager;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_sharing_requests);
+        setContentView(R.layout.activity_notifications);
 
         pendingRequests = new ArrayList<>();
+        notifications = new ArrayList<>();
         apiManager = ApiManager.getInstance(getApplicationContext());
+
+        EspDatabase espDatabase = EspDatabase.getInstance(getApplicationContext());
+        ArrayList<NotificationEvent> events = (ArrayList<NotificationEvent>) espDatabase.getNotificationDao().getNotificationsFromStorage();
+        if (events != null && events.size() > 0) {
+            notifications = events;
+        }
+        Log.e(TAG, "Notification list size : " + notifications.size());
         initViews();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
         getSharingRequests();
+        getNotifications();
     }
 
     private void initViews() {
@@ -86,27 +107,36 @@ public class SharingRequestsActivity extends AppCompatActivity {
         rlNoRequest = findViewById(R.id.rl_no_request);
         tvNoRequest = findViewById(R.id.tv_no_request);
         ivNoRequest = findViewById(R.id.iv_no_request);
-        recyclerView = findViewById(R.id.rv_request_list);
+        rlSharingReq = findViewById(R.id.rl_sharing_requests);
+        rlNotifications = findViewById(R.id.rl_notifications);
+        rvSharingReq = findViewById(R.id.rv_request_list);
+        rvNotifications = findViewById(R.id.rv_notifications);
         swipeRefreshLayout = findViewById(R.id.swipe_container);
         rlPendingReq = findViewById(R.id.rl_pending_requests);
         rlProgress = findViewById(R.id.rl_progress);
 
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        notificationAdapter = new SharingRequestAdapter(this, pendingRequests);
-        recyclerView.setAdapter(notificationAdapter);
+        rvSharingReq.setLayoutManager(new LinearLayoutManager(this));
+        sharingRequestAdapter = new SharingRequestAdapter(this, pendingRequests);
+        rvSharingReq.setAdapter(sharingRequestAdapter);
+
+        rvNotifications.setLayoutManager(new LinearLayoutManager(this));
+        notificationAdapter = new NotificationAdapter(this, notifications);
+        rvNotifications.setAdapter(notificationAdapter);
 
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
 
             @Override
             public void onRefresh() {
                 getSharingRequests();
+                getNotifications();
             }
         });
 
         progressBar.setVisibility(View.VISIBLE);
         tvNoRequest.setVisibility(View.GONE);
         ivNoRequest.setVisibility(View.GONE);
-        recyclerView.setVisibility(View.GONE);
+        rlSharingReq.setVisibility(View.GONE);
+        rlNotifications.setVisibility(View.GONE);
     }
 
     public void clearPendingRequest() {
@@ -116,20 +146,31 @@ public class SharingRequestsActivity extends AppCompatActivity {
 
     private void updateUI() {
 
-        if (pendingRequests.size() > 0) {
+        if ((pendingRequests.size() + notifications.size()) > 0) {
 
             rlNoRequest.setVisibility(View.GONE);
-            recyclerView.setVisibility(View.VISIBLE);
+
+            if (pendingRequests.size() > 0) {
+                rlSharingReq.setVisibility(View.VISIBLE);
+            } else {
+                rlSharingReq.setVisibility(View.GONE);
+            }
+            if (notifications.size() > 0) {
+                rlNotifications.setVisibility(View.VISIBLE);
+            } else {
+                rlNotifications.setVisibility(View.GONE);
+            }
 
         } else {
             tvNoRequest.setText(R.string.no_sharing_requests);
             rlNoRequest.setVisibility(View.VISIBLE);
             tvNoRequest.setVisibility(View.VISIBLE);
             ivNoRequest.setVisibility(View.VISIBLE);
-            recyclerView.setVisibility(View.GONE);
+            rlSharingReq.setVisibility(View.GONE);
+            rlNotifications.setVisibility(View.GONE);
         }
         progressBar.setVisibility(View.GONE);
-        notificationAdapter.notifyDataSetChanged();
+        sharingRequestAdapter.notifyDataSetChanged();
         swipeRefreshLayout.setRefreshing(false);
     }
 
@@ -162,9 +203,9 @@ public class SharingRequestsActivity extends AppCompatActivity {
                 progressBar.setVisibility(View.GONE);
                 swipeRefreshLayout.setRefreshing(false);
                 if (exception instanceof CloudException) {
-                    Toast.makeText(SharingRequestsActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NotificationsActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(SharingRequestsActivity.this, R.string.error_get_sharing_request, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NotificationsActivity.this, R.string.error_get_sharing_request, Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -173,12 +214,21 @@ public class SharingRequestsActivity extends AppCompatActivity {
                 progressBar.setVisibility(View.GONE);
                 swipeRefreshLayout.setRefreshing(false);
                 if (exception instanceof CloudException) {
-                    Toast.makeText(SharingRequestsActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NotificationsActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(SharingRequestsActivity.this, R.string.error_get_sharing_request, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NotificationsActivity.this, R.string.error_get_sharing_request, Toast.LENGTH_SHORT).show();
                 }
             }
         });
+    }
+
+    private void getNotifications() {
+        EspDatabase espDatabase = EspDatabase.getInstance(getApplicationContext());
+        ArrayList<NotificationEvent> events = (ArrayList<NotificationEvent>) espDatabase.getNotificationDao().getNotificationsFromStorage();
+        if (events != null && events.size() > 0) {
+            notifications = events;
+        }
+        notificationAdapter.updateList(notifications);
     }
 
     public void showLoading(String msg) {

@@ -26,8 +26,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 import com.espressif.AppConstants;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
+import com.espressif.ui.models.NotificationEvent;
 
-@Database(entities = {EspNode.class, Group.class}, version = 2)
+@Database(entities = {EspNode.class, Group.class, NotificationEvent.class}, version = 3, exportSchema = false)
 @TypeConverters({StringArrayListConverters.class})
 public abstract class EspDatabase extends RoomDatabase {
 
@@ -35,6 +36,7 @@ public abstract class EspDatabase extends RoomDatabase {
 
     public abstract NodeDao getNodeDao();
     public abstract GroupDao getGroupDao();
+    public abstract NotificationDao getNotificationDao();
 
     public static EspDatabase getInstance(Context context) {
         if (null == espDatabase) {
@@ -47,7 +49,8 @@ public abstract class EspDatabase extends RoomDatabase {
         return Room.databaseBuilder(context,
                 EspDatabase.class,
                 AppConstants.ESP_DATABASE_NAME)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_3)
                 .allowMainThreadQueries().build();
     }
 
@@ -55,10 +58,18 @@ public abstract class EspDatabase extends RoomDatabase {
         espDatabase = null;
     }
 
-    static final Migration MIGRATION_1_2 = new Migration(1, 2) {
+    static final Migration MIGRATION_1_3 = new Migration(1, 3) {
         @Override
         public void migrate(SupportSQLiteDatabase database) {
             database.execSQL("CREATE TABLE IF NOT EXISTS `" + AppConstants.GROUP_TABLE + "` (`groupId` TEXT NOT NULL, `group_name` TEXT NOT NULL, `node_list` TEXT, PRIMARY KEY(`groupId`))");
+            database.execSQL("CREATE TABLE IF NOT EXISTS `" + AppConstants.NOTIFICATION_TABLE + "` (`notificationId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `event_version` TEXT, `event_type` TEXT, `description` TEXT, `id` TEXT, `event_data` TEXT, `timestamp` INTEGER NOT NULL, `notification_msg` TEXT)");
+        }
+    };
+
+    static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `" + AppConstants.NOTIFICATION_TABLE + "` (`notificationId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `event_version` TEXT, `event_type` TEXT, `description` TEXT, `id` TEXT, `event_data` TEXT, `timestamp` INTEGER NOT NULL, `notification_msg` TEXT)");
         }
     };
 }

@@ -5,6 +5,7 @@
     <color name="colorAccent">#8181a8</color>
     <color name="blue">#0033CC</color>
     <color name="orange">#FF9900</color>
+    <color name="color_esp_logo">#CA1627</color>
 
     <color name="toolbar_items">#CBCBCB</color>
     <color name="text_border_default">#303232</color>

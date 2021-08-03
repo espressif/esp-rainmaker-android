@@ -1057,6 +1057,110 @@ public class ApiManager {
         });
     }
 
+    /**
+     * This method is used to get node details. This is a blocking call.
+     *
+     * @param nodeId Node id.
+     */
+    public void getNodeDetails(String nodeId) {
+
+        Log.d(TAG, "Get Node Details for id : " + nodeId);
+
+        try {
+            Response<ResponseBody> response = apiInterface.getNode(AppConstants.URL_USER_NODES, accessToken, nodeId).execute();
+            Log.d(TAG, "Get Node Details, Response code : " + response.code());
+
+            try {
+                if (response.isSuccessful()) {
+
+                    if (response.body() != null) {
+
+                        String jsonResponse = response.body().string();
+                        Log.e(TAG, "onResponse Success : " + jsonResponse);
+                        JSONObject jsonObject = new JSONObject(jsonResponse);
+                        JSONArray nodeJsonArray = jsonObject.optJSONArray(AppConstants.KEY_NODE_DETAILS);
+
+                        if (nodeJsonArray != null) {
+
+                            for (int nodeIndex = 0; nodeIndex < nodeJsonArray.length(); nodeIndex++) {
+
+                                JSONObject nodeJson = nodeJsonArray.optJSONObject(nodeIndex);
+
+                                if (nodeJson != null) {
+
+                                    // Node ID
+                                    String id = nodeJson.optString(AppConstants.KEY_ID);
+                                    Log.d(TAG, "Node id : " + id);
+                                    EspNode espNode;
+
+                                    if (espApp.nodeMap.get(id) != null) {
+                                        espNode = espApp.nodeMap.get(id);
+                                    } else {
+                                        espNode = new EspNode(id);
+                                    }
+
+                                    // User role
+                                    String role = nodeJson.optString(AppConstants.KEY_ROLE);
+                                    espNode.setUserRole(role);
+
+                                    // Node Config
+                                    JSONObject configJson = nodeJson.optJSONObject(AppConstants.KEY_CONFIG);
+                                    if (configJson != null) {
+
+                                        espNode = JsonDataParser.setNodeConfig(espNode, configJson);
+                                        espNode.setConfigData(configJson.toString());
+                                        espApp.nodeMap.put(nodeId, espNode);
+                                    }
+
+                                    // Node Params
+                                    JSONObject paramsJson = nodeJson.optJSONObject(AppConstants.KEY_PARAMS);
+                                    if (paramsJson != null) {
+                                        JsonDataParser.setAllParams(espApp, espNode, paramsJson);
+                                        espNode.setParamData(paramsJson.toString());
+                                        espDatabase.getNodeDao().insertOrUpdate(espNode);
+                                    }
+
+                                    // Node Status
+                                    JSONObject statusJson = nodeJson.optJSONObject(AppConstants.KEY_STATUS);
+
+                                    if (statusJson != null) {
+
+                                        JSONObject connectivityObject = statusJson.optJSONObject(AppConstants.KEY_CONNECTIVITY);
+
+                                        if (connectivityObject != null) {
+
+                                            boolean nodeStatus = connectivityObject.optBoolean(AppConstants.KEY_CONNECTED);
+                                            long timestamp = connectivityObject.optLong(AppConstants.KEY_TIMESTAMP);
+                                            espNode.setTimeStampOfStatus(timestamp);
+
+                                            if (espNode.isOnline() != nodeStatus) {
+                                                espNode.setOnline(nodeStatus);
+                                                EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
+                                            }
+                                        } else {
+                                            Log.e(TAG, "Connectivity object is null");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        Log.e(TAG, "Failed to get Node Details. Response received : null");
+                    }
+                } else {
+                    String jsonErrResponse = response.errorBody().string();
+                    Log.e(TAG, "Failed to get Node Details.");
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void getNodeDetails(String nodeId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Node Details for id : " + nodeId);
@@ -2407,6 +2511,82 @@ public class ApiManager {
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
                 listener.onNetworkFailure(new RuntimeException("Failed to remove sharing"));
+            }
+        });
+    }
+
+    public void registerDeviceToken(final String deviceToken, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Register device token : " + deviceToken);
+        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+                + AppConstants.CURRENT_VERSION + "/user/push_notification/mobile_platform_endpoint";
+
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_PLATFORM, AppConstants.KEY_GCM);
+        body.addProperty(AppConstants.KEY_MOBILE_DEVICE_TOKEN, deviceToken);
+
+        apiInterface.registerDeviceToken(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.e(TAG, "Register FCM token, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonResponse = response.body().string();
+                        Log.e(TAG, "Response : " + jsonResponse);
+                        listener.onSuccess(null);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to register fcm token");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to register fcm token"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to register fcm token"));
+            }
+        });
+    }
+
+    public void unregisterDeviceToken(final String deviceToken, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Unregister FCM token...");
+        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+                + AppConstants.CURRENT_VERSION + "/user/push_notification/mobile_platform_endpoint";
+
+        apiInterface.unregisterDeviceToken(url, accessToken, deviceToken).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.e(TAG, "Unregister FCM token, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonResponse = response.body().string();
+                        Log.e(TAG, "Response : " + jsonResponse);
+                        listener.onSuccess(null);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to unregister fcm token");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to unregister fcm token"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to unregister fcm token"));
             }
         });
     }

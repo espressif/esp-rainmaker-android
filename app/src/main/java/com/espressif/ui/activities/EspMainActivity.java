@@ -35,6 +35,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager.widget.ViewPager;
 
@@ -101,7 +102,30 @@ public class EspMainActivity extends AppCompatActivity {
 
         initViews();
         loadDataFromLocalStorage();
+        String reqId = getIntent().getStringExtra(AppConstants.KEY_REQ_ID);
+        if (!TextUtils.isEmpty(reqId)) {
+            Log.e(TAG, "Intent string is not empty");
+            Log.e(TAG, "Req id : " + reqId);
+            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(espApp);
+            notificationManager.cancel(getIntent().getIntExtra(AppConstants.KEY_ID, -1));
+
+            ApiManager.getInstance(espApp).updateSharingRequest(reqId, true, new ApiResponseListener() {
+
+                @Override
+                public void onSuccess(Bundle data) {
+                }
+
+                @Override
+                public void onResponseFailure(Exception exception) {
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
+                }
+            });
+        }
         getSupportedVersions();
+        espApp.registerDeviceToken();
     }
 
     @Override
@@ -201,6 +225,9 @@ public class EspMainActivity extends AppCompatActivity {
 //                if (!espApp.getCurrentStatus().equals(GetDataStatus.FETCHING_DATA)) {
 //                    updateUi();
 //                }
+            case EVENT_DEVICE_ONLINE:
+            case EVENT_DEVICE_OFFLINE:
+                updateUi();
                 break;
 
             case EVENT_LOCAL_DEVICE_UPDATE:

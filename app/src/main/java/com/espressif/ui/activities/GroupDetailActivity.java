@@ -201,13 +201,13 @@ public class GroupDetailActivity extends AppCompatActivity {
         GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 2);
         rvDevices.setLayoutManager(gridLayoutManager);
         rvDevices.setAdapter(deviceAdapter);
-        rvDevices.setHasFixedSize(true);
+//        rvDevices.setHasFixedSize(true);
 
         ((SimpleItemAnimator) rvNodes.getItemAnimator()).setSupportsChangeAnimations(false);
         nodeAdapter = new GroupNodeAdapter(this, group, nodes, false);
         rvNodes.setLayoutManager(new LinearLayoutManager(this));
         rvNodes.setAdapter(nodeAdapter);
-        rvNodes.setHasFixedSize(true);
+//        rvNodes.setHasFixedSize(true);
     }
 
     private void updateUI() {
