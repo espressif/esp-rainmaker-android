@@ -184,10 +184,6 @@ public class UserProfileFragment extends Fragment {
 
                 dialog.dismiss();
                 espApp.logout();
-                Intent loginActivity = new Intent(espApp, MainActivity.class);
-                loginActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(loginActivity);
-                getActivity().finish();
             }
         });
 

@@ -26,6 +26,7 @@ import android.widget.TextView;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.fragment.app.Fragment;
 
+import com.espressif.AppConstants;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.user_module.ForgotPasswordActivity;
 import com.google.android.material.card.MaterialCardView;
@@ -40,6 +41,7 @@ public class ResetPasswordFragment extends Fragment {
     private TextView txtSetPasswordBtn;
     private ImageView arrowImage;
     private ContentLoadingProgressBar progressBar;
+    private String userName;
 
     public ResetPasswordFragment() {
         // Required empty public constructor
@@ -85,10 +87,9 @@ public class ResetPasswordFragment extends Fragment {
         progressBar = view.findViewById(R.id.progress_indicator);
 
         if (extras != null) {
-            if (extras.containsKey("destination")) {
-                String dest = extras.getString("destination");
-                String delMed = extras.getString("deliveryMed");
-                String textToDisplay = "To set a new password we sent a verification code to " + dest + " via " + delMed;
+            if (extras.containsKey(AppConstants.KEY_USER_NAME)) {
+                userName = extras.getString(AppConstants.KEY_USER_NAME);
+                String textToDisplay = "To set a new password we sent a verification code to " + userName;
                 tvResetPasswordMsg.setText(textToDisplay);
             }
         }

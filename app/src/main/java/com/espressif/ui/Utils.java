@@ -14,12 +14,39 @@
 
 package com.espressif.ui;
 
+import android.app.Activity;
+import android.content.DialogInterface;
 import android.text.TextUtils;
 import android.util.Patterns;
+
+import androidx.appcompat.app.AlertDialog;
+
+import com.espressif.rainmaker.R;
 
 public class Utils {
 
     public static boolean isValidEmail(CharSequence target) {
         return (!TextUtils.isEmpty(target) && Patterns.EMAIL_ADDRESS.matcher(target).matches());
+    }
+
+    public static void showAlertDialog(final Activity activityContext, String title, String msg, final boolean shouldExit) {
+
+        final AlertDialog.Builder builder = new AlertDialog.Builder(activityContext);
+
+        if (!TextUtils.isEmpty(title)) {
+            builder.setTitle(title);
+        }
+        builder.setMessage(msg);
+        builder.setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                if (shouldExit) {
+                    activityContext.finish();
+                }
+            }
+        });
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 }

@@ -26,7 +26,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:layout_marginTop="32dp"
+                android:layout_marginTop="@dimen/margin_32"
                 android:lineSpacingExtra="6sp"
                 android:text="A confirmation code was sent."
                 android:textColor="@color/colorPrimaryDark"
@@ -36,28 +36,10 @@
                 app:layout_constraintTop_toTopOf="parent" />
 
             <EditText
-                android:id="@+id/et_email"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_edit_text"
-                android:hint="@string/hint_email"
-                android:imeOptions="actionNext"
-                android:inputType="textEmailAddress"
-                android:paddingStart="16dp"
-                android:paddingTop="18dp"
-                android:paddingBottom="18dp"
-                android:textColor="@color/color_text"
-                android:textSize="16sp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_sign_up_confirm_msg_1" />
-
-            <EditText
                 android:id="@+id/et_verification_code"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="@dimen/margin_18"
                 android:background="@drawable/bg_edit_text"
                 android:hint="@string/hint_verification_code"
                 android:imeOptions="actionGo"
@@ -69,7 +51,7 @@
                 android:textSize="16sp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/et_email" />
+                app:layout_constraintTop_toBottomOf="@id/tv_sign_up_confirm_msg_1" />
 
             <include
                 android:id="@+id/btn_confirm"

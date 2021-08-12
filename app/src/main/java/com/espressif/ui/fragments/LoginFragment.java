@@ -42,7 +42,6 @@ import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
 import com.espressif.ui.activities.MainActivity;
-import com.espressif.ui.user_module.AppHelper;
 import com.espressif.ui.user_module.ForgotPasswordActivity;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputEditText;
@@ -222,20 +221,17 @@ public class LoginFragment extends Fragment {
             return;
         }
 
-        AppHelper.setUser(email);
-
         if (TextUtils.isEmpty(password)) {
 
             layoutPassword.setError(getString(R.string.error_password_empty));
             return;
         }
-
-        showLoginLoading();
         ((MainActivity) getActivity()).signInUser(email, password);
     }
 
-    public void updateUi(String newUserEmail, String newUserPassword) {
+    public void doLoginWithNewUser(String newUserEmail, String newUserPassword) {
 
+        Log.d(TAG, "Login with new user : " + newUserEmail);
         etEmail.setText(newUserEmail);
         etPassword.setText(newUserPassword);
         email = etEmail.getText().toString();
@@ -253,15 +249,11 @@ public class LoginFragment extends Fragment {
             return;
         }
 
-        AppHelper.setUser(email);
-
         if (TextUtils.isEmpty(password)) {
 
             layoutPassword.setError(getString(R.string.error_password_empty));
             return;
         }
-
-        showLoginLoading();
         ((MainActivity) getActivity()).signInUser(email, password);
     }
 

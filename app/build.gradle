@@ -17,8 +17,6 @@ def defaultPoP = ""
 def defaultPrefix = "PROV_"
 def defaultWiFiScanSrc = "Device"
 
-def defaultAwsRegion = "us-east-1"
-def defaultUserPoolId = "us-east-1_kWz4M6MfD"
 def defaultClientId = "60i6kac5f9rjuetqnq5mnmaqv6"
 
 def defaultBaseUrl = "https://api.rainmaker.espressif.com"
@@ -44,8 +42,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 23
         targetSdkVersion 30
-        versionCode 28
-        versionName "2.3.0 - ${getGitHash()}"
+        versionCode 29
+        versionName "2.3.1 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -93,8 +91,6 @@ android {
         def authUrl = localProperties.getProperty("authUrl", defaultAuthUrl)
         def redirectUri = localProperties.getProperty("redirectUri", defaultRedirectUri)
 
-        buildConfigField "String", "AWS_REGION", '"' + localProperties.getProperty("awsRegion", defaultAwsRegion) + '"'
-        buildConfigField "String", "USER_POOL_ID", '"' + localProperties.getProperty("userPoolId", defaultUserPoolId) + '"'
         buildConfigField "String", "CLIENT_ID", '"' + clientId + '"'
 
         buildConfigField "String", "BASE_URL", '"' + localProperties.getProperty("baseUrl", defaultBaseUrl) + '"'
@@ -178,11 +174,7 @@ dependencies {
     implementation 'com.aventrix.jnanoid:jnanoid:2.0.0'
     implementation 'com.budiyev.android:code-scanner:2.1.0'
     implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.0.9'
-
-    implementation 'com.amazonaws:aws-android-sdk-cognitoidentityprovider:2.19.0'
     implementation 'com.github.warkiz.tickseekbar:tickseekbar:0.1.4'
-    implementation('com.amazonaws:aws-android-sdk-iot:2.15.2') { transitive = true }
-    implementation('com.amazonaws:aws-android-sdk-mobile-client:2.15.2') { transitive = true }
 
     // Room dependencies
     def room_version = "2.3.0"

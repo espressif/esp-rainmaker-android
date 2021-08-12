@@ -14,10 +14,7 @@
 
 package com.espressif.ui.fragments;
 
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
@@ -28,7 +25,6 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -39,36 +35,22 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.AppCompatCheckBox;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.fragment.app.Fragment;
 
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoDevice;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUser;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserAttributes;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.CognitoUserSession;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.AuthenticationContinuation;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.AuthenticationDetails;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.ChallengeContinuation;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.continuations.MultiFactorAuthenticationContinuation;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.AuthenticationHandler;
-import com.amazonaws.mobileconnectors.cognitoidentityprovider.handlers.SignUpHandler;
-import com.amazonaws.services.cognitoidentityprovider.model.CodeDeliveryDetailsType;
-import com.amazonaws.services.cognitoidentityprovider.model.SignUpResult;
 import com.espressif.AppConstants;
 import com.espressif.cloudapi.ApiManager;
+import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
 import com.espressif.ui.activities.MainActivity;
-import com.espressif.ui.user_module.AppHelper;
 import com.espressif.ui.user_module.SignUpConfirmActivity;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
-
-import java.util.Locale;
 
 public class SignUpFragment extends Fragment {
 
@@ -84,11 +66,9 @@ public class SignUpFragment extends Fragment {
     private TextView txtRegisterBtn;
     private ImageView arrowImage;
     private ContentLoadingProgressBar progressBar;
-    private AlertDialog userDialog;
     private TextView tvPolicy;
 
     private String email, password, confirmPassword;
-    private SharedPreferences sharedPreferences;
 
     public SignUpFragment() {
         // Required empty public constructor
@@ -116,7 +96,6 @@ public class SignUpFragment extends Fragment {
 
         @Override
         public void onClick(View v) {
-
             doSignUp();
         }
     };
@@ -126,9 +105,6 @@ public class SignUpFragment extends Fragment {
         etEmail.setError(null);
         layoutPassword.setError(null);
         layoutConfirmPassword.setError(null);
-
-        // Read user data and register
-        CognitoUserAttributes userAttributes = new CognitoUserAttributes();
 
         email = etEmail.getText().toString();
         if (TextUtils.isEmpty(email)) {
@@ -168,25 +144,36 @@ public class SignUpFragment extends Fragment {
             return;
         }
 
-        String userInput = etEmail.getText().toString();
-        if (userInput != null) {
-            if (userInput.length() > 0) {
-                userAttributes.addAttribute(AppHelper.getSignUpFieldsC2O().get(etEmail.getHint()).toString(), userInput);
+        showLoading();
+        ApiManager apiManager = ApiManager.getInstance(getActivity());
+        apiManager.createUser(email, password, new ApiResponseListener() {
+
+            @Override
+            public void onSuccess(Bundle data) {
+                hideLoading();
+                confirmSignUp(email, password);
             }
-        }
 
-        btnRegister.setEnabled(false);
-        btnRegister.setAlpha(0.5f);
-        txtRegisterBtn.setText(R.string.btn_registering);
-        progressBar.setVisibility(View.VISIBLE);
-        arrowImage.setVisibility(View.GONE);
+            @Override
+            public void onResponseFailure(Exception exception) {
+                hideLoading();
+                if (exception instanceof CloudException) {
+                    Utils.showAlertDialog(getActivity(), getString(R.string.dialog_title_sign_up_failed), exception.getMessage(), false);
+                } else {
+                    Utils.showAlertDialog(getActivity(), "", getString(R.string.dialog_title_sign_up_failed), false);
+                }
+            }
 
-        AppHelper.getPool().signUpInBackground(email, password, userAttributes, null, signUpHandler);
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                hideLoading();
+                Utils.showAlertDialog(getActivity(), getString(R.string.dialog_title_no_network), getString(R.string.dialog_msg_no_network), false);
+            }
+        });
     }
 
     private void init(View view) {
 
-        sharedPreferences = getActivity().getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
         txtRegisterBtn = view.findViewById(R.id.text_btn);
         arrowImage = view.findViewById(R.id.iv_arrow);
         progressBar = view.findViewById(R.id.progress_indicator);
@@ -324,41 +311,21 @@ public class SignUpFragment extends Fragment {
         });
     }
 
-    SignUpHandler signUpHandler = new SignUpHandler() {
+    private void showLoading() {
+        btnRegister.setEnabled(false);
+        btnRegister.setAlpha(0.5f);
+        txtRegisterBtn.setText(R.string.btn_registering);
+        progressBar.setVisibility(View.VISIBLE);
+        arrowImage.setVisibility(View.GONE);
+    }
 
-        @Override
-        public void onSuccess(CognitoUser user, SignUpResult signUpResult) {
-
-            // Check signUpConfirmationState to see if the user is already confirmed
-            btnRegister.setEnabled(true);
-            btnRegister.setAlpha(1f);
-            txtRegisterBtn.setText(R.string.btn_register);
-            progressBar.setVisibility(View.GONE);
-            arrowImage.setVisibility(View.VISIBLE);
-
-            Boolean regState = signUpResult.getUserConfirmed();
-            if (regState) {
-                // User is already confirmed
-                showDialogMessage(getString(R.string.dialog_title_sign_up_success), email + " has been Confirmed", true);
-            } else {
-                // User is not confirmed
-                confirmSignUp(signUpResult.getCodeDeliveryDetails());
-            }
-        }
-
-        @Override
-        public void onFailure(Exception exception) {
-
-            btnRegister.setEnabled(true);
-            btnRegister.setAlpha(1f);
-            txtRegisterBtn.setText(R.string.btn_register);
-            progressBar.setVisibility(View.GONE);
-            arrowImage.setVisibility(View.VISIBLE);
-
-            exception.printStackTrace();
-            showDialogMessage(getString(R.string.dialog_title_sign_up_failed), AppHelper.formatException(exception), false);
-        }
-    };
+    private void hideLoading() {
+        btnRegister.setEnabled(true);
+        btnRegister.setAlpha(1f);
+        txtRegisterBtn.setText(R.string.btn_register);
+        progressBar.setVisibility(View.GONE);
+        arrowImage.setVisibility(View.VISIBLE);
+    }
 
     private void enableRegisterButton() {
 
@@ -371,142 +338,11 @@ public class SignUpFragment extends Fragment {
         }
     }
 
-    private void confirmSignUp(CodeDeliveryDetailsType cognitoUserCodeDeliveryDetails) {
+    private void confirmSignUp(String email, String password) {
 
         Intent intent = new Intent(getActivity(), SignUpConfirmActivity.class);
-        intent.putExtra("source", "signup");
-        intent.putExtra("name", email);
-        intent.putExtra("password", password);
-        intent.putExtra("destination", cognitoUserCodeDeliveryDetails.getDestination());
-        intent.putExtra("deliveryMed", cognitoUserCodeDeliveryDetails.getDeliveryMedium());
-        intent.putExtra("attribute", cognitoUserCodeDeliveryDetails.getAttributeName());
-        getActivity().startActivityForResult(intent, 11);
+        intent.putExtra(AppConstants.KEY_USER_NAME, email);
+        intent.putExtra(AppConstants.KEY_PASSWORD, password);
+        getActivity().startActivityForResult(intent, MainActivity.SIGN_UP_CONFIRM_ACTIVITY_REQUEST);
     }
-
-    private void showDialogMessage(String title, String body, final boolean exit) {
-
-        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
-
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                try {
-                    userDialog.dismiss();
-                    if (exit) {
-                        exit(email);
-                    }
-                } catch (Exception e) {
-                    if (exit) {
-                        exit(email);
-                    }
-                }
-            }
-        });
-        userDialog = builder.create();
-        userDialog.show();
-    }
-
-    private void exit(String uname) {
-        exit(uname, null);
-    }
-
-    private void exit(String uname, String password) {
-
-        if (!TextUtils.isEmpty(email) && !TextUtils.isEmpty(password)) {
-            // We have the user details, so sign in!
-            AppHelper.getPool().getUser(email).getSessionInBackground(authenticationHandler);
-        } else {
-            // TODO
-        }
-    }
-
-    private void getUserAuthentication(AuthenticationContinuation continuation, String username) {
-
-        if (username != null) {
-            email = username;
-            AppHelper.setUser(username);
-        }
-
-        if (this.password == null) {
-
-            etEmail.setText(username);
-            password = etPassword.getText().toString();
-
-            if (TextUtils.isEmpty(password)) {
-
-                layoutPassword.setError(getString(R.string.error_password_empty));
-                return;
-            }
-        }
-
-        AuthenticationDetails authenticationDetails = new AuthenticationDetails(this.email, password, null);
-        continuation.setAuthenticationDetails(authenticationDetails);
-        continuation.continueTask();
-    }
-
-    private void showDialogMessage(String title, String body) {
-
-        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setTitle(title).setMessage(body).setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                try {
-                    userDialog.dismiss();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        userDialog = builder.create();
-        userDialog.show();
-    }
-
-    AuthenticationHandler authenticationHandler = new AuthenticationHandler() {
-
-        @Override
-        public void onSuccess(CognitoUserSession cognitoUserSession, CognitoDevice device) {
-
-            Log.d(TAG, " -- Auth Success");
-            AppHelper.setCurrSession(cognitoUserSession);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString(AppConstants.KEY_EMAIL, email);
-            editor.putString(AppConstants.KEY_ID_TOKEN, cognitoUserSession.getIdToken().getJWTToken());
-            editor.putString(AppConstants.KEY_ACCESS_TOKEN, cognitoUserSession.getAccessToken().getJWTToken());
-            editor.putString(AppConstants.KEY_REFRESH_TOKEN, cognitoUserSession.getRefreshToken().getToken());
-            editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, false);
-            editor.apply();
-
-            AppHelper.newDevice(device);
-            ApiManager.getInstance(getActivity().getApplicationContext()).getTokenAndUserId();
-            ((MainActivity) getActivity()).launchHomeScreen();
-        }
-
-        @Override
-        public void getAuthenticationDetails(AuthenticationContinuation authenticationContinuation, String username) {
-            Locale.setDefault(Locale.US);
-            getUserAuthentication(authenticationContinuation, username);
-        }
-
-        @Override
-        public void getMFACode(MultiFactorAuthenticationContinuation multiFactorAuthenticationContinuation) {
-            // Nothing to do here
-            Log.d(TAG, "getMFACode");
-        }
-
-        @Override
-        public void onFailure(Exception e) {
-
-            showDialogMessage(getString(R.string.dialog_title_login_failed), AppHelper.formatException(e));
-        }
-
-        @Override
-        public void authenticationChallenge(ChallengeContinuation continuation) {
-
-            // Nothing to do for this app.
-            /*
-             * For Custom authentication challenge, implement your logic to present challenge to the
-             * user and pass the user's responses to the continuation.
-             */
-        }
-    };
 }
