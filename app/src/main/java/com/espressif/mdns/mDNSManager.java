@@ -72,6 +72,7 @@ public class mDNSManager {
 
     // Initialize Listeners
     public void initializeNsd() {
+        Log.d(TAG, "Initialize Network service discovery");
         // Initialize only resolve listener
         initializeResolveListener();
     }

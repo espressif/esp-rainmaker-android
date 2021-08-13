@@ -459,7 +459,7 @@ public class AddScheduleActivity extends AppCompatActivity {
         builder.setMessage(R.string.dialog_msg_confirmation);
 
         // Set up the buttons
-        builder.setPositiveButton(R.string.btn_confirm, new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(R.string.btn_yes, new DialogInterface.OnClickListener() {
 
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -469,7 +469,7 @@ public class AddScheduleActivity extends AppCompatActivity {
             }
         });
 
-        builder.setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+        builder.setNegativeButton(R.string.btn_no, new DialogInterface.OnClickListener() {
 
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -648,6 +648,12 @@ public class AddScheduleActivity extends AppCompatActivity {
                                 jsonParam.addProperty(param.getName(), value);
                             }
                         }
+                    } else if (AppConstants.UI_TYPE_TRIGGER.equalsIgnoreCase(param.getUiType())
+                            && dataType.equalsIgnoreCase("bool")
+                            || dataType.equalsIgnoreCase("boolean")) {
+
+                        jsonParam.addProperty(param.getName(), true);
+
                     } else {
                         if (dataType.equalsIgnoreCase("bool")
                                 || dataType.equalsIgnoreCase("boolean")) {

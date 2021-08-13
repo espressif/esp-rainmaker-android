@@ -50,6 +50,7 @@ import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.AddDeviceActivity;
 import com.espressif.ui.activities.BLEProvisionLanding;
 import com.espressif.ui.activities.EspMainActivity;
+import com.espressif.ui.activities.GroupDetailActivity;
 import com.espressif.ui.activities.ProvisionLanding;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
@@ -84,7 +85,7 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
     }
 
     @Override
-    public void onBindViewHolder(@NonNull GroupPageViewHolder viewHolder, int position) {
+    public void onBindViewHolder(@NonNull final GroupPageViewHolder viewHolder, int position) {
 
         Group group = groups.get(position);
         ArrayList<Device> devices = new ArrayList<>();
@@ -176,7 +177,21 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
                 });
             } else {
                 viewHolder.ivNoDevice.setVisibility(View.GONE);
-                viewHolder.btnAddDevice.setVisibility(View.GONE);
+
+                if (espApp.nodeMap.size() > 0) {
+                    viewHolder.btnAddDevice.setVisibility(View.VISIBLE);
+                    viewHolder.btnAddDevice.setOnClickListener(new View.OnClickListener() {
+
+                        @Override
+                        public void onClick(View v) {
+                            Intent intent = new Intent(context, GroupDetailActivity.class);
+                            intent.putExtra(AppConstants.KEY_GROUP, groups.get(viewHolder.getAdapterPosition()));
+                            context.startActivity(intent);
+                        }
+                    });
+                } else {
+                    viewHolder.btnAddDevice.setVisibility(View.GONE);
+                }
             }
         } else {
 

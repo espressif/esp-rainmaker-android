@@ -437,7 +437,7 @@ public class GroupDetailActivity extends AppCompatActivity {
         builder.setMessage(R.string.dialog_msg_confirmation);
 
         // Set up the buttons
-        builder.setPositiveButton(R.string.btn_confirm, new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(R.string.btn_yes, new DialogInterface.OnClickListener() {
 
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -447,7 +447,7 @@ public class GroupDetailActivity extends AppCompatActivity {
             }
         });
 
-        builder.setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+        builder.setNegativeButton(R.string.btn_no, new DialogInterface.OnClickListener() {
 
             @Override
             public void onClick(DialogInterface dialog, int which) {

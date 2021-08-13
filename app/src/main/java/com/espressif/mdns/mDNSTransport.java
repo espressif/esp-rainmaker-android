@@ -14,6 +14,7 @@
 
 package com.espressif.mdns;
 
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.espressif.provisioning.listeners.ResponseListener;
@@ -22,9 +23,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.CookieManager;
+import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -35,12 +40,19 @@ public class mDNSTransport {
 
     private String TAG = mDNSTransport.class.getSimpleName();
 
+    private static final String SET_COOKIE_HEADER = "Set-Cookie";
+    private static final String COOKIE_HEADER = "Cookie";
+
     private String baseUrl;
     private ExecutorService workerThreadPool;
+    private static CookieManager cookieManager;
 
     public mDNSTransport(String baseUrl) {
         this.baseUrl = baseUrl;
         this.workerThreadPool = Executors.newSingleThreadExecutor();
+        if (cookieManager == null) {
+            cookieManager = new CookieManager();
+        }
     }
 
     private byte[] sendPostRequest(String path, byte[] data, final ResponseListener listener) {
@@ -57,11 +69,32 @@ public class mDNSTransport {
             urlConnection.setConnectTimeout(5000);
             urlConnection.setReadTimeout(5000);
 
+            if (cookieManager.getCookieStore().getCookies().size() > 0) {
+
+                Log.d(TAG, "Cookie - Name : " + cookieManager.getCookieStore().getCookies().get(0).getName());
+                Log.d(TAG, "Cookie - Value : " + cookieManager.getCookieStore().getCookies().get(0).getValue());
+                // While joining the Cookies, use ',' or ';' as needed. Most of the servers are using ';'
+                urlConnection.setRequestProperty(COOKIE_HEADER,
+                        TextUtils.join(";", cookieManager.getCookieStore().getCookies()));
+            }
+
             OutputStream os = urlConnection.getOutputStream();
             os.write(data);
             os.close();
 
             int responseCode = urlConnection.getResponseCode();
+            Map<String, List<String>> headerFields = urlConnection.getHeaderFields();
+            List<String> cookiesHeader = headerFields.get(SET_COOKIE_HEADER);
+
+            if (cookiesHeader != null) {
+                for (String cookie : cookiesHeader) {
+                    HttpCookie httpCookie = HttpCookie.parse(cookie).get(0);
+                    // Default version of HttpCookie is 1. In version 1, quotes will be added.
+                    // So set version 0 so that quotes will not be added.
+                    httpCookie.setVersion(0);
+                    cookieManager.getCookieStore().add(null, httpCookie);
+                }
+            }
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 int n;
@@ -90,6 +123,12 @@ public class mDNSTransport {
         return responseBytes;
     }
 
+    /***
+     * This method is used to send data on given path using this transport.
+     * @param path path of the config endpoint.
+     * @param data config data to be sent
+     * @param listener listener implementation which receives events when response is received.
+     */
     public void sendData(final String path, final byte[] data, final ResponseListener listener) {
         this.workerThreadPool
                 .submit(new Runnable() {

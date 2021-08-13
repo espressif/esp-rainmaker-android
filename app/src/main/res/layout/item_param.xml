@@ -26,7 +26,7 @@
             android:layout_marginStart="8dp"
             android:text="Brightness"
             android:textColor="@color/colorPrimaryDark"
-            android:textSize="18sp" />
+            android:textSize="12sp" />
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -134,7 +134,7 @@
                 android:layout_marginStart="8dp"
                 android:text="Brightness"
                 android:textColor="@color/colorPrimaryDark"
-                android:textSize="18sp" />
+                android:textSize="12sp" />
 
             <com.espressif.ui.widgets.PaletteBar
                 android:id="@+id/rl_palette"
@@ -188,6 +188,47 @@
             android:layout_centerVertical="true"
             android:paddingEnd="8dp"
             android:theme="@style/AppTheme.PurpleAccent" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/rl_card_trigger"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="8dp"
+            android:layout_toLeftOf="@id/btn_trigger"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_trigger_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Title"
+                android:textColor="@color/colorPrimaryDark"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <com.aar.tapholdupbutton.TapHoldUpButton
+            android:id="@+id/btn_trigger"
+            android:layout_width="35dp"
+            android:layout_height="35dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:paddingEnd="8dp"
+            app:thub_circleColor="@color/colorPrimary"
+            app:thub_circleColorOhHold="@color/colorAccent"
+            app:thub_circleGap="3dp"
+            app:thub_ringColor="@color/colorPrimary"
+            app:thub_ringStrokeWidth="2dp" />
 
     </RelativeLayout>
 

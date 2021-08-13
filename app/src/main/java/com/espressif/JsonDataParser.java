@@ -76,6 +76,11 @@ public class JsonDataParser {
             boolean value = deviceJson.optBoolean(paramName);
             param.setSwitchStatus(value);
 
+        } else if (AppConstants.UI_TYPE_TRIGGER.equalsIgnoreCase(param.getUiType())) {
+
+            boolean value = deviceJson.optBoolean(paramName);
+            param.setSwitchStatus(value);
+
         } else if (AppConstants.UI_TYPE_DROP_DOWN.equalsIgnoreCase(param.getUiType())) {
 
             String labelValue = "";

@@ -43,7 +43,8 @@ public class AppConstants {
         EVENT_DEVICE_REMOVED,
         EVENT_ADD_DEVICE_TIME_OUT,
         EVENT_DEVICE_STATUS_UPDATE,
-        EVENT_STATE_CHANGE_UPDATE
+        EVENT_STATE_CHANGE_UPDATE,
+        EVENT_LOCAL_DEVICE_UPDATE
     }
 
     public static final String CURRENT_VERSION = "v1";
@@ -91,6 +92,8 @@ public class AppConstants {
     public static final String UI_TYPE_HUE_SLIDER = "esp.ui.hue-slider";
     public static final String UI_TYPE_HUE_CIRCLE = "esp.ui.hue-circle";
     public static final String UI_TYPE_DROP_DOWN = "esp.ui.dropdown";
+    public static final String UI_TYPE_HIDDEN = "esp.ui.hidden";
+    public static final String UI_TYPE_TRIGGER = "esp.ui.trigger";
 
     // ESP Device Types
     public static final String ESP_DEVICE_SWITCH = "esp.device.switch";

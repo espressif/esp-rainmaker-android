@@ -133,13 +133,6 @@ public class ApiManager {
                         refreshToken = jsonObject.getString("refreshtoken");
                         isOAuthLogin = false;
 
-                        EspDatabase.getInstance(espApp).getNodeDao().deleteAll();
-                        EspDatabase.getInstance(espApp).getGroupDao().deleteAll();
-                        espApp.nodeMap.clear();
-                        espApp.scheduleMap.clear();
-                        espApp.mDNSDeviceMap.clear();
-                        espApp.groupMap.clear();
-
                         SharedPreferences.Editor editor = sharedPreferences.edit();
                         editor.putString(AppConstants.KEY_EMAIL, userName);
                         editor.putString(AppConstants.KEY_ID_TOKEN, idToken);
@@ -149,6 +142,7 @@ public class ApiManager {
                         editor.apply();
 
                         getTokenAndUserId();
+                        espApp.loginSuccess();
                         listener.onSuccess(null);
                     } else {
                         String jsonErrResponse = response.errorBody().string();
@@ -1619,7 +1613,6 @@ public class ApiManager {
 
                             String jsonResponse = response.body().string();
                             Log.d(TAG, "onResponse Success : " + jsonResponse);
-                            JSONObject jsonObject = new JSONObject(jsonResponse);
                             listener.onSuccess(null);
 
                         } else {
@@ -1630,9 +1623,6 @@ public class ApiManager {
                         String jsonErrResponse = response.errorBody().string();
                         processError(jsonErrResponse, listener, "Failed to update param value");
                     }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    listener.onResponseFailure(e);
                 } catch (IOException e) {
                     e.printStackTrace();
                     listener.onResponseFailure(e);

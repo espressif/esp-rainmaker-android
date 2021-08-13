@@ -29,6 +29,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.aar.tapholdupbutton.TapHoldUpButton;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.NetworkApiManager;
@@ -151,11 +152,13 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
 
                     deviceVh.ivDeviceStatus.setVisibility(View.GONE);
                     deviceVh.tvStringValue.setVisibility(View.GONE);
+                    deviceVh.btnTrigger.setVisibility(View.GONE);
 
                 } else if (AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())) {
 
                     deviceVh.ivDeviceStatus.setVisibility(View.VISIBLE);
                     deviceVh.tvStringValue.setVisibility(View.GONE);
+                    deviceVh.btnTrigger.setVisibility(View.GONE);
 
                     final boolean isOn = param.getSwitchStatus();
 
@@ -207,10 +210,86 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
                         });
                     }
 
+                } else if (AppConstants.UI_TYPE_TRIGGER.equalsIgnoreCase(param.getUiType())) {
+
+                    deviceVh.ivDeviceStatus.setVisibility(View.GONE);
+                    deviceVh.tvStringValue.setVisibility(View.GONE);
+                    deviceVh.btnTrigger.setVisibility(View.VISIBLE);
+
+                    if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
+
+                        deviceVh.btnTrigger.setAlpha(1f);
+                        deviceVh.btnTrigger.setEnabled(true);
+                        deviceVh.btnTrigger.setClickable(true);
+                        deviceVh.btnTrigger.enableLongHold(true);
+                        deviceVh.btnTrigger.setOnButtonClickListener(new TapHoldUpButton.OnButtonClickListener() {
+
+                            @Override
+                            public void onLongHoldStart(View v) {
+                            }
+
+                            @Override
+                            public void onLongHoldEnd(View v) {
+                                JsonObject jsonParam = new JsonObject();
+                                JsonObject body = new JsonObject();
+
+                                jsonParam.addProperty(param.getName(), true);
+                                body.add(device.getDeviceName(), jsonParam);
+
+                                networkApiManager.updateParamValue(device.getNodeId(), body, new ApiResponseListener() {
+
+                                    @Override
+                                    public void onSuccess(Bundle data) {
+                                    }
+
+                                    @Override
+                                    public void onResponseFailure(Exception exception) {
+                                        Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
+                                    }
+
+                                    @Override
+                                    public void onNetworkFailure(Exception exception) {
+                                        Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onClick(View v) {
+                                JsonObject jsonParam = new JsonObject();
+                                JsonObject body = new JsonObject();
+
+                                jsonParam.addProperty(param.getName(), true);
+                                body.add(device.getDeviceName(), jsonParam);
+
+                                networkApiManager.updateParamValue(device.getNodeId(), body, new ApiResponseListener() {
+
+                                    @Override
+                                    public void onSuccess(Bundle data) {
+                                    }
+
+                                    @Override
+                                    public void onResponseFailure(Exception exception) {
+                                        Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
+                                    }
+
+                                    @Override
+                                    public void onNetworkFailure(Exception exception) {
+                                        Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        deviceVh.btnTrigger.setEnabled(false);
+                        deviceVh.btnTrigger.setOnButtonClickListener(null);
+                    }
+
                 } else if (dataType.equalsIgnoreCase("bool") || dataType.equalsIgnoreCase("boolean")) {
 
                     deviceVh.ivDeviceStatus.setVisibility(View.VISIBLE);
                     deviceVh.tvStringValue.setVisibility(View.GONE);
+                    deviceVh.btnTrigger.setVisibility(View.GONE);
 
                     String value = param.getLabelValue();
                     boolean isOn = false;
@@ -277,28 +356,31 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
                 } else if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
 
                     deviceVh.ivDeviceStatus.setVisibility(View.GONE);
+                    deviceVh.btnTrigger.setVisibility(View.GONE);
                     deviceVh.tvStringValue.setVisibility(View.VISIBLE);
                     deviceVh.tvStringValue.setText(param.getLabelValue());
 
                 } else if (dataType.equalsIgnoreCase("float") || dataType.equalsIgnoreCase("double")) {
 
                     deviceVh.ivDeviceStatus.setVisibility(View.GONE);
+                    deviceVh.btnTrigger.setVisibility(View.GONE);
                     deviceVh.tvStringValue.setVisibility(View.VISIBLE);
                     deviceVh.tvStringValue.setText(param.getLabelValue());
 
                 } else if (dataType.equalsIgnoreCase("string")) {
 
                     deviceVh.ivDeviceStatus.setVisibility(View.GONE);
+                    deviceVh.btnTrigger.setVisibility(View.GONE);
                     deviceVh.tvStringValue.setVisibility(View.VISIBLE);
                     deviceVh.tvStringValue.setText(param.getLabelValue());
                 }
             } else {
-
+                deviceVh.btnTrigger.setVisibility(View.GONE);
                 deviceVh.ivDeviceStatus.setVisibility(View.GONE);
                 deviceVh.tvStringValue.setVisibility(View.GONE);
             }
         } else {
-
+            deviceVh.btnTrigger.setVisibility(View.GONE);
             deviceVh.ivDeviceStatus.setVisibility(View.GONE);
             deviceVh.tvStringValue.setVisibility(View.GONE);
         }
@@ -308,6 +390,11 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             deviceVh.itemView.setAlpha(0.8f);
             deviceVh.ivDeviceStatus.setImageResource(R.drawable.ic_output_disable);
             deviceVh.ivDeviceStatus.setOnClickListener(null);
+            deviceVh.btnTrigger.setAlpha(0.3f);
+            deviceVh.btnTrigger.setEnabled(false);
+            deviceVh.btnTrigger.setClickable(false);
+            deviceVh.btnTrigger.enableLongHold(false);
+            deviceVh.btnTrigger.setOnButtonClickListener(null);
 
             if (espApp.getAppState().equals(EspApplication.AppState.GET_DATA_SUCCESS)
                     || espApp.getAppState().equals(EspApplication.AppState.REFRESH_DATA)
@@ -347,6 +434,10 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             }
         } else {
             deviceVh.itemView.setAlpha(1f);
+            deviceVh.btnTrigger.setAlpha(1f);
+            deviceVh.btnTrigger.setEnabled(true);
+            deviceVh.btnTrigger.setClickable(true);
+            deviceVh.btnTrigger.enableLongHold(true);
             deviceVh.llOffline.setVisibility(View.INVISIBLE);
         }
 
@@ -385,6 +476,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
         TextView tvDeviceName, tvStringValue, tvOffline;
         ImageView ivDevice, ivDeviceStatus, ivOffline;
         LinearLayout llOffline;
+        TapHoldUpButton btnTrigger;
 
         public DeviceViewHolder(View itemView) {
             super(itemView);
@@ -396,6 +488,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             tvOffline = itemView.findViewById(R.id.tv_offline);
             ivDeviceStatus = itemView.findViewById(R.id.iv_on_off);
             tvStringValue = itemView.findViewById(R.id.tv_string);
+            btnTrigger = itemView.findViewById(R.id.btn_trigger);
         }
     }
 }
