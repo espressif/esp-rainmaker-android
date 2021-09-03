@@ -94,7 +94,6 @@ public class mDNSApiManager {
 
                                 if (!TextUtils.isEmpty(paramsData) && isDeviceFound) {
 
-                                    espApp.nodeMap.put(node.getNodeId(), localNode);
                                     JSONObject paramsJson = null;
                                     try {
                                         paramsJson = new JSONObject(paramsData);
@@ -102,6 +101,7 @@ public class mDNSApiManager {
                                         e.printStackTrace();
                                     }
                                     JsonDataParser.setAllParams(espApp, localNode, paramsJson);
+                                    espApp.nodeMap.put(node.getNodeId(), localNode);
                                     listener.onSuccess(null);
                                 }
                             }

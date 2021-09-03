@@ -29,7 +29,6 @@ import android.view.HapticFeedbackConstants;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -45,9 +44,6 @@ import com.espressif.JsonDataParser;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.db.EspDatabase;
-import com.espressif.mdns.mDNSApiManager;
-import com.espressif.mdns.mDNSDevice;
-import com.espressif.mdns.mDNSManager;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
@@ -93,8 +89,6 @@ public class EspMainActivity extends AppCompatActivity {
     private EspApplication espApp;
     private ArrayList<UiUpdateListener> updateListenerArrayList = new ArrayList<>();
 
-    private mDNSManager mdnsManager;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -105,10 +99,6 @@ public class EspMainActivity extends AppCompatActivity {
         apiManager = ApiManager.getInstance(getApplicationContext());
         snackbar = Snackbar.make(findViewById(R.id.frame_container), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
 
-        if (BuildConfig.isLocalControlSupported) {
-            mdnsManager = mDNSManager.getInstance(getApplicationContext(), AppConstants.MDNS_SERVICE_TYPE, listener);
-            mdnsManager.initializeNsd();
-        }
         initViews();
         loadDataFromLocalStorage();
         getSupportedVersions();
@@ -132,9 +122,7 @@ public class EspMainActivity extends AppCompatActivity {
         if (updateListenerArrayList != null) {
             updateListenerArrayList.clear();
         }
-        if (BuildConfig.isLocalControlSupported) {
-            mdnsManager.stopDiscovery();
-        }
+        espApp.stopLocalDeviceDiscovery();
         super.onDestroy();
     }
 
@@ -213,6 +201,10 @@ public class EspMainActivity extends AppCompatActivity {
 //                if (!espApp.getCurrentStatus().equals(GetDataStatus.FETCHING_DATA)) {
 //                    updateUi();
 //                }
+                break;
+
+            case EVENT_LOCAL_DEVICE_UPDATE:
+                updateUi();
                 break;
         }
     }
@@ -451,12 +443,6 @@ public class EspMainActivity extends AppCompatActivity {
         }
     }
 
-    private void startLocalDeviceDiscovery() {
-        if (espApp.nodeMap.size() > 0) {
-            mdnsManager.discoverServices();
-        }
-    }
-
     private void getSupportedVersions() {
 
         apiManager.getSupportedVersions(new ApiResponseListener() {
@@ -574,9 +560,6 @@ public class EspMainActivity extends AppCompatActivity {
     }
 
     private void getNodes() {
-        if (BuildConfig.isLocalControlSupported) {
-            startLocalDeviceDiscovery();
-        }
         espApp.refreshData();
     }
 
@@ -798,109 +781,6 @@ public class EspMainActivity extends AppCompatActivity {
     }
 
     public interface UiUpdateListener {
-
         void updateUi();
     }
-
-    mDNSManager.mDNSEvenListener listener = new mDNSManager.mDNSEvenListener() {
-
-        @Override
-        public void deviceFound(final mDNSDevice dnsDevice) {
-
-            Log.e(TAG, "deviceFound on local network");
-            final String url = "http://" + dnsDevice.getIpAddr() + ":" + dnsDevice.getPort();
-            final mDNSApiManager dnsMsgHelper = new mDNSApiManager(getApplicationContext());
-
-            dnsMsgHelper.getPropertyCount(url, AppConstants.LOCAL_CONTROL_PATH, new ApiResponseListener() {
-
-                @Override
-                public void onSuccess(Bundle data) {
-
-                    if (data != null) {
-
-                        int count = data.getInt(AppConstants.KEY_PROPERTY_COUNT, 0);
-                        dnsDevice.setPropertyCount(count);
-
-                        dnsMsgHelper.getPropertyValues(url, AppConstants.LOCAL_CONTROL_PATH, count, new ApiResponseListener() {
-
-                            @Override
-                            public void onSuccess(Bundle data) {
-
-                                if (data != null) {
-
-                                    String configData = data.getString(AppConstants.KEY_CONFIG);
-                                    String paramsData = data.getString(AppConstants.KEY_PARAMS);
-
-                                    Log.d(TAG, "Config data : " + configData);
-                                    Log.d(TAG, "Params data : " + paramsData);
-
-                                    if (!TextUtils.isEmpty(configData)) {
-
-                                        JSONObject configJson = null;
-                                        try {
-                                            configJson = new JSONObject(configData);
-                                        } catch (JSONException e) {
-                                            e.printStackTrace();
-                                        }
-
-                                        boolean isDeviceFound = false;
-                                        EspNode localNode = JsonDataParser.setNodeConfig(null, configJson);
-                                        EspNode node = espApp.nodeMap.get(localNode.getNodeId());
-
-                                        if (node != null) {
-                                            Log.e(TAG, "Found node " + localNode.getNodeId() + " on local network.");
-                                            isDeviceFound = true;
-                                            localNode.setAvailableLocally(true);
-                                            localNode.setIpAddress(dnsDevice.getIpAddr());
-                                            localNode.setPort(dnsDevice.getPort());
-                                            localNode.setOnline(true);
-                                            espApp.mDNSDeviceMap.put(localNode.getNodeId(), dnsDevice);
-                                        }
-
-                                        if (!TextUtils.isEmpty(paramsData) && isDeviceFound) {
-
-                                            JSONObject paramsJson = null;
-                                            try {
-                                                paramsJson = new JSONObject(paramsData);
-                                            } catch (JSONException e) {
-                                                e.printStackTrace();
-                                            }
-                                            JsonDataParser.setAllParams(espApp, localNode, paramsJson);
-                                            espApp.nodeMap.put(localNode.getNodeId(), localNode);
-                                            runOnUiThread(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    updateUi();
-                                                }
-                                            });
-                                        }
-                                    }
-                                }
-                            }
-
-                            @Override
-                            public void onResponseFailure(Exception exception) {
-                                // Nothing to do
-                            }
-
-                            @Override
-                            public void onNetworkFailure(Exception exception) {
-                                // Nothing to do
-                            }
-                        });
-                    }
-                }
-
-                @Override
-                public void onResponseFailure(Exception exception) {
-                    // Nothing to do
-                }
-
-                @Override
-                public void onNetworkFailure(Exception exception) {
-                    // Nothing to do
-                }
-            });
-        }
-    };
 }

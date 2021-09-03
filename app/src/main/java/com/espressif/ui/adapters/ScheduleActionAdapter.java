@@ -69,6 +69,8 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
                 itr.remove();
             } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
                 itr.remove();
+            } else if (p.getUiType() != null && p.getUiType().equals(AppConstants.UI_TYPE_HIDDEN)) {
+                itr.remove();
             }
         }
 

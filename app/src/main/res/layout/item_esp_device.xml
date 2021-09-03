@@ -54,6 +54,18 @@
                     android:src="@drawable/ic_output_disable"
                     android:visibility="gone" />
 
+                <com.aar.tapholdupbutton.TapHoldUpButton
+                    android:id="@+id/btn_trigger"
+                    android:layout_width="35dp"
+                    android:layout_height="35dp"
+                    android:layout_alignParentEnd="true"
+                    android:visibility="gone"
+                    app:thub_circleColor="@color/colorPrimary"
+                    app:thub_circleColorOhHold="@color/colorAccent"
+                    app:thub_circleGap="3dp"
+                    app:thub_ringColor="@color/colorPrimary"
+                    app:thub_ringStrokeWidth="2dp" />
+
                 <TextView
                     android:id="@+id/tv_string"
                     android:layout_width="wrap_content"

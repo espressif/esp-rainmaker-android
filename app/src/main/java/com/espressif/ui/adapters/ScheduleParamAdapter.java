@@ -37,6 +37,7 @@ import androidx.appcompat.widget.AppCompatCheckBox;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.aar.tapholdupbutton.TapHoldUpButton;
 import com.espressif.AppConstants;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Device;
@@ -49,7 +50,7 @@ import com.warkiz.tickseekbar.TickSeekBar;
 
 import java.util.ArrayList;
 
-public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdapter.MyViewHolder> {
+public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdapter.ScheduleParamViewHolder> {
 
     private final String TAG = ScheduleParamAdapter.class.getSimpleName();
 
@@ -66,29 +67,29 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
     }
 
     @Override
-    public MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public ScheduleParamViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
 
         // infalte the item Layout
         LayoutInflater layoutInflater = LayoutInflater.from(context);
         View v = layoutInflater.inflate(R.layout.item_schedule_param, parent, false);
         // set the view's size, margins, paddings and layout parameters
-        MyViewHolder vh = new MyViewHolder(v); // pass the view to View Holder
+        ScheduleParamViewHolder vh = new ScheduleParamViewHolder(v); // pass the view to View Holder
         return vh;
     }
 
     @Override
-    public void onBindViewHolder(@NonNull final MyViewHolder myViewHolder, int position) {
+    public void onBindViewHolder(@NonNull final ScheduleParamViewHolder scheduleParamVH, int position) {
 
         Param param = params.get(position);
-        myViewHolder.cbParamSelect.setChecked(param.isSelected());
+        scheduleParamVH.cbParamSelect.setChecked(param.isSelected());
 
-        myViewHolder.cbParamSelect.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        scheduleParamVH.cbParamSelect.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
 
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
-                params.get(myViewHolder.getAdapterPosition()).setSelected(isChecked);
-                params.set(myViewHolder.getAdapterPosition(), params.get(myViewHolder.getAdapterPosition()));
+                params.get(scheduleParamVH.getAdapterPosition()).setSelected(isChecked);
+                params.set(scheduleParamVH.getAdapterPosition(), params.get(scheduleParamVH.getAdapterPosition()));
 
                 boolean isSelected = false, isUnselected = false;
                 for (int i = 0; i < params.size(); i++) {
@@ -130,14 +131,14 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
                 if ((min < max)) {
 
-                    displaySlider(myViewHolder, param);
+                    displaySlider(scheduleParamVH, param);
                 } else {
-                    displayLabel(myViewHolder, param, position);
+                    displayLabel(scheduleParamVH, param, position);
                 }
             }
 
         } else if (AppConstants.UI_TYPE_HUE_SLIDER.equalsIgnoreCase(param.getUiType())) {
-            displayPalette(myViewHolder, param);
+            displayPalette(scheduleParamVH, param);
         } else if (AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())) {
 
             String dataType = param.getDataType();
@@ -145,10 +146,23 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
             if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("bool")
                     || dataType.equalsIgnoreCase("boolean"))) {
 
-                displayToggle(myViewHolder, param);
+                displayToggle(scheduleParamVH, param);
 
             } else {
-                displayLabel(myViewHolder, param, position);
+                displayLabel(scheduleParamVH, param, position);
+            }
+
+        } else if (AppConstants.UI_TYPE_TRIGGER.equalsIgnoreCase(param.getUiType())) {
+
+            String dataType = param.getDataType();
+
+            if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("bool")
+                    || dataType.equalsIgnoreCase("boolean"))) {
+
+                displayTrigger(scheduleParamVH, param);
+
+            } else {
+                displayLabel(scheduleParamVH, param, position);
             }
 
         } else if (AppConstants.UI_TYPE_DROP_DOWN.equalsIgnoreCase(param.getUiType())) {
@@ -157,7 +171,7 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
             if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("string"))) {
 
-                displaySpinner(myViewHolder, param, position);
+                displaySpinner(scheduleParamVH, param, position);
 
             } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
                     || dataType.equalsIgnoreCase("integer"))) {
@@ -174,19 +188,19 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
                 }
 
                 if ((min < max)) {
-                    displaySpinner(myViewHolder, param, position);
+                    displaySpinner(scheduleParamVH, param, position);
                 } else {
                     if (spinnerValues.size() > 0) {
-                        displaySpinner(myViewHolder, param, position);
+                        displaySpinner(scheduleParamVH, param, position);
                     } else {
-                        displayLabel(myViewHolder, param, position);
+                        displayLabel(scheduleParamVH, param, position);
                     }
                 }
             } else {
-                displayLabel(myViewHolder, param, position);
+                displayLabel(scheduleParamVH, param, position);
             }
         } else {
-            displayLabel(myViewHolder, param, position);
+            displayLabel(scheduleParamVH, param, position);
         }
     }
 
@@ -203,18 +217,18 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         notifyItemRemoved(position);
     }
 
-    private void displayPalette(MyViewHolder myViewHolder, final Param param) {
-        myViewHolder.rvPalette.setVisibility(View.VISIBLE);
-        myViewHolder.tvSliderName.setVisibility(View.GONE);
-        myViewHolder.intSlider.setVisibility(View.GONE);
-        myViewHolder.tvLabelPalette.setText(param.getName());
-        myViewHolder.paletteBar.setColor((int) param.getValue());
-        myViewHolder.paletteBar.setThumbCircleRadius(12);
-        myViewHolder.paletteBar.setTrackMarkHeight(6);
+    private void displayPalette(ScheduleParamViewHolder scheduleParamVH, final Param param) {
+        scheduleParamVH.rlPalette.setVisibility(View.VISIBLE);
+        scheduleParamVH.tvSliderName.setVisibility(View.GONE);
+        scheduleParamVH.intSlider.setVisibility(View.GONE);
+        scheduleParamVH.tvLabelPalette.setText(param.getName());
+        scheduleParamVH.paletteBar.setColor((int) param.getValue());
+        scheduleParamVH.paletteBar.setThumbCircleRadius(12);
+        scheduleParamVH.paletteBar.setTrackMarkHeight(6);
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
-            myViewHolder.paletteBar.setEnabled(true);
-            myViewHolder.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
+            scheduleParamVH.paletteBar.setEnabled(true);
+            scheduleParamVH.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
                 @Override
                 public void onColorSelected(int colorHue) {
                     param.setValue(colorHue);
@@ -223,40 +237,42 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         }
     }
 
-    private void displaySlider(final MyViewHolder myViewHolder, final Param param) {
+    private void displaySlider(final ScheduleParamViewHolder scheduleParamVH, final Param param) {
 
-        myViewHolder.rvUiTypeSlider.setVisibility(View.VISIBLE);
-        myViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeSlider.setVisibility(View.VISIBLE);
+        scheduleParamVH.rlUiTypeSwitch.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeLabel.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeDropDown.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeTrigger.setVisibility(View.GONE);
 
         double sliderValue = param.getValue();
-        myViewHolder.tvSliderName.setText(param.getName());
+        scheduleParamVH.tvSliderName.setText(param.getName());
         float max = param.getMaxBounds();
         float min = param.getMinBounds();
         String dataType = param.getDataType();
 
         if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
 
-            myViewHolder.intSlider.setVisibility(View.VISIBLE);
-            myViewHolder.floatSlider.setVisibility(View.GONE);
+            scheduleParamVH.intSlider.setVisibility(View.VISIBLE);
+            scheduleParamVH.floatSlider.setVisibility(View.GONE);
 
-            myViewHolder.intSlider.setMax(max);
-            myViewHolder.intSlider.setMin(min);
-            myViewHolder.intSlider.setTickCount(2);
+            scheduleParamVH.intSlider.setMax(max);
+            scheduleParamVH.intSlider.setMin(min);
+            scheduleParamVH.intSlider.setTickCount(2);
 
             if (sliderValue < min) {
 
-                myViewHolder.intSlider.setProgress(min);
+                scheduleParamVH.intSlider.setProgress(min);
 
             } else if (sliderValue > max) {
 
-                myViewHolder.intSlider.setProgress(max);
+                scheduleParamVH.intSlider.setProgress(max);
 
             } else {
-                myViewHolder.intSlider.setProgress((int) sliderValue);
+                scheduleParamVH.intSlider.setProgress((int) sliderValue);
             }
 
-            myViewHolder.intSlider.setOnSeekChangeListener(new OnSeekChangeListener() {
+            scheduleParamVH.intSlider.setOnSeekChangeListener(new OnSeekChangeListener() {
 
                 @Override
                 public void onSeeking(SeekParams seekParams) {
@@ -275,26 +291,26 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
         } else {
 
-            myViewHolder.intSlider.setVisibility(View.GONE);
-            myViewHolder.floatSlider.setVisibility(View.VISIBLE);
+            scheduleParamVH.intSlider.setVisibility(View.GONE);
+            scheduleParamVH.floatSlider.setVisibility(View.VISIBLE);
 
-            myViewHolder.floatSlider.setMax(max);
-            myViewHolder.floatSlider.setMin(min);
-            myViewHolder.floatSlider.setTickCount(2);
+            scheduleParamVH.floatSlider.setMax(max);
+            scheduleParamVH.floatSlider.setMin(min);
+            scheduleParamVH.floatSlider.setTickCount(2);
 
             if (sliderValue < min) {
 
-                myViewHolder.floatSlider.setProgress(min);
+                scheduleParamVH.floatSlider.setProgress(min);
 
             } else if (sliderValue > max) {
 
-                myViewHolder.floatSlider.setProgress(max);
+                scheduleParamVH.floatSlider.setProgress(max);
 
             } else {
-                myViewHolder.floatSlider.setProgress((float) sliderValue);
+                scheduleParamVH.floatSlider.setProgress((float) sliderValue);
             }
 
-            myViewHolder.floatSlider.setOnSeekChangeListener(new OnSeekChangeListener() {
+            scheduleParamVH.floatSlider.setOnSeekChangeListener(new OnSeekChangeListener() {
 
                 @Override
                 public void onSeeking(SeekParams seekParams) {
@@ -313,77 +329,92 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         }
     }
 
-    private void displayToggle(final MyViewHolder myViewHolder, final Param param) {
+    private void displayToggle(final ScheduleParamViewHolder scheduleParamVH, final Param param) {
 
-        myViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeSwitch.setVisibility(View.VISIBLE);
+        scheduleParamVH.rlUiTypeSlider.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeSwitch.setVisibility(View.VISIBLE);
+        scheduleParamVH.rlUiTypeLabel.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeDropDown.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeTrigger.setVisibility(View.GONE);
 
-        myViewHolder.tvSwitchName.setText(param.getName());
-        myViewHolder.tvSwitchStatus.setVisibility(View.VISIBLE);
+        scheduleParamVH.tvSwitchName.setText(param.getName());
+        scheduleParamVH.tvSwitchStatus.setVisibility(View.VISIBLE);
 
         if (param.getSwitchStatus()) {
 
-            myViewHolder.tvSwitchStatus.setText(R.string.text_on);
+            scheduleParamVH.tvSwitchStatus.setText(R.string.text_on);
 
         } else {
-            myViewHolder.tvSwitchStatus.setText(R.string.text_off);
+            scheduleParamVH.tvSwitchStatus.setText(R.string.text_off);
         }
 
-        myViewHolder.toggleSwitch.setVisibility(View.VISIBLE);
-        myViewHolder.toggleSwitch.setChecked(param.getSwitchStatus());
-        myViewHolder.toggleSwitch.setEnabled(true);
+        scheduleParamVH.toggleSwitch.setVisibility(View.VISIBLE);
+        scheduleParamVH.toggleSwitch.setChecked(param.getSwitchStatus());
+        scheduleParamVH.toggleSwitch.setEnabled(true);
 
-        myViewHolder.toggleSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        scheduleParamVH.toggleSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
 
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
                 if (isChecked) {
 
-                    myViewHolder.tvSwitchStatus.setText(R.string.text_on);
+                    scheduleParamVH.tvSwitchStatus.setText(R.string.text_on);
 
                 } else {
-                    myViewHolder.tvSwitchStatus.setText(R.string.text_off);
+                    scheduleParamVH.tvSwitchStatus.setText(R.string.text_off);
                 }
                 param.setSwitchStatus(isChecked);
             }
         });
     }
 
-    private void displayLabel(final MyViewHolder myViewHolder, final Param param, final int position) {
+    private void displayTrigger(final ScheduleParamViewHolder scheduleParamVH, final Param param) {
 
-        myViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeLabel.setVisibility(View.VISIBLE);
+        scheduleParamVH.rlUiTypeSlider.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeSwitch.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeLabel.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeDropDown.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeTrigger.setVisibility(View.VISIBLE);
+        scheduleParamVH.tvTriggerName.setText(param.getName());
+    }
 
-        myViewHolder.tvLabelName.setText(param.getName());
-        myViewHolder.tvLabelValue.setText(param.getLabelValue());
+    private void displayLabel(final ScheduleParamViewHolder scheduleParamVH, final Param param, final int position) {
 
-        myViewHolder.btnEdit.setVisibility(View.VISIBLE);
+        scheduleParamVH.rlUiTypeSlider.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeSwitch.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeLabel.setVisibility(View.VISIBLE);
+        scheduleParamVH.rlUiTypeDropDown.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeTrigger.setVisibility(View.GONE);
 
-        myViewHolder.btnEdit.setOnClickListener(new View.OnClickListener() {
+        scheduleParamVH.tvLabelName.setText(param.getName());
+        scheduleParamVH.tvLabelValue.setText(param.getLabelValue());
+
+        scheduleParamVH.btnEdit.setVisibility(View.VISIBLE);
+
+        scheduleParamVH.btnEdit.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
-                askForNewValue(myViewHolder, param, position);
+                askForNewValue(scheduleParamVH, param, position);
             }
         });
     }
 
-    private void displaySpinner(final MyViewHolder myViewHolder, final Param param, final int position) {
+    private void displaySpinner(final ScheduleParamViewHolder scheduleParamVH, final Param param, final int position) {
 
-        myViewHolder.rvUiTypeSlider.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeSwitch.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeLabel.setVisibility(View.GONE);
-        myViewHolder.rvPalette.setVisibility(View.GONE);
-        myViewHolder.rvUiTypeDropDown.setVisibility(View.VISIBLE);
+        scheduleParamVH.rlUiTypeSlider.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeSwitch.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeLabel.setVisibility(View.GONE);
+        scheduleParamVH.rlPalette.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeDropDown.setVisibility(View.VISIBLE);
+        scheduleParamVH.rlUiTypeTrigger.setVisibility(View.GONE);
 
-        myViewHolder.tvSpinnerName.setText(param.getName());
-        myViewHolder.spinner.setVisibility(View.VISIBLE);
+        scheduleParamVH.tvSpinnerName.setText(param.getName());
+        scheduleParamVH.spinner.setVisibility(View.VISIBLE);
 
-        myViewHolder.spinner.setEnabled(false);
-        myViewHolder.spinner.setOnItemSelectedListener(null);
+        scheduleParamVH.spinner.setEnabled(false);
+        scheduleParamVH.spinner.setOnItemSelectedListener(null);
 
         final String dataType = param.getDataType();
 
@@ -395,7 +426,7 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
                 spinnerValues.addAll(param.getValidStrings());
                 ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(context, android.R.layout.simple_spinner_item, spinnerValues);
                 dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                myViewHolder.spinner.setAdapter(dataAdapter);
+                scheduleParamVH.spinner.setAdapter(dataAdapter);
                 boolean isValueFound = false;
                 String value = param.getLabelValue();
 
@@ -405,8 +436,8 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
                         if (value.equals(param.getValidStrings().get(i))) {
                             isValueFound = true;
-                            myViewHolder.spinner.setSelection(i, false);
-                            myViewHolder.spinner.setTag(R.id.position, i);
+                            scheduleParamVH.spinner.setSelection(i, false);
+                            scheduleParamVH.spinner.setTag(R.id.position, i);
                             break;
                         }
                     }
@@ -414,14 +445,14 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
                 if (!isValueFound) {
                     spinnerValues.add(0, "");
-                    myViewHolder.spinner.setSelection(0, false);
-                    myViewHolder.spinner.setTag(R.id.position, 0);
+                    scheduleParamVH.spinner.setSelection(0, false);
+                    scheduleParamVH.spinner.setTag(R.id.position, 0);
                     dataAdapter.notifyDataSetChanged();
                     String strInvalidValue = "" + value + " (" + context.getString(R.string.invalid) + ")";
-                    myViewHolder.tvSpinnerValue.setText(strInvalidValue);
-                    myViewHolder.tvSpinnerValue.setVisibility(View.VISIBLE);
+                    scheduleParamVH.tvSpinnerValue.setText(strInvalidValue);
+                    scheduleParamVH.tvSpinnerValue.setVisibility(View.VISIBLE);
                 } else {
-                    myViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+                    scheduleParamVH.tvSpinnerValue.setVisibility(View.GONE);
                 }
             }
         } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
@@ -444,18 +475,18 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
                 ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(context, android.R.layout.simple_spinner_item, spinnerValues);
                 dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                myViewHolder.spinner.setAdapter(dataAdapter);
+                scheduleParamVH.spinner.setAdapter(dataAdapter);
 
                 if (sliderValue < min) {
 
-                    myViewHolder.spinner.setSelection(0);
-                    myViewHolder.spinner.setTag(R.id.position, 0);
+                    scheduleParamVH.spinner.setSelection(0);
+                    scheduleParamVH.spinner.setTag(R.id.position, 0);
 
                 } else if (sliderValue > max) {
 
                     int lastPosition = spinnerValues.size() - 1;
-                    myViewHolder.spinner.setSelection(lastPosition);
-                    myViewHolder.spinner.setTag(R.id.position, lastPosition);
+                    scheduleParamVH.spinner.setSelection(lastPosition);
+                    scheduleParamVH.spinner.setTag(R.id.position, lastPosition);
 
                 } else {
 
@@ -467,22 +498,22 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
                         if (sliderValue == intValue) {
                             isValueFound = true;
-                            myViewHolder.spinner.setSelection(i, false);
-                            myViewHolder.spinner.setTag(R.id.position, i);
+                            scheduleParamVH.spinner.setSelection(i, false);
+                            scheduleParamVH.spinner.setTag(R.id.position, i);
                             break;
                         }
                     }
 
                     if (!isValueFound) {
                         spinnerValues.add(0, "");
-                        myViewHolder.spinner.setSelection(0, false);
-                        myViewHolder.spinner.setTag(R.id.position, 0);
+                        scheduleParamVH.spinner.setSelection(0, false);
+                        scheduleParamVH.spinner.setTag(R.id.position, 0);
                         dataAdapter.notifyDataSetChanged();
                         String strInvalidValue = "" + sliderValue + " (" + context.getString(R.string.invalid) + ")";
-                        myViewHolder.tvSpinnerValue.setText(strInvalidValue);
-                        myViewHolder.tvSpinnerValue.setVisibility(View.VISIBLE);
+                        scheduleParamVH.tvSpinnerValue.setText(strInvalidValue);
+                        scheduleParamVH.tvSpinnerValue.setVisibility(View.VISIBLE);
                     } else {
-                        myViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+                        scheduleParamVH.tvSpinnerValue.setVisibility(View.GONE);
                     }
                 }
             } else {
@@ -492,28 +523,28 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
-            myViewHolder.spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            scheduleParamVH.spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
 
                 @Override
                 public void onItemSelected(AdapterView<?> parent, View view, final int pos, long id) {
 
-                    Log.d(TAG, "Dropdown list item clicked position :  " + myViewHolder.spinner.getTag(R.id.position));
+                    Log.d(TAG, "Dropdown list item clicked position :  " + scheduleParamVH.spinner.getTag(R.id.position));
 
-                    if ((int) myViewHolder.spinner.getTag(R.id.position) != pos) {
+                    if ((int) scheduleParamVH.spinner.getTag(R.id.position) != pos) {
 
                         final String newValue = parent.getItemAtPosition(pos).toString();
-                        myViewHolder.spinner.setTag(R.id.position, pos);
+                        scheduleParamVH.spinner.setTag(R.id.position, pos);
 
                         if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("string"))) {
 
                             params.get(position).setLabelValue(newValue);
-                            myViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+                            scheduleParamVH.tvSpinnerValue.setVisibility(View.GONE);
 
                         } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
                                 || dataType.equalsIgnoreCase("integer"))) {
 
                             params.get(position).setValue(Integer.parseInt(newValue));
-                            myViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+                            scheduleParamVH.tvSpinnerValue.setVisibility(View.GONE);
                         }
                     }
                 }
@@ -522,14 +553,14 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
                 public void onNothingSelected(AdapterView<?> parent) {
                 }
             });
-            myViewHolder.spinner.setEnabled(true);
+            scheduleParamVH.spinner.setEnabled(true);
 
         } else {
-            myViewHolder.spinner.setOnItemSelectedListener(null);
+            scheduleParamVH.spinner.setOnItemSelectedListener(null);
         }
     }
 
-    private void askForNewValue(final MyViewHolder myViewHolder, final Param param, final int position) {
+    private void askForNewValue(final ScheduleParamViewHolder scheduleParamVH, final Param param, final int position) {
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(context);
         LayoutInflater inflater = context.getLayoutInflater();
@@ -592,11 +623,11 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
                             if (isOn) {
 
-                                myViewHolder.tvLabelValue.setText("true");
+                                scheduleParamVH.tvLabelValue.setText("true");
                                 params.get(position).setLabelValue("true");
 
                             } else {
-                                myViewHolder.tvLabelValue.setText("false");
+                                scheduleParamVH.tvLabelValue.setText("false");
                                 params.get(position).setLabelValue("false");
                             }
 
@@ -616,22 +647,22 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
                     int newValue = Integer.valueOf(value);
 
-                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                    myViewHolder.tvLabelValue.setText(value);
+                    scheduleParamVH.btnEdit.setVisibility(View.VISIBLE);
+                    scheduleParamVH.tvLabelValue.setText(value);
                     params.get(position).setLabelValue(value);
 
                 } else if (dataType.equalsIgnoreCase("float")
                         || dataType.equalsIgnoreCase("double")) {
 
                     float newValue = Float.valueOf(value);
-                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                    myViewHolder.tvLabelValue.setText(value);
+                    scheduleParamVH.btnEdit.setVisibility(View.VISIBLE);
+                    scheduleParamVH.tvLabelValue.setText(value);
                     params.get(position).setLabelValue(value);
 
                 } else {
 
-                    myViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                    myViewHolder.tvLabelValue.setText(value);
+                    scheduleParamVH.btnEdit.setVisibility(View.VISIBLE);
+                    scheduleParamVH.tvLabelValue.setText(value);
                     params.get(position).setLabelValue(value);
                 }
             }
@@ -650,19 +681,21 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         alertDialog.show();
     }
 
-    public static class MyViewHolder extends RecyclerView.ViewHolder {
+    static class ScheduleParamViewHolder extends RecyclerView.ViewHolder {
 
         // init the item view's
         TickSeekBar intSlider, floatSlider;
         SwitchCompat toggleSwitch;
-        TextView tvSliderName, tvSwitchName, tvSwitchStatus, tvLabelName, tvLabelValue, tvLabelPalette, tvSpinnerName, tvSpinnerValue;
-        RelativeLayout rvUiTypeSlider, rvUiTypeSwitch, rvUiTypeLabel, rvPalette, rvUiTypeDropDown;
+        TextView tvSliderName, tvSwitchName, tvSwitchStatus, tvLabelName, tvLabelValue, tvLabelPalette,
+                tvSpinnerName, tvSpinnerValue, tvTriggerName;
+        RelativeLayout rlUiTypeSlider, rlUiTypeSwitch, rlUiTypeLabel, rlPalette, rlUiTypeDropDown, rlUiTypeTrigger;
         TextView btnEdit;
         AppCompatCheckBox cbParamSelect;
         PaletteBar paletteBar;
         EspDropDown spinner;
+        TapHoldUpButton btnTrigger;
 
-        public MyViewHolder(View itemView) {
+        public ScheduleParamViewHolder(View itemView) {
             super(itemView);
 
             // get the reference of item view's
@@ -677,16 +710,19 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
             tvLabelPalette = itemView.findViewById(R.id.palette_name);
             tvSpinnerName = itemView.findViewById(R.id.tv_spinner_name);
             tvSpinnerValue = itemView.findViewById(R.id.tv_spinner_value);
+            tvTriggerName = itemView.findViewById(R.id.tv_trigger_name);
             btnEdit = itemView.findViewById(R.id.btn_edit);
             cbParamSelect = itemView.findViewById(R.id.cb_param_select);
-            rvUiTypeSlider = itemView.findViewById(R.id.rl_card_slider);
-            rvUiTypeSwitch = itemView.findViewById(R.id.rl_card_switch);
-            rvUiTypeLabel = itemView.findViewById(R.id.rl_card_label);
-            rvPalette = itemView.findViewById(R.id.rl_card_palette);
-            rvUiTypeDropDown = itemView.findViewById(R.id.rl_card_drop_down);
+            rlUiTypeSlider = itemView.findViewById(R.id.rl_card_slider);
+            rlUiTypeSwitch = itemView.findViewById(R.id.rl_card_switch);
+            rlUiTypeLabel = itemView.findViewById(R.id.rl_card_label);
+            rlPalette = itemView.findViewById(R.id.rl_card_palette);
+            rlUiTypeDropDown = itemView.findViewById(R.id.rl_card_drop_down);
+            rlUiTypeTrigger = itemView.findViewById(R.id.rl_card_trigger);
             paletteBar = itemView.findViewById(R.id.rl_palette);
             spinner = itemView.findViewById(R.id.card_spinner);
             tvSpinnerValue.setVisibility(View.GONE);
+            btnTrigger = itemView.findViewById(R.id.btn_trigger);
         }
     }
 }

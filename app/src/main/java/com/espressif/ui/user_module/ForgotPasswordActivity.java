@@ -49,14 +49,12 @@ public class ForgotPasswordActivity extends AppCompatActivity {
         Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
 
         if (currentFragment instanceof ResetPasswordFragment) {
-
             Fragment forgotPasswordFragment = new ForgotPasswordFragment();
             Bundle data = new Bundle();
             data.putString(AppConstants.KEY_USER_NAME, email);
             forgotPasswordFragment.setArguments(data);
             loadForgotPasswordFragment(forgotPasswordFragment);
-
-        } else {
+        }else{
             super.onBackPressed();
         }
     }
@@ -75,6 +73,8 @@ public class ForgotPasswordActivity extends AppCompatActivity {
                 Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
                 if (currentFragment instanceof ResetPasswordFragment) {
                     onBackPressed();
+                } else {
+                    finish();
                 }
             }
         });
