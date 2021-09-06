@@ -50,6 +50,14 @@ public class SplashActivity extends Activity {
     public void launchHomeScreen() {
         ((EspApplication) getApplicationContext()).changeAppState(EspApplication.AppState.GETTING_DATA, null);
         Intent espMainActivity = new Intent(getApplicationContext(), EspMainActivity.class);
+
+        String reqId = getIntent().getStringExtra(AppConstants.KEY_REQ_ID);
+        if (!TextUtils.isEmpty(reqId)) {
+            Log.e(TAG, "Intent string is not empty");
+            espMainActivity.putExtra(AppConstants.KEY_REQ_ID, reqId);
+            espMainActivity.putExtra(AppConstants.KEY_ID, getIntent().getIntExtra(AppConstants.KEY_ID, -1));
+            Log.e(TAG, "Req id : " + reqId);
+        }
         espMainActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(espMainActivity);
         finish();

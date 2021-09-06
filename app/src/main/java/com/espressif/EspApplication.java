@@ -15,12 +15,17 @@
 package com.espressif;
 
 import android.app.Application;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+
+import androidx.annotation.NonNull;
 
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
@@ -30,11 +35,17 @@ import com.espressif.mdns.mDNSDevice;
 import com.espressif.mdns.mDNSManager;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
+import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.MainActivity;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.UpdateEvent;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import org.greenrobot.eventbus.EventBus;
 import org.json.JSONException;
@@ -56,6 +67,7 @@ public class EspApplication extends Application {
     private SharedPreferences appPreferences;
     private ApiManager apiManager;
     private mDNSManager mdnsManager;
+    private String deviceToken;
 
     public enum AppState {
         NO_USER_LOGIN,
@@ -79,6 +91,11 @@ public class EspApplication extends Application {
         ESPProvisionManager.getInstance(this);
         if (BuildConfig.isLocalControlSupported) {
             mdnsManager = mDNSManager.getInstance(getApplicationContext(), AppConstants.MDNS_SERVICE_TYPE, listener);
+        }
+
+        if (isPlayServicesAvailable()) {
+            FirebaseMessaging.getInstance().setAutoInitEnabled(false);
+            setupNotificationChannels();
         }
     }
 
@@ -185,10 +202,51 @@ public class EspApplication extends Application {
     public void loginSuccess() {
         EspDatabase.getInstance(this).getNodeDao().deleteAll();
         EspDatabase.getInstance(this).getGroupDao().deleteAll();
+        EspDatabase.getInstance(this).getNotificationDao().deleteAll();
         nodeMap.clear();
         scheduleMap.clear();
         mDNSDeviceMap.clear();
         groupMap.clear();
+    }
+
+    public void registerDeviceToken() {
+
+        if (!isPlayServicesAvailable()) {
+            Log.e(TAG, "Google Play Services not available.");
+            return;
+        }
+        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(new OnCompleteListener<String>() {
+
+            @Override
+            public void onComplete(@NonNull Task<String> task) {
+                if (!task.isSuccessful()) {
+                    Log.d(TAG, "Fetching FCM registration token failed", task.getException());
+                    return;
+                }
+
+                // Get new FCM registration token
+                deviceToken = task.getResult();
+
+                // Log and toast
+                Log.e("FCM TOKEN  ", deviceToken);
+
+                if (!TextUtils.isEmpty(deviceToken)) {
+                    apiManager.registerDeviceToken(deviceToken, new ApiResponseListener() {
+                        @Override
+                        public void onSuccess(Bundle data) {
+                        }
+
+                        @Override
+                        public void onResponseFailure(Exception exception) {
+                        }
+
+                        @Override
+                        public void onNetworkFailure(Exception exception) {
+                        }
+                    });
+                }
+            }
+        });
     }
 
     public void logout() {
@@ -215,6 +273,7 @@ public class EspApplication extends Application {
 
         EspDatabase.getInstance(this).getNodeDao().deleteAll();
         EspDatabase.getInstance(this).getGroupDao().deleteAll();
+        EspDatabase.getInstance(this).getNotificationDao().deleteAll();
         nodeMap.clear();
         scheduleMap.clear();
         mDNSDeviceMap.clear();
@@ -228,6 +287,27 @@ public class EspApplication extends Application {
         SharedPreferences.Editor wifiNetworkEditor = wifiNetworkPref.edit();
         wifiNetworkEditor.clear();
         wifiNetworkEditor.apply();
+
+        if (isPlayServicesAvailable()) {
+            // Delete endpoint API
+            apiManager.unregisterDeviceToken(deviceToken, new ApiResponseListener() {
+                @Override
+                public void onSuccess(Bundle data) {
+                }
+
+                @Override
+                public void onResponseFailure(Exception exception) {
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
+                }
+            });
+            FirebaseMessaging.getInstance().deleteToken();
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.cancelAll();
+        }
+
         Log.e(TAG, "Deleted all things from local storage.");
         changeAppState(AppState.NO_USER_LOGIN, null);
     }
@@ -346,4 +426,54 @@ public class EspApplication extends Application {
             });
         }
     };
+
+    private void setupNotificationChannels() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
+            NotificationChannel nodeConnectedChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_ONLINE_ID,
+                    getString(R.string.channel_node_connected), NotificationManager.IMPORTANCE_HIGH);
+
+            NotificationChannel nodeDisconnectedChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_OFFLINE_ID,
+                    getString(R.string.channel_node_disconnected), NotificationManager.IMPORTANCE_HIGH);
+
+            NotificationChannel nodeAddedChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_ADDED,
+                    getString(R.string.channel_node_added), NotificationManager.IMPORTANCE_HIGH);
+
+            NotificationChannel nodeRemovedChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_REMOVED,
+                    getString(R.string.channel_node_removed), NotificationManager.IMPORTANCE_HIGH);
+
+            NotificationChannel nodeSharingChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_SHARING,
+                    getString(R.string.channel_node_sharing), NotificationManager.IMPORTANCE_HIGH);
+
+            NotificationChannel alertChannel = new NotificationChannel(AppConstants.CHANNEL_ALERT,
+                    getString(R.string.channel_node_alert), NotificationManager.IMPORTANCE_HIGH);
+
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(nodeConnectedChannel);
+            notificationManager.createNotificationChannel(nodeDisconnectedChannel);
+            notificationManager.createNotificationChannel(nodeAddedChannel);
+            notificationManager.createNotificationChannel(nodeRemovedChannel);
+            notificationManager.createNotificationChannel(nodeSharingChannel);
+            notificationManager.createNotificationChannel(alertChannel);
+        }
+    }
+
+    public void removeNodeInformation(String nodeId) {
+        nodeMap.remove(nodeId);
+        mDNSDeviceMap.remove(nodeId);
+    }
+
+    /**
+     * Check the device to make sure it has the Google Play Services APK.
+     *
+     * @return Returns true if Google Api is available.
+     */
+    private boolean isPlayServicesAvailable() {
+        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
+        int resultCode = apiAvailability.isGooglePlayServicesAvailable(this);
+        if (resultCode == ConnectionResult.SUCCESS) {
+            return true;
+        }
+        return false;
+    }
 }

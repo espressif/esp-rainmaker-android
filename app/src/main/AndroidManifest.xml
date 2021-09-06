@@ -70,6 +70,14 @@
             </intent-filter>
         </activity>
 
+        <service
+            android:name="com.espressif.EspFcmService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name="com.espressif.ui.activities.ProvisionLanding"
             android:label="@string/title_activity_provision_landing"
@@ -168,7 +176,7 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
-            android:name="com.espressif.ui.activities.SharingRequestsActivity"
+            android:name="com.espressif.ui.activities.NotificationsActivity"
             android:label="@string/title_activity_sharing_requests"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
@@ -177,6 +185,8 @@
             android:label="@string/title_activity_voice_services"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
+
+        <receiver android:name="com.espressif.NodeSharingActionReceiver" />
 
     </application>
 

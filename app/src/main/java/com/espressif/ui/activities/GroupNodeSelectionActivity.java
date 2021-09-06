@@ -154,13 +154,13 @@ public class GroupNodeSelectionActivity extends AppCompatActivity {
         GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 2);
         rvDevices.setLayoutManager(gridLayoutManager); // set LayoutManager to RecyclerView
         rvDevices.setAdapter(deviceAdapter);
-        rvDevices.setHasFixedSize(true);
+//        rvDevices.setHasFixedSize(true);
 
         ((SimpleItemAnimator) rvNodes.getItemAnimator()).setSupportsChangeAnimations(false);
         GroupNodeAdapter nodeAdapter = new GroupNodeAdapter(this, group, nodes, true);
         rvNodes.setLayoutManager(new LinearLayoutManager(this));
         rvNodes.setAdapter(nodeAdapter);
-        rvNodes.setHasFixedSize(true);
+//        rvNodes.setHasFixedSize(true);
     }
 
     private void saveSelectedDevices() {

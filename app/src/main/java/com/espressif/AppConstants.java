@@ -34,6 +34,7 @@ public class AppConstants {
     public static final String ESP_DATABASE_NAME = "esp_db";
     public static final String NODE_TABLE = "node_table";
     public static final String GROUP_TABLE = "group_table";
+    public static final String NOTIFICATION_TABLE = "notification_table";
     public static final String MDNS_SERVICE_TYPE = "_esp_local_ctrl._tcp.";
     public static final String LOCAL_CONTROL_PATH = "esp_local_ctrl/control";
 
@@ -41,6 +42,8 @@ public class AppConstants {
 
         EVENT_DEVICE_ADDED,
         EVENT_DEVICE_REMOVED,
+        EVENT_DEVICE_ONLINE,
+        EVENT_DEVICE_OFFLINE,
         EVENT_ADD_DEVICE_TIME_OUT,
         EVENT_DEVICE_STATUS_UPDATE,
         EVENT_STATE_CHANGE_UPDATE,
@@ -115,7 +118,6 @@ public class AppConstants {
     public static final String PARAM_TYPE_NAME = "esp.param.name";
     public static final String PARAM_TYPE_CCT = "esp.param.cct";
     public static final String PARAM_TYPE_POWER = "esp.param.power";
-    public static final String PARAM_TYPE_OUTPUT = "esp.param.output";
     public static final String PARAM_TYPE_SATURATION = "esp.param.saturation";
     public static final String PARAM_TYPE_BRIGHTNESS = "esp.param.brightness";
     public static final String PARAM_TYPE_TEMPERATURE = "esp.param.temperature";
@@ -140,6 +142,11 @@ public class AppConstants {
     public static final String KEY_SHOULD_SAVE_PWD = "save_password";
     public static final String KEY_NEW_PASSWORD = "newpassword";
     public static final String KEY_VERIFICATION_CODE = "verification_code";
+    public static final String KEY_MOBILE_DEVICE_TOKEN = "mobile_device_token";
+    public static final String KEY_PLATFORM = "platform";
+    public static final String KEY_GCM = "GCM";
+    public static final String KEY_MESSAGE_BODY = "message_body";
+    public static final String KEY_ALERT_STRING = "esp.alert.str";
 
     // Keys used in JSON responses and used to pass data between activities.
     public static final String KEY_NAME = "name";
@@ -212,12 +219,21 @@ public class AppConstants {
     public static final String KEY_NEXT_REQ_ID = "next_request_id";
     public static final String KEY_NEXT_USER_NAME = "next_user_name";
     public static final String KEY_PRIMARY_USER_NAME = "primary_user_name";
+    public static final String KEY_SECONDARY_USER_NAME = "secondary_user_name";
     public static final String KEY_USER_NAME = "user_name";
     public static final String KEY_REQ_ACCEPT = "accept";
     public static final String KEY_SHARING_REQUESTS = "sharing_requests";
     public static final String KEY_METADATA = "metadata";
     public static final String KEY_START_ID = "start_id";
     public static final String KEY_NEXT_ID = "next_id";
+    public static final String KEY_EVENT_VERSION = "event_version";
+    public static final String KEY_EVENT_TYPE = "event_type";
+    public static final String KEY_EVENT_DATA = "event_data";
+    public static final String KEY_TITLE = "title";
+    public static final String KEY_BODY = "body";
+    public static final String KEY_EVENT_DATA_PAYLOAD = "event_data_payload";
+    public static final String KEY_NOTIFICATION_MSG = "notification_msg";
+    public static final String KEY_PAYLOAD = "payload";
 
     public static final String KEY_OPERATION = "operation";
     public static final String KEY_OPERATION_ADD = "add";
@@ -241,4 +257,24 @@ public class AppConstants {
 
     public static final String WIFI_SCAN_FROM_DEVICE = "Device";
     public static final String WIFI_SCAN_FROM_PHONE = "Phone";
+
+    // Event types
+    public static final String EVENT_NODE_CONNECTED = "rmaker.event.node_connected";
+    public static final String EVENT_NODE_DISCONNECTED = "rmaker.event.node_disconnected";
+    public static final String EVENT_NODE_ADDED = "rmaker.event.user_node_added";
+    public static final String EVENT_NODE_REMOVED = "rmaker.event.user_node_removed";
+    public static final String EVENT_NODE_SHARING_ADD = "rmaker.event.user_node_sharing_add";
+    public static final String EVENT_NODE_PARAM_MODIFIED = "rmaker.event.node_params_changed";
+    public static final String EVENT_ALERT = "rmaker.event.alert";
+
+    // Notification channel IDs
+    public static final String CHANNEL_NODE_ONLINE_ID = "notify_node_online_id";
+    public static final String CHANNEL_NODE_OFFLINE_ID = "notify_node_offline_id";
+    public static final String CHANNEL_NODE_ADDED = "notify_node_added_id";
+    public static final String CHANNEL_NODE_REMOVED = "notify_node_removed_id";
+    public static final String CHANNEL_ALERT = "notify_alert_id";
+    public static final String CHANNEL_NODE_SHARING = "notify_node_sharing_id";
+
+    public static final String ACTION_ACCEPT = "com.espressif.rainmaker.ACTION_ACCEPT";
+    public static final String ACTION_DECLINE = "com.espressif.rainmaker.ACTION_DECLINE";
 }

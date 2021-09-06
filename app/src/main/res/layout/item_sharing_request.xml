@@ -24,30 +24,13 @@
             android:padding="@dimen/margin_10">
 
             <TextView
-                android:id="@+id/tv_user_name"
+                android:id="@+id/tv_sharing_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
+                android:layout_marginBottom="2dp"
                 android:textColor="@color/colorPrimaryDark"
                 android:textSize="16sp" />
-
-            <TextView
-                android:id="@+id/tv_user_email"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:alpha="0.8"
-                android:textColor="@color/colorPrimaryDark"
-                android:textSize="14sp" />
-
-            <TextView
-                android:id="@+id/tv_schedule_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:alpha="0.8"
-                android:textColor="@color/colorPrimaryDark"
-                android:textSize="15sp" />
 
         </LinearLayout>
 

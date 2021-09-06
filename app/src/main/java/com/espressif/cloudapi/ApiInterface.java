@@ -175,4 +175,12 @@ public interface ApiInterface {
     @DELETE
     Call<ResponseBody> removeSharing(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
                                      @Query(AppConstants.KEY_NODES) String nodes, @Query(AppConstants.KEY_USER_NAME) String userName);
+
+    @POST
+    Call<ResponseBody> registerDeviceToken(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                           @Body JsonObject body);
+
+    @DELETE
+    Call<ResponseBody> unregisterDeviceToken(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                             @Query(AppConstants.KEY_MOBILE_DEVICE_TOKEN) String deviceToken);
 }

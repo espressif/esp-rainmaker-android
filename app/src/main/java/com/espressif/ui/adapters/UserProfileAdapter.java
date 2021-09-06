@@ -27,7 +27,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.activities.SharingRequestsActivity;
+import com.espressif.ui.activities.NotificationsActivity;
 import com.espressif.ui.activities.VoiceServicesActivity;
 import com.espressif.ui.user_module.ChangePasswordActivity;
 
@@ -78,7 +78,7 @@ public class UserProfileAdapter extends RecyclerView.Adapter<UserProfileAdapter.
 
                 if (str.equals(context.getString(R.string.title_activity_sharing_requests))) {
 
-                    context.startActivity(new Intent(context, SharingRequestsActivity.class));
+                    context.startActivity(new Intent(context, NotificationsActivity.class));
 
                 } else if (str.equals(context.getString(R.string.title_activity_change_password))) {
 

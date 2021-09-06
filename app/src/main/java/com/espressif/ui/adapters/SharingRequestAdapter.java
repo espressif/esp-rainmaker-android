@@ -32,7 +32,7 @@ import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.activities.SharingRequestsActivity;
+import com.espressif.ui.activities.NotificationsActivity;
 import com.espressif.ui.models.SharingRequest;
 
 import org.json.JSONArray;
@@ -60,8 +60,8 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
     public SharingRequestVH onCreateViewHolder(ViewGroup parent, int viewType) {
 
         LayoutInflater layoutInflater = LayoutInflater.from(context);
-        View v = layoutInflater.inflate(R.layout.item_sharing_request, parent, false);
-        SharingRequestVH sharingRequestVH = new SharingRequestVH(v);
+        View sharingReqView = layoutInflater.inflate(R.layout.item_sharing_request, parent, false);
+        SharingRequestVH sharingRequestVH = new SharingRequestVH(sharingReqView);
         return sharingRequestVH;
     }
 
@@ -139,13 +139,13 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
             text.append(displayGeneralText(sharingReq));
         }
 
-        sharingRequestVH.tvUserName.setText(text.toString());
+        sharingRequestVH.tvSharingText.setText(text.toString());
 
         sharingRequestVH.layoutBtnAccept.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
-                ((SharingRequestsActivity) context).showLoading(context.getString(R.string.progress_accepting));
+                ((NotificationsActivity) context).showLoading(context.getString(R.string.progress_accepting));
 
                 apiManager.updateSharingRequest(pendingRequests.get(position).getReqId(), true, new ApiResponseListener() {
 
@@ -154,9 +154,9 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
                         pendingRequests.remove(position);
                         notifyDataSetChanged();
                         if (pendingRequests.size() == 0) {
-                            ((SharingRequestsActivity) context).clearPendingRequest();
+                            ((NotificationsActivity) context).clearPendingRequest();
                         }
-                        ((SharingRequestsActivity) context).hideLoading();
+                        ((NotificationsActivity) context).hideLoading();
                     }
 
                     @Override
@@ -166,7 +166,7 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
                         } else {
                             Toast.makeText(context, R.string.error_get_sharing_request, Toast.LENGTH_SHORT).show();
                         }
-                        ((SharingRequestsActivity) context).hideLoading();
+                        ((NotificationsActivity) context).hideLoading();
                     }
 
                     @Override
@@ -176,7 +176,7 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
                         } else {
                             Toast.makeText(context, R.string.error_get_sharing_request, Toast.LENGTH_SHORT).show();
                         }
-                        ((SharingRequestsActivity) context).hideLoading();
+                        ((NotificationsActivity) context).hideLoading();
                     }
                 });
             }
@@ -186,7 +186,7 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
 
             @Override
             public void onClick(View v) {
-                ((SharingRequestsActivity) context).showLoading(context.getString(R.string.progress_declining));
+                ((NotificationsActivity) context).showLoading(context.getString(R.string.progress_declining));
 
                 apiManager.updateSharingRequest(pendingRequests.get(position).getReqId(), false, new ApiResponseListener() {
                     @Override
@@ -194,9 +194,9 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
                         pendingRequests.remove(position);
                         notifyDataSetChanged();
                         if (pendingRequests.size() == 0) {
-                            ((SharingRequestsActivity) context).clearPendingRequest();
+                            ((NotificationsActivity) context).clearPendingRequest();
                         }
-                        ((SharingRequestsActivity) context).hideLoading();
+                        ((NotificationsActivity) context).hideLoading();
                     }
 
                     @Override
@@ -206,7 +206,7 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
                         } else {
                             Toast.makeText(context, R.string.error_get_sharing_request, Toast.LENGTH_SHORT).show();
                         }
-                        ((SharingRequestsActivity) context).hideLoading();
+                        ((NotificationsActivity) context).hideLoading();
                     }
 
                     @Override
@@ -216,7 +216,7 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
                         } else {
                             Toast.makeText(context, R.string.error_get_sharing_request, Toast.LENGTH_SHORT).show();
                         }
-                        ((SharingRequestsActivity) context).hideLoading();
+                        ((NotificationsActivity) context).hideLoading();
                     }
                 });
             }
@@ -257,14 +257,13 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
 
     static class SharingRequestVH extends RecyclerView.ViewHolder {
 
-        TextView tvUserName, tvUserEmail;
+        TextView tvSharingText;
         TextView layoutBtnAccept, layoutBtnDecline;
 
         public SharingRequestVH(View itemView) {
             super(itemView);
 
-            tvUserName = itemView.findViewById(R.id.tv_user_name);
-            tvUserEmail = itemView.findViewById(R.id.tv_user_email);
+            tvSharingText = itemView.findViewById(R.id.tv_sharing_text);
             layoutBtnAccept = itemView.findViewById(R.id.btn_accept);
             layoutBtnDecline = itemView.findViewById(R.id.btn_decline);
         }

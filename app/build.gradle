@@ -1,5 +1,7 @@
 apply plugin: 'com.android.application'
 apply plugin: 'com.google.protobuf'
+apply plugin: 'com.google.gms.google-services'
+apply plugin: 'com.google.firebase.crashlytics'
 
 def getGitHash = { ->
     def stdout = new ByteArrayOutputStream()
@@ -42,8 +44,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 23
         targetSdkVersion 30
-        versionCode 29
-        versionName "2.3.1 - ${getGitHash()}"
+        versionCode 34
+        versionName "2.4.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -186,6 +188,16 @@ dependencies {
     def room_version = "2.3.0"
     implementation "android.arch.persistence.room:runtime:$room_version"
     annotationProcessor "android.arch.persistence.room:compiler:$room_version"
+
+    def work_version = "2.5.0"
+    implementation "androidx.work:work-runtime:$work_version"
+
+    // Import the BoM for the Firebase platform
+    implementation platform('com.google.firebase:firebase-bom:28.4.0')
+    implementation 'com.google.firebase:firebase-messaging'
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-crashlytics'
+    implementation 'com.google.android.gms:play-services-gcm:17.0.0'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test:runner:1.4.0'
