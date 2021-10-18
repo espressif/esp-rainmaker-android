@@ -50,6 +50,14 @@ public interface ApiInterface {
     @POST
     Call<ResponseBody> confirmUser(@Url String url, @Body JsonObject body);
 
+    @DELETE
+    Call<ResponseBody> deleteUserRequest(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                         @Query(AppConstants.KEY_REQUEST) boolean request);
+
+    @DELETE
+    Call<ResponseBody> deleteUserConfirm(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                         @Query(AppConstants.KEY_VERIFICATION_CODE) String verificationCode);
+
     @PUT
     Call<ResponseBody> forgotPassword(@Url String url, @Body JsonObject body);
 

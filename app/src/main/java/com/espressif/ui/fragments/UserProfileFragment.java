@@ -16,10 +16,7 @@ package com.espressif.ui.fragments;
 
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -39,7 +36,6 @@ import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.activities.MainActivity;
 import com.espressif.ui.adapters.UserProfileAdapter;
 import com.espressif.ui.models.SharingRequest;
 
@@ -47,7 +43,6 @@ import java.util.ArrayList;
 
 public class UserProfileFragment extends Fragment {
 
-    private TextView tvAppVersion;
     private RecyclerView rvUserInfo;
     private UserProfileAdapter userInfoAdapter;
 
@@ -93,19 +88,7 @@ public class UserProfileFragment extends Fragment {
         tvEmail.setText(sharedPreferences.getString(AppConstants.KEY_EMAIL, ""));
 
         rvUserInfo = view.findViewById(R.id.rv_user_profile);
-        tvAppVersion = view.findViewById(R.id.tv_app_version);
         RelativeLayout logoutView = view.findViewById(R.id.rl_logout);
-
-        String version = "";
-        try {
-            PackageInfo pInfo = getActivity().getPackageManager().getPackageInfo(getActivity().getPackageName(), 0);
-            version = pInfo.versionName;
-        } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        String appVersion = getString(R.string.app_version) + " - v" + version;
-        tvAppVersion.setText(appVersion);
 
         logoutView.setOnClickListener(new View.OnClickListener() {
 
@@ -123,16 +106,14 @@ public class UserProfileFragment extends Fragment {
 
         userInfoList = new ArrayList<>();
 
+        userInfoList.add(getString(R.string.title_activity_account_settings));
+
         if (BuildConfig.isNodeSharingSupported) {
             userInfoList.add(getString(R.string.title_activity_sharing_requests));
         }
-        if (!ApiManager.isOAuthLogin) {
-            userInfoList.add(getString(R.string.title_activity_change_password));
-        }
-        userInfoList.add(getString(R.string.documentation));
-        userInfoList.add(getString(R.string.privacy_policy));
-        userInfoList.add(getString(R.string.terms_of_use));
+
         userInfoList.add(getString(R.string.voice_services));
+        userInfoList.add(getString(R.string.title_activity_about));
         userInfoAdapter = new UserProfileAdapter(getActivity(), userInfoList, 0);
         rvUserInfo.setAdapter(userInfoAdapter);
     }
