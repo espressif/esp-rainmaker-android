@@ -190,6 +190,8 @@
     <string name="btn_deleting_user">Deleting Account&#8230;</string>
     <string name="btn_delete_user_confirm">Confirm Delete</string>
     <string name="btn_proceed">Proceed</string>
+    <string name="btn_link_alexa">Link with Amazon Alexa</string>
+    <string name="btn_unlink_alexa">Unlink from Amazon Alexa</string>
 
     <!--Screen titles-->
     <string name="title_activity_devices">Devices</string>
@@ -223,6 +225,7 @@
     <string name="title_activity_account_settings">Account</string>
     <string name="title_activity_about">About</string>
     <string name="title_activity_delete_user">Delete Account</string>
+    <string name="title_activity_amazon_alexa">Amazon Alexa</string>
 
     <!--Dialog texts-->
     <string name="dialog_title_login_failed">Sign-in failed</string>
@@ -251,6 +254,8 @@
     <string name="dialog_msg_no_network">Please check your phone\'s network</string>
     <string name="dialog_title_delete_user">Warning!</string>
     <string name="dialog_msg_delete_user">This will permanently delete your account and all information associated with it, including all the devices.\nProceed with caution.</string>
+    <string name="dialog_title_unlink_skill">Disable Skill</string>
+    <string name="dialog_msg_unlink_skill">Do you want to unlink your account?</string>
 
     <!--Node Details-->
     <string name="node_id">Node Id</string>
@@ -275,6 +280,7 @@
     <string name="enabled_bluetooth_instructions">To provision the device, please enter your Network credentials on the next page.</string>
     <string name="delete_user_msg">Delete account will remove all your devices which are linked to your account.</string>
     <string name="delete_user_confirm_instruction">Verification code was sent to your email.\nPlease enter it here to delete your account.</string>
+    <string name="alexa_link_instruction">Linking your account with Amazon Alexa allows you to control your Smart Home Devices using Voice commands via Alexa enabled speakers. (E.g. Alexa, Turn on the Light)</string>
 
     <!--Other Strings-->
     <string name="read_terms_condition">I have read and agree to the Privacy Policy and Terms of Use.</string>
@@ -325,6 +331,11 @@
     <string name="supported_services">Supported Services</string>
     <string name="text_alexa">Amazon Alexa</string>
     <string name="text_gva">Google Assistant</string>
+    <string name="linked_with_alexa">Already linked with Amazon Alexa</string>
+    <string name="alexa_link_str">You can now control your Smart Home Devices via Alexa enabled speakers using Voice commands.</string>
+    <string name="alexa_example_1">Alexa, turn on the boiler switch.</string>
+    <string name="alexa_example_2">Alexa, turn on the kitchen light.</string>
+    <string name="alexa_example_3">Alexa, set kitchen light to red.</string>
 
     <string name="prov_step_1">Sending Wi-Fi credentials</string>
     <string name="prov_step_2">Confirming Wi-Fi connection</string>

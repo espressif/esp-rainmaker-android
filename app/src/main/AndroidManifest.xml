@@ -22,6 +22,10 @@
         android:smallScreens="true"
         android:xlargeScreens="true" />
 
+    <queries>
+        <package android:name="com.amazon.dee.app" />
+    </queries>
+
     <application
         android:name="com.espressif.EspApplication"
         android:allowBackup="false"
@@ -184,6 +188,25 @@
             android:label="@string/title_activity_sharing_requests"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="com.espressif.ui.activities.AlexaAppLinkingActivity"
+            android:label="@string/title_activity_amazon_alexa"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar">
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="your_host_value"
+                    android:scheme="https" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name="com.espressif.ui.activities.VoiceServicesActivity"
             android:label="@string/title_activity_voice_services"

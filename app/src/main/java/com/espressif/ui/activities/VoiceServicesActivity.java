@@ -17,11 +17,13 @@ package com.espressif.ui.activities;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.RelativeLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.google.android.material.appbar.MaterialToolbar;
 
@@ -62,9 +64,25 @@ public class VoiceServicesActivity extends AppCompatActivity {
 
         @Override
         public void onClick(View v) {
-            String url = "https://rainmaker.espressif.com/docs/3rd-party.html#enabling-alexa";
-            Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            startActivity(openURL);
+
+            String nullStr = "null";
+
+            if ((!TextUtils.isEmpty(BuildConfig.AUTH_URL) && !nullStr.equalsIgnoreCase(BuildConfig.AUTH_URL))
+                    && (!TextUtils.isEmpty(BuildConfig.ALEXA_CLIENT_ID) && !nullStr.equalsIgnoreCase(BuildConfig.ALEXA_CLIENT_ID))
+                    && (!TextUtils.isEmpty(BuildConfig.ALEXA_CLIENT_SECRET) && !nullStr.equalsIgnoreCase(BuildConfig.ALEXA_CLIENT_SECRET))
+                    && (!TextUtils.isEmpty(BuildConfig.ALEXA_RM_CLIENT_ID) && !nullStr.equalsIgnoreCase(BuildConfig.ALEXA_RM_CLIENT_ID))
+                    && (!TextUtils.isEmpty(BuildConfig.ALEXA_REDIRECT_URL) && !nullStr.equalsIgnoreCase(BuildConfig.ALEXA_REDIRECT_URL))
+                    && (!TextUtils.isEmpty(BuildConfig.SKILL_ID) && !nullStr.equalsIgnoreCase(BuildConfig.SKILL_ID))
+                    && (!TextUtils.isEmpty(BuildConfig.SKILL_STAGE) && !nullStr.equalsIgnoreCase(BuildConfig.SKILL_STAGE))
+                    && (!TextUtils.isEmpty(BuildConfig.ALEXA_ACCESS_TOKEN_URL) && !nullStr.equalsIgnoreCase(BuildConfig.ALEXA_ACCESS_TOKEN_URL))) {
+
+                Intent intent = new Intent(VoiceServicesActivity.this, AlexaAppLinkingActivity.class);
+                startActivity(intent);
+            } else {
+                String url = "https://rainmaker.espressif.com/docs/3rd-party.html#enabling-alexa";
+                Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                startActivity(openURL);
+            }
         }
     };
 
