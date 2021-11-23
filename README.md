@@ -24,6 +24,7 @@ You are now ready to run this demo.
 - Third party login includes GitHub and Google.
 - Forgot/reset password support.
 - Signing out.
+- Delete user.
 
 ### Provisioning
 

@@ -16,7 +16,6 @@ package com.espressif.ui.adapters;
 
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,11 +24,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.activities.AboutAppActivity;
+import com.espressif.ui.activities.AccountActivity;
 import com.espressif.ui.activities.NotificationsActivity;
 import com.espressif.ui.activities.VoiceServicesActivity;
-import com.espressif.ui.user_module.ChangePasswordActivity;
 
 import java.util.ArrayList;
 
@@ -63,7 +62,7 @@ public class UserProfileAdapter extends RecyclerView.Adapter<UserProfileAdapter.
         if (userInfoList.get(position).equals(context.getString(R.string.title_activity_sharing_requests))) {
             if (pendingReqCnt > 0) {
                 profileViewHolder.tvCount.setVisibility(View.VISIBLE);
-                profileViewHolder.tvCount.setText("" + pendingReqCnt);
+                profileViewHolder.tvCount.setText(String.valueOf(pendingReqCnt));
             } else {
                 profileViewHolder.tvCount.setVisibility(View.GONE);
             }
@@ -76,32 +75,21 @@ public class UserProfileAdapter extends RecyclerView.Adapter<UserProfileAdapter.
                 int position = profileViewHolder.getAdapterPosition();
                 String str = userInfoList.get(position);
 
-                if (str.equals(context.getString(R.string.title_activity_sharing_requests))) {
+                if (str.equals(context.getString(R.string.title_activity_account_settings))) {
+
+                    context.startActivity(new Intent(context, AccountActivity.class));
+
+                } else if (str.equals(context.getString(R.string.title_activity_sharing_requests))) {
 
                     context.startActivity(new Intent(context, NotificationsActivity.class));
-
-                } else if (str.equals(context.getString(R.string.title_activity_change_password))) {
-
-                    context.startActivity(new Intent(context, ChangePasswordActivity.class));
-
-                } else if (str.equals(context.getString(R.string.documentation))) {
-
-                    Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.DOCUMENTATION_URL));
-                    context.startActivity(openURL);
-
-                } else if (str.equals(context.getString(R.string.privacy_policy))) {
-
-                    Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.PRIVACY_URL));
-                    context.startActivity(openURL);
-
-                } else if (str.equals(context.getString(R.string.terms_of_use))) {
-
-                    Intent openURL = new Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.TERMS_URL));
-                    context.startActivity(openURL);
 
                 } else if (str.equals(context.getString(R.string.voice_services))) {
 
                     context.startActivity(new Intent(context, VoiceServicesActivity.class));
+
+                } else if (str.equals(context.getString(R.string.title_activity_about))) {
+
+                    context.startActivity(new Intent(context, AboutAppActivity.class));
                 }
             }
         });

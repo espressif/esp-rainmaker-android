@@ -50,7 +50,7 @@ public class HomeScreenPagerAdapter extends FragmentPagerAdapter {
             case 1:
                 return context.getString(R.string.title_activity_schedules);
             case 2:
-                return context.getString(R.string.title_activity_user_profile);
+                return context.getString(R.string.tab_settings);
         }
         return "";
     }

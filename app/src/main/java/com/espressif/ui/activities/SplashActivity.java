@@ -38,16 +38,16 @@ public class SplashActivity extends Activity {
         SharedPreferences sharedPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
         String email = sharedPreferences.getString(AppConstants.KEY_EMAIL, "");
         String accessToken = sharedPreferences.getString(AppConstants.KEY_ACCESS_TOKEN, "");
+        Log.d(TAG, "Email : " + email);
 
         if (TextUtils.isEmpty(email) || TextUtils.isEmpty(accessToken)) {
-            Log.d(TAG, "Email : " + email);
-            launchLoginScreen();
+            launchStartupScreen();
         } else {
             launchHomeScreen();
         }
     }
 
-    public void launchHomeScreen() {
+    private void launchHomeScreen() {
         ((EspApplication) getApplicationContext()).changeAppState(EspApplication.AppState.GETTING_DATA, null);
         Intent espMainActivity = new Intent(getApplicationContext(), EspMainActivity.class);
 
@@ -63,8 +63,8 @@ public class SplashActivity extends Activity {
         finish();
     }
 
-    public void launchLoginScreen() {
-        Intent espMainActivity = new Intent(getApplicationContext(), MainActivity.class);
+    private void launchStartupScreen() {
+        Intent espMainActivity = new Intent(getApplicationContext(), ConsentActivity.class);
         espMainActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(espMainActivity);
         finish();

@@ -131,6 +131,7 @@ public class AppConstants {
     public static final String KEY_ESP_DEVICE = "esp_device";
     public static final String KEY_NODE_ID = "node_id";
     public static final String KEY_EMAIL = "email";
+    public static final String KEY_USER_ID = "user_id";
     public static final String KEY_ID_TOKEN = "id_token";
     public static final String KEY_ACCESS_TOKEN = "access_token";
     public static final String KEY_REFRESH_TOKEN = "refresh_token";
@@ -141,6 +142,7 @@ public class AppConstants {
     public static final String KEY_SECURITY_TYPE = "security_type";
     public static final String KEY_SHOULD_SAVE_PWD = "save_password";
     public static final String KEY_NEW_PASSWORD = "newpassword";
+    public static final String KEY_REQUEST = "request";
     public static final String KEY_VERIFICATION_CODE = "verification_code";
     public static final String KEY_MOBILE_DEVICE_TOKEN = "mobile_device_token";
     public static final String KEY_PLATFORM = "platform";

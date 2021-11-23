@@ -302,6 +302,78 @@ public class ApiManager {
         });
     }
 
+    public void deleteUserRequest(boolean request, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Delete user request...");
+
+        apiInterface.deleteUserRequest(AppConstants.URL_USER, accessToken, request).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Delete user request, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.e(TAG, "Response : " + jsonResponse);
+                        listener.onSuccess(null);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to request for delete user");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to request for delete user"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to request for delete user"));
+            }
+        });
+    }
+
+    public void deleteUserConfirm(String verificationCode, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Delete user confirm...");
+
+        apiInterface.deleteUserConfirm(AppConstants.URL_USER, accessToken, verificationCode).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Delete user confirm, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.e(TAG, "Response : " + jsonResponse);
+                        listener.onSuccess(null);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to delete user");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to delete user"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to delete user"));
+            }
+        });
+    }
+
     public void forgotPassword(String email, final ApiResponseListener listener) {
 
         Log.d(TAG, "Forgot password...");
@@ -430,6 +502,8 @@ public class ApiManager {
         if (!TextUtils.isEmpty(idToken)) {
 
             JWT jwt = null;
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+
             try {
                 jwt = new JWT(idToken);
             } catch (DecodeException e) {
@@ -438,17 +512,16 @@ public class ApiManager {
 
             Claim claimUserId = jwt.getClaim("custom:user_id");
             userId = claimUserId.asString();
+            editor.putString(AppConstants.KEY_USER_ID, userId);
 
             if (isOAuthLogin) {
 
                 Claim claimEmail = jwt.getClaim(AppConstants.KEY_EMAIL);
                 String email = claimEmail.asString();
                 userName = email;
-
-                SharedPreferences.Editor editor = sharedPreferences.edit();
                 editor.putString(AppConstants.KEY_EMAIL, email);
-                editor.apply();
             }
+            editor.apply();
 
             try {
                 jwt = new JWT(accessToken);

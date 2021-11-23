@@ -36,7 +36,7 @@ import com.espressif.mdns.mDNSManager;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.activities.MainActivity;
+import com.espressif.ui.activities.ConsentActivity;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
 import com.espressif.ui.models.Schedule;
@@ -129,7 +129,7 @@ public class EspApplication extends Application {
                 break;
 
             case NO_USER_LOGIN:
-                Intent loginActivity = new Intent(this, MainActivity.class);
+                Intent loginActivity = new Intent(this, ConsentActivity.class);
                 loginActivity.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
                         | Intent.FLAG_ACTIVITY_CLEAR_TASK
                         | Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -271,6 +271,27 @@ public class EspApplication extends Application {
             });
         }
 
+        if (isPlayServicesAvailable()) {
+            // Delete endpoint API
+            apiManager.unregisterDeviceToken(deviceToken, new ApiResponseListener() {
+                @Override
+                public void onSuccess(Bundle data) {
+                }
+
+                @Override
+                public void onResponseFailure(Exception exception) {
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
+                }
+            });
+        }
+        clearUserSession();
+    }
+
+    public void clearUserSession() {
+
         EspDatabase.getInstance(this).getNodeDao().deleteAll();
         EspDatabase.getInstance(this).getGroupDao().deleteAll();
         EspDatabase.getInstance(this).getNotificationDao().deleteAll();
@@ -289,20 +310,6 @@ public class EspApplication extends Application {
         wifiNetworkEditor.apply();
 
         if (isPlayServicesAvailable()) {
-            // Delete endpoint API
-            apiManager.unregisterDeviceToken(deviceToken, new ApiResponseListener() {
-                @Override
-                public void onSuccess(Bundle data) {
-                }
-
-                @Override
-                public void onResponseFailure(Exception exception) {
-                }
-
-                @Override
-                public void onNetworkFailure(Exception exception) {
-                }
-            });
             FirebaseMessaging.getInstance().deleteToken();
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.cancelAll();

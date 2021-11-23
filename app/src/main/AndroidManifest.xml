@@ -79,6 +79,10 @@
         </service>
 
         <activity
+            android:name="com.espressif.ui.activities.ConsentActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
             android:name="com.espressif.ui.activities.ProvisionLanding"
             android:label="@string/title_activity_provision_landing"
             android:screenOrientation="portrait"
@@ -183,6 +187,21 @@
         <activity
             android:name="com.espressif.ui.activities.VoiceServicesActivity"
             android:label="@string/title_activity_voice_services"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="com.espressif.ui.activities.AccountActivity"
+            android:label="@string/title_activity_account_settings"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="com.espressif.ui.user_module.DeleteUserActivity"
+            android:label="@string/title_activity_delete_user"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="com.espressif.ui.activities.AboutAppActivity"
+            android:label="@string/title_activity_about"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
 
