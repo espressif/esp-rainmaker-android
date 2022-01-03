@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.espressif.mdns;
+package com.espressif.local_control;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -39,13 +39,13 @@ import java.util.List;
 import rm_local_ctrl.Constants;
 import rm_local_ctrl.EspLocalCtrl;
 
-public class mDNSApiManager {
+public class LocalControlApiManager {
 
-    private final String TAG = mDNSApiManager.class.getSimpleName();
+    private final String TAG = LocalControlApiManager.class.getSimpleName();
 
     private EspApplication espApp;
 
-    public mDNSApiManager(Context context) {
+    public LocalControlApiManager(Context context) {
         espApp = (EspApplication) context.getApplicationContext();
     }
 
@@ -53,15 +53,13 @@ public class mDNSApiManager {
 
         Log.d(TAG, "Get Node details on local network for id : " + nodeId);
 
-        if (espApp.mDNSDeviceMap.containsKey(nodeId)) {
+        if (espApp.localDeviceMap.containsKey(nodeId)) {
 
-            final mDNSDevice dnsDevice = espApp.mDNSDeviceMap.get(nodeId);
+            final EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
 
-            final String url = "http://" + dnsDevice.getIpAddr() + ":" + dnsDevice.getPort();
+            if (localDevice.getPropertyCount() != 0) {
 
-            if (dnsDevice.getPropertyCount() != 0) {
-
-                getPropertyValues(url, AppConstants.LOCAL_CONTROL_PATH, dnsDevice.getPropertyCount(), new ApiResponseListener() {
+                getPropertyValues(AppConstants.LOCAL_CONTROL_ENDPOINT, localDevice, new ApiResponseListener() {
 
                     @Override
                     public void onSuccess(Bundle data) {
@@ -115,13 +113,13 @@ public class mDNSApiManager {
 
                     @Override
                     public void onNetworkFailure(Exception exception) {
-                        listener.onResponseFailure(exception);
+                        listener.onNetworkFailure(exception);
                     }
                 });
 
             } else {
 
-                getPropertyCount(url, AppConstants.LOCAL_CONTROL_PATH, new ApiResponseListener() {
+                getPropertyCount(AppConstants.LOCAL_CONTROL_ENDPOINT, localDevice, new ApiResponseListener() {
 
                     @Override
                     public void onSuccess(Bundle data) {
@@ -129,8 +127,8 @@ public class mDNSApiManager {
                         if (data != null) {
 
                             int count = data.getInt(AppConstants.KEY_PROPERTY_COUNT, 0);
-                            dnsDevice.setPropertyCount(count);
-                            getPropertyValues(url, AppConstants.LOCAL_CONTROL_PATH, count, listener);
+                            localDevice.setPropertyCount(count);
+                            getPropertyValues(AppConstants.LOCAL_CONTROL_ENDPOINT, localDevice, listener);
                         }
                     }
 
@@ -141,7 +139,7 @@ public class mDNSApiManager {
 
                     @Override
                     public void onNetworkFailure(Exception exception) {
-                        listener.onResponseFailure(exception);
+                        listener.onNetworkFailure(exception);
                     }
                 });
             }
@@ -154,15 +152,13 @@ public class mDNSApiManager {
 
         Log.d(TAG, "Get param values on local network for node : " + nodeId);
 
-        if (espApp.mDNSDeviceMap.containsKey(nodeId)) {
+        if (espApp.localDeviceMap.containsKey(nodeId)) {
 
-            final mDNSDevice dnsDevice = espApp.mDNSDeviceMap.get(nodeId);
+            final EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
 
-            final String url = "http://" + dnsDevice.getIpAddr() + ":" + dnsDevice.getPort();
+            if (localDevice.getPropertyCount() != 0) {
 
-            if (dnsDevice.getPropertyCount() != 0) {
-
-                getPropertyValues(url, AppConstants.LOCAL_CONTROL_PATH, dnsDevice.getPropertyCount(), new ApiResponseListener() {
+                getPropertyValues(AppConstants.LOCAL_CONTROL_ENDPOINT, localDevice, new ApiResponseListener() {
 
                     @Override
                     public void onSuccess(Bundle data) {
@@ -213,13 +209,13 @@ public class mDNSApiManager {
 
                     @Override
                     public void onNetworkFailure(Exception exception) {
-                        listener.onResponseFailure(exception);
+                        listener.onNetworkFailure(exception);
                     }
                 });
 
             } else {
 
-                getPropertyCount(url, AppConstants.LOCAL_CONTROL_PATH, new ApiResponseListener() {
+                getPropertyCount(AppConstants.LOCAL_CONTROL_ENDPOINT, localDevice, new ApiResponseListener() {
 
                     @Override
                     public void onSuccess(Bundle data) {
@@ -227,8 +223,8 @@ public class mDNSApiManager {
                         if (data != null) {
 
                             int count = data.getInt(AppConstants.KEY_PROPERTY_COUNT, 0);
-                            dnsDevice.setPropertyCount(count);
-                            getPropertyValues(url, AppConstants.LOCAL_CONTROL_PATH, count, listener);
+                            localDevice.setPropertyCount(count);
+                            getPropertyValues(AppConstants.LOCAL_CONTROL_ENDPOINT, localDevice, listener);
                         }
                     }
 
@@ -239,7 +235,7 @@ public class mDNSApiManager {
 
                     @Override
                     public void onNetworkFailure(Exception exception) {
-                        listener.onResponseFailure(exception);
+                        listener.onNetworkFailure(exception);
                     }
                 });
             }
@@ -252,16 +248,14 @@ public class mDNSApiManager {
 
         Log.d(TAG, "Update param values on local network");
 
-        if (espApp.mDNSDeviceMap.containsKey(nodeId)) {
+        if (espApp.localDeviceMap.containsKey(nodeId)) {
 
-            mDNSDevice dnsDevice = espApp.mDNSDeviceMap.get(nodeId);
+            EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
 
-            String url = "http://" + dnsDevice.getIpAddr() + ":" + dnsDevice.getPort();
             String jsonData = body.toString();
             byte[] data = createSetPropertyInfoRequest(jsonData);
 
-            mDNSTransport transport = new mDNSTransport(url);
-            transport.sendData(AppConstants.LOCAL_CONTROL_PATH, data, new ResponseListener() {
+            localDevice.sendData(AppConstants.LOCAL_CONTROL_ENDPOINT, data, new ResponseListener() {
 
                 @Override
                 public void onSuccess(byte[] returnData) {
@@ -302,12 +296,11 @@ public class mDNSApiManager {
         }
     }
 
-    public void getPropertyCount(final String url, final String path, final ApiResponseListener listener) {
+    public void getPropertyCount(final String path, EspLocalDevice localDevice, final ApiResponseListener listener) {
 
         byte[] data = createGetPropertyCountRequest();
 
-        mDNSTransport transport = new mDNSTransport(url);
-        transport.sendData(path, data, new ResponseListener() {
+        localDevice.sendData(path, data, new ResponseListener() {
 
             @Override
             public void onSuccess(byte[] returnData) {
@@ -328,12 +321,11 @@ public class mDNSApiManager {
         });
     }
 
-    public void getPropertyValues(String url, String path, int count, final ApiResponseListener listener) {
+    public void getPropertyValues(String path, EspLocalDevice localDevice, final ApiResponseListener listener) {
 
-        byte[] data = createGetAllPropertyValuesRequest(count);
-        mDNSTransport transport = new mDNSTransport(url);
+        byte[] data = createGetAllPropertyValuesRequest(localDevice.getPropertyCount());
 
-        transport.sendData(path, data, new ResponseListener() {
+        localDevice.sendData(path, data, new ResponseListener() {
 
             @Override
             public void onSuccess(byte[] returnData) {

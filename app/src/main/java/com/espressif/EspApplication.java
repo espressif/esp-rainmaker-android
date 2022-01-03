@@ -30,16 +30,18 @@ import androidx.annotation.NonNull;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.db.EspDatabase;
-import com.espressif.mdns.mDNSApiManager;
-import com.espressif.mdns.mDNSDevice;
-import com.espressif.mdns.mDNSManager;
+import com.espressif.local_control.LocalControlApiManager;
+import com.espressif.local_control.EspLocalDevice;
+import com.espressif.local_control.mDNSManager;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.ConsentActivity;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
+import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Schedule;
+import com.espressif.ui.models.Service;
 import com.espressif.ui.models.UpdateEvent;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -51,6 +53,7 @@ import org.greenrobot.eventbus.EventBus;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class EspApplication extends Application {
@@ -61,7 +64,7 @@ public class EspApplication extends Application {
 
     public HashMap<String, EspNode> nodeMap;
     public HashMap<String, Schedule> scheduleMap;
-    public HashMap<String, mDNSDevice> mDNSDeviceMap;
+    public HashMap<String, EspLocalDevice> localDeviceMap;
     public HashMap<String, Group> groupMap;
 
     private SharedPreferences appPreferences;
@@ -84,7 +87,7 @@ public class EspApplication extends Application {
         Log.d(TAG, "ESP Application is created");
         nodeMap = new HashMap<>();
         scheduleMap = new HashMap<>();
-        mDNSDeviceMap = new HashMap<>();
+        localDeviceMap = new HashMap<>();
         groupMap = new HashMap<>();
         appPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
         apiManager = ApiManager.getInstance(this);
@@ -135,6 +138,7 @@ public class EspApplication extends Application {
                         | Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(loginActivity);
                 appState = newState;
+                EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_STATE_CHANGE_UPDATE));
                 break;
 
             case GET_DATA_SUCCESS:
@@ -205,7 +209,7 @@ public class EspApplication extends Application {
         EspDatabase.getInstance(this).getNotificationDao().deleteAll();
         nodeMap.clear();
         scheduleMap.clear();
-        mDNSDeviceMap.clear();
+        localDeviceMap.clear();
         groupMap.clear();
     }
 
@@ -297,7 +301,7 @@ public class EspApplication extends Application {
         EspDatabase.getInstance(this).getNotificationDao().deleteAll();
         nodeMap.clear();
         scheduleMap.clear();
-        mDNSDeviceMap.clear();
+        localDeviceMap.clear();
         groupMap.clear();
 
         SharedPreferences.Editor editor = appPreferences.edit();
@@ -336,13 +340,54 @@ public class EspApplication extends Application {
     mDNSManager.mDNSEvenListener listener = new mDNSManager.mDNSEvenListener() {
 
         @Override
-        public void deviceFound(final mDNSDevice dnsDevice) {
+        public void deviceFound(EspLocalDevice newDevice) {
 
             Log.e(TAG, "Device Found on Local Network");
-            final String url = "http://" + dnsDevice.getIpAddr() + ":" + dnsDevice.getPort();
-            final mDNSApiManager dnsMsgHelper = new mDNSApiManager(getApplicationContext());
+            final LocalControlApiManager localControlApiManager = new LocalControlApiManager(getApplicationContext());
+            final String nodeId = newDevice.getNodeId();
+            EspNode node = nodeMap.get(nodeId);
+            Service localService = null;
 
-            dnsMsgHelper.getPropertyCount(url, AppConstants.LOCAL_CONTROL_PATH, new ApiResponseListener() {
+            if (node == null) {
+                Log.e(TAG, "Node is not available with id : " + nodeId);
+//                return;
+            } else {
+                newDevice.setNodeId(nodeId);
+                ArrayList<Service> services = node.getServices();
+
+                for (int i = 0; i < services.size(); i++) {
+                    Service s = services.get(i);
+                    if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_LOCAL_CONTROL)) {
+                        localService = s;
+                        break;
+                    }
+                }
+            }
+
+            Log.e(TAG, "Found node " + nodeId + " on local network.");
+            if (localDeviceMap.containsKey(nodeId)) {
+                Log.e(TAG, "Local Device session is already available");
+                newDevice = localDeviceMap.get(nodeId);
+            }
+
+            if (localService != null) {
+                ArrayList<Param> popParams = localService.getParams();
+                if (popParams != null) {
+                    for (int paramIdx = 0; paramIdx < popParams.size(); paramIdx++) {
+                        Param popParam = popParams.get(paramIdx);
+                        if (AppConstants.PARAM_TYPE_LOCAL_CONTROL_POP.equalsIgnoreCase(popParam.getParamType())) {
+                            String popValue = popParam.getLabelValue();
+                            newDevice.setPop(popValue);
+                        } else if (AppConstants.PARAM_TYPE_LOCAL_CONTROL_TYPE.equalsIgnoreCase(popParam.getParamType())) {
+                            int type = (int) popParam.getValue();
+                            newDevice.setSecurityType(type);
+                        }
+                    }
+                }
+            }
+
+            final EspLocalDevice localDevice = newDevice;
+            localControlApiManager.getPropertyCount(AppConstants.LOCAL_CONTROL_ENDPOINT, localDevice, new ApiResponseListener() {
 
                 @Override
                 public void onSuccess(Bundle data) {
@@ -350,9 +395,9 @@ public class EspApplication extends Application {
                     if (data != null) {
 
                         int count = data.getInt(AppConstants.KEY_PROPERTY_COUNT, 0);
-                        dnsDevice.setPropertyCount(count);
+                        localDevice.setPropertyCount(count);
 
-                        dnsMsgHelper.getPropertyValues(url, AppConstants.LOCAL_CONTROL_PATH, count, new ApiResponseListener() {
+                        localControlApiManager.getPropertyValues(AppConstants.LOCAL_CONTROL_ENDPOINT, localDevice, new ApiResponseListener() {
 
                             @Override
                             public void onSuccess(Bundle data) {
@@ -374,8 +419,8 @@ public class EspApplication extends Application {
                                             e.printStackTrace();
                                         }
 
-                                        String nodeId = configJson.optString(AppConstants.KEY_NODE_ID);
-                                        EspNode node = nodeMap.get(nodeId);
+                                        String id = configJson.optString(AppConstants.KEY_NODE_ID);
+                                        EspNode node = nodeMap.get(id);
                                         boolean isDeviceFound = false;
                                         if (node != null) {
                                             isDeviceFound = true;
@@ -386,10 +431,10 @@ public class EspApplication extends Application {
                                             Log.e(TAG, "Found node " + localNode.getNodeId() + " on local network.");
                                             isDeviceFound = true;
                                             localNode.setAvailableLocally(true);
-                                            localNode.setIpAddress(dnsDevice.getIpAddr());
-                                            localNode.setPort(dnsDevice.getPort());
+                                            localNode.setIpAddress(localDevice.getIpAddr());
+                                            localNode.setPort(localDevice.getPort());
                                             localNode.setOnline(true);
-                                            mDNSDeviceMap.put(localNode.getNodeId(), dnsDevice);
+                                            localDeviceMap.put(localNode.getNodeId(), localDevice);
                                         }
 
                                         if (!TextUtils.isEmpty(paramsData) && isDeviceFound) {
@@ -467,7 +512,7 @@ public class EspApplication extends Application {
 
     public void removeNodeInformation(String nodeId) {
         nodeMap.remove(nodeId);
-        mDNSDeviceMap.remove(nodeId);
+        localDeviceMap.remove(nodeId);
     }
 
     /**

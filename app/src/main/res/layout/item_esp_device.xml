@@ -84,7 +84,7 @@
 
         <LinearLayout
             android:id="@+id/ll_device_name"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:orientation="vertical"
@@ -105,33 +105,44 @@
                 android:textColor="@color/colorPrimaryDark"
                 android:textSize="16sp" />
 
-            <LinearLayout
+            <RelativeLayout
                 android:id="@+id/ll_offline"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
-                android:orientation="horizontal"
                 android:visibility="visible">
 
                 <ImageView
                     android:id="@+id/iv_offline"
                     android:layout_width="12dp"
                     android:layout_height="12dp"
-                    android:layout_gravity="center_vertical"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
                     android:src="@drawable/ic_status_offline" />
+
+                <ImageView
+                    android:id="@+id/iv_secure_local"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginEnd="@dimen/margin_8"
+                    android:src="@drawable/ic_lock"
+                    android:visibility="invisible" />
 
                 <TextView
                     android:id="@+id/tv_offline"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
+                    android:layout_toEndOf="@id/iv_offline"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="Offline at 31/13/2020, 4:40 PM"
                     android:textColor="@color/colorAccent"
                     android:textSize="12sp" />
 
-            </LinearLayout>
+            </RelativeLayout>
 
         </LinearLayout>
 

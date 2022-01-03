@@ -363,6 +363,7 @@ public class JsonDataParser {
         ArrayList<Service> services = node.getServices();
         JSONObject scheduleJson = paramsJson.optJSONObject(AppConstants.KEY_SCHEDULE);
         JSONObject timeJson = paramsJson.optJSONObject(AppConstants.KEY_TIME);
+        JSONObject localControlJson = paramsJson.optJSONObject(AppConstants.KEY_LOCAL_CONTROL);
 
         if (devices != null) {
             for (int i = 0; i < devices.size(); i++) {
@@ -575,6 +576,32 @@ public class JsonDataParser {
             }
         } else {
             Log.e(TAG, "Time JSON is not available");
+        }
+
+        // Local control
+        if (localControlJson != null && services != null) {
+            for (int serviceIdx = 0; serviceIdx < services.size(); serviceIdx++) {
+                Service service = services.get(serviceIdx);
+                if (AppConstants.SERVICE_TYPE_LOCAL_CONTROL.equals(service.getType())) {
+                    ArrayList<Param> localParams = service.getParams();
+                    if (localParams != null) {
+                        for (int paramIdx = 0; paramIdx < localParams.size(); paramIdx++) {
+                            Param localParam = localParams.get(paramIdx);
+                            String dataType = localParam.getDataType();
+                            if (!TextUtils.isEmpty(dataType)) {
+                                if (dataType.equalsIgnoreCase("string")) {
+                                    localParam.setLabelValue(localControlJson.optString(localParam.getName()));
+                                }
+                                if (dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("integer")) {
+                                    localParam.setValue(localControlJson.optInt(localParam.getName()));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            Log.e(TAG, "Local control JSON is not available");
         }
     }
 }

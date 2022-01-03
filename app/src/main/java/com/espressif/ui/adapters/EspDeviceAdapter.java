@@ -22,7 +22,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,6 +34,7 @@ import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.local_control.EspLocalDevice;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.EspDeviceActivity;
 import com.espressif.ui.models.Device;
@@ -442,9 +443,17 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
         }
 
         String nodeId = device.getNodeId();
-        if (espApp.mDNSDeviceMap.containsKey(nodeId)) {
+        if (espApp.localDeviceMap.containsKey(nodeId)) {
             deviceVh.llOffline.setVisibility(View.VISIBLE);
-            deviceVh.ivOffline.setVisibility(View.GONE);
+
+            EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
+            if (localDevice.getSecurityType() == 1) {
+                deviceVh.ivSecureLocal.setVisibility(View.VISIBLE);
+                deviceVh.ivOffline.setVisibility(View.INVISIBLE);
+            } else {
+                deviceVh.ivSecureLocal.setVisibility(View.INVISIBLE);
+                deviceVh.ivOffline.setVisibility(View.GONE);
+            }
             deviceVh.tvOffline.setText(R.string.local_device_text);
             deviceVh.tvOffline.setTextColor(context.getColor(R.color.colorPrimaryDark));
         }
@@ -474,8 +483,8 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
     static class DeviceViewHolder extends RecyclerView.ViewHolder {
 
         TextView tvDeviceName, tvStringValue, tvOffline;
-        ImageView ivDevice, ivDeviceStatus, ivOffline;
-        LinearLayout llOffline;
+        ImageView ivDevice, ivDeviceStatus, ivOffline, ivSecureLocal;
+        RelativeLayout llOffline;
         TapHoldUpButton btnTrigger;
 
         public DeviceViewHolder(View itemView) {
@@ -486,6 +495,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             llOffline = itemView.findViewById(R.id.ll_offline);
             ivOffline = itemView.findViewById(R.id.iv_offline);
             tvOffline = itemView.findViewById(R.id.tv_offline);
+            ivSecureLocal = itemView.findViewById(R.id.iv_secure_local);
             ivDeviceStatus = itemView.findViewById(R.id.iv_on_off);
             tvStringValue = itemView.findViewById(R.id.tv_string);
             btnTrigger = itemView.findViewById(R.id.btn_trigger);
