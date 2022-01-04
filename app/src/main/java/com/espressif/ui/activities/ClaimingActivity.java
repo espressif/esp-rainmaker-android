@@ -1,3 +1,17 @@
+// Copyright 2021 Espressif Systems (Shanghai) PTE LTD
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package com.espressif.ui.activities;
 
 import android.content.DialogInterface;
@@ -52,8 +66,8 @@ public class ClaimingActivity extends AppCompatActivity {
     private int dataCount = 0;
     private String certificateData = "";
     private StringBuilder csrData = new StringBuilder();
-    private boolean isClaimingAborted = false;
-    private boolean shouldSendClaimAbortReq = false;
+    private boolean isClaimingAborted = false, shouldSendClaimAbortReq = false;
+    private boolean hasTriedAgain = false;
 
     private Handler handler;
     private ApiManager apiManager;
@@ -64,6 +78,7 @@ public class ClaimingActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_claiming);
 
+        hasTriedAgain = false;
         handler = new Handler();
         apiManager = ApiManager.getInstance(getApplicationContext());
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
@@ -94,6 +109,10 @@ public class ClaimingActivity extends AppCompatActivity {
         Log.d(TAG, "On Device Connection Event RECEIVED : " + event.getEventType());
 
         switch (event.getEventType()) {
+
+            case ESPConstants.EVENT_DEVICE_CONNECTED:
+                sendClaimStartRequest();
+                break;
 
             case ESPConstants.EVENT_DEVICE_DISCONNECTED:
                 if (!isFinishing()) {
@@ -194,16 +213,21 @@ public class ClaimingActivity extends AppCompatActivity {
                 Log.e(TAG, "Failed to start claiming");
                 e.printStackTrace();
 
-                runOnUiThread(new Runnable() {
+                if (hasTriedAgain) {
+                    runOnUiThread(new Runnable() {
 
-                    @Override
-                    public void run() {
+                        @Override
+                        public void run() {
 
-                        tvClaimProgress.setText(R.string.error_claiming_progress);
-                        tvClaimError.setText(R.string.error_claiming_start);
-                        displayError();
-                    }
-                });
+                            tvClaimProgress.setText(R.string.error_claiming_progress);
+                            tvClaimError.setText(R.string.error_claiming_start);
+                            displayError();
+                        }
+                    });
+                } else {
+                    hasTriedAgain = true;
+                    provisionManager.getEspDevice().refreshServicesOfBleDevice();
+                }
             }
         });
     }
@@ -235,16 +259,19 @@ public class ClaimingActivity extends AppCompatActivity {
         } catch (InvalidProtocolBufferException e) {
 
             e.printStackTrace();
-            runOnUiThread(new Runnable() {
 
-                @Override
-                public void run() {
+            if (!hasTriedAgain) {
+                runOnUiThread(new Runnable() {
 
-                    tvClaimProgress.setText(R.string.error_claiming_progress);
-                    tvClaimError.setText(R.string.error_claiming_start);
-                    displayError();
-                }
-            });
+                    @Override
+                    public void run() {
+
+                        tvClaimProgress.setText(R.string.error_claiming_progress);
+                        tvClaimError.setText(R.string.error_claiming_start);
+                        displayError();
+                    }
+                });
+            }
         }
     }
 
@@ -655,6 +682,8 @@ public class ClaimingActivity extends AppCompatActivity {
         rotate.setRepeatCount(Animation.INFINITE);
         rotate.setInterpolator(new LinearInterpolator());
         ivClaimingProgress.startAnimation(rotate);
+        tvClaimProgress.setText(R.string.progress_claiming);
+        tvClaimError.setText(R.string.process_take_time);
     }
 
     private void stopClaimingProgress() {
@@ -669,6 +698,16 @@ public class ClaimingActivity extends AppCompatActivity {
         btnOk.setVisibility(View.VISIBLE);
         tvClaimError.setVisibility(View.VISIBLE);
         tvClaimFailure.setVisibility(View.VISIBLE);
+    }
+
+    private void hideError() {
+
+        Log.e(TAG, "Claiming error occurred");
+        stopClaimingProgress();
+        tvPleaseWait.setVisibility(View.VISIBLE);
+        btnOk.setVisibility(View.GONE);
+        tvClaimError.setVisibility(View.INVISIBLE);
+        tvClaimFailure.setVisibility(View.INVISIBLE);
     }
 
     private Runnable timeoutTask = new Runnable() {
