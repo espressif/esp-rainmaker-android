@@ -254,6 +254,11 @@ public class EspApplication extends Application {
     }
 
     public void logout() {
+
+        if (appState.equals(AppState.NO_USER_LOGIN)) {
+            return;
+        }
+
         // Do logout and clear all data
         if (!ApiManager.isOAuthLogin) {
 

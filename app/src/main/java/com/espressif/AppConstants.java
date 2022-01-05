@@ -241,6 +241,19 @@ public class AppConstants {
     public static final String KEY_NOTIFICATION_MSG = "notification_msg";
     public static final String KEY_PAYLOAD = "payload";
     public static final String KEY_LOCAL_CONTROL = "Local Control";
+    public static final String KEY_REDIRECT_URI = "redirect_uri";
+    public static final String KEY_CODE = "code";
+    public static final String KEY_AUTH_CODE = "authCode";
+    public static final String KEY_ACCOUNT_LINK_REQUEST = "accountLinkRequest";
+    public static final String KEY_STAGE = "stage";
+    public static final String KEY_CLIENT_ID = "client_id";
+    public static final String KEY_CLIENT_SECRET = "client_secret";
+    public static final String KEY_GRANT_TYPE = "grant_type";
+    public static final String KEY_CONTENT_TYPE = "Content-type";
+    public static final String KEY_ENDPOINTS = "endpoints";
+    public static final String KEY_ACCOUNTLINK = "accountLink";
+    public static final String KEY_SKILL = "skill";
+    public static final String KEY_STATUS_LINKED = "LINKED";
 
     public static final String KEY_OPERATION = "operation";
     public static final String KEY_OPERATION_ADD = "add";
@@ -284,4 +297,20 @@ public class AppConstants {
 
     public static final String ACTION_ACCEPT = "com.espressif.rainmaker.ACTION_ACCEPT";
     public static final String ACTION_DECLINE = "com.espressif.rainmaker.ACTION_DECLINE";
+
+    public static final String ALEXA_PACKAGE_NAME = "com.amazon.dee.app";
+    public static final String KEY_ALEXA_ACCESS_TOKEN = "alexa_access_token";
+    public static final String KEY_ALEXA_REFRESH_TOKEN = "alexa_refresh_token";
+
+    public static final String EVENT_ENABLE_SKILL = "enable_skill";
+    public static final String EVENT_DISABLE_SKILL = "disable_skill";
+    public static final String EVENT_GET_STATUS = "get_status";
+
+    // Constants for Alexa account linking
+    public static final String ALEXA_API_ENDPOINTS_URL = "https://api.amazonalexa.com/v1/alexaApiEndpoint";
+    public static final String ALEXA_REFRESH_TOKEN_URL = "https://api.amazon.com/auth/o2/token";
+    public static final String ALEXA_APP_URL = "https://alexa.amazon.com/spa/skill-account-linking-consent?fragment=skill-account-linking-consent";
+    public static final String LWA_URL = "https://www.amazon.com/ap/oa";
+    public static final String LWA_SCOPE = "alexa::skills:account_linking";
+    public static final String STATE = "temp"; // Place holder string
 }
