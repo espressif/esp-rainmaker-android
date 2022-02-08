@@ -21,6 +21,7 @@ import com.espressif.ui.models.Action;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
+import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
 
@@ -362,6 +363,7 @@ public class JsonDataParser {
         ArrayList<Device> devices = node.getDevices();
         ArrayList<Service> services = node.getServices();
         JSONObject scheduleJson = paramsJson.optJSONObject(AppConstants.KEY_SCHEDULE);
+        JSONObject sceneJson = paramsJson.optJSONObject(AppConstants.KEY_SCENES);
         JSONObject timeJson = paramsJson.optJSONObject(AppConstants.KEY_TIME);
         JSONObject localControlJson = paramsJson.optJSONObject(AppConstants.KEY_LOCAL_CONTROL);
 
@@ -553,6 +555,157 @@ public class JsonDataParser {
             }
         } else {
             Log.e(TAG, "Schedule JSON is not available");
+        }
+
+        // Scenes
+        if (sceneJson != null) {
+
+            JSONArray sceneArrayJson = sceneJson.optJSONArray(AppConstants.KEY_SCENES);
+
+            if (sceneArrayJson != null) {
+
+                for (int index = 0; index < sceneArrayJson.length(); index++) {
+
+                    JSONObject scJson = null;
+                    try {
+                        scJson = sceneArrayJson.getJSONObject(index);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    String sceneId = scJson.optString(AppConstants.KEY_ID);
+                    String key = sceneId;
+
+                    if (!TextUtils.isEmpty(sceneId)) {
+
+                        String name = scJson.optString(AppConstants.KEY_NAME);
+                        String info = scJson.optString(AppConstants.KEY_INFO);
+                        key = key + "_" + name + "_" + info;
+
+                        Scene scene = espAppContext.sceneMap.get(key);
+                        if (scene == null) {
+                            scene = new Scene();
+                        }
+
+                        scene.setId(sceneId);
+                        scene.setName(name);
+                        scene.setInfo(info);
+
+                        Log.d(TAG, "=============== Scene : " + scene.getName() + " ===============");
+
+                        // Actions
+                        JSONObject actionsSceneJson = scJson.optJSONObject(AppConstants.KEY_ACTION);
+
+                        if (actionsSceneJson != null) {
+
+                            ArrayList<Action> actions = scene.getActions();
+                            if (actions == null) {
+                                actions = new ArrayList<>();
+                                scene.setActions(actions);
+                            }
+
+                            for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
+
+                                Device d = new Device(devices.get(deviceIndex));
+                                ArrayList<Param> params = d.getParams();
+                                String deviceName = d.getDeviceName();
+                                JSONObject deviceAction = actionsSceneJson.optJSONObject(deviceName);
+
+                                if (deviceAction != null) {
+
+                                    Action action = null;
+                                    Device actionDevice = null;
+                                    int actionIndex = -1;
+
+                                    for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
+
+                                        Action a = actions.get(aIndex);
+                                        if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
+                                            action = actions.get(aIndex);
+                                            actionIndex = aIndex;
+                                        }
+                                    }
+
+                                    if (action == null) {
+                                        action = new Action();
+                                        action.setNodeId(nodeId);
+
+                                        for (int k = 0; k < devices.size(); k++) {
+
+                                            if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
+                                                actionDevice = new Device(devices.get(k));
+                                                actionDevice.setSelectedState(1);
+                                                break;
+                                            }
+                                        }
+
+                                        if (actionDevice == null) {
+                                            actionDevice = new Device(nodeId);
+                                        }
+                                        action.setDevice(actionDevice);
+                                    } else {
+                                        actionDevice = action.getDevice();
+                                    }
+
+                                    ArrayList<Param> actionParams = new ArrayList<>();
+                                    if (params != null) {
+
+                                        Iterator<Param> iterator = params.iterator();
+                                        while (iterator.hasNext()) {
+                                            Param p = iterator.next();
+                                            actionParams.add(new Param(p));
+                                        }
+
+                                        Iterator itr = actionParams.iterator();
+
+                                        while (itr.hasNext()) {
+
+                                            Param p = (Param) itr.next();
+
+                                            if (!p.isDynamicParam()) {
+                                                itr.remove();
+                                            } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
+                                                itr.remove();
+                                            } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
+                                                itr.remove();
+                                            }
+                                        }
+                                    }
+                                    actionDevice.setParams(actionParams);
+
+                                    for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                        Param p = actionParams.get(paramIndex);
+                                        String paramName = p.getName();
+
+                                        if (deviceAction.has(paramName)) {
+
+                                            p.setSelected(true);
+                                            setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
+                                        }
+                                    }
+
+                                    for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                        if (!actionParams.get(paramIndex).isSelected()) {
+                                            actionDevice.setSelectedState(2); // Partially selected
+                                        }
+                                    }
+
+                                    if (actionIndex == -1) {
+                                        actions.add(action);
+                                    } else {
+                                        actions.set(actionIndex, action);
+                                    }
+                                    scene.setActions(actions);
+                                }
+                            }
+                        }
+                        espAppContext.sceneMap.put(key, scene);
+                    }
+                }
+            }
+        } else {
+            Log.e(TAG, "Scene JSON is not available");
         }
 
         // Timezone

@@ -72,6 +72,20 @@ Schedule can be enabled/disabled by setting true/false value of `isScheduleSuppo
 Schedule feature is optional but enabled by default.
 Add `isScheduleSupported=false` in `local.properties` file to disable this feature.
 
+### Scene
+
+Scene is a group of parameters with specific values, for one or more devices (optionally) spanning across multiple nodes. As an example, an "Evening" scene may turn on all the lights and set them to a warm colour. A "Night" scene may turn off all the lights, turn on a bedside lamp set to minimal brightness and turn on the fan/ac.
+List of operations that are supported for scene :
+
+- Add.
+- Edit.
+- Remove.
+- Activate.
+
+Scene can be enabled/disabled by setting true/false value of `isSceneSupported` field in `local.properties`.
+Scene feature is optional but enabled by default.
+Add `isSceneSupported=false` in `local.properties` file to disable this feature.
+
 ### Node Grouping
 
 Node Grouping allows you to create abstract or logical groups of devices like lights, switches, fans etc.
@@ -127,6 +141,7 @@ Add below lines in `local.properties` and customize as per your requirement.
  isFilterPrefixEditable=true
  isQRCodeSupported=true
  isScheduleSupported=true
+ isSceneSupported=true
  isLocalControlSupported=true
  isNodeGroupingSupported=true
  isNodeSharingSupported=true

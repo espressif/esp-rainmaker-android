@@ -169,6 +169,16 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
+            android:name="com.espressif.ui.activities.SceneDetailActivity"
+            android:label="@string/title_activity_scene_details"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="com.espressif.ui.activities.SceneActionsActivity"
+            android:label="@string/title_activity_actions"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
             android:name="com.espressif.ui.activities.GroupsActivity"
             android:label="@string/title_activity_manage_groups"
             android:screenOrientation="portrait"

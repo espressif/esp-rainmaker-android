@@ -51,6 +51,7 @@ import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.HomeScreenPagerAdapter;
 import com.espressif.ui.fragments.DevicesFragment;
+import com.espressif.ui.fragments.ScenesFragment;
 import com.espressif.ui.fragments.SchedulesFragment;
 import com.espressif.ui.fragments.UserProfileFragment;
 import com.espressif.ui.models.EspNode;
@@ -79,8 +80,7 @@ public class EspMainActivity extends AppCompatActivity {
     private BottomNavigationView bottomNavigationView;
     private ViewPager viewPager;
 
-    private Fragment deviceFragment;
-    private Fragment scheduleFragment;
+    private Fragment deviceFragment, scheduleFragment, sceneFragment;
     private MenuItem prevMenuItem;
     private HomeScreenPagerAdapter pagerAdapter;
     private Snackbar snackbar;
@@ -183,18 +183,25 @@ public class EspMainActivity extends AppCompatActivity {
 
         Vibrator vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
         vib.vibrate(HapticFeedbackConstants.VIRTUAL_KEY);
+        switch (bottomNavigationView.getSelectedItemId()) {
+            case R.id.action_devices:
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
 
-        if (viewPager.getCurrentItem() == 0) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-
-                if (!isLocationEnabled()) {
-                    askForLocation();
-                    return;
+                    if (!isLocationEnabled()) {
+                        askForLocation();
+                        return;
+                    }
                 }
-            }
-            goToAddDeviceActivity();
-        } else {
-            goToAddScheduleActivity();
+                goToAddDeviceActivity();
+                break;
+            case R.id.action_schedules:
+                goToAddScheduleActivity();
+                break;
+            case R.id.action_scenes:
+                goToAddSceneActivity();
+                break;
+            case R.id.action_user:
+                break;
         }
     }
 
@@ -259,38 +266,13 @@ public class EspMainActivity extends AppCompatActivity {
         @Override
         public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
 
-            switch (menuItem.getItemId()) {
-
-                case R.id.action_devices:
-                    collapsingToolbarLayout.setTitle(pagerAdapter.getPageTitle(0));
-                    viewPager.setCurrentItem(0);
-                    if (espApp.nodeMap.size() > 0) {
-                        menuAdd.setVisible(true);
-                    } else {
-                        menuAdd.setVisible(false);
-                    }
-                    updateUi();
-                    return true;
-
-                case R.id.action_schedules:
-                    collapsingToolbarLayout.setTitle(pagerAdapter.getPageTitle(1));
-                    viewPager.setCurrentItem(1);
-                    if (espApp.scheduleMap.size() > 0) {
-                        menuAdd.setVisible(true);
-                    } else {
-                        menuAdd.setVisible(false);
-                    }
-                    updateUi();
-                    return true;
-
-                case R.id.action_user:
-                    collapsingToolbarLayout.setTitle(pagerAdapter.getPageTitle(2));
-                    viewPager.setCurrentItem(2);
-                    menuAdd.setVisible(false);
-                    updateUi();
-                    return true;
-            }
-            return false;
+            String title = menuItem.getTitle().toString();
+            collapsingToolbarLayout.setTitle(title);
+            int pageIndex = pagerAdapter.getItemPosition(title);
+            viewPager.setCurrentItem(pageIndex);
+            updateActionBar();
+            updateUi();
+            return true;
         }
     };
 
@@ -309,24 +291,29 @@ public class EspMainActivity extends AppCompatActivity {
     public void updateActionBar() {
 
         if (menuAdd != null) {
-            switch (viewPager.getCurrentItem()) {
-                case 0:
+            switch (bottomNavigationView.getSelectedItemId()) {
+                case R.id.action_devices:
                     if (espApp.nodeMap.size() > 0) {
                         menuAdd.setVisible(true);
                     } else {
                         menuAdd.setVisible(false);
                     }
                     break;
-
-                case 1:
+                case R.id.action_schedules:
                     if (espApp.scheduleMap.size() > 0) {
                         menuAdd.setVisible(true);
                     } else {
                         menuAdd.setVisible(false);
                     }
                     break;
-
-                default:
+                case R.id.action_scenes:
+                    if (espApp.sceneMap.size() > 0) {
+                        menuAdd.setVisible(true);
+                    } else {
+                        menuAdd.setVisible(false);
+                    }
+                    break;
+                case R.id.action_user:
                     menuAdd.setVisible(false);
                     break;
             }
@@ -341,6 +328,14 @@ public class EspMainActivity extends AppCompatActivity {
         setSupportActionBar(appbar);
 
         bottomNavigationView = findViewById(R.id.bottom_navigation_view);
+        Menu menu = bottomNavigationView.getMenu();
+        if (!BuildConfig.isScheduleSupported) {
+            menu.removeItem(R.id.action_schedules);
+        }
+        if (!BuildConfig.isSceneSupported) {
+            menu.removeItem(R.id.action_scenes);
+        }
+
         viewPager = findViewById(R.id.view_pager);
         bottomNavigationView.setOnNavigationItemSelectedListener(navigationItemSelectedListener);
         setupViewPager();
@@ -353,60 +348,45 @@ public class EspMainActivity extends AppCompatActivity {
         pagerAdapter.addFragment(deviceFragment);
 
         if (BuildConfig.isScheduleSupported) {
-
             scheduleFragment = new SchedulesFragment();
             pagerAdapter.addFragment(scheduleFragment);
+        }
 
-            viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
-
-                @Override
-                public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-                }
-
-                @Override
-                public void onPageSelected(int position) {
-
-                    if (prevMenuItem != null) {
-                        prevMenuItem.setChecked(false);
-                    } else {
-                        bottomNavigationView.getMenu().getItem(0).setChecked(false);
-                    }
-                    bottomNavigationView.getMenu().getItem(position).setChecked(true);
-                    prevMenuItem = bottomNavigationView.getMenu().getItem(position);
-                    collapsingToolbarLayout.setTitle(pagerAdapter.getPageTitle(position));
-
-                    switch (position) {
-                        case 0:
-                            if (espApp.nodeMap.size() > 0) {
-                                menuAdd.setVisible(true);
-                            } else {
-                                menuAdd.setVisible(false);
-                            }
-                            break;
-
-                        case 1:
-                            if (espApp.scheduleMap.size() > 0) {
-                                menuAdd.setVisible(true);
-                            } else {
-                                menuAdd.setVisible(false);
-                            }
-                            break;
-
-                        case 2:
-                            menuAdd.setVisible(false);
-                            break;
-                    }
-                    updateUi();
-                }
-
-                @Override
-                public void onPageScrollStateChanged(int state) {
-                }
-            });
+        if (BuildConfig.isSceneSupported) {
+            sceneFragment = new ScenesFragment();
+            pagerAdapter.addFragment(sceneFragment);
         }
         pagerAdapter.addFragment(new UserProfileFragment());
         viewPager.setAdapter(pagerAdapter);
+        viewPager.addOnPageChangeListener(pageChangeListener);
     }
+
+    ViewPager.OnPageChangeListener pageChangeListener = new ViewPager.OnPageChangeListener() {
+
+        @Override
+        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+        }
+
+        @Override
+        public void onPageSelected(int position) {
+
+            if (prevMenuItem != null) {
+                prevMenuItem.setChecked(false);
+            } else {
+                bottomNavigationView.getMenu().getItem(0).setChecked(false);
+            }
+            bottomNavigationView.getMenu().getItem(position).setChecked(true);
+            prevMenuItem = bottomNavigationView.getMenu().getItem(position);
+            String title = bottomNavigationView.getMenu().getItem(position).getTitle().toString();
+            collapsingToolbarLayout.setTitle(title);
+            updateActionBar();
+            updateUi();
+        }
+
+        @Override
+        public void onPageScrollStateChanged(int state) {
+        }
+    };
 
     private void updateUi() {
 
@@ -422,23 +402,7 @@ public class EspMainActivity extends AppCompatActivity {
 
             case GET_DATA_SUCCESS:
                 snackbar.dismiss();
-
-                if (viewPager.getCurrentItem() == 0) {
-                    if (menuAdd != null) {
-                        if (espApp.nodeMap.size() > 0) {
-                            menuAdd.setVisible(true);
-                        } else {
-                            menuAdd.setVisible(false);
-                        }
-                    }
-
-                } else if (viewPager.getCurrentItem() == 1) {
-                    if (espApp.scheduleMap.size() > 0) {
-                        menuAdd.setVisible(true);
-                    } else {
-                        menuAdd.setVisible(false);
-                    }
-                }
+                updateActionBar();
                 break;
 
             case GET_DATA_FAILED:
@@ -635,6 +599,12 @@ public class EspMainActivity extends AppCompatActivity {
     private void goToAddScheduleActivity() {
 
         Intent intent = new Intent(this, AddScheduleActivity.class);
+        startActivity(intent);
+    }
+
+    private void goToAddSceneActivity() {
+
+        Intent intent = new Intent(this, SceneDetailActivity.class);
         startActivity(intent);
     }
 
