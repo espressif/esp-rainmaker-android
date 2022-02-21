@@ -19,12 +19,12 @@ def defaultPoP = ""
 def defaultPrefix = "PROV_"
 def defaultWiFiScanSrc = "Device"
 
-def defaultClientId = "60i6kac5f9rjuetqnq5mnmaqv6"
+def defaultClientId = "1h7ujqjs8140n17v0ahb4n51m2"
 
 def defaultBaseUrl = "https://api.rainmaker.espressif.com"
 def defaultClaimBaseUrl = "https://esp-claiming.rainmaker.espressif.com"
 
-def defaultAuthUrl = "https://auth.rainmaker.espressif.com/oauth2"
+def defaultAuthUrl = "https://3pauth.rainmaker.espressif.com"
 def defaultRedirectUri = "rainmaker://com.espressif.rainmaker/success"
 def gitHubIdentityProvider = "GitHub"
 def googleIdentityProvider = "Google"
@@ -32,6 +32,8 @@ def googleIdentityProvider = "Google"
 def defaultDocUrl = "https://rainmaker.espressif.com/"
 def defaultPrivacyUrl = "https://rainmaker.espressif.com/docs/privacy-policy.html"
 def defaultTermsOfUseUrl = "https://rainmaker.espressif.com/docs/terms-of-use.html"
+
+def defaultUserPool = "2"
 
 def localProperties = new Properties()
 localProperties.load(new FileInputStream(rootProject.file("local.properties")))
@@ -44,8 +46,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 23
         targetSdkVersion 32
-        versionCode 81
-        versionName "2.10.2 - ${getGitHash()}"
+        versionCode 85
+        versionName "2.11.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -125,6 +127,10 @@ android {
         buildConfigField "String", "SKILL_ID", '"' + localProperties.getProperty("skillId") + '"'
         buildConfigField "String", "SKILL_STAGE", '"' + localProperties.getProperty("skillStage") + '"'
         buildConfigField "String", "ALEXA_ACCESS_TOKEN_URL", '"' + localProperties.getProperty("alexaAccessTokenUrl") + '"'
+
+        // User pool selection
+        def userPool = localProperties.getProperty("userPool", defaultUserPool)
+        buildConfigField "String", "USER_POOL", '"' + userPool + '"'
     }
 
     buildTypes {

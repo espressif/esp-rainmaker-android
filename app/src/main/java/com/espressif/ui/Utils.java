@@ -42,6 +42,7 @@ import java.util.TimeZone;
 public class Utils {
 
     public static boolean isValidEmail(CharSequence target) {
+        // TODO Add phone number validation
         return (!TextUtils.isEmpty(target) && Patterns.EMAIL_ADDRESS.matcher(target).matches());
     }
 
