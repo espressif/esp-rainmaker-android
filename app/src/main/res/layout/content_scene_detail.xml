@@ -92,6 +92,11 @@
 
             </RelativeLayout>
 
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/color_light_gray" />
+
             <TextView
                 android:id="@+id/tv_action_device_list"
                 android:layout_width="match_parent"

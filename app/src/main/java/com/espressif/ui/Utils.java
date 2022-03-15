@@ -21,7 +21,17 @@ import android.util.Patterns;
 
 import androidx.appcompat.app.AlertDialog;
 
+import com.espressif.AppConstants;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.models.Action;
+import com.espressif.ui.models.Scene;
+import com.espressif.ui.models.Schedule;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
 
 public class Utils {
 
@@ -48,5 +58,101 @@ public class Utils {
         });
         AlertDialog dialog = builder.create();
         dialog.show();
+    }
+
+    public static String processScheduleResponse(Schedule schedule, String jsonResponse, int nodeListSize) {
+
+        // Return empty if schedule has only one node (No need to display device name)
+        if (nodeListSize == 1) {
+            return "";
+        }
+        StringBuilder deviceNames = new StringBuilder();
+
+        try {
+            JSONArray responseJsonArr = new JSONArray(jsonResponse);
+            ArrayList<String> failureNodes = new ArrayList<>();
+
+            if (responseJsonArr != null) {
+                for (int i = 0; i < responseJsonArr.length(); i++) {
+                    JSONObject nodeResJson = responseJsonArr.optJSONObject(i);
+                    String nodeId = nodeResJson.optString(AppConstants.KEY_NODE_ID);
+                    String status = nodeResJson.optString(AppConstants.KEY_STATUS);
+                    if (AppConstants.KEY_FAILURE_RESPONSE.equals(status)) {
+                        failureNodes.add(nodeId);
+                    }
+                }
+            }
+
+            // Return empty if request fails for all nodes (No need to display device name)
+            if (nodeListSize == failureNodes.size()) {
+                return "";
+            }
+
+            if (failureNodes.size() > 0) {
+                for (int i = 0; i < failureNodes.size(); i++) {
+                    String nodeId = failureNodes.get(i);
+                    ArrayList<Action> actions = schedule.getActions();
+                    for (int j = 0; j < actions.size(); j++) {
+                        if (nodeId.equals(actions.get(j).getNodeId())) {
+                            if (deviceNames.length() != 0) {
+                                deviceNames.append(", ");
+                            }
+                            deviceNames.append(actions.get(j).getDevice().getUserVisibleName());
+                        }
+                    }
+                }
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return deviceNames.toString();
+    }
+
+    public static String processSceneResponse(Scene scene, String jsonResponse, int nodeListSize) {
+
+        // Return empty if scene has only one node (No need to display device name)
+        if (nodeListSize == 1) {
+            return "";
+        }
+        StringBuilder deviceNames = new StringBuilder();
+
+        try {
+            JSONArray responseJsonArr = new JSONArray(jsonResponse);
+            ArrayList<String> failureNodes = new ArrayList<>();
+
+            if (responseJsonArr != null) {
+                for (int i = 0; i < responseJsonArr.length(); i++) {
+                    JSONObject nodeResJson = responseJsonArr.optJSONObject(i);
+                    String nodeId = nodeResJson.optString(AppConstants.KEY_NODE_ID);
+                    String status = nodeResJson.optString(AppConstants.KEY_STATUS);
+                    if (AppConstants.KEY_FAILURE_RESPONSE.equals(status)) {
+                        failureNodes.add(nodeId);
+                    }
+                }
+            }
+
+            // Return empty if request fails for all nodes (No need to display device name)
+            if (nodeListSize == failureNodes.size()) {
+                return "";
+            }
+
+            if (failureNodes.size() > 0) {
+                for (int i = 0; i < failureNodes.size(); i++) {
+                    String nodeId = failureNodes.get(i);
+                    ArrayList<Action> actions = scene.getActions();
+                    for (int j = 0; j < actions.size(); j++) {
+                        if (nodeId.equals(actions.get(j).getNodeId())) {
+                            if (deviceNames.length() != 0) {
+                                deviceNames.append(", ");
+                            }
+                            deviceNames.append(actions.get(j).getDevice().getUserVisibleName());
+                        }
+                    }
+                }
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return deviceNames.toString();
     }
 }

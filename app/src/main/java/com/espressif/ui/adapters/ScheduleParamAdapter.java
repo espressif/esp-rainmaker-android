@@ -39,6 +39,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.aar.tapholdupbutton.TapHoldUpButton;
 import com.espressif.AppConstants;
+import com.espressif.EspApplication;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
@@ -55,6 +56,7 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
     private final String TAG = ScheduleParamAdapter.class.getSimpleName();
 
     private Activity context;
+    private EspApplication espApp;
     private Device device;
     private ArrayList<Param> params;
     private ScheduleActionAdapter parentAdapter;
@@ -64,12 +66,13 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         this.device = device;
         this.params = params;
         this.parentAdapter = parentAdapter;
+        espApp = (EspApplication) context.getApplicationContext();
     }
 
     @Override
     public ScheduleParamViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
 
-        // infalte the item Layout
+        // inflate the item Layout
         LayoutInflater layoutInflater = LayoutInflater.from(context);
         View v = layoutInflater.inflate(R.layout.item_schedule_param, parent, false);
         // set the view's size, margins, paddings and layout parameters
@@ -82,6 +85,7 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
         Param param = params.get(position);
         scheduleParamVH.cbParamSelect.setChecked(param.isSelected());
+        setParamsEnabled(scheduleParamVH, device.isParamEnabled());
 
         scheduleParamVH.cbParamSelect.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
 
@@ -102,12 +106,12 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
                 if (isSelected) {
                     if (isUnselected) {
-                        device.setSelectedState(2);
+                        device.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
                     } else {
-                        device.setSelectedState(1);
+                        device.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
                     }
                 } else {
-                    device.setSelectedState(0);
+                    device.setSelectedState(AppConstants.ACTION_SELECTED_NONE);
                 }
 
                 device.setParams(params);
@@ -227,7 +231,6 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         scheduleParamVH.paletteBar.setTrackMarkHeight(6);
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
-            scheduleParamVH.paletteBar.setEnabled(true);
             scheduleParamVH.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
                 @Override
                 public void onColorSelected(int colorHue) {
@@ -679,6 +682,26 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
         AlertDialog alertDialog = builder.create();
         alertDialog.show();
+    }
+
+    private void setParamsEnabled(ScheduleParamViewHolder paramVH, boolean enabled) {
+        paramVH.itemView.setEnabled(enabled);
+        paramVH.cbParamSelect.setEnabled(enabled);
+        paramVH.intSlider.setEnabled(enabled);
+        paramVH.floatSlider.setEnabled(enabled);
+        paramVH.toggleSwitch.setEnabled(enabled);
+        paramVH.toggleSwitch.setClickable(enabled);
+        paramVH.paletteBar.setEnabled(enabled);
+        paramVH.spinner.setEnabled(enabled);
+        paramVH.btnTrigger.setEnabled(enabled);
+        paramVH.btnTrigger.setClickable(enabled);
+        if (enabled) {
+            paramVH.btnTrigger.setAlpha(1f);
+            paramVH.tvSwitchStatus.setAlpha(1f);
+        } else {
+            paramVH.btnTrigger.setAlpha(0.3f);
+            paramVH.tvSwitchStatus.setAlpha(0.3f);
+        }
     }
 
     static class ScheduleParamViewHolder extends RecyclerView.ViewHolder {

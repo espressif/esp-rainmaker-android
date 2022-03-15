@@ -112,13 +112,9 @@ public interface ApiInterface {
     @PUT
     Call<ResponseBody> updateParamValue(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query(AppConstants.KEY_NODE_ID) String nodeId, @Body JsonObject body);
 
-    // Update schedules
+    // Update schedules / scenes
     @PUT
-    Observable<ResponseBody> updateSchedules(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query(AppConstants.KEY_NODE_ID) String nodeId, @Body JsonObject body);
-
-    // Update scenes
-    @PUT
-    Call<ResponseBody> updateScenes(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonArray body);
+    Call<ResponseBody> updateParamsForMultiNode(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonArray body);
 
     // Remove Node
     @PUT

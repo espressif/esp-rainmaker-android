@@ -8,7 +8,7 @@
 
     <include layout="@layout/toolbar" />
 
-    <include layout="@layout/content_add_schedule" />
+    <include layout="@layout/content_schedule_detail" />
 
     <RelativeLayout
         android:id="@+id/rl_progress_add_sch"

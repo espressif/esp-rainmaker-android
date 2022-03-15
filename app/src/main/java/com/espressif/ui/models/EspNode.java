@@ -88,6 +88,18 @@ public class EspNode implements Parcelable {
     @Ignore
     private ArrayList<String> secondaryUsers;
 
+    @Ignore
+    private int scheduleMaxCnt;
+
+    @Ignore
+    private int scheduleCurrentCnt;
+
+    @Ignore
+    private int sceneMaxCnt;
+
+    @Ignore
+    private int sceneCurrentCnt;
+
     public EspNode() {
     }
 
@@ -116,6 +128,10 @@ public class EspNode implements Parcelable {
         isSelected = node.isSelected();
         primaryUsers = node.getPrimaryUsers();
         secondaryUsers = node.getSecondaryUsers();
+        scheduleMaxCnt = node.getScheduleMaxCnt();
+        scheduleCurrentCnt = node.getScheduleCurrentCnt();
+        sceneMaxCnt = node.getSceneMaxCnt();
+        sceneCurrentCnt = node.getSceneCurrentCnt();
     }
 
     public String getNodeId() {
@@ -276,6 +292,38 @@ public class EspNode implements Parcelable {
         this.secondaryUsers = secondaryUsers;
     }
 
+    public int getScheduleMaxCnt() {
+        return scheduleMaxCnt;
+    }
+
+    public void setScheduleMaxCnt(int scheduleMaxCnt) {
+        this.scheduleMaxCnt = scheduleMaxCnt;
+    }
+
+    public int getScheduleCurrentCnt() {
+        return scheduleCurrentCnt;
+    }
+
+    public void setScheduleCurrentCnt(int scheduleCurrentCnt) {
+        this.scheduleCurrentCnt = scheduleCurrentCnt;
+    }
+
+    public int getSceneMaxCnt() {
+        return sceneMaxCnt;
+    }
+
+    public void setSceneMaxCnt(int sceneMaxCnt) {
+        this.sceneMaxCnt = sceneMaxCnt;
+    }
+
+    public int getSceneCurrentCnt() {
+        return sceneCurrentCnt;
+    }
+
+    public void setSceneCurrentCnt(int sceneCurrentCnt) {
+        this.sceneCurrentCnt = sceneCurrentCnt;
+    }
+
     protected EspNode(Parcel in) {
 
         nodeId = in.readString();
@@ -297,6 +345,10 @@ public class EspNode implements Parcelable {
         isSelected = in.readByte() != 0;
         primaryUsers = in.createStringArrayList();
         secondaryUsers = in.createStringArrayList();
+        scheduleMaxCnt = in.readInt();
+        scheduleCurrentCnt = in.readInt();
+        sceneMaxCnt = in.readInt();
+        sceneCurrentCnt = in.readInt();
     }
 
     public static final Creator<EspNode> CREATOR = new Creator<EspNode>() {
@@ -338,5 +390,9 @@ public class EspNode implements Parcelable {
         dest.writeByte((byte) (isSelected ? 1 : 0));
         dest.writeStringList(primaryUsers);
         dest.writeStringList(secondaryUsers);
+        dest.writeInt(scheduleMaxCnt);
+        dest.writeInt(scheduleCurrentCnt);
+        dest.writeInt(sceneMaxCnt);
+        dest.writeInt(sceneCurrentCnt);
     }
 }

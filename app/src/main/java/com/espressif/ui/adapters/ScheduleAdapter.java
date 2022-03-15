@@ -17,6 +17,7 @@ package com.espressif.ui.adapters;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,13 +31,17 @@ import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.AppConstants;
+import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.activities.AddScheduleActivity;
+import com.espressif.ui.Utils;
+import com.espressif.ui.activities.ScheduleDetailActivity;
 import com.espressif.ui.fragments.SchedulesFragment;
 import com.espressif.ui.models.Action;
+import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Schedule;
+import com.espressif.ui.models.Service;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -53,10 +58,12 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.Schedu
     private SchedulesFragment fragment;
     private ArrayList<Schedule> scheduleList;
     private ApiManager apiManager;
+    private EspApplication espApp;
 
     public ScheduleAdapter(Activity context, SchedulesFragment fragment, ArrayList<Schedule> scheduleList) {
         this.context = context;
         this.scheduleList = scheduleList;
+        espApp = (EspApplication) context.getApplicationContext();
         apiManager = ApiManager.getInstance(context);
         this.fragment = fragment;
     }
@@ -64,7 +71,7 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.Schedu
     @Override
     public ScheduleViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
 
-        // infalte the item Layout
+        // inflate the item Layout
         LayoutInflater layoutInflater = LayoutInflater.from(context);
         View v = layoutInflater.inflate(R.layout.item_schedule, parent, false);
         // set the view's size, margins, paddings and layout parameters
@@ -144,7 +151,7 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.Schedu
             public void onClick(View v) {
 
                 Schedule s = scheduleList.get(scheduleViewHolder.getAdapterPosition());
-                Intent intent = new Intent(context, AddScheduleActivity.class);
+                Intent intent = new Intent(context, ScheduleDetailActivity.class);
                 intent.putExtra(AppConstants.KEY_SCHEDULE, s);
                 context.startActivity(intent);
             }
@@ -161,13 +168,23 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.Schedu
                 Set<String> nodeIdList = new HashSet<>();
                 Schedule schedule = scheduleList.get(scheduleViewHolder.getAdapterPosition());
                 ArrayList<Action> actions = schedule.getActions();
-                String operation = AppConstants.KEY_OPERATION_DISABLE;
+                HashMap<String, JsonObject> nodeIdJsonBodyMap = new HashMap<>();
 
+                String operation = AppConstants.KEY_OPERATION_DISABLE;
                 if (isChecked) {
                     operation = AppConstants.KEY_OPERATION_ENABLE;
                 }
 
-                HashMap<String, JsonObject> map = new HashMap<>();
+                JsonObject scheduleJson = new JsonObject();
+                scheduleJson.addProperty(AppConstants.KEY_ID, schedule.getId());
+                scheduleJson.addProperty(AppConstants.KEY_OPERATION, operation);
+
+                JsonArray schArr = new JsonArray();
+                schArr.add(scheduleJson);
+
+                JsonObject finalBody = new JsonObject();
+                finalBody.add(AppConstants.KEY_SCHEDULES, schArr);
+
                 for (int i = 0; i < actions.size(); i++) {
 
                     final String nodeId = actions.get(i).getNodeId();
@@ -176,24 +193,26 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.Schedu
 
                         nodeIdList.add(nodeId);
 
-                        JsonObject scheduleJson = new JsonObject();
-                        scheduleJson.addProperty(AppConstants.KEY_ID, schedule.getId());
-                        scheduleJson.addProperty(AppConstants.KEY_OPERATION, operation);
-
-                        JsonArray schArr = new JsonArray();
-                        schArr.add(scheduleJson);
-
-                        JsonObject finalBody = new JsonObject();
-                        finalBody.add(AppConstants.KEY_SCHEDULES, schArr);
+                        EspNode espNode = espApp.nodeMap.get(nodeId);
+                        ArrayList<Service> services = espNode.getServices();
+                        String serviceName = "";
+                        for (Service s : services) {
+                            if (AppConstants.SERVICE_TYPE_SCHEDULE.equals(s.getType())) {
+                                serviceName = s.getName();
+                                break;
+                            }
+                        }
+                        if (TextUtils.isEmpty(serviceName)) {
+                            serviceName = AppConstants.KEY_SCHEDULE;
+                        }
 
                         JsonObject body = new JsonObject();
-                        body.add(AppConstants.KEY_SCHEDULE, finalBody);
-
-                        map.put(nodeId, body);
+                        body.add(serviceName, finalBody);
+                        nodeIdJsonBodyMap.put(nodeId, body);
                     }
                 }
 
-                apiManager.updateSchedules(map, new ApiResponseListener() {
+                apiManager.updateParamsForMultiNode(nodeIdJsonBodyMap, new ApiResponseListener() {
 
                     @Override
                     public void onSuccess(Bundle data) {
@@ -202,6 +221,22 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.Schedu
 
                             @Override
                             public void run() {
+
+                                if (data != null) {
+                                    String jsonResponse = data.getString(AppConstants.KEY_RESPONSE);
+
+                                    if (jsonResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+                                        String deviceNames = Utils.processScheduleResponse( scheduleList.get(scheduleViewHolder.getAdapterPosition()), jsonResponse, nodeIdJsonBodyMap.size());
+                                        if (!TextUtils.isEmpty(deviceNames)) {
+                                            String msg = context.getString(R.string.error_schedule_save_partial) + " " + deviceNames;
+                                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show();
+                                        } else {
+                                            Toast.makeText(context, R.string.error_schedule_save, Toast.LENGTH_LONG).show();
+                                        }
+                                    } else {
+                                        Toast.makeText(context, R.string.msg_schedule_updated, Toast.LENGTH_LONG).show();
+                                    }
+                                }
                                 scheduleViewHolder.switchSchedule.setVisibility(View.VISIBLE);
                                 scheduleViewHolder.progressBar.setVisibility(View.GONE);
                                 fragment.updateScheduleList();
@@ -228,7 +263,7 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.Schedu
                     }
 
                     @Override
-                    public void onNetworkFailure(final Exception exception) {
+                    public void onNetworkFailure(Exception exception) {
 
                         exception.printStackTrace();
                         final String msg = exception.getMessage();
@@ -305,7 +340,6 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.Schedu
                 }
             }
         }
-
         return daysText.toString();
     }
 

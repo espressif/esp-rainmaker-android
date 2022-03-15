@@ -28,6 +28,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -46,6 +47,7 @@ import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.Utils;
 import com.espressif.ui.models.Action;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
@@ -57,10 +59,6 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -82,13 +80,14 @@ public class SceneDetailActivity extends AppCompatActivity {
     private ImageView removeSceneImage;
     private ContentLoadingProgressBar progressBar;
     private RelativeLayout rlSceneProgress, rlAddScene;
+    private MenuItem menuSave;
 
     private String sceneName = "", sceneDescription = "";
-    private HashMap<String, String> actionMap;
     private EspApplication espApp;
     private ApiManager apiManager;
     private ArrayList<Device> devices;
     private ArrayList<Device> selectedDevices;
+    private ArrayList<String> selectedNodeIds;
     private Scene scene;
     private String operation = AppConstants.KEY_OPERATION_ADD;
 
@@ -100,7 +99,9 @@ public class SceneDetailActivity extends AppCompatActivity {
         espApp = (EspApplication) getApplicationContext();
         apiManager = ApiManager.getInstance(this);
         devices = new ArrayList<>();
+        selectedNodeIds = new ArrayList<>();
         scene = getIntent().getParcelableExtra(AppConstants.KEY_SCENE);
+        sceneName = getIntent().getStringExtra(AppConstants.KEY_NAME);
         selectedDevices = new ArrayList<>();
 
         for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
@@ -171,6 +172,16 @@ public class SceneDetailActivity extends AppCompatActivity {
                         selectedDevices.addAll(actionDevices);
                         Log.d(TAG, "Selected devices list size : " + selectedDevices.size());
                         setActionDevicesNames();
+
+                        if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+                            if (selectedDevices.size() > 0) {
+                                menuSave.setVisible(true);
+                            } else {
+                                menuSave.setVisible(false);
+                            }
+                        } else {
+                            menuSave.setVisible(true);
+                        }
                     }
                     break;
             }
@@ -178,9 +189,20 @@ public class SceneDetailActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        super.onCreateOptionsMenu(menu);
-        menu.add(Menu.NONE, 1, Menu.NONE, R.string.btn_save).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        menuSave = menu.add(Menu.NONE, 1, Menu.NONE, R.string.btn_save);
+        menuSave.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+
+        if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+            if (selectedDevices.size() > 0) {
+                menuSave.setVisible(true);
+            } else {
+                menuSave.setVisible(false);
+            }
+        } else {
+            menuSave.setVisible(true);
+        }
         return true;
     }
 
@@ -204,7 +226,7 @@ public class SceneDetailActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
-        getSupportActionBar().setTitle(R.string.title_activity_add_scene);
+        getSupportActionBar().setTitle(R.string.title_activity_scene_details);
         toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
         toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
@@ -248,9 +270,26 @@ public class SceneDetailActivity extends AppCompatActivity {
 
             ArrayList<Action> actions = scene.getActions();
             for (int i = 0; i < actions.size(); i++) {
-                selectedDevices.add(actions.get(i).getDevice());
+                Device device = actions.get(i).getDevice();
+                String nodeId = device.getNodeId();
+                selectedDevices.add(device);
+                if (!selectedNodeIds.contains(nodeId)) {
+                    selectedNodeIds.add(nodeId);
+                }
             }
             setActionDevicesNames();
+
+            if (menuSave != null) {
+                if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+                    if (selectedDevices.size() > 0) {
+                        menuSave.setVisible(true);
+                    } else {
+                        menuSave.setVisible(false);
+                    }
+                } else {
+                    menuSave.setVisible(true);
+                }
+            }
         }
 
         if (TextUtils.isEmpty(sceneName)) {
@@ -302,40 +341,47 @@ public class SceneDetailActivity extends AppCompatActivity {
 
     private void askForSceneName() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        LayoutInflater inflater = getLayoutInflater();
-        View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
-        builder.setView(dialogView);
-        builder.setTitle(R.string.dialog_title_scene_name);
-        final EditText etAttribute = dialogView.findViewById(R.id.et_attr_value);
-        etAttribute.setInputType(InputType.TYPE_CLASS_TEXT);
-        etAttribute.setFilters(new InputFilter[]{new InputFilter.LengthFilter(32)});
-        etAttribute.setText(sceneName);
+        LayoutInflater inflater = this.getLayoutInflater();
+        final View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
+        final EditText etSceneName = dialogView.findViewById(R.id.et_attr_value);
+        etSceneName.setInputType(InputType.TYPE_CLASS_TEXT);
+        etSceneName.setFilters(new InputFilter[]{new InputFilter.LengthFilter(32)});
+        final AlertDialog alertDialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setTitle(R.string.dialog_title_add_name)
+                .setPositiveButton(R.string.btn_ok, null)
+                .setNegativeButton(R.string.btn_cancel, null)
+                .create();
+        etSceneName.setText(sceneName);
 
-        builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
-
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
-            public void onClick(DialogInterface dialog, int which) {
-                final String value = etAttribute.getText().toString();
-                if (!TextUtils.isEmpty(value)) {
-                    sceneName = value;
-                    tvSceneName.setText(sceneName);
-                } else {
-                    etAttribute.setError(getString(R.string.error_invalid_scene_name));
-                }
-                dialog.dismiss();
+            public void onShow(DialogInterface dialog) {
+
+                Button buttonPositive = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_POSITIVE);
+                buttonPositive.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        final String value = etSceneName.getText().toString();
+                        if (!TextUtils.isEmpty(value)) {
+                            sceneName = value;
+                            tvSceneName.setText(sceneName);
+                            dialog.dismiss();
+                        } else {
+                            etSceneName.setError(getString(R.string.error_invalid_scene_name));
+                        }
+                    }
+                });
+
+                Button buttonNegative = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_NEGATIVE);
+                buttonNegative.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        dialog.dismiss();
+                    }
+                });
             }
         });
-
-        builder.setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
-
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-            }
-        });
-
-        AlertDialog alertDialog = builder.create();
         alertDialog.show();
     }
 
@@ -367,119 +413,6 @@ public class SceneDetailActivity extends AppCompatActivity {
 
         AlertDialog userDialog = builder.create();
         userDialog.show();
-    }
-
-    private void removeScene() {
-
-        if (scene == null) {
-            Log.e(TAG, "Scene is null");
-            return;
-        }
-
-        showRemoveSceneLoading();
-        ArrayList<Action> actions = scene.getActions();
-        String operation = AppConstants.KEY_OPERATION_REMOVE;
-        HashMap<String, JsonObject> nodeIdJsonBodyMap = new HashMap<>();
-
-        for (int i = 0; i < actions.size(); i++) {
-
-            final String nodeId = actions.get(i).getNodeId();
-
-            JsonObject sceneJson = new JsonObject();
-            sceneJson.addProperty(AppConstants.KEY_ID, scene.getId());
-            sceneJson.addProperty(AppConstants.KEY_OPERATION, operation);
-
-            JsonArray schArr = new JsonArray();
-            schArr.add(sceneJson);
-
-            JsonObject finalBody = new JsonObject();
-            finalBody.add(AppConstants.KEY_SCENES, schArr);
-
-            EspNode espNode = espApp.nodeMap.get(nodeId);
-            ArrayList<Service> services = espNode.getServices();
-            String serviceName = "";
-            for (Service service : services) {
-                if (AppConstants.SERVICE_TYPE_SCENES.equals(service.getType())) {
-                    serviceName = service.getName();
-                    break;
-                }
-            }
-
-            if (TextUtils.isEmpty(serviceName)) {
-                serviceName = AppConstants.KEY_SCENES;
-            }
-            JsonObject body = new JsonObject();
-            body.add(serviceName, finalBody);
-
-            nodeIdJsonBodyMap.put(nodeId, body);
-        }
-
-        apiManager.updateScenes(nodeIdJsonBodyMap, new ApiResponseListener() {
-
-            @Override
-            public void onSuccess(Bundle data) {
-
-                runOnUiThread(new Runnable() {
-
-                    @Override
-                    public void run() {
-
-                        if (data != null) {
-                            String jsonResponse = data.getString(AppConstants.KEY_RESPONSE);
-
-                            if (jsonResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-                                String deviceNames = processResponse(jsonResponse, nodeIdJsonBodyMap.size());
-                                if (!TextUtils.isEmpty(deviceNames)) {
-                                    String msg = getString(R.string.error_scene_remove_for_device) + " " + deviceNames;
-                                    Toast.makeText(SceneDetailActivity.this, msg, Toast.LENGTH_LONG).show();
-                                } else {
-                                    Toast.makeText(SceneDetailActivity.this, R.string.error_scene_remove, Toast.LENGTH_LONG).show();
-                                }
-                            } else {
-                                Toast.makeText(SceneDetailActivity.this, R.string.msg_scene_removed, Toast.LENGTH_LONG).show();
-                            }
-                        }
-                        hideRemoveSceneLoading();
-                        finish();
-                    }
-                });
-            }
-
-            @Override
-            public void onResponseFailure(Exception exception) {
-
-                Log.e(TAG, "Failed to remove scene for few devices");
-                exception.printStackTrace();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        hideRemoveSceneLoading();
-                        Toast.makeText(SceneDetailActivity.this, R.string.error_scene_remove, Toast.LENGTH_LONG).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onNetworkFailure(Exception exception) {
-
-                Log.e(TAG, "Failed to remoove scene for few devices");
-                exception.printStackTrace();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        hideRemoveSceneLoading();
-                        Toast.makeText(SceneDetailActivity.this, R.string.error_scene_remove, Toast.LENGTH_LONG).show();
-                    }
-                });
-            }
-        });
-    }
-
-    private void gotoActionsScreen() {
-        Intent intent = new Intent(this, SceneActionsActivity.class);
-        intent.putParcelableArrayListExtra(AppConstants.KEY_DEVICES, devices);
-        intent.putParcelableArrayListExtra(AppConstants.KEY_SELECTED_DEVICES, selectedDevices);
-        startActivityForResult(intent, REQ_CODE_ACTIONS);
     }
 
     private void setActionDevicesNames() {
@@ -603,14 +536,103 @@ public class SceneDetailActivity extends AppCompatActivity {
             JsonObject action = entry.getValue();
             nodeActionsMap.put(nodeId, action.toString());
         }
-        actionMap = nodeActionsMap;
         return nodeActionsMap;
     }
 
-    private void saveScene() {
+    private void removeScene() {
+
+        if (scene == null) {
+            Log.e(TAG, "Scene is null");
+            return;
+        }
+        showRemoveSceneLoading();
+        ArrayList<Action> actions = scene.getActions();
+        ArrayList<String> nodeIdList = new ArrayList<>();
+        HashMap<String, JsonObject> sceneJsonBodyMap = new HashMap<>();
+
+        for (int i = 0; i < actions.size(); i++) {
+            final String nodeId = actions.get(i).getNodeId();
+            if (!nodeIdList.contains(nodeId)) {
+                nodeIdList.add(nodeId);
+            }
+        }
 
         JsonObject sceneJson = new JsonObject();
-        String progressMsg = "";
+        sceneJson.addProperty(AppConstants.KEY_ID, scene.getId());
+        sceneJson.addProperty(AppConstants.KEY_OPERATION, AppConstants.KEY_OPERATION_REMOVE);
+
+        JsonArray sceneArr = new JsonArray();
+        sceneArr.add(sceneJson);
+        JsonObject scenesJson = new JsonObject();
+        scenesJson.add(AppConstants.KEY_SCENES, sceneArr);
+
+        for (int i = 0; i < nodeIdList.size(); i++) {
+
+            final String nodeId = nodeIdList.get(i);
+
+            EspNode espNode = espApp.nodeMap.get(nodeId);
+            ArrayList<Service> services = espNode.getServices();
+            String serviceName = "";
+            for (Service service : services) {
+                if (AppConstants.SERVICE_TYPE_SCENES.equals(service.getType())) {
+                    serviceName = service.getName();
+                    break;
+                }
+            }
+
+            if (TextUtils.isEmpty(serviceName)) {
+                serviceName = AppConstants.KEY_SCENES;
+            }
+            JsonObject serviceJson = new JsonObject();
+            serviceJson.add(serviceName, scenesJson);
+
+            sceneJsonBodyMap.put(nodeId, serviceJson);
+        }
+
+        updateSceneRequest(sceneJsonBodyMap, new ApiResponseListener() {
+
+            @Override
+            public void onSuccess(Bundle data) {
+
+                if (data != null) {
+                    String jsonResponse = data.getString(AppConstants.KEY_RESPONSE);
+
+                    if (jsonResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+                        String deviceNames = Utils.processSceneResponse(scene, jsonResponse, sceneJsonBodyMap.size());
+
+                        if (!TextUtils.isEmpty(deviceNames)) {
+                            String msg = getString(R.string.error_scene_remove_partial) + " " + deviceNames;
+                            Toast.makeText(SceneDetailActivity.this, msg, Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(SceneDetailActivity.this, R.string.error_scene_remove, Toast.LENGTH_LONG).show();
+                        }
+                    } else {
+                        Toast.makeText(SceneDetailActivity.this, R.string.msg_scene_removed, Toast.LENGTH_LONG).show();
+                    }
+                }
+                hideRemoveSceneLoading();
+                finish();
+            }
+
+            @Override
+            public void onResponseFailure(Exception exception) {
+                Log.e(TAG, "Failed to remove scene for few devices");
+                exception.printStackTrace();
+                hideRemoveSceneLoading();
+                Toast.makeText(SceneDetailActivity.this, R.string.error_scene_remove, Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                Log.e(TAG, "Failed to remove scene for few devices");
+                exception.printStackTrace();
+                hideRemoveSceneLoading();
+                Toast.makeText(SceneDetailActivity.this, R.string.error_scene_remove, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void saveScene() {
 
         // Scene id
         String id = generateSceneId();
@@ -624,35 +646,54 @@ public class SceneDetailActivity extends AppCompatActivity {
             return;
         }
 
+        if (scene == null) {
+            scene = new Scene();
+            scene.setId(id);
+        }
+
+        scene.setName(sceneName);
+        sceneDescription = etDescription.getText().toString();
+        scene.setInfo(sceneDescription);
+
+        prepareSceneJsonAndUpdate();
+    }
+
+    private void prepareSceneJsonAndUpdate() {
+
+        JsonObject sceneJson = new JsonObject();
+        sceneJson.addProperty(AppConstants.KEY_OPERATION, operation);
+
+        // Scene JSON
+        sceneJson.addProperty(AppConstants.KEY_ID, scene.getId());
+        sceneJson.addProperty(AppConstants.KEY_NAME, sceneName);
+        sceneJson.addProperty(AppConstants.KEY_INFO, sceneDescription);
+
+        HashMap<String, String> actionMap = prepareActionMap();
+
+        if (operation.equals(AppConstants.KEY_OPERATION_ADD) && actionMap.size() == 0) {
+            Toast.makeText(SceneDetailActivity.this, R.string.error_scene_action, Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        String progressMsg = "";
         if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
             progressMsg = getString(R.string.progress_add_scene);
         } else {
             progressMsg = getString(R.string.progress_update_scene);
         }
+        showAddSceneLoading(progressMsg);
 
-        if (scene == null) {
-            scene = new Scene();
-            scene.setId(id);
-        } else {
-            id = scene.getId();
+        ArrayList<String> removedNodeIds = new ArrayList<>();
+        for (int i = 0; i < selectedNodeIds.size(); i++) {
+            String preSelectedNodeId = selectedNodeIds.get(i);
+            if (!actionMap.containsKey(preSelectedNodeId)) {
+                removedNodeIds.add(preSelectedNodeId);
+            }
         }
 
-        sceneJson.addProperty(AppConstants.KEY_OPERATION, operation);
-        scene.setName(sceneName);
+        HashMap<String, JsonObject> sceneJsonBodyMap = new HashMap<>();
 
-        // Scene JSON
-        sceneJson.addProperty(AppConstants.KEY_ID, id);
-        sceneJson.addProperty(AppConstants.KEY_NAME, sceneName);
-
-        sceneDescription = etDescription.getText().toString();
-        scene.setInfo(sceneDescription);
-        sceneJson.addProperty(AppConstants.KEY_INFO, sceneDescription);
-
-        prepareActionMap();
-
-        if (actionMap != null && actionMap.size() > 0) {
-
-            HashMap<String, JsonObject> nodeIdJsonBodyMap = new HashMap<>();
+        if (actionMap.size() > 0) {
 
             for (Map.Entry<String, String> entry : actionMap.entrySet()) {
 
@@ -667,8 +708,8 @@ public class SceneDetailActivity extends AppCompatActivity {
                 JsonArray scArr = new JsonArray();
                 scArr.add(scJson);
 
-                JsonObject finalBody = new JsonObject();
-                finalBody.add(AppConstants.KEY_SCENES, scArr);
+                JsonObject scenesJson = new JsonObject();
+                scenesJson.add(AppConstants.KEY_SCENES, scArr);
 
                 EspNode espNode = espApp.nodeMap.get(nodeId);
                 ArrayList<Service> services = espNode.getServices();
@@ -683,128 +724,145 @@ public class SceneDetailActivity extends AppCompatActivity {
                 if (TextUtils.isEmpty(serviceName)) {
                     serviceName = AppConstants.KEY_SCENES;
                 }
-                JsonObject body = new JsonObject();
-                body.add(serviceName, finalBody);
+                JsonObject serviceJson = new JsonObject();
+                serviceJson.add(serviceName, scenesJson);
 
-                nodeIdJsonBodyMap.put(nodeId, body);
+                sceneJsonBodyMap.put(nodeId, serviceJson);
+            }
+        }
+
+        if (removedNodeIds.size() > 0) {
+
+            sceneJson.addProperty(AppConstants.KEY_ID, scene.getId());
+            sceneJson.addProperty(AppConstants.KEY_OPERATION, AppConstants.KEY_OPERATION_REMOVE);
+
+            JsonArray sceneArr = new JsonArray();
+            sceneArr.add(sceneJson);
+
+            JsonObject scenesJson = new JsonObject();
+            scenesJson.add(AppConstants.KEY_SCENES, sceneArr);
+
+            for (int i = 0; i < removedNodeIds.size(); i++) {
+
+                final String nodeId = removedNodeIds.get(i);
+
+                EspNode espNode = espApp.nodeMap.get(nodeId);
+                ArrayList<Service> services = espNode.getServices();
+                String serviceName = "";
+                for (Service service : services) {
+                    if (AppConstants.SERVICE_TYPE_SCENES.equals(service.getType())) {
+                        serviceName = service.getName();
+                        break;
+                    }
+                }
+
+                if (TextUtils.isEmpty(serviceName)) {
+                    serviceName = AppConstants.KEY_SCENES;
+                }
+                JsonObject serviceJson = new JsonObject();
+                serviceJson.add(serviceName, scenesJson);
+
+                sceneJsonBodyMap.put(nodeId, serviceJson);
+            }
+        }
+
+        updateSceneRequest(sceneJsonBodyMap, new ApiResponseListener() {
+
+            @Override
+            public void onSuccess(Bundle data) {
+
+                if (data != null) {
+                    String jsonResponse = data.getString(AppConstants.KEY_RESPONSE);
+
+                    if (jsonResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+                        String deviceNames = Utils.processSceneResponse(scene, jsonResponse, sceneJsonBodyMap.size());
+
+                        if (!TextUtils.isEmpty(deviceNames)) {
+                            String msg = "";
+                            if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+                                msg = getString(R.string.error_scene_add_partial) + " " + deviceNames;
+                            } else {
+                                msg = getString(R.string.error_scene_save_partial) + " " + deviceNames;
+                            }
+                            Toast.makeText(SceneDetailActivity.this, msg, Toast.LENGTH_LONG).show();
+                        } else {
+                            if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+                                Toast.makeText(SceneDetailActivity.this, R.string.error_scene_add, Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(SceneDetailActivity.this, R.string.error_scene_save, Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    } else {
+                        if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+                            Toast.makeText(SceneDetailActivity.this, R.string.msg_scene_added, Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(SceneDetailActivity.this, R.string.msg_scene_updated, Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }
+                hideAddSceneLoading();
+                finish();
             }
 
-            showAddSceneLoading(progressMsg);
-            apiManager.updateScenes(nodeIdJsonBodyMap, new ApiResponseListener() {
-
-                @Override
-                public void onSuccess(Bundle data) {
-
-                    runOnUiThread(new Runnable() {
-
-                        @Override
-                        public void run() {
-
-                            if (data != null) {
-                                String jsonResponse = data.getString(AppConstants.KEY_RESPONSE);
-
-                                if (jsonResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-                                    String deviceNames = processResponse(jsonResponse, nodeIdJsonBodyMap.size());
-                                    if (!TextUtils.isEmpty(deviceNames)) {
-                                        String msg = getString(R.string.error_scene_save_for_device) + " " + deviceNames;
-                                        Toast.makeText(SceneDetailActivity.this, msg, Toast.LENGTH_LONG).show();
-                                    } else {
-                                        Toast.makeText(SceneDetailActivity.this, R.string.error_scene_save, Toast.LENGTH_LONG).show();
-                                    }
-                                } else {
-                                    if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
-                                        Toast.makeText(SceneDetailActivity.this, R.string.msg_scene_added, Toast.LENGTH_LONG).show();
-                                    } else {
-                                        Toast.makeText(SceneDetailActivity.this, R.string.msg_scene_updated, Toast.LENGTH_LONG).show();
-                                    }
-                                }
-                            }
-                            hideAddSceneLoading();
-                            finish();
-                        }
-                    });
+            @Override
+            public void onResponseFailure(Exception exception) {
+                Log.e(TAG, "Failed to save scene.");
+                exception.printStackTrace();
+                if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+                    Toast.makeText(SceneDetailActivity.this, R.string.error_scene_add, Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(SceneDetailActivity.this, R.string.error_scene_save, Toast.LENGTH_LONG).show();
                 }
+                hideAddSceneLoading();
+            }
 
-                @Override
-                public void onResponseFailure(Exception exception) {
-
-                    Log.e(TAG, "Failed to update scene");
-                    exception.printStackTrace();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(SceneDetailActivity.this, R.string.error_scene_save, Toast.LENGTH_LONG).show();
-                            hideAddSceneLoading();
-                        }
-                    });
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                Log.e(TAG, "Failed to save scene due to network failure");
+                exception.printStackTrace();
+                if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+                    Toast.makeText(SceneDetailActivity.this, R.string.error_scene_add, Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(SceneDetailActivity.this, R.string.error_scene_save, Toast.LENGTH_LONG).show();
                 }
-
-                @Override
-                public void onNetworkFailure(Exception exception) {
-
-                    Log.e(TAG, "Failed to update scene");
-                    exception.printStackTrace();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(SceneDetailActivity.this, R.string.error_scene_save, Toast.LENGTH_LONG).show();
-                            hideAddSceneLoading();
-                        }
-                    });
-                }
-            });
-        } else {
-            Toast.makeText(SceneDetailActivity.this, R.string.error_scene_action, Toast.LENGTH_LONG).show();
-        }
+                hideAddSceneLoading();
+            }
+        });
     }
 
-    private String processResponse(String jsonResponse, int nodeListSize) {
+    private void updateSceneRequest(HashMap<String, JsonObject> sceneJsonBodyMap, ApiResponseListener listener) {
+        apiManager.updateParamsForMultiNode(sceneJsonBodyMap, new ApiResponseListener() {
 
-        // Return empty if scene has only one node (No need to display device name)
-        if (nodeListSize == 1) {
-            return "";
-        }
-        StringBuilder deviceNames = new StringBuilder();
-
-        try {
-            JSONArray responseJsonArr = new JSONArray(jsonResponse);
-            ArrayList<String> failureNodes = new ArrayList<>();
-
-            if (responseJsonArr != null) {
-
-                for (int i = 0; i < responseJsonArr.length(); i++) {
-                    JSONObject nodeResJson = responseJsonArr.optJSONObject(i);
-                    String nodeId = nodeResJson.optString(AppConstants.KEY_NODE_ID);
-                    String status = nodeResJson.optString(AppConstants.KEY_STATUS);
-                    if (AppConstants.KEY_FAILURE_RESPONSE.equals(status)) {
-                        failureNodes.add(nodeId);
+            @Override
+            public void onSuccess(Bundle data) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onSuccess(data);
                     }
-                }
+                });
             }
 
-            // Return empty if request fails for all nodes (No need to display device name)
-            if (nodeListSize == failureNodes.size()) {
-                return "";
-            }
-
-            if (failureNodes.size() > 0) {
-                for (int i = 0; i < failureNodes.size(); i++) {
-                    String nodeId = failureNodes.get(i);
-                    ArrayList<Action> actions = scene.getActions();
-                    for (int j = 0; j < actions.size(); j++) {
-                        if (nodeId.equals(actions.get(j).getNodeId())) {
-                            if (deviceNames.length() != 0) {
-                                deviceNames.append(", ");
-                            }
-                            deviceNames.append(actions.get(j).getDevice().getUserVisibleName());
-                        }
+            @Override
+            public void onResponseFailure(Exception exception) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onResponseFailure(exception);
                     }
-                }
+                });
             }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return deviceNames.toString();
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onNetworkFailure(exception);
+                    }
+                });
+            }
+        });
     }
 
     private String generateSceneId() {
@@ -836,6 +894,13 @@ public class SceneDetailActivity extends AppCompatActivity {
             }
         }
         return isExist;
+    }
+
+    private void gotoActionsScreen() {
+        Intent intent = new Intent(this, SceneActionsActivity.class);
+        intent.putParcelableArrayListExtra(AppConstants.KEY_DEVICES, devices);
+        intent.putParcelableArrayListExtra(AppConstants.KEY_SELECTED_DEVICES, selectedDevices);
+        startActivityForResult(intent, REQ_CODE_ACTIONS);
     }
 
     private void showAddSceneLoading(String msg) {

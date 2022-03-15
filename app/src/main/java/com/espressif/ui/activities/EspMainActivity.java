@@ -23,12 +23,18 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.provider.Settings;
+import android.text.InputFilter;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.HapticFeedbackConstants;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -195,10 +201,10 @@ public class EspMainActivity extends AppCompatActivity {
                 goToAddDeviceActivity();
                 break;
             case R.id.action_schedules:
-                goToAddScheduleActivity();
+                askForScheduleName();
                 break;
             case R.id.action_scenes:
-                goToAddSceneActivity();
+                askForSceneName();
                 break;
             case R.id.action_user:
                 break;
@@ -596,15 +602,107 @@ public class EspMainActivity extends AppCompatActivity {
         }
     }
 
-    private void goToAddScheduleActivity() {
+    private void askForScheduleName() {
 
-        Intent intent = new Intent(this, AddScheduleActivity.class);
+        LayoutInflater inflater = this.getLayoutInflater();
+        final View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
+        final EditText etScheduleName = dialogView.findViewById(R.id.et_attr_value);
+        etScheduleName.setInputType(InputType.TYPE_CLASS_TEXT);
+        etScheduleName.setHint(R.string.hint_schedule_name);
+        etScheduleName.setFilters(new InputFilter[]{new InputFilter.LengthFilter(32)});
+        final AlertDialog alertDialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setTitle(R.string.dialog_title_add_name)
+                .setPositiveButton(R.string.btn_ok, null)
+                .setNegativeButton(R.string.btn_cancel, null)
+                .create();
+
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+
+                Button buttonPositive = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_POSITIVE);
+                buttonPositive.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        final String value = etScheduleName.getText().toString();
+                        if (!TextUtils.isEmpty(value)) {
+                            dialog.dismiss();
+                            goToAddScheduleActivity(value);
+                        } else {
+                            etScheduleName.setError(getString(R.string.error_invalid_schedule_name));
+                        }
+                    }
+                });
+
+                Button buttonNegative = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_NEGATIVE);
+                buttonNegative.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        dialog.dismiss();
+                    }
+                });
+            }
+        });
+        alertDialog.show();
+    }
+
+    private void askForSceneName() {
+
+        LayoutInflater inflater = this.getLayoutInflater();
+        final View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
+        final EditText etSceneName = dialogView.findViewById(R.id.et_attr_value);
+        etSceneName.setInputType(InputType.TYPE_CLASS_TEXT);
+        etSceneName.setHint(R.string.hint_scene_name);
+        etSceneName.setFilters(new InputFilter[]{new InputFilter.LengthFilter(32)});
+        final AlertDialog alertDialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setTitle(R.string.dialog_title_add_name)
+                .setPositiveButton(R.string.btn_ok, null)
+                .setNegativeButton(R.string.btn_cancel, null)
+                .create();
+
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+
+                Button buttonPositive = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_POSITIVE);
+                buttonPositive.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        final String value = etSceneName.getText().toString();
+                        if (!TextUtils.isEmpty(value)) {
+                            dialog.dismiss();
+                            goToAddSceneActivity(value);
+                        } else {
+                            etSceneName.setError(getString(R.string.error_invalid_scene_name));
+                        }
+                    }
+                });
+
+                Button buttonNegative = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_NEGATIVE);
+                buttonNegative.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        dialog.dismiss();
+                    }
+                });
+            }
+        });
+        alertDialog.show();
+    }
+
+    private void goToAddScheduleActivity(String scheduleName) {
+
+        Intent intent = new Intent(this, ScheduleDetailActivity.class);
+        intent.putExtra(AppConstants.KEY_NAME, scheduleName);
         startActivity(intent);
     }
 
-    private void goToAddSceneActivity() {
+    private void goToAddSceneActivity(String sceneName) {
 
         Intent intent = new Intent(this, SceneDetailActivity.class);
+        intent.putExtra(AppConstants.KEY_NAME, sceneName);
         startActivity(intent);
     }
 

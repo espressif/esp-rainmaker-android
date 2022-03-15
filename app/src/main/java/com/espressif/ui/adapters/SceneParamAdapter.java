@@ -39,6 +39,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.aar.tapholdupbutton.TapHoldUpButton;
 import com.espressif.AppConstants;
+import com.espressif.EspApplication;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
@@ -55,6 +56,7 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
     private final String TAG = SceneParamAdapter.class.getSimpleName();
 
     private Activity context;
+    private EspApplication espApp;
     private Device device;
     private ArrayList<Param> params;
     private SceneActionAdapter parentAdapter;
@@ -64,6 +66,7 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
         this.device = device;
         this.params = params;
         this.parentAdapter = parentAdapter;
+        espApp = (EspApplication) context.getApplicationContext();
     }
 
     @Override
@@ -82,6 +85,13 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
 
         Param param = params.get(position);
         sceneParamVH.cbParamSelect.setChecked(param.isSelected());
+
+        String nodeId = device.getNodeId();
+        if (espApp.nodeMap.get(nodeId).isOnline()) {
+            setParamsEnabled(sceneParamVH, true);
+        } else {
+            setParamsEnabled(sceneParamVH, false);
+        }
 
         sceneParamVH.cbParamSelect.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
 
@@ -102,12 +112,12 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
 
                 if (isSelected) {
                     if (isUnselected) {
-                        device.setSelectedState(2);
+                        device.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
                     } else {
-                        device.setSelectedState(1);
+                        device.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
                     }
                 } else {
-                    device.setSelectedState(0);
+                    device.setSelectedState(AppConstants.ACTION_SELECTED_NONE);
                 }
 
                 device.setParams(params);
@@ -227,7 +237,6 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
         sceneParamVH.paletteBar.setTrackMarkHeight(6);
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
-            sceneParamVH.paletteBar.setEnabled(true);
             sceneParamVH.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
                 @Override
                 public void onColorSelected(int colorHue) {
@@ -679,6 +688,26 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
 
         AlertDialog alertDialog = builder.create();
         alertDialog.show();
+    }
+
+    private void setParamsEnabled(SceneParamViewHolder paramVH, boolean enabled) {
+        paramVH.itemView.setEnabled(enabled);
+        paramVH.cbParamSelect.setEnabled(enabled);
+        paramVH.intSlider.setEnabled(enabled);
+        paramVH.floatSlider.setEnabled(enabled);
+        paramVH.toggleSwitch.setEnabled(enabled);
+        paramVH.toggleSwitch.setClickable(enabled);
+        paramVH.paletteBar.setEnabled(enabled);
+        paramVH.spinner.setEnabled(enabled);
+        paramVH.btnTrigger.setEnabled(enabled);
+        paramVH.btnTrigger.setClickable(enabled);
+        if (enabled) {
+            paramVH.btnTrigger.setAlpha(1f);
+            paramVH.tvSwitchStatus.setAlpha(1f);
+        } else {
+            paramVH.btnTrigger.setAlpha(0.3f);
+            paramVH.tvSwitchStatus.setAlpha(0.3f);
+        }
     }
 
     static class SceneParamViewHolder extends RecyclerView.ViewHolder {

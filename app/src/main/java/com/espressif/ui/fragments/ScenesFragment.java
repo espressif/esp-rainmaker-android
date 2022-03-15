@@ -14,20 +14,23 @@
 
 package com.espressif.ui.fragments;
 
-import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Vibrator;
+import android.text.InputFilter;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -120,10 +123,7 @@ public class ScenesFragment extends Fragment {
 
         @Override
         public void onClick(View v) {
-
-            Vibrator vib = (Vibrator) getActivity().getSystemService(Context.VIBRATOR_SERVICE);
-            vib.vibrate(HapticFeedbackConstants.VIRTUAL_KEY);
-            goToAddSceneActivity();
+            askForSceneName();
         }
     };
 
@@ -255,9 +255,55 @@ public class ScenesFragment extends Fragment {
         ((EspMainActivity) getActivity()).updateActionBar();
     }
 
-    private void goToAddSceneActivity() {
+    private void askForSceneName() {
+
+        LayoutInflater inflater = this.getLayoutInflater();
+        final View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
+        final EditText etSceneName = dialogView.findViewById(R.id.et_attr_value);
+        etSceneName.setInputType(InputType.TYPE_CLASS_TEXT);
+        etSceneName.setHint(R.string.hint_scene_name);
+        etSceneName.setFilters(new InputFilter[]{new InputFilter.LengthFilter(32)});
+        final AlertDialog alertDialog = new AlertDialog.Builder(getActivity())
+                .setView(dialogView)
+                .setTitle(R.string.dialog_title_add_name)
+                .setPositiveButton(R.string.btn_ok, null)
+                .setNegativeButton(R.string.btn_cancel, null)
+                .create();
+
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+
+                Button buttonPositive = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_POSITIVE);
+                buttonPositive.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        final String value = etSceneName.getText().toString();
+                        if (!TextUtils.isEmpty(value)) {
+                            dialog.dismiss();
+                            goToAddSceneActivity(value);
+                        } else {
+                            etSceneName.setError(getString(R.string.error_invalid_scene_name));
+                        }
+                    }
+                });
+
+                Button buttonNegative = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_NEGATIVE);
+                buttonNegative.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        dialog.dismiss();
+                    }
+                });
+            }
+        });
+        alertDialog.show();
+    }
+
+    private void goToAddSceneActivity(String sceneName) {
 
         Intent intent = new Intent(getActivity(), SceneDetailActivity.class);
+        intent.putExtra(AppConstants.KEY_NAME, sceneName);
         startActivity(intent);
     }
 }

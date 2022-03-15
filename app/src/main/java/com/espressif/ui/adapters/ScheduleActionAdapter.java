@@ -28,22 +28,35 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.AppConstants;
+import com.espressif.EspApplication;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 
 public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAdapter.ActionViewHolder> {
 
     private Activity context;
+    private EspApplication espApp;
     private ArrayList<Device> deviceList;
     private ScheduleParamAdapter paramAdapter;
+    private HashMap<Integer, Integer> deviceSelectMap;
 
     public ScheduleActionAdapter(Activity context, ArrayList<Device> list) {
         this.context = context;
         this.deviceList = list;
+        espApp = (EspApplication) context.getApplicationContext();
+        deviceSelectMap = new HashMap<>();
+
+        for (int devicePosition = 0; devicePosition < list.size(); devicePosition++) {
+            int state = list.get(devicePosition).getSelectedState();
+            if (state != AppConstants.ACTION_SELECTED_NONE) {
+                deviceSelectMap.put(devicePosition, state);
+            }
+        }
     }
 
     @Override
@@ -82,15 +95,15 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
         holder.paramRecyclerView.setAdapter(paramAdapter);
 
         switch (device.getSelectedState()) {
-            case 0:
+            case AppConstants.ACTION_SELECTED_NONE:
                 holder.ivDeviceSelect.setChecked(false);
                 holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_checkbox_unchecked);
                 break;
-            case 1:
+            case AppConstants.ACTION_SELECTED_ALL:
                 holder.ivDeviceSelect.setChecked(true);
                 holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_checkbox_checked);
                 break;
-            case 2:
+            case AppConstants.ACTION_SELECTED_PARTIAL:
                 holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_checkbox_indeterminate);
                 break;
         }
@@ -123,20 +136,20 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
                 }
 
                 Device d = deviceList.get(holder.getAdapterPosition());
-                int selectedState = 0;
+                int selectedState = AppConstants.ACTION_SELECTED_NONE;
                 if (isChecked) {
-                    selectedState = 1;
+                    selectedState = AppConstants.ACTION_SELECTED_ALL;
                     d.setExpanded(true);
                     holder.ivExpandArrow.animate().rotation(90).setInterpolator(new LinearInterpolator()).setDuration(200);
                 }
                 d.setSelectedState(selectedState);
 
                 switch (selectedState) {
-                    case 0:
+                    case AppConstants.ACTION_SELECTED_NONE:
                         holder.ivDeviceSelect.setChecked(false);
                         holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_checkbox_unchecked);
                         break;
-                    case 1:
+                    case AppConstants.ACTION_SELECTED_ALL:
                         holder.ivDeviceSelect.setChecked(true);
                         holder.ivDeviceSelect.setButtonDrawable(R.drawable.ic_checkbox_checked);
                         break;
@@ -148,6 +161,36 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
                 notifyItemChanged(holder.getAdapterPosition());
             }
         });
+
+        String nodeId = device.getNodeId();
+        if (espApp.nodeMap.get(nodeId).isOnline()) {
+
+            int maxCnt = espApp.nodeMap.get(nodeId).getScheduleMaxCnt();
+
+            if (espApp.nodeMap.get(nodeId).getScheduleCurrentCnt() >= maxCnt
+                    && !deviceSelectMap.containsKey(position)) {
+
+                holder.itemView.setAlpha(0.85f);
+                holder.ivDeviceSelect.setEnabled(false);
+                holder.tvOffline.setVisibility(View.VISIBLE);
+                holder.tvOffline.setText(context.getString(R.string.max_cnt_reached, maxCnt));
+                holder.tvDeviceName.setAlpha(0.55f);
+                device.setParamEnabled(false);
+            } else {
+                holder.itemView.setAlpha(1f);
+                holder.ivDeviceSelect.setEnabled(true);
+                holder.tvOffline.setVisibility(View.GONE);
+                holder.tvDeviceName.setAlpha(1f);
+                device.setParamEnabled(true);
+            }
+        } else {
+            holder.itemView.setAlpha(0.85f);
+            holder.ivDeviceSelect.setEnabled(false);
+            holder.tvOffline.setVisibility(View.VISIBLE);
+            holder.tvOffline.setText(R.string.status_offline);
+            holder.tvDeviceName.setAlpha(0.55f);
+            device.setParamEnabled(false);
+        }
     }
 
     @Override
@@ -157,7 +200,7 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
 
     static class ActionViewHolder extends RecyclerView.ViewHolder {
 
-        private TextView tvDeviceName;
+        private TextView tvDeviceName, tvOffline;
         private ImageView ivExpandArrow;
         private AppCompatCheckBox ivDeviceSelect;
         private RecyclerView paramRecyclerView;
@@ -166,6 +209,7 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
             super(itemView);
 
             tvDeviceName = itemView.findViewById(R.id.tv_device_name);
+            tvOffline = itemView.findViewById(R.id.tv_offline);
             ivExpandArrow = itemView.findViewById(R.id.iv_expand_arrow);
             ivDeviceSelect = itemView.findViewById(R.id.iv_device_select);
             paramRecyclerView = itemView.findViewById(R.id.rv_param_list);

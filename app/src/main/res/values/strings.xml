@@ -77,19 +77,11 @@
     <string name="error_claiming_verify">Claim verify failed</string>
     <string name="error_device_type_not_supported">Device may not be supported.</string>
     <string name="error_schedule_name_empty">Schedule name cannot be empty</string>
-    <string name="error_invalid_schedule_name">Please enter schedule name</string>
+    <string name="error_invalid_schedule_name">Please enter a name for the schedule to proceed.</string>
     <string name="error_schedule_action">Please select action for schedule</string>
-    <string name="error_schedule_add">Failed to add schedule for few devices</string>
-    <string name="error_schedule_remove">Failed to remove schedule for device</string>
     <string name="error_scene_name_empty">Scene name cannot be empty</string>
-    <string name="error_invalid_scene_name">Please enter scene name</string>
+    <string name="error_invalid_scene_name">Please enter a name for the scene to proceed.</string>
     <string name="error_scene_action">Please select action for scene</string>
-    <string name="error_scene_save">Failed to update scene</string>
-    <string name="error_scene_activate">Failed to activate scene</string>
-    <string name="error_scene_remove">Failed to remove scene</string>
-    <string name="error_scene_save_for_device">Failed to save scene for</string>
-    <string name="error_scene_activate_for_device">Failed to activate scene for</string>
-    <string name="error_scene_remove_for_device">Failed to remove scene for</string>
     <string name="error_group_device_remove">Failed to remove device from group</string>
     <string name="error_group_name_empty">Group name cannot be empty</string>
     <string name="error_group_name_update">Failed to update group name</string>
@@ -134,6 +126,7 @@
     <string name="offline_at">Offline at</string>
     <string name="no_device_support_this_feature">You don\'t have any device\nthat supports this.</string>
     <string name="local_device_text">Reachable on WLAN</string>
+    <string name="max_cnt_reached">Max supported count %d reached</string>
     <string name="invalid">Invalid</string>
 
     <!--Tab titles-->
@@ -157,6 +150,8 @@
     <string name="hint_ssid">Network Name</string>
     <string name="hint_value">Enter Value</string>
     <string name="hint_description">Enter description here (optional)</string>
+    <string name="hint_schedule_name">Choose name for your schedule</string>
+    <string name="hint_scene_name">Choose name for your scene</string>
 
     <!--Button text-->
     <string name="btn_register">Register</string>
@@ -225,10 +220,8 @@
     <string name="title_activity_node_details">Node Details</string>
     <string name="title_activity_user_profile">User Profile</string>
     <string name="title_activity_claiming">Claiming</string>
-    <string name="title_activity_add_schedule">Add Schedule</string>
-    <string name="title_activity_add_scene">Add Scene</string>
-    <string name="title_activity_schedule_details">Schedule Details</string>
-    <string name="title_activity_scene_details">Scene Details</string>
+    <string name="title_activity_schedule_details">Schedule</string>
+    <string name="title_activity_scene_details">Scene</string>
     <string name="title_activity_repeat_days">Repeat</string>
     <string name="title_activity_actions">Actions</string>
     <string name="title_activity_schedules">Schedules</string>
@@ -258,8 +251,7 @@
     <string name="dialog_title_delete_user_failed">Delete account failed</string>
     <string name="dialog_title_new_version_available">New Version is available!</string>
     <string name="dialog_title_network_info">Enter Network Information</string>
-    <string name="dialog_title_schedule_name">Enter Schedule Name</string>
-    <string name="dialog_title_scene_name">Enter Scene Name</string>
+    <string name="dialog_title_add_name">Add Name</string>
     <string name="dialog_msg_for_gps">Location services are disabled. Please enable them to continue</string>
     <string name="dialog_msg_delete_node">Are you sure?</string>
     <string name="dialog_msg_device_selection">Choose Provisioning Transport</string>
@@ -302,6 +294,36 @@
     <string name="delete_user_confirm_instruction">Verification code was sent to your email.\nPlease enter it here to delete your account.</string>
     <string name="alexa_link_instruction">Linking your account with Amazon Alexa allows you to control your Smart Home Devices using Voice commands via Alexa enabled speakers. (E.g. Alexa, Turn on the Light)</string>
 
+    <!--    Schedule -->
+    <string name="msg_schedule_added">Schedule created successfully</string>
+    <string name="error_schedule_add">Failed to create schedule</string>
+    <string name="error_schedule_add_partial">Failed to create schedule for</string>
+
+    <string name="msg_schedule_updated">Schedule updated successfully</string>
+    <string name="error_schedule_save">Failed to update schedule</string>
+    <string name="error_schedule_save_partial">Failed to update schedule for</string>
+
+    <string name="msg_schedule_removed">Schedule removed successfully</string>
+    <string name="error_schedule_remove">Failed to remove schedule</string>
+    <string name="error_schedule_remove_partial">Failed to remove schedule for</string>
+
+    <!--    Scene-->
+    <string name="msg_scene_added">Scene created successfully</string>
+    <string name="error_scene_add">Failed to create scene</string>
+    <string name="error_scene_add_partial">Failed to create scene for</string>
+
+    <string name="msg_scene_updated">Scene updated successfully</string>
+    <string name="error_scene_save">Failed to update scene</string>
+    <string name="error_scene_save_partial">Failed to update scene for</string>
+
+    <string name="msg_scene_removed">Scene removed successfully</string>
+    <string name="error_scene_remove">Failed to remove scene</string>
+    <string name="error_scene_remove_partial">Failed to remove scene for</string>
+
+    <string name="msg_scene_activated">Scene activated successfully</string>
+    <string name="error_scene_activate">Failed to activate scene</string>
+    <string name="error_scene_activate_partial">Failed to activate scene for</string>
+
     <!--Other Strings-->
     <string name="read_terms_condition">I have read and agree to the Privacy Policy and Terms of Use.</string>
     <string name="user_agreement">By proceeding, I confirm that I have read and agree to the Privacy Policy and Terms of Use.</string>
@@ -329,12 +351,6 @@
     <string name="not_set">Not set</string>
     <string name="msg_no_internet">No internet connection</string>
     <string name="actions">Actions</string>
-    <string name="msg_schedule_added">Schedule added</string>
-    <string name="msg_schedule_updated">Schedule updated</string>
-    <string name="msg_scene_added">Scene added successfully</string>
-    <string name="msg_scene_updated">Scene updated successfully</string>
-    <string name="msg_scene_removed">Scene removed successfully</string>
-    <string name="msg_scene_activated">Scene activated successfully</string>
     <string name="group_all_devices">All Devices</string>
     <string name="success_group_name_update">Group name updated successfully</string>
     <string name="success_group_create">Group created successfully</string>
@@ -356,7 +372,7 @@
     <string name="text_alexa">Amazon Alexa</string>
     <string name="text_gva">Google Assistant</string>
     <string name="description">Description</string>
-    
+
     <string name="linked_with_alexa">Already linked with Amazon Alexa</string>
     <string name="alexa_link_str">You can now control your Smart Home Devices via Alexa enabled speakers using Voice commands.</string>
     <string name="alexa_example_1">Alexa, turn on the boiler switch.</string>

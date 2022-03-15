@@ -14,20 +14,23 @@
 
 package com.espressif.ui.fragments;
 
-import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Vibrator;
+import android.text.InputFilter;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -36,8 +39,8 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.activities.AddScheduleActivity;
 import com.espressif.ui.activities.EspMainActivity;
+import com.espressif.ui.activities.ScheduleDetailActivity;
 import com.espressif.ui.adapters.ScheduleAdapter;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Schedule;
@@ -121,10 +124,7 @@ public class SchedulesFragment extends Fragment {
 
         @Override
         public void onClick(View v) {
-
-            Vibrator vib = (Vibrator) getActivity().getSystemService(Context.VIBRATOR_SERVICE);
-            vib.vibrate(HapticFeedbackConstants.VIRTUAL_KEY);
-            goToAddScheduleActivity();
+            askForScheduleName();
         }
     };
 
@@ -264,9 +264,55 @@ public class SchedulesFragment extends Fragment {
         ((EspMainActivity) getActivity()).updateActionBar();
     }
 
-    private void goToAddScheduleActivity() {
+    private void askForScheduleName() {
 
-        Intent intent = new Intent(getActivity(), AddScheduleActivity.class);
+        LayoutInflater inflater = this.getLayoutInflater();
+        final View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
+        final EditText etScheduleName = dialogView.findViewById(R.id.et_attr_value);
+        etScheduleName.setInputType(InputType.TYPE_CLASS_TEXT);
+        etScheduleName.setHint(R.string.hint_schedule_name);
+        etScheduleName.setFilters(new InputFilter[]{new InputFilter.LengthFilter(32)});
+        final AlertDialog alertDialog = new AlertDialog.Builder(getActivity())
+                .setView(dialogView)
+                .setTitle(R.string.dialog_title_add_name)
+                .setPositiveButton(R.string.btn_ok, null)
+                .setNegativeButton(R.string.btn_cancel, null)
+                .create();
+
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+
+                Button buttonPositive = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_POSITIVE);
+                buttonPositive.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        final String value = etScheduleName.getText().toString();
+                        if (!TextUtils.isEmpty(value)) {
+                            dialog.dismiss();
+                            goToAddScheduleActivity(value);
+                        } else {
+                            etScheduleName.setError(getString(R.string.error_invalid_schedule_name));
+                        }
+                    }
+                });
+
+                Button buttonNegative = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_NEGATIVE);
+                buttonNegative.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        dialog.dismiss();
+                    }
+                });
+            }
+        });
+        alertDialog.show();
+    }
+
+    private void goToAddScheduleActivity(String scheduleName) {
+
+        Intent intent = new Intent(getActivity(), ScheduleDetailActivity.class);
+        intent.putExtra(AppConstants.KEY_NAME, scheduleName);
         startActivity(intent);
     }
 }
