@@ -15,6 +15,7 @@
 package com.espressif.cloudapi;
 
 import com.espressif.AppConstants;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.util.HashMap;
@@ -114,6 +115,10 @@ public interface ApiInterface {
     // Update schedules
     @PUT
     Observable<ResponseBody> updateSchedules(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query(AppConstants.KEY_NODE_ID) String nodeId, @Body JsonObject body);
+
+    // Update scenes
+    @PUT
+    Call<ResponseBody> updateScenes(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonArray body);
 
     // Remove Node
     @PUT

@@ -194,7 +194,7 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentStart="true"
                     android:layout_centerVertical="true"
-                    android:text="@string/schedule_actions"
+                    android:text="@string/actions"
                     android:textColor="@color/colorPrimaryDark"
                     android:textSize="18sp"
                     android:textStyle="bold" />

@@ -22,6 +22,10 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
 
 import com.espressif.rainmaker.R;
+import com.espressif.ui.fragments.DevicesFragment;
+import com.espressif.ui.fragments.ScenesFragment;
+import com.espressif.ui.fragments.SchedulesFragment;
+import com.espressif.ui.fragments.UserProfileFragment;
 
 import java.util.ArrayList;
 
@@ -44,13 +48,16 @@ public class HomeScreenPagerAdapter extends FragmentPagerAdapter {
     @Override
     public CharSequence getPageTitle(int position) {
 
-        switch (position) {
-            case 0:
-                return context.getString(R.string.devices_title);
-            case 1:
-                return context.getString(R.string.title_activity_schedules);
-            case 2:
-                return context.getString(R.string.tab_settings);
+        Fragment page = fragmentList.get(position);
+
+        if (page instanceof DevicesFragment) {
+            return context.getString(R.string.devices_title);
+        } else if (page instanceof SchedulesFragment) {
+            return context.getString(R.string.title_activity_schedules);
+        } else if (page instanceof ScenesFragment) {
+            return context.getString(R.string.title_activity_scenes);
+        } else if (page instanceof UserProfileFragment) {
+            return context.getString(R.string.tab_settings);
         }
         return "";
     }
@@ -58,6 +65,28 @@ public class HomeScreenPagerAdapter extends FragmentPagerAdapter {
     @Override
     public int getCount() {
         return fragmentList.size();
+    }
+
+    public int getItemPosition(String title) {
+
+        for (int i = 0; i < fragmentList.size(); i++) {
+            Fragment page = fragmentList.get(i);
+
+            if (title.equals(context.getString(R.string.devices_title))
+                    && page instanceof DevicesFragment) {
+                return i;
+            } else if (title.equals(context.getString(R.string.title_activity_schedules))
+                    && page instanceof SchedulesFragment) {
+                return i;
+            } else if (title.equals(context.getString(R.string.title_activity_scenes))
+                    && page instanceof ScenesFragment) {
+                return i;
+            } else if (title.equals(context.getString(R.string.tab_settings))
+                    && page instanceof UserProfileFragment) {
+                return i;
+            }
+        }
+        return 0;
     }
 
     public void addFragment(Fragment fragment) {

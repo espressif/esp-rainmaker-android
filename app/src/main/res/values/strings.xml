@@ -23,6 +23,8 @@
     <string name="progress_claiming">Claiming in progress...</string>
     <string name="progress_add_sch">Adding Schedule...</string>
     <string name="progress_update_sch">Updating Schedule...</string>
+    <string name="progress_add_scene">Adding Scene...</string>
+    <string name="progress_update_scene">Updating Scene...</string>
     <string name="progress_create_group">Creating group...</string>
     <string name="progress_update_group">Updating group...</string>
     <string name="progress_remove_group">Removing group...</string>
@@ -73,12 +75,21 @@
     <string name="error_claiming_start">Claim start failed</string>
     <string name="error_claiming_init">Claim init failed</string>
     <string name="error_claiming_verify">Claim verify failed</string>
+    <string name="error_device_type_not_supported">Device may not be supported.</string>
     <string name="error_schedule_name_empty">Schedule name cannot be empty</string>
     <string name="error_invalid_schedule_name">Please enter schedule name</string>
-    <string name="error_device_type_not_supported">Device may not be supported.</string>
     <string name="error_schedule_action">Please select action for schedule</string>
     <string name="error_schedule_add">Failed to add schedule for few devices</string>
     <string name="error_schedule_remove">Failed to remove schedule for device</string>
+    <string name="error_scene_name_empty">Scene name cannot be empty</string>
+    <string name="error_invalid_scene_name">Please enter scene name</string>
+    <string name="error_scene_action">Please select action for scene</string>
+    <string name="error_scene_save">Failed to update scene</string>
+    <string name="error_scene_activate">Failed to activate scene</string>
+    <string name="error_scene_remove">Failed to remove scene</string>
+    <string name="error_scene_save_for_device">Failed to save scene for</string>
+    <string name="error_scene_activate_for_device">Failed to activate scene for</string>
+    <string name="error_scene_remove_for_device">Failed to remove scene for</string>
     <string name="error_group_device_remove">Failed to remove device from group</string>
     <string name="error_group_name_empty">Group name cannot be empty</string>
     <string name="error_group_name_update">Failed to update group name</string>
@@ -113,6 +124,7 @@
     <string name="powered_by_esp">Powered by ESPRESSIF</string>
     <string name="no_devices">No devices added</string>
     <string name="no_schedules">No Schedules added</string>
+    <string name="no_scenes">No Scenes added</string>
     <string name="no_groups">No Groups created</string>
     <string name="no_sharing_requests">No notifications</string>
     <string name="add_device_txt">You can provision a device by scanning the QR code or you can do it manually my tapping on + icon on right-top of this screen.</string>
@@ -120,7 +132,7 @@
     <string name="node_offline">Node Offline</string>
     <string name="status_offline">Offline</string>
     <string name="offline_at">Offline at</string>
-    <string name="no_devices_with_schedule">You don\'t have any device\nthat supports this.</string>
+    <string name="no_device_support_this_feature">You don\'t have any device\nthat supports this.</string>
     <string name="local_device_text">Reachable on WLAN</string>
     <string name="invalid">Invalid</string>
 
@@ -129,6 +141,7 @@
     <string name="tab_sign_up">SignUp</string>
     <string name="tab_devices">Devices</string>
     <string name="tab_schedules">Schedules</string>
+    <string name="tab_scenes">Scenes</string>
     <string name="tab_user">User</string>
     <string name="tab_settings">Settings</string>
 
@@ -143,6 +156,7 @@
     <string name="hint_pop">Proof of Possession</string>
     <string name="hint_ssid">Network Name</string>
     <string name="hint_value">Enter Value</string>
+    <string name="hint_description">Enter description here (optional)</string>
 
     <!--Button text-->
     <string name="btn_register">Register</string>
@@ -171,6 +185,7 @@
     <string name="btn_no_qr_code">I don\'t have a QR code</string>
     <string name="btn_add_device">Add Device</string>
     <string name="btn_add_schedule">Add Schedule</string>
+    <string name="btn_add_scene">Add Scene</string>
     <string name="btn_scan_again">Rescan</string>
     <string name="btn_sign_out">Sign Out</string>
     <string name="btn_skip">Skip</string>
@@ -192,6 +207,7 @@
     <string name="btn_proceed">Proceed</string>
     <string name="btn_link_alexa">Link with Amazon Alexa</string>
     <string name="btn_unlink_alexa">Unlink from Amazon Alexa</string>
+    <string name="btn_activate">Activate</string>
 
     <!--Screen titles-->
     <string name="title_activity_devices">Devices</string>
@@ -210,10 +226,13 @@
     <string name="title_activity_user_profile">User Profile</string>
     <string name="title_activity_claiming">Claiming</string>
     <string name="title_activity_add_schedule">Add Schedule</string>
+    <string name="title_activity_add_scene">Add Scene</string>
     <string name="title_activity_schedule_details">Schedule Details</string>
+    <string name="title_activity_scene_details">Scene Details</string>
     <string name="title_activity_repeat_days">Repeat</string>
     <string name="title_activity_actions">Actions</string>
     <string name="title_activity_schedules">Schedules</string>
+    <string name="title_activity_scenes">Scenes</string>
     <string name="title_activity_select_devices">Select Devices</string>
     <string name="title_activity_select_actions">Select Actions</string>
     <string name="title_activity_manage_groups">Manage Groups</string>
@@ -240,6 +259,7 @@
     <string name="dialog_title_new_version_available">New Version is available!</string>
     <string name="dialog_title_network_info">Enter Network Information</string>
     <string name="dialog_title_schedule_name">Enter Schedule Name</string>
+    <string name="dialog_title_scene_name">Enter Scene Name</string>
     <string name="dialog_msg_for_gps">Location services are disabled. Please enable them to continue</string>
     <string name="dialog_msg_delete_node">Are you sure?</string>
     <string name="dialog_msg_device_selection">Choose Provisioning Transport</string>
@@ -308,9 +328,13 @@
     <string name="process_take_time">This may take time.</string>
     <string name="not_set">Not set</string>
     <string name="msg_no_internet">No internet connection</string>
-    <string name="schedule_actions">Actions</string>
+    <string name="actions">Actions</string>
     <string name="msg_schedule_added">Schedule added</string>
     <string name="msg_schedule_updated">Schedule updated</string>
+    <string name="msg_scene_added">Scene added successfully</string>
+    <string name="msg_scene_updated">Scene updated successfully</string>
+    <string name="msg_scene_removed">Scene removed successfully</string>
+    <string name="msg_scene_activated">Scene activated successfully</string>
     <string name="group_all_devices">All Devices</string>
     <string name="success_group_name_update">Group name updated successfully</string>
     <string name="success_group_create">Group created successfully</string>
@@ -331,6 +355,8 @@
     <string name="supported_services">Supported Services</string>
     <string name="text_alexa">Amazon Alexa</string>
     <string name="text_gva">Google Assistant</string>
+    <string name="description">Description</string>
+    
     <string name="linked_with_alexa">Already linked with Amazon Alexa</string>
     <string name="alexa_link_str">You can now control your Smart Home Devices via Alexa enabled speakers using Voice commands.</string>
     <string name="alexa_example_1">Alexa, turn on the boiler switch.</string>

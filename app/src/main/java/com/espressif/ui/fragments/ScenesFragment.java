@@ -1,4 +1,4 @@
-// Copyright 2020 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2022 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,44 +36,43 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.activities.AddScheduleActivity;
 import com.espressif.ui.activities.EspMainActivity;
-import com.espressif.ui.adapters.ScheduleAdapter;
+import com.espressif.ui.activities.SceneDetailActivity;
+import com.espressif.ui.adapters.SceneAdapter;
 import com.espressif.ui.models.EspNode;
-import com.espressif.ui.models.Schedule;
+import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Service;
 import com.google.android.material.card.MaterialCardView;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Map;
 
-public class SchedulesFragment extends Fragment {
+public class ScenesFragment extends Fragment {
 
-    private static final String TAG = SchedulesFragment.class.getSimpleName();
+    private static final String TAG = ScenesFragment.class.getSimpleName();
 
-    private MaterialCardView btnAddSchedule;
-    private TextView txtAddScheduleBtn;
+    private MaterialCardView btnAddScene;
+    private TextView txtAddSceneBtn;
     private ImageView arrowImage;
 
     private RecyclerView recyclerView;
-    private TextView tvNoSchedule, tvAddSchedule;
-    private RelativeLayout rlNoSchedules;
+    private TextView tvNoScene, tvAddScene;
+    private RelativeLayout rlNoScenes;
     private SwipeRefreshLayout swipeRefreshLayout;
-    private ImageView ivNoSchedule;
+    private ImageView ivNoScene;
 
     private EspApplication espApp;
-    private ScheduleAdapter scheduleAdapter;
-    private ArrayList<Schedule> schedules;
+    private SceneAdapter sceneAdapter;
+    private ArrayList<Scene> scenes;
 
-    public SchedulesFragment() {
+    public ScenesFragment() {
         // Required empty public constructor
     }
 
-    public static SchedulesFragment newInstance() {
-        return new SchedulesFragment();
+    public static ScenesFragment newInstance() {
+        return new ScenesFragment();
     }
 
     @Override
@@ -85,14 +84,14 @@ public class SchedulesFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
         // Inflate the layout for this fragment
-        View root = inflater.inflate(R.layout.fragment_schedules, container, false);
-        schedules = new ArrayList<>();
+        View root = inflater.inflate(R.layout.fragment_scenes, container, false);
+        scenes = new ArrayList<>();
         espApp = (EspApplication) getActivity().getApplicationContext();
         init(root);
-        tvNoSchedule.setVisibility(View.GONE);
-        rlNoSchedules.setVisibility(View.GONE);
+        tvNoScene.setVisibility(View.GONE);
+        rlNoScenes.setVisibility(View.GONE);
         recyclerView.setVisibility(View.GONE);
-        updateScheduleUi();
+        updateSceneUi();
         ((EspMainActivity) getActivity()).setUpdateListener(updateListener);
         return root;
     }
@@ -100,7 +99,7 @@ public class SchedulesFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        updateScheduleUi();
+        updateSceneUi();
     }
 
     @Override
@@ -113,49 +112,49 @@ public class SchedulesFragment extends Fragment {
 
         @Override
         public void updateUi() {
-            updateScheduleUi();
+            updateSceneUi();
         }
     };
 
-    View.OnClickListener addScheduleBtnClickListener = new View.OnClickListener() {
+    View.OnClickListener addSceneBtnClickListener = new View.OnClickListener() {
 
         @Override
         public void onClick(View v) {
 
             Vibrator vib = (Vibrator) getActivity().getSystemService(Context.VIBRATOR_SERVICE);
             vib.vibrate(HapticFeedbackConstants.VIRTUAL_KEY);
-            goToAddScheduleActivity();
+            goToAddSceneActivity();
         }
     };
 
-    public void updateScheduleList() {
+    public void updateSceneList() {
         swipeRefreshLayout.setRefreshing(true);
         ((EspMainActivity) getActivity()).refreshDeviceList();
     }
 
     private void init(View view) {
 
-        rlNoSchedules = view.findViewById(R.id.rl_no_schedule);
-        tvNoSchedule = view.findViewById(R.id.tv_no_schedule);
-        tvAddSchedule = view.findViewById(R.id.tv_add_schedule);
-        ivNoSchedule = view.findViewById(R.id.iv_no_schedule);
-        recyclerView = view.findViewById(R.id.rv_schedule_list);
+        rlNoScenes = view.findViewById(R.id.rl_no_scene);
+        tvNoScene = view.findViewById(R.id.tv_no_scene);
+        tvAddScene = view.findViewById(R.id.tv_add_scene);
+        ivNoScene = view.findViewById(R.id.iv_no_scene);
+        recyclerView = view.findViewById(R.id.rv_scene_list);
         swipeRefreshLayout = view.findViewById(R.id.swipe_container);
 
-        btnAddSchedule = view.findViewById(R.id.btn_add_schedule);
-        txtAddScheduleBtn = btnAddSchedule.findViewById(R.id.text_btn);
-        arrowImage = btnAddSchedule.findViewById(R.id.iv_arrow);
-        txtAddScheduleBtn.setText(R.string.btn_add_schedule);
-        btnAddSchedule.setVisibility(View.GONE);
+        btnAddScene = view.findViewById(R.id.btn_add_scene);
+        txtAddSceneBtn = btnAddScene.findViewById(R.id.text_btn);
+        arrowImage = btnAddScene.findViewById(R.id.iv_arrow);
+        txtAddSceneBtn.setText(R.string.btn_add_scene);
+        btnAddScene.setVisibility(View.GONE);
         arrowImage.setVisibility(View.GONE);
 
-        btnAddSchedule.setOnClickListener(addScheduleBtnClickListener);
+        btnAddScene.setOnClickListener(addSceneBtnClickListener);
 
         // set a LinearLayoutManager with default orientation
         recyclerView.setLayoutManager(new LinearLayoutManager(getActivity())); // set LayoutManager to RecyclerView
 
-        scheduleAdapter = new ScheduleAdapter(getActivity(), this, schedules);
-        recyclerView.setAdapter(scheduleAdapter);
+        sceneAdapter = new SceneAdapter(getActivity(), this, scenes);
+        recyclerView.setAdapter(sceneAdapter);
 
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
 
@@ -166,7 +165,7 @@ public class SchedulesFragment extends Fragment {
         });
     }
 
-    private void updateScheduleUi() {
+    private void updateSceneUi() {
 
         switch (espApp.getAppState()) {
 
@@ -185,47 +184,39 @@ public class SchedulesFragment extends Fragment {
 
     private void updateUi(boolean isRefreshing) {
 
-        schedules.clear();
-        for (Map.Entry<String, Schedule> entry : espApp.scheduleMap.entrySet()) {
+        scenes.clear();
+        for (Map.Entry<String, Scene> entry : espApp.sceneMap.entrySet()) {
 
             String key = entry.getKey();
-            Schedule schedule = entry.getValue();
+            Scene scene = entry.getValue();
 
-            if (schedule != null) {
-                schedules.add(schedule);
+            if (scene != null) {
+                scenes.add(scene);
             }
         }
 
-        Log.d(TAG, "Schedules size : " + schedules.size());
+        Log.d(TAG, "Scenes size : " + scenes.size());
 
-        // Sort schedule list by time.
-        Collections.sort(schedules, new Comparator<Schedule>() {
+        // Sort scene list by alphabetically.
+        Collections.sort(scenes, new Comparator<Scene>() {
 
             @Override
-            public int compare(Schedule s1, Schedule s2) {
-                HashMap<String, Integer> t1 = s1.getTriggers();
-                HashMap<String, Integer> t2 = s2.getTriggers();
-                Integer m1 = t1.get(AppConstants.KEY_MINUTES);
-                Integer m2 = t2.get(AppConstants.KEY_MINUTES);
-                if (m1 == null) {
-                    m1 = 0;
-                }
-                if (m2 == null) {
-                    m2 = 0;
-                }
-                return m1.compareTo(m2);
+            public int compare(Scene s1, Scene s2) {
+                String name1 = s1.getName();
+                String name2 = s2.getName();
+                return name1.compareTo(name2);
             }
         });
 
-        if (schedules.size() > 0) {
+        if (scenes.size() > 0) {
 
-            rlNoSchedules.setVisibility(View.GONE);
-            btnAddSchedule.setVisibility(View.GONE);
+            rlNoScenes.setVisibility(View.GONE);
+            btnAddScene.setVisibility(View.GONE);
             recyclerView.setVisibility(View.VISIBLE);
 
         } else {
 
-            boolean isScheduleDevicesAvailable = false;
+            boolean isSceneDevicesAvailable = false;
             for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
 
                 EspNode node = entry.getValue();
@@ -236,37 +227,37 @@ public class SchedulesFragment extends Fragment {
                     for (int i = 0; i < services.size(); i++) {
 
                         Service s = services.get(i);
-                        if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_SCHEDULE)) {
-                            isScheduleDevicesAvailable = true;
+                        if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_SCENES)) {
+                            isSceneDevicesAvailable = true;
                             break;
                         }
                     }
                 }
             }
 
-            if (isScheduleDevicesAvailable) {
-                tvNoSchedule.setText(R.string.no_schedules);
-                btnAddSchedule.setVisibility(View.VISIBLE);
+            if (isSceneDevicesAvailable) {
+                tvNoScene.setText(R.string.no_scenes);
+                btnAddScene.setVisibility(View.VISIBLE);
             } else {
-                tvNoSchedule.setText(R.string.no_device_support_this_feature);
-                btnAddSchedule.setVisibility(View.GONE);
+                tvNoScene.setText(R.string.no_device_support_this_feature);
+                btnAddScene.setVisibility(View.GONE);
             }
 
-            rlNoSchedules.setVisibility(View.VISIBLE);
-            tvNoSchedule.setVisibility(View.VISIBLE);
-            tvAddSchedule.setVisibility(View.GONE);
-            ivNoSchedule.setVisibility(View.VISIBLE);
+            rlNoScenes.setVisibility(View.VISIBLE);
+            tvNoScene.setVisibility(View.VISIBLE);
+            tvAddScene.setVisibility(View.GONE);
+            ivNoScene.setVisibility(View.VISIBLE);
             recyclerView.setVisibility(View.GONE);
         }
 
-        scheduleAdapter.updateList(schedules);
+        sceneAdapter.updateList(scenes);
         swipeRefreshLayout.setRefreshing(isRefreshing);
         ((EspMainActivity) getActivity()).updateActionBar();
     }
 
-    private void goToAddScheduleActivity() {
+    private void goToAddSceneActivity() {
 
-        Intent intent = new Intent(getActivity(), AddScheduleActivity.class);
+        Intent intent = new Intent(getActivity(), SceneDetailActivity.class);
         startActivity(intent);
     }
 }

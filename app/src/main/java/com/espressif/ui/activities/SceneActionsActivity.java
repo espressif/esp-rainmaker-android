@@ -1,4 +1,4 @@
-// Copyright 2020 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2022 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import com.espressif.AppConstants;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.adapters.ScheduleActionAdapter;
+import com.espressif.ui.adapters.SceneActionAdapter;
 import com.espressif.ui.models.Device;
 import com.google.android.material.appbar.MaterialToolbar;
 
@@ -37,10 +37,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 
-public class ScheduleActionsActivity extends AppCompatActivity {
+public class SceneActionsActivity extends AppCompatActivity {
 
     private ArrayList<Device> devices;
-    private ScheduleActionAdapter adapter;
+    private SceneActionAdapter adapter;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -139,7 +139,7 @@ public class ScheduleActionsActivity extends AppCompatActivity {
         RecyclerView recyclerView = findViewById(R.id.rv_device);
         ((SimpleItemAnimator) recyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
 
-        adapter = new ScheduleActionAdapter(this, devices);
+        adapter = new SceneActionAdapter(this, devices);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
         recyclerView.setHasFixedSize(true);

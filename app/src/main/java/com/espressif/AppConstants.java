@@ -113,6 +113,7 @@ public class AppConstants {
 
     // Service Types
     public static final String SERVICE_TYPE_SCHEDULE = "esp.service.schedule";
+    public static final String SERVICE_TYPE_SCENES = "esp.service.scenes";
     public static final String SERVICE_TYPE_TIME = "esp.service.time";
     public static final String SERVICE_TYPE_LOCAL_CONTROL = "esp.service.local_control";
 
@@ -167,6 +168,7 @@ public class AppConstants {
     public static final String KEY_ATTRIBUTES = "attributes";
     public static final String KEY_SERVICES = "services";
     public static final String KEY_SCHEDULES = "Schedules";
+    public static final String KEY_SCENES = "Scenes";
     public static final String KEY_TRIGGERS = "triggers";
     public static final String KEY_BOUNDS = "bounds";
     public static final String KEY_SELECTED_DEVICES = "selected_devices";
@@ -184,6 +186,7 @@ public class AppConstants {
     public static final String KEY_VALID_STRS = "valid_strs";
     public static final String KEY_VALUE = "value";
     public static final String KEY_SCHEDULE = "Schedule";
+    public static final String KEY_SCENE = "Scene";
     public static final String KEY_ACTION = "action";
     public static final String KEY_ACTIONS = "actions";
     public static final String KEY_DAYS = "d";
@@ -254,6 +257,7 @@ public class AppConstants {
     public static final String KEY_ACCOUNTLINK = "accountLink";
     public static final String KEY_SKILL = "skill";
     public static final String KEY_STATUS_LINKED = "LINKED";
+    public static final String KEY_RESPONSE = "response";
 
     public static final String KEY_OPERATION = "operation";
     public static final String KEY_OPERATION_ADD = "add";
@@ -261,6 +265,7 @@ public class AppConstants {
     public static final String KEY_OPERATION_REMOVE = "remove";
     public static final String KEY_OPERATION_ENABLE = "enable";
     public static final String KEY_OPERATION_DISABLE = "disable";
+    public static final String KEY_OPERATION_ACTIVATE = "activate";
 
     public static final String KEY_REQ_STATUS_DECLINED = "declined";
     public static final String KEY_REQ_STATUS_PENDING = "pending";

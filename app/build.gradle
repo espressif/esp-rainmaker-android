@@ -44,8 +44,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 23
         targetSdkVersion 30
-        versionCode 42
-        versionName "2.4.1 - ${getGitHash()}"
+        versionCode 50
+        versionName "2.5.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -85,6 +85,7 @@ android {
 
         buildConfigField "boolean", "isQRCodeSupported", localProperties.getProperty("isQRCodeSupported", "true")
         buildConfigField "boolean", "isScheduleSupported", localProperties.getProperty("isScheduleSupported", "true")
+        buildConfigField "boolean", "isSceneSupported", localProperties.getProperty("isSceneSupported", "true")
         buildConfigField "boolean", "isLocalControlSupported", localProperties.getProperty("isLocalControlSupported", "true")
         buildConfigField "boolean", "isNodeGroupingSupported", localProperties.getProperty("isNodeGroupingSupported", "true")
         buildConfigField "boolean", "isNodeSharingSupported", localProperties.getProperty("isNodeSharingSupported", "true")

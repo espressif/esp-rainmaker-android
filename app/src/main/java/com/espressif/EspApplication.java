@@ -40,6 +40,7 @@ import com.espressif.ui.activities.ConsentActivity;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
 import com.espressif.ui.models.Param;
+import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
 import com.espressif.ui.models.UpdateEvent;
@@ -64,6 +65,7 @@ public class EspApplication extends Application {
 
     public HashMap<String, EspNode> nodeMap;
     public HashMap<String, Schedule> scheduleMap;
+    public HashMap<String, Scene> sceneMap;
     public HashMap<String, EspLocalDevice> localDeviceMap;
     public HashMap<String, Group> groupMap;
 
@@ -87,6 +89,7 @@ public class EspApplication extends Application {
         Log.d(TAG, "ESP Application is created");
         nodeMap = new HashMap<>();
         scheduleMap = new HashMap<>();
+        sceneMap = new HashMap<>();
         localDeviceMap = new HashMap<>();
         groupMap = new HashMap<>();
         appPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
@@ -204,13 +207,7 @@ public class EspApplication extends Application {
     }
 
     public void loginSuccess() {
-        EspDatabase.getInstance(this).getNodeDao().deleteAll();
-        EspDatabase.getInstance(this).getGroupDao().deleteAll();
-        EspDatabase.getInstance(this).getNotificationDao().deleteAll();
-        nodeMap.clear();
-        scheduleMap.clear();
-        localDeviceMap.clear();
-        groupMap.clear();
+        clearData();
     }
 
     public void registerDeviceToken() {
@@ -301,14 +298,7 @@ public class EspApplication extends Application {
 
     public void clearUserSession() {
 
-        EspDatabase.getInstance(this).getNodeDao().deleteAll();
-        EspDatabase.getInstance(this).getGroupDao().deleteAll();
-        EspDatabase.getInstance(this).getNotificationDao().deleteAll();
-        nodeMap.clear();
-        scheduleMap.clear();
-        localDeviceMap.clear();
-        groupMap.clear();
-
+        clearData();
         SharedPreferences.Editor editor = appPreferences.edit();
         editor.clear();
         editor.apply();
@@ -326,6 +316,17 @@ public class EspApplication extends Application {
 
         Log.e(TAG, "Deleted all things from local storage.");
         changeAppState(AppState.NO_USER_LOGIN, null);
+    }
+
+    private void clearData() {
+        EspDatabase.getInstance(this).getNodeDao().deleteAll();
+        EspDatabase.getInstance(this).getGroupDao().deleteAll();
+        EspDatabase.getInstance(this).getNotificationDao().deleteAll();
+        nodeMap.clear();
+        scheduleMap.clear();
+        sceneMap.clear();
+        localDeviceMap.clear();
+        groupMap.clear();
     }
 
     private void startLocalDeviceDiscovery() {
