@@ -318,4 +318,8 @@ public class AppConstants {
     public static final String LWA_URL = "https://www.amazon.com/ap/oa";
     public static final String LWA_SCOPE = "alexa::skills:account_linking";
     public static final String STATE = "temp"; // Place holder string
+
+    public static final int ACTION_SELECTED_NONE = 0;
+    public static final int ACTION_SELECTED_PARTIAL = 1;
+    public static final int ACTION_SELECTED_ALL = 2;
 }

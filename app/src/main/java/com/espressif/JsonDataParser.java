@@ -279,6 +279,13 @@ public class JsonDataParser {
                             }
                         }
                         param.setProperties(properties);
+
+                        JSONObject boundsJson = paraObj.optJSONObject(AppConstants.KEY_BOUNDS);
+                        if (boundsJson != null && AppConstants.SERVICE_TYPE_SCHEDULE.equals(service.getType())) {
+                            espNode.setScheduleMaxCnt(boundsJson.optInt(AppConstants.KEY_MAX));
+                        } else if (boundsJson != null && AppConstants.SERVICE_TYPE_SCENES.equals(service.getType())) {
+                            espNode.setSceneMaxCnt(boundsJson.optInt(AppConstants.KEY_MAX));
+                        }
                     }
                 }
                 service.setParams(params);
@@ -366,6 +373,7 @@ public class JsonDataParser {
         JSONObject sceneJson = paramsJson.optJSONObject(AppConstants.KEY_SCENES);
         JSONObject timeJson = paramsJson.optJSONObject(AppConstants.KEY_TIME);
         JSONObject localControlJson = paramsJson.optJSONObject(AppConstants.KEY_LOCAL_CONTROL);
+        int scheduleCnt = 0, sceneCnt = 0;
 
         if (devices != null) {
             for (int i = 0; i < devices.size(); i++) {
@@ -433,6 +441,7 @@ public class JsonDataParser {
                         if (schedule == null) {
                             schedule = new Schedule();
                         }
+                        scheduleCnt++;
 
                         schedule.setId(scheduleId);
                         schedule.setName(schJson.optString(AppConstants.KEY_NAME));
@@ -481,7 +490,7 @@ public class JsonDataParser {
 
                                             if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
                                                 actionDevice = new Device(devices.get(k));
-                                                actionDevice.setSelectedState(1);
+                                                actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
                                                 break;
                                             }
                                         }
@@ -535,7 +544,7 @@ public class JsonDataParser {
                                     for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
 
                                         if (!actionParams.get(paramIndex).isSelected()) {
-                                            actionDevice.setSelectedState(2); // Partially selected
+                                            actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
                                         }
                                     }
 
@@ -545,7 +554,6 @@ public class JsonDataParser {
                                         actions.set(actionIndex, action);
                                     }
                                     schedule.setActions(actions);
-
                                 }
                             }
                         }
@@ -556,6 +564,7 @@ public class JsonDataParser {
         } else {
             Log.e(TAG, "Schedule JSON is not available");
         }
+        node.setScheduleCurrentCnt(scheduleCnt);
 
         // Scenes
         if (sceneJson != null) {
@@ -585,7 +594,7 @@ public class JsonDataParser {
                         if (scene == null) {
                             scene = new Scene();
                         }
-
+                        sceneCnt++;
                         scene.setId(sceneId);
                         scene.setName(name);
                         scene.setInfo(info);
@@ -633,7 +642,7 @@ public class JsonDataParser {
 
                                             if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
                                                 actionDevice = new Device(devices.get(k));
-                                                actionDevice.setSelectedState(1);
+                                                actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
                                                 break;
                                             }
                                         }
@@ -687,7 +696,7 @@ public class JsonDataParser {
                                     for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
 
                                         if (!actionParams.get(paramIndex).isSelected()) {
-                                            actionDevice.setSelectedState(2); // Partially selected
+                                            actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
                                         }
                                     }
 
@@ -707,6 +716,7 @@ public class JsonDataParser {
         } else {
             Log.e(TAG, "Scene JSON is not available");
         }
+        node.setSceneCurrentCnt(sceneCnt);
 
         // Timezone
         if (timeJson != null && services != null) {

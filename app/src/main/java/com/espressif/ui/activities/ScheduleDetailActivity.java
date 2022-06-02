@@ -28,6 +28,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.LinearInterpolator;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -47,6 +48,7 @@ import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.Utils;
 import com.espressif.ui.models.Action;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
@@ -61,15 +63,13 @@ import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 
-public class AddScheduleActivity extends AppCompatActivity {
+public class ScheduleDetailActivity extends AppCompatActivity {
 
-    private final String TAG = AddScheduleActivity.class.getSimpleName();
+    private final String TAG = ScheduleDetailActivity.class.getSimpleName();
 
     public static final int REQ_CODE_ACTIONS = 10;
 
@@ -83,27 +83,30 @@ public class AddScheduleActivity extends AppCompatActivity {
     private RelativeLayout rlSchProgress, rlAddSch;
     private LinearLayout daysLayout;
     private TextView day1, day2, day3, day4, day5, day6, day7;
+    private MenuItem menuSave;
 
     private String scheduleName = "";
     private StringBuilder days;
-    private HashMap<String, String> actions;
     private boolean isRepeatOptionsVisible = false;
     private EspApplication espApp;
     private ApiManager apiManager;
     private ArrayList<Device> devices;
     private ArrayList<Device> selectedDevices;
+    private ArrayList<String> selectedNodeIds;
     private Schedule schedule;
     private String operation = AppConstants.KEY_OPERATION_ADD;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_add_schedule);
+        setContentView(R.layout.activity_schedule_detail);
 
         espApp = (EspApplication) getApplicationContext();
         apiManager = ApiManager.getInstance(this);
         devices = new ArrayList<>();
+        selectedNodeIds = new ArrayList<>();
         schedule = getIntent().getParcelableExtra(AppConstants.KEY_SCHEDULE);
+        scheduleName = getIntent().getStringExtra(AppConstants.KEY_NAME);
         selectedDevices = new ArrayList<>();
         days = new StringBuilder("00000000");
 
@@ -154,7 +157,6 @@ public class AddScheduleActivity extends AppCompatActivity {
                 deviceIterator.remove();
             }
         }
-
         initViews();
     }
 
@@ -176,6 +178,16 @@ public class AddScheduleActivity extends AppCompatActivity {
                         selectedDevices.addAll(actionDevices);
                         Log.d(TAG, "Selected devices list size : " + selectedDevices.size());
                         setActionDevicesNames();
+
+                        if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+                            if (selectedDevices.size() > 0) {
+                                menuSave.setVisible(true);
+                            } else {
+                                menuSave.setVisible(false);
+                            }
+                        } else {
+                            menuSave.setVisible(true);
+                        }
                     }
                     break;
             }
@@ -183,9 +195,20 @@ public class AddScheduleActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        super.onCreateOptionsMenu(menu);
-        menu.add(Menu.NONE, 1, Menu.NONE, R.string.btn_save).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        menuSave = menu.add(Menu.NONE, 1, Menu.NONE, R.string.btn_save);
+        menuSave.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+
+        if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+            if (selectedDevices.size() > 0) {
+                menuSave.setVisible(true);
+            } else {
+                menuSave.setVisible(false);
+            }
+        } else {
+            menuSave.setVisible(true);
+        }
         return true;
     }
 
@@ -209,7 +232,7 @@ public class AddScheduleActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
-        getSupportActionBar().setTitle(R.string.title_activity_add_schedule);
+        getSupportActionBar().setTitle(R.string.title_activity_schedule_details);
         toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
         toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
@@ -279,11 +302,27 @@ public class AddScheduleActivity extends AppCompatActivity {
 
             ArrayList<Action> actions = schedule.getActions();
             for (int i = 0; i < actions.size(); i++) {
-                selectedDevices.add(actions.get(i).getDevice());
+                Device device = actions.get(i).getDevice();
+                String nodeId = device.getNodeId();
+                selectedDevices.add(device);
+                if (!selectedNodeIds.contains(nodeId)) {
+                    selectedNodeIds.add(nodeId);
+                }
             }
-
-            setRepeatDaysText();
             setActionDevicesNames();
+            setRepeatDaysText();
+
+            if (menuSave != null) {
+                if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+                    if (selectedDevices.size() > 0) {
+                        menuSave.setVisible(true);
+                    } else {
+                        menuSave.setVisible(false);
+                    }
+                } else {
+                    menuSave.setVisible(true);
+                }
+            }
         }
 
         if (TextUtils.isEmpty(scheduleName)) {
@@ -392,40 +431,47 @@ public class AddScheduleActivity extends AppCompatActivity {
 
     private void askForScheduleName() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        LayoutInflater inflater = getLayoutInflater();
-        View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
-        builder.setView(dialogView);
-        builder.setTitle(R.string.dialog_title_schedule_name);
-        final EditText etAttribute = dialogView.findViewById(R.id.et_attr_value);
-        etAttribute.setInputType(InputType.TYPE_CLASS_TEXT);
-        etAttribute.setFilters(new InputFilter[]{new InputFilter.LengthFilter(32)});
-        etAttribute.setText(scheduleName);
+        LayoutInflater inflater = this.getLayoutInflater();
+        final View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
+        final EditText etSchName = dialogView.findViewById(R.id.et_attr_value);
+        etSchName.setInputType(InputType.TYPE_CLASS_TEXT);
+        etSchName.setFilters(new InputFilter[]{new InputFilter.LengthFilter(32)});
+        final AlertDialog alertDialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setTitle(R.string.dialog_title_add_name)
+                .setPositiveButton(R.string.btn_ok, null)
+                .setNegativeButton(R.string.btn_cancel, null)
+                .create();
+        etSchName.setText(scheduleName);
 
-        builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
-
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
-            public void onClick(DialogInterface dialog, int which) {
-                final String value = etAttribute.getText().toString();
-                if (!TextUtils.isEmpty(value)) {
-                    scheduleName = value;
-                    tvScheduleName.setText(scheduleName);
-                } else {
-                    etAttribute.setError(getString(R.string.error_invalid_schedule_name));
-                }
-                dialog.dismiss();
+            public void onShow(DialogInterface dialog) {
+
+                Button buttonPositive = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_POSITIVE);
+                buttonPositive.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        final String value = etSchName.getText().toString();
+                        if (!TextUtils.isEmpty(value)) {
+                            scheduleName = value;
+                            tvScheduleName.setText(scheduleName);
+                            dialog.dismiss();
+                        } else {
+                            etSchName.setError(getString(R.string.error_invalid_schedule_name));
+                        }
+                    }
+                });
+
+                Button buttonNegative = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_NEGATIVE);
+                buttonNegative.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        dialog.dismiss();
+                    }
+                });
             }
         });
-
-        builder.setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
-
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-            }
-        });
-
-        AlertDialog alertDialog = builder.create();
         alertDialog.show();
     }
 
@@ -490,61 +536,88 @@ public class AddScheduleActivity extends AppCompatActivity {
         }
 
         showRemoveScheduleLoading();
-        Set<String> nodeIdList = new HashSet<>();
         ArrayList<Action> actions = schedule.getActions();
-        String operation = AppConstants.KEY_OPERATION_REMOVE;
+        ArrayList<String> nodeIdList = new ArrayList<>();
+        HashMap<String, JsonObject> schJsonBodyMap = new HashMap<>();
 
         for (int i = 0; i < actions.size(); i++) {
-
             final String nodeId = actions.get(i).getNodeId();
-            final String deviceName = actions.get(i).getDevice().getDeviceName();
-
             if (!nodeIdList.contains(nodeId)) {
-
                 nodeIdList.add(nodeId);
-
-                JsonObject scheduleJson = new JsonObject();
-                scheduleJson.addProperty(AppConstants.KEY_ID, schedule.getId());
-                scheduleJson.addProperty(AppConstants.KEY_OPERATION, operation);
-
-                JsonArray schArr = new JsonArray();
-                schArr.add(scheduleJson);
-
-                JsonObject finalBody = new JsonObject();
-                finalBody.add(AppConstants.KEY_SCHEDULES, schArr);
-
-                JsonObject body = new JsonObject();
-                body.add(AppConstants.KEY_SCHEDULE, finalBody);
-
-                apiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
-
-                    @Override
-                    public void onSuccess(Bundle data) {
-                        Log.e(TAG, "Schedule remove request sent successfully.");
-                        hideRemoveScheduleLoading();
-                        finish();
-                    }
-
-                    @Override
-                    public void onResponseFailure(Exception exception) {
-                        Log.e(TAG, "Failure");
-                        exception.printStackTrace();
-                        hideRemoveScheduleLoading();
-                        String errMsg = getString(R.string.error_schedule_remove) + " " + deviceName;
-                        Toast.makeText(AddScheduleActivity.this, errMsg, Toast.LENGTH_LONG).show();
-                    }
-
-                    @Override
-                    public void onNetworkFailure(Exception exception) {
-                        Log.e(TAG, "Failure");
-                        exception.printStackTrace();
-                        hideRemoveScheduleLoading();
-                        String errMsg = getString(R.string.error_schedule_remove) + " " + deviceName;
-                        Toast.makeText(AddScheduleActivity.this, errMsg, Toast.LENGTH_LONG).show();
-                    }
-                });
             }
         }
+
+        JsonObject scheduleJson = new JsonObject();
+        scheduleJson.addProperty(AppConstants.KEY_ID, schedule.getId());
+        scheduleJson.addProperty(AppConstants.KEY_OPERATION, AppConstants.KEY_OPERATION_REMOVE);
+
+        JsonArray scheduleArr = new JsonArray();
+        scheduleArr.add(scheduleJson);
+        JsonObject schedulesJson = new JsonObject();
+        schedulesJson.add(AppConstants.KEY_SCHEDULES, scheduleArr);
+
+        for (int i = 0; i < nodeIdList.size(); i++) {
+            String nodeId = nodeIdList.get(i);
+            EspNode espNode = espApp.nodeMap.get(nodeId);
+            ArrayList<Service> services = espNode.getServices();
+            String serviceName = "";
+            for (Service service : services) {
+                if (AppConstants.SERVICE_TYPE_SCHEDULE.equals(service.getType())) {
+                    serviceName = service.getName();
+                    break;
+                }
+            }
+
+            if (TextUtils.isEmpty(serviceName)) {
+                serviceName = AppConstants.KEY_SCHEDULE;
+            }
+            JsonObject serviceJson = new JsonObject();
+            serviceJson.add(serviceName, schedulesJson);
+
+            schJsonBodyMap.put(nodeId, serviceJson);
+        }
+
+        updateScheduleRequest(schJsonBodyMap, new ApiResponseListener() {
+
+            @Override
+            public void onSuccess(Bundle data) {
+
+                if (data != null) {
+                    String jsonResponse = data.getString(AppConstants.KEY_RESPONSE);
+
+                    if (jsonResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+                        String deviceNames = Utils.processScheduleResponse(schedule, jsonResponse, schJsonBodyMap.size());
+
+                        if (!TextUtils.isEmpty(deviceNames)) {
+                            String msg = getString(R.string.error_schedule_remove_partial) + " " + deviceNames;
+                            Toast.makeText(ScheduleDetailActivity.this, msg, Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(ScheduleDetailActivity.this, R.string.error_schedule_remove, Toast.LENGTH_LONG).show();
+                        }
+                    } else {
+                        Toast.makeText(ScheduleDetailActivity.this, R.string.msg_schedule_removed, Toast.LENGTH_LONG).show();
+                    }
+                }
+                hideRemoveScheduleLoading();
+                finish();
+            }
+
+            @Override
+            public void onResponseFailure(Exception exception) {
+                Log.e(TAG, "Failed to remove schedule for few devices");
+                exception.printStackTrace();
+                Toast.makeText(ScheduleDetailActivity.this, R.string.error_schedule_remove, Toast.LENGTH_LONG).show();
+                hideRemoveScheduleLoading();
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                Log.e(TAG, "Failed to remove schedule for few devices");
+                exception.printStackTrace();
+                Toast.makeText(ScheduleDetailActivity.this, R.string.error_schedule_remove, Toast.LENGTH_LONG).show();
+                hideRemoveScheduleLoading();
+            }
+        });
     }
 
     private void gotoActionsScreen() {
@@ -593,7 +666,7 @@ public class AddScheduleActivity extends AppCompatActivity {
         }
     }
 
-    private HashMap<String, String> prepareJson() {
+    private HashMap<String, String> prepareActionMap() {
 
         HashMap<String, JsonObject> nodeJsonActionsMap = new HashMap<String, JsonObject>();
 
@@ -690,14 +763,10 @@ public class AddScheduleActivity extends AppCompatActivity {
             JsonObject action = entry.getValue();
             nodeActionsMap.put(nodeId, action.toString());
         }
-        actions = nodeActionsMap;
         return nodeActionsMap;
     }
 
     private void saveSchedule() {
-
-        JsonObject scheduleJson = new JsonObject();
-        String progressMsg = "";
 
         // Schedule id
         String id = generateScheduleId();
@@ -711,21 +780,19 @@ public class AddScheduleActivity extends AppCompatActivity {
             return;
         }
 
-        if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
-            progressMsg = getString(R.string.progress_add_sch);
-        } else {
-            progressMsg = getString(R.string.progress_update_sch);
-        }
-
         if (schedule == null) {
             schedule = new Schedule();
             schedule.setId(id);
-        } else {
-            id = schedule.getId();
         }
-
-        scheduleJson.addProperty(AppConstants.KEY_OPERATION, operation);
         schedule.setName(scheduleName);
+
+        prepareScheduleJsonAndUpdate();
+    }
+
+    private void prepareScheduleJsonAndUpdate() {
+
+        JsonObject scheduleJson = new JsonObject();
+        scheduleJson.addProperty(AppConstants.KEY_OPERATION, operation);
 
         // Time
         int hour = timePicker.getHour();
@@ -737,7 +804,7 @@ public class AddScheduleActivity extends AppCompatActivity {
         int daysValue = Integer.parseInt(daysStr, 2);
 
         // Schedule JSON
-        scheduleJson.addProperty(AppConstants.KEY_ID, id);
+        scheduleJson.addProperty(AppConstants.KEY_ID, schedule.getId());
         scheduleJson.addProperty(AppConstants.KEY_NAME, scheduleName);
 
         JsonObject jsonTrigger = new JsonObject();
@@ -748,13 +815,34 @@ public class AddScheduleActivity extends AppCompatActivity {
         triggerArr.add(jsonTrigger);
         scheduleJson.add(AppConstants.KEY_TRIGGERS, triggerArr);
 
-        prepareJson();
+        HashMap<String, String> actionMap = prepareActionMap();
 
-        if (actions != null && actions.size() > 0) {
+        if (operation.equals(AppConstants.KEY_OPERATION_ADD) && actionMap.size() == 0) {
+            Toast.makeText(ScheduleDetailActivity.this, R.string.error_schedule_action, Toast.LENGTH_LONG).show();
+            return;
+        }
 
-            HashMap<String, JsonObject> nodeIdJsonBodyMap = new HashMap<>();
+        String progressMsg = "";
+        if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+            progressMsg = getString(R.string.progress_add_sch);
+        } else {
+            progressMsg = getString(R.string.progress_update_sch);
+        }
+        showAddScheduleLoading(progressMsg);
 
-            for (Map.Entry<String, String> entry : actions.entrySet()) {
+        ArrayList<String> removedNodeIds = new ArrayList<>();
+        for (int i = 0; i < selectedNodeIds.size(); i++) {
+            String preSelectedNodeId = selectedNodeIds.get(i);
+            if (!actionMap.containsKey(preSelectedNodeId)) {
+                removedNodeIds.add(preSelectedNodeId);
+            }
+        }
+
+        HashMap<String, JsonObject> schJsonBodyMap = new HashMap<>();
+
+        if (actionMap.size() > 0) {
+
+            for (Map.Entry<String, String> entry : actionMap.entrySet()) {
 
                 String nodeId = entry.getKey();
                 String actionStr = entry.getValue();
@@ -767,72 +855,228 @@ public class AddScheduleActivity extends AppCompatActivity {
                 JsonArray schArr = new JsonArray();
                 schArr.add(schJson);
 
-                JsonObject finalBody = new JsonObject();
-                finalBody.add(AppConstants.KEY_SCHEDULES, schArr);
+                JsonObject schedulesJson = new JsonObject();
+                schedulesJson.add(AppConstants.KEY_SCHEDULES, schArr);
 
-                JsonObject body = new JsonObject();
-                body.add(AppConstants.KEY_SCHEDULE, finalBody);
+                EspNode espNode = espApp.nodeMap.get(nodeId);
+                ArrayList<Service> services = espNode.getServices();
+                String serviceName = "";
+                for (Service service : services) {
+                    if (AppConstants.SERVICE_TYPE_SCHEDULE.equals(service.getType())) {
+                        serviceName = service.getName();
+                        break;
+                    }
+                }
 
-                nodeIdJsonBodyMap.put(nodeId, body);
+                if (TextUtils.isEmpty(serviceName)) {
+                    serviceName = AppConstants.KEY_SCHEDULE;
+                }
+                JsonObject serviceJson = new JsonObject();
+                serviceJson.add(serviceName, schedulesJson);
+
+                schJsonBodyMap.put(nodeId, serviceJson);
             }
+        }
 
-            showAddScheduleLoading(progressMsg);
-            ApiManager apiManager = ApiManager.getInstance(getApplicationContext());
-            apiManager.updateSchedules(nodeIdJsonBodyMap, new ApiResponseListener() {
+        if (removedNodeIds.size() > 0) {
 
-                @Override
-                public void onSuccess(Bundle data) {
+            scheduleJson.addProperty(AppConstants.KEY_ID, schedule.getId());
+            scheduleJson.addProperty(AppConstants.KEY_OPERATION, AppConstants.KEY_OPERATION_REMOVE);
 
-                    runOnUiThread(new Runnable() {
+            JsonArray schArr = new JsonArray();
+            schArr.add(scheduleJson);
 
-                        @Override
-                        public void run() {
+            JsonObject schedulesJson = new JsonObject();
+            schedulesJson.add(AppConstants.KEY_SCHEDULES, schArr);
 
+            for (int i = 0; i < removedNodeIds.size(); i++) {
+
+                final String nodeId = removedNodeIds.get(i);
+                EspNode espNode = espApp.nodeMap.get(nodeId);
+                ArrayList<Service> services = espNode.getServices();
+                String serviceName = "";
+                for (Service service : services) {
+                    if (AppConstants.SERVICE_TYPE_SCHEDULE.equals(service.getType())) {
+                        serviceName = service.getName();
+                        break;
+                    }
+                }
+
+                if (TextUtils.isEmpty(serviceName)) {
+                    serviceName = AppConstants.KEY_SCHEDULE;
+                }
+                JsonObject serviceJson = new JsonObject();
+                serviceJson.add(serviceName, schedulesJson);
+
+                schJsonBodyMap.put(nodeId, serviceJson);
+            }
+        }
+
+        updateScheduleRequest(schJsonBodyMap, new ApiResponseListener() {
+
+            @Override
+            public void onSuccess(Bundle data) {
+
+                if (data != null) {
+                    String jsonResponse = data.getString(AppConstants.KEY_RESPONSE);
+
+                    if (jsonResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
+                        String deviceNames = Utils.processScheduleResponse(schedule, jsonResponse, schJsonBodyMap.size());
+
+                        if (!TextUtils.isEmpty(deviceNames)) {
+                            String msg = "";
                             if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
-                                Toast.makeText(AddScheduleActivity.this, R.string.msg_schedule_added, Toast.LENGTH_LONG).show();
+                                msg = getString(R.string.error_schedule_add_partial) + " " + deviceNames;
                             } else {
-                                Toast.makeText(AddScheduleActivity.this, R.string.msg_schedule_updated, Toast.LENGTH_LONG).show();
+                                msg = getString(R.string.error_schedule_save_partial) + " " + deviceNames;
+                            }
+                            Toast.makeText(ScheduleDetailActivity.this, msg, Toast.LENGTH_LONG).show();
+                        } else {
+                            if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+                                Toast.makeText(ScheduleDetailActivity.this, R.string.error_schedule_add, Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(ScheduleDetailActivity.this, R.string.error_schedule_save, Toast.LENGTH_LONG).show();
+                            }
+                        }
+                        hideAddScheduleLoading();
+                        finish();
+
+                    } else {
+
+                        schJsonBodyMap.clear();
+                        JsonObject scheduleJson = new JsonObject();
+                        scheduleJson.addProperty(AppConstants.KEY_ID, schedule.getId());
+                        scheduleJson.addProperty(AppConstants.KEY_OPERATION, AppConstants.KEY_OPERATION_ENABLE);
+
+                        JsonArray schArr = new JsonArray();
+                        schArr.add(scheduleJson);
+
+                        JsonObject finalBody = new JsonObject();
+                        finalBody.add(AppConstants.KEY_SCHEDULES, schArr);
+
+                        for (Map.Entry<String, String> entry : actionMap.entrySet()) {
+
+                            String nodeId = entry.getKey();
+                            EspNode espNode = espApp.nodeMap.get(nodeId);
+                            ArrayList<Service> services = espNode.getServices();
+                            String serviceName = "";
+                            for (Service s : services) {
+                                if (AppConstants.SERVICE_TYPE_SCHEDULE.equals(s.getType())) {
+                                    serviceName = s.getName();
+                                    break;
+                                }
+                            }
+                            if (TextUtils.isEmpty(serviceName)) {
+                                serviceName = AppConstants.KEY_SCHEDULE;
+                            }
+
+                            JsonObject body = new JsonObject();
+                            body.add(serviceName, finalBody);
+                            schJsonBodyMap.put(nodeId, body);
+                        }
+
+                        if (schJsonBodyMap.size() > 0) {
+                            updateScheduleRequest(schJsonBodyMap, new ApiResponseListener() {
+
+                                @Override
+                                public void onSuccess(Bundle data) {
+                                    if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+                                        Toast.makeText(ScheduleDetailActivity.this, R.string.msg_schedule_added, Toast.LENGTH_LONG).show();
+                                    } else {
+                                        Toast.makeText(ScheduleDetailActivity.this, R.string.msg_schedule_updated, Toast.LENGTH_LONG).show();
+                                    }
+                                    hideAddScheduleLoading();
+                                    finish();
+                                }
+
+                                @Override
+                                public void onResponseFailure(Exception exception) {
+                                    Log.e(TAG, "Failed to save schedule for few devices");
+                                    exception.printStackTrace();
+                                    if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+                                        Toast.makeText(ScheduleDetailActivity.this, R.string.error_schedule_add, Toast.LENGTH_LONG).show();
+                                    } else {
+                                        Toast.makeText(ScheduleDetailActivity.this, R.string.error_schedule_save, Toast.LENGTH_LONG).show();
+                                    }
+                                    hideAddScheduleLoading();
+                                }
+
+                                @Override
+                                public void onNetworkFailure(Exception exception) {
+                                    Log.e(TAG, "Failed to save schedule for few devices");
+                                    exception.printStackTrace();
+                                    if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+                                        Toast.makeText(ScheduleDetailActivity.this, R.string.error_schedule_add, Toast.LENGTH_LONG).show();
+                                    } else {
+                                        Toast.makeText(ScheduleDetailActivity.this, R.string.error_schedule_save, Toast.LENGTH_LONG).show();
+                                    }
+                                    hideAddScheduleLoading();
+                                }
+                            });
+                        } else {
+                            if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
+                                Toast.makeText(ScheduleDetailActivity.this, R.string.msg_schedule_added, Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(ScheduleDetailActivity.this, R.string.msg_schedule_updated, Toast.LENGTH_LONG).show();
                             }
                             hideAddScheduleLoading();
                             finish();
                         }
-                    });
+                    }
                 }
+            }
 
-                @Override
-                public void onResponseFailure(Exception exception) {
+            @Override
+            public void onResponseFailure(Exception exception) {
+                Log.e(TAG, "Failed to save schedule for few devices");
+                exception.printStackTrace();
+                Toast.makeText(ScheduleDetailActivity.this, R.string.error_schedule_save, Toast.LENGTH_LONG).show();
+                hideAddScheduleLoading();
+            }
 
-                    Log.e(TAG, "Failed to add schedule for few devices");
-                    exception.printStackTrace();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                Log.e(TAG, "Failed to save schedule for few devices");
+                exception.printStackTrace();
+                Toast.makeText(ScheduleDetailActivity.this, R.string.error_schedule_save, Toast.LENGTH_LONG).show();
+                hideAddScheduleLoading();
+            }
+        });
+    }
 
-                            Toast.makeText(AddScheduleActivity.this, R.string.error_schedule_add, Toast.LENGTH_LONG).show();
-                            hideAddScheduleLoading();
-                        }
-                    });
-                }
+    private void updateScheduleRequest(HashMap<String, JsonObject> scheduleJsonBodyMap, ApiResponseListener listener) {
+        apiManager.updateParamsForMultiNode(scheduleJsonBodyMap, new ApiResponseListener() {
 
-                @Override
-                public void onNetworkFailure(Exception exception) {
+            @Override
+            public void onSuccess(Bundle data) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onSuccess(data);
+                    }
+                });
+            }
 
-                    Log.e(TAG, "Failed to add schedule for few devices");
-                    exception.printStackTrace();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
+            @Override
+            public void onResponseFailure(Exception exception) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onResponseFailure(exception);
+                    }
+                });
+            }
 
-                            Toast.makeText(AddScheduleActivity.this, R.string.error_schedule_add, Toast.LENGTH_LONG).show();
-                            hideAddScheduleLoading();
-                        }
-                    });
-                }
-            });
-
-        } else {
-            Toast.makeText(AddScheduleActivity.this, R.string.error_schedule_action, Toast.LENGTH_LONG).show();
-        }
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onNetworkFailure(exception);
+                    }
+                });
+            }
+        });
     }
 
     private String generateScheduleId() {

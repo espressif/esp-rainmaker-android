@@ -151,7 +151,7 @@ public class GroupDeviceAdapter extends RecyclerView.Adapter<GroupDeviceAdapter.
         myViewHolder.cbDevice.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                deviceList.get(myViewHolder.getAdapterPosition()).setSelectedState(isChecked ? 1 : 0);
+                deviceList.get(myViewHolder.getAdapterPosition()).setSelectedState(isChecked ? AppConstants.ACTION_SELECTED_ALL : AppConstants.ACTION_SELECTED_NONE);
             }
         });
 

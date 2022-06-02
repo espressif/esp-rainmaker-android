@@ -159,8 +159,8 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
-            android:name="com.espressif.ui.activities.AddScheduleActivity"
-            android:label="@string/title_activity_add_schedule"
+            android:name="com.espressif.ui.activities.ScheduleDetailActivity"
+            android:label="@string/title_activity_schedule_details"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity

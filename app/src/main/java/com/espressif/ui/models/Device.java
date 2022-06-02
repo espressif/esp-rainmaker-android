@@ -29,6 +29,7 @@ public class Device implements Parcelable {
     private ArrayList<Param> params;
     private boolean expanded;
     private int selectedState;
+    private boolean paramEnabled;
 
     public Device() {
     }
@@ -43,6 +44,7 @@ public class Device implements Parcelable {
         params = device.getParams();
         expanded = device.isExpanded();
         selectedState = device.getSelectedState();
+        paramEnabled = device.isParamEnabled();
     }
 
     public Device(String id) {
@@ -101,6 +103,14 @@ public class Device implements Parcelable {
         this.selectedState = selectedState;
     }
 
+    public boolean isParamEnabled() {
+        return paramEnabled;
+    }
+
+    public void setParamEnabled(boolean paramEnabled) {
+        this.paramEnabled = paramEnabled;
+    }
+
     protected Device(Parcel in) {
 
         nodeId = in.readString();
@@ -111,6 +121,7 @@ public class Device implements Parcelable {
         params = in.createTypedArrayList(Param.CREATOR);
         expanded = in.readByte() != 0;
         selectedState = in.readInt();
+        paramEnabled = in.readByte() != 0;
     }
 
     public static final Creator<Device> CREATOR = new Creator<Device>() {
@@ -141,6 +152,7 @@ public class Device implements Parcelable {
         dest.writeTypedList(params);
         dest.writeByte((byte) (expanded ? 1 : 0));
         dest.writeInt(selectedState);
+        dest.writeByte((byte) (paramEnabled ? 1 : 0));
     }
 
     @Override

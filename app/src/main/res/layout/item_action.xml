@@ -29,6 +29,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
                 android:padding="@dimen/margin_10" />
 
             <TextView
@@ -44,6 +45,20 @@
                 android:text="My Light Bulb"
                 android:textColor="@color/colorPrimaryDark"
                 android:textSize="17sp" />
+
+            <TextView
+                android:id="@+id/tv_offline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/tv_device_name"
+                android:layout_toRightOf="@id/iv_device_select"
+                android:maxLines="1"
+                android:paddingStart="@dimen/margin_8"
+                android:paddingEnd="@dimen/margin_8"
+                android:paddingBottom="@dimen/margin_8"
+                android:text="Offline"
+                android:textColor="@color/colorPrimaryDark"
+                android:textSize="13sp" />
 
             <ImageView
                 android:id="@+id/iv_expand_arrow"

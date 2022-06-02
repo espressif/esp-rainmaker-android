@@ -15,6 +15,7 @@
 package com.espressif.ui.activities;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -27,6 +28,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import com.espressif.AppConstants;
+import com.espressif.EspApplication;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.ScheduleActionAdapter;
 import com.espressif.ui.models.Device;
@@ -41,22 +43,31 @@ public class ScheduleActionsActivity extends AppCompatActivity {
 
     private ArrayList<Device> devices;
     private ScheduleActionAdapter adapter;
+    private EspApplication espApp;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_actions);
 
+        devices = new ArrayList<>();
+        espApp = (EspApplication) getApplicationContext();
         ArrayList<Device> receivedDevices = getIntent().getParcelableArrayListExtra(AppConstants.KEY_DEVICES);
         ArrayList<Device> selectedDevice = getIntent().getParcelableArrayListExtra(AppConstants.KEY_SELECTED_DEVICES);
-
-        devices = new ArrayList<>();
 
         if (receivedDevices != null) {
             Iterator<Device> iterator = receivedDevices.iterator();
 
             while (iterator.hasNext()) {
-                devices.add(new Device(iterator.next()));
+                Device d = iterator.next();
+                if (d != null) {
+                    String nodeId = d.getNodeId();
+                    if (espApp.nodeMap.get(nodeId).isOnline()) {
+                        devices.add(0, new Device(d));
+                    } else {
+                        devices.add(new Device(d));
+                    }
+                }
             }
         }
 
@@ -76,16 +87,67 @@ public class ScheduleActionsActivity extends AppCompatActivity {
             }
         }
 
-        // Sort device list to display selected devices first in list.
-        Collections.sort(devices, new Comparator<Device>() {
+        // Sort device list
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
 
-            @Override
-            public int compare(Device d1, Device d2) {
-                return Integer.valueOf(d2.getSelectedState()).compareTo(Integer.valueOf(d1.getSelectedState()));
-            }
-        });
-
+            Collections.sort(devices, new OnlineDeviceComparator()
+                    .thenComparing(new DeviceSelectionComparator())
+                    .thenComparing(new MaxCountComparator()));
+        }
         initViews();
+    }
+
+    class OnlineDeviceComparator implements Comparator<Device> {
+
+        @Override
+        public int compare(Device d1, Device d2) {
+
+            String node1 = d1.getNodeId();
+            String node2 = d2.getNodeId();
+
+            if ((espApp.nodeMap.get(node1).isOnline() && espApp.nodeMap.get(node2).isOnline())
+                    || (!espApp.nodeMap.get(node1).isOnline() && !espApp.nodeMap.get(node2).isOnline())) {
+                return 0;
+            } else {
+                if (espApp.nodeMap.get(node2).isOnline()) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            }
+        }
+    }
+
+    static class DeviceSelectionComparator implements Comparator<Device> {
+
+        @Override
+        public int compare(Device d1, Device d2) {
+            return Integer.valueOf(d2.getSelectedState()).compareTo(Integer.valueOf(d1.getSelectedState()));
+        }
+    }
+
+    class MaxCountComparator implements Comparator<Device> {
+
+        @Override
+        public int compare(Device d1, Device d2) {
+
+            String node1 = d1.getNodeId();
+            String node2 = d2.getNodeId();
+
+            if ((espApp.nodeMap.get(node1).getScheduleCurrentCnt() < espApp.nodeMap.get(node1).getScheduleMaxCnt())
+                    && (espApp.nodeMap.get(node2).getScheduleCurrentCnt() < espApp.nodeMap.get(node2).getScheduleMaxCnt())) {
+                return 0;
+            } else if ((espApp.nodeMap.get(node1).getScheduleCurrentCnt() >= espApp.nodeMap.get(node1).getScheduleMaxCnt())
+                    && (espApp.nodeMap.get(node2).getScheduleCurrentCnt() >= espApp.nodeMap.get(node2).getScheduleMaxCnt())) {
+                return 0;
+            } else {
+                if (espApp.nodeMap.get(node1).getScheduleCurrentCnt() >= espApp.nodeMap.get(node1).getScheduleMaxCnt()) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            }
+        }
     }
 
     @Override
@@ -105,7 +167,7 @@ public class ScheduleActionsActivity extends AppCompatActivity {
                 while (itr.hasNext()) {
 
                     Device d = (Device) itr.next();
-                    if (d.getSelectedState() == 0) {
+                    if (d.getSelectedState() == AppConstants.ACTION_SELECTED_NONE) {
                         itr.remove();
                     }
                 }

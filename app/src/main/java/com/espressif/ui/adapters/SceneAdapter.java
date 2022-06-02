@@ -33,6 +33,7 @@ import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.Utils;
 import com.espressif.ui.activities.SceneDetailActivity;
 import com.espressif.ui.fragments.ScenesFragment;
 import com.espressif.ui.models.Action;
@@ -41,10 +42,6 @@ import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Service;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -131,8 +128,18 @@ public class SceneAdapter extends RecyclerView.Adapter<SceneAdapter.SceneViewHol
                 Scene s = sceneList.get(sceneViewHolder.getAdapterPosition());
                 ArrayList<Action> actions = s.getActions();
                 String operation = AppConstants.KEY_OPERATION_ACTIVATE;
-
                 HashMap<String, JsonObject> nodeIdJsonBodyMap = new HashMap<>();
+
+                JsonObject sceneJson = new JsonObject();
+                sceneJson.addProperty(AppConstants.KEY_ID, s.getId());
+                sceneJson.addProperty(AppConstants.KEY_OPERATION, operation);
+
+                JsonArray scArr = new JsonArray();
+                scArr.add(sceneJson);
+
+                JsonObject finalBody = new JsonObject();
+                finalBody.add(AppConstants.KEY_SCENES, scArr);
+
                 for (int i = 0; i < actions.size(); i++) {
 
                     final String nodeId = actions.get(i).getNodeId();
@@ -140,16 +147,6 @@ public class SceneAdapter extends RecyclerView.Adapter<SceneAdapter.SceneViewHol
                     if (!nodeIdList.contains(nodeId)) {
 
                         nodeIdList.add(nodeId);
-
-                        JsonObject sceneJson = new JsonObject();
-                        sceneJson.addProperty(AppConstants.KEY_ID, s.getId());
-                        sceneJson.addProperty(AppConstants.KEY_OPERATION, operation);
-
-                        JsonArray scArr = new JsonArray();
-                        scArr.add(sceneJson);
-
-                        JsonObject finalBody = new JsonObject();
-                        finalBody.add(AppConstants.KEY_SCENES, scArr);
 
                         EspNode espNode = espApp.nodeMap.get(nodeId);
                         ArrayList<Service> services = espNode.getServices();
@@ -170,7 +167,7 @@ public class SceneAdapter extends RecyclerView.Adapter<SceneAdapter.SceneViewHol
                     }
                 }
 
-                apiManager.updateScenes(nodeIdJsonBodyMap, new ApiResponseListener() {
+                apiManager.updateParamsForMultiNode(nodeIdJsonBodyMap, new ApiResponseListener() {
 
                     @Override
                     public void onSuccess(Bundle data) {
@@ -184,9 +181,9 @@ public class SceneAdapter extends RecyclerView.Adapter<SceneAdapter.SceneViewHol
                                     String jsonResponse = data.getString(AppConstants.KEY_RESPONSE);
 
                                     if (jsonResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-                                        String deviceNames = processResponse(jsonResponse, sceneList.get(sceneViewHolder.getAdapterPosition()), nodeIdJsonBodyMap.size());
+                                        String deviceNames = Utils.processSceneResponse(sceneList.get(sceneViewHolder.getAdapterPosition()), jsonResponse, nodeIdJsonBodyMap.size());
                                         if (!TextUtils.isEmpty(deviceNames)) {
-                                            String msg = context.getString(R.string.error_scene_activate_for_device) + " " + deviceNames;
+                                            String msg = context.getString(R.string.error_scene_activate_partial) + " " + deviceNames;
                                             Toast.makeText(context, msg, Toast.LENGTH_LONG).show();
                                         } else {
                                             Toast.makeText(context, R.string.error_scene_activate, Toast.LENGTH_LONG).show();
@@ -250,55 +247,6 @@ public class SceneAdapter extends RecyclerView.Adapter<SceneAdapter.SceneViewHol
     public void updateList(ArrayList<Scene> updatedSceneList) {
         sceneList = updatedSceneList;
         notifyDataSetChanged();
-    }
-
-    private String processResponse(String jsonResponse, Scene scene, int nodeListSize) {
-
-        // Return empty if scene has only one node (No need to display device name)
-        if (nodeListSize == 1) {
-            return "";
-        }
-        StringBuilder deviceNames = new StringBuilder();
-
-        try {
-            JSONArray responseJsonArr = new JSONArray(jsonResponse);
-            ArrayList<String> failureNodes = new ArrayList<>();
-
-            if (responseJsonArr != null) {
-
-                for (int i = 0; i < responseJsonArr.length(); i++) {
-                    JSONObject nodeResJson = responseJsonArr.optJSONObject(i);
-                    String nodeId = nodeResJson.optString(AppConstants.KEY_NODE_ID);
-                    String status = nodeResJson.optString(AppConstants.KEY_STATUS);
-                    if (AppConstants.KEY_FAILURE_RESPONSE.equals(status)) {
-                        failureNodes.add(nodeId);
-                    }
-                }
-            }
-
-            // Return empty if request fails for all nodes (No need to display device name)
-            if (nodeListSize == failureNodes.size()) {
-                return "";
-            }
-
-            if (failureNodes.size() > 0) {
-                for (int i = 0; i < failureNodes.size(); i++) {
-                    String nodeId = failureNodes.get(i);
-                    ArrayList<Action> actions = scene.getActions();
-                    for (int j = 0; j < actions.size(); j++) {
-                        if (nodeId.equals(actions.get(j).getNodeId())) {
-                            if (deviceNames.length() != 0) {
-                                deviceNames.append(", ");
-                            }
-                            deviceNames.append(actions.get(j).getDevice().getUserVisibleName());
-                        }
-                    }
-                }
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return deviceNames.toString();
     }
 
     static class SceneViewHolder extends RecyclerView.ViewHolder {

@@ -14,7 +14,6 @@
 
 package com.espressif.cloudapi;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -31,7 +30,6 @@ import com.espressif.JsonDataParser;
 import com.espressif.db.EspDatabase;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.ui.models.Action;
-import com.espressif.ui.models.ApiResponse;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
@@ -54,13 +52,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
-import io.reactivex.Observable;
-import io.reactivex.functions.Consumer;
-import io.reactivex.functions.Function;
-import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -949,7 +942,7 @@ public class ApiManager {
 
                                                                                 if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
                                                                                     actionDevice = new Device(devices.get(k));
-                                                                                    actionDevice.setSelectedState(1);
+                                                                                    actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
                                                                                     break;
                                                                                 }
                                                                             }
@@ -1003,7 +996,7 @@ public class ApiManager {
                                                                         for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
 
                                                                             if (!actionParams.get(paramIndex).isSelected()) {
-                                                                                actionDevice.setSelectedState(2); // Partially selected
+                                                                                actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
                                                                             }
                                                                         }
 
@@ -1097,7 +1090,7 @@ public class ApiManager {
 
                                                                                 if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
                                                                                     actionDevice = new Device(devices.get(k));
-                                                                                    actionDevice.setSelectedState(1);
+                                                                                    actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
                                                                                     break;
                                                                                 }
                                                                             }
@@ -1151,7 +1144,7 @@ public class ApiManager {
                                                                         for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
 
                                                                             if (!actionParams.get(paramIndex).isSelected()) {
-                                                                                actionDevice.setSelectedState(2); // Partially selected
+                                                                                actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
                                                                             }
                                                                         }
 
@@ -1884,7 +1877,7 @@ public class ApiManager {
 
                                                                     if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
                                                                         actionDevice = new Device(devices.get(k));
-                                                                        actionDevice.setSelectedState(1);
+                                                                        actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
                                                                         break;
                                                                     }
                                                                 }
@@ -1938,7 +1931,7 @@ public class ApiManager {
                                                             for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
 
                                                                 if (!actionParams.get(paramIndex).isSelected()) {
-                                                                    actionDevice.setSelectedState(2); // Partially selected
+                                                                    actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
                                                                 }
                                                             }
 
@@ -2033,7 +2026,7 @@ public class ApiManager {
 
                                                                     if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
                                                                         actionDevice = new Device(devices.get(k));
-                                                                        actionDevice.setSelectedState(1);
+                                                                        actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
                                                                         break;
                                                                     }
                                                                 }
@@ -2087,7 +2080,7 @@ public class ApiManager {
                                                             for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
 
                                                                 if (!actionParams.get(paramIndex).isSelected()) {
-                                                                    actionDevice.setSelectedState(2); // Partially selected
+                                                                    actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
                                                                 }
                                                             }
 
@@ -2179,100 +2172,16 @@ public class ApiManager {
     }
 
     /**
-     * This method is used to add , update or remove schedule.
+     * This method is used to update params of multi nodes in single request.
+     * Mainly it is used to add, update or remove schedule / scene.
      *
-     * @param map      Map of node id and its schedule JSON data.
+     * @param map      Map of node id and its param values data.
      * @param listener Listener to send success or failure.
      */
-    @SuppressLint("CheckResult")
-    public void updateSchedules(final HashMap<String, JsonObject> map,
-                                final ApiResponseListener listener) {
+    public void updateParamsForMultiNode(final HashMap<String, JsonObject> map,
+                                         final ApiResponseListener listener) {
 
-        Log.d(TAG, "Updating Schedule");
-        List<Observable<ApiResponse>> requests = new ArrayList<>();
-        final ArrayList<ApiResponse> responses = new ArrayList<>();
-
-        for (Map.Entry<String, JsonObject> entry : map.entrySet()) {
-
-            final String nodeId = entry.getKey();
-            JsonObject jsonBody = entry.getValue();
-
-            requests.add(
-                    apiInterface.updateSchedules(AppConstants.URL_USER_NODES_PARAMS, accessToken, nodeId, jsonBody)
-
-                            .map(new Function<ResponseBody, ApiResponse>() {
-
-                                @Override
-                                public ApiResponse apply(ResponseBody responseBody) throws Exception {
-
-                                    ApiResponse apiResponse = new ApiResponse();
-                                    apiResponse.responseBody = responseBody;
-                                    apiResponse.isSuccessful = true;
-                                    apiResponse.nodeId = nodeId;
-                                    return apiResponse;
-                                }
-                            })
-                            .onErrorReturn(new Function<Throwable, ApiResponse>() {
-
-                                @Override
-                                public ApiResponse apply(Throwable throwable) throws Exception {
-
-                                    ApiResponse apiResponse = new ApiResponse();
-                                    apiResponse.isSuccessful = false;
-                                    apiResponse.throwable = throwable;
-                                    apiResponse.nodeId = nodeId;
-                                    return apiResponse;
-                                }
-                            }));
-        }
-
-        Observable.merge(requests)
-                .take(requests.size())
-                .doFinally(new io.reactivex.functions.Action() {
-
-                    @Override
-                    public void run() throws Exception {
-
-                        Log.d(TAG, "Update schedule requests completed.");
-                        boolean isAllReqSuccessful = true;
-
-                        for (int i = 0; i < responses.size(); i++) {
-
-                            if (!responses.get(i).isSuccessful) {
-                                isAllReqSuccessful = false;
-                                break;
-                            }
-                        }
-
-                        if (isAllReqSuccessful) {
-                            listener.onSuccess(null);
-                        } else {
-                            listener.onResponseFailure(new RuntimeException("Failed to update schedule for few devices"));
-                        }
-                    }
-                })
-                .subscribeOn(Schedulers.io())
-                .subscribe(new Consumer<ApiResponse>() {
-
-                    @Override
-                    public void accept(ApiResponse apiResponse) throws Exception {
-
-                        Log.d(TAG, "Response : " + apiResponse.nodeId);
-                        Log.d(TAG, "Response : " + apiResponse.isSuccessful);
-                        responses.add(apiResponse);
-                    }
-                }, new Consumer<Throwable>() {
-                    @Override
-                    public void accept(Throwable throwable) throws Exception {
-                        Log.e("onSubscribe", "Throwable: " + throwable);
-                    }
-                });
-    }
-
-    public void updateScenes(final HashMap<String, JsonObject> map,
-                             final ApiResponseListener listener) {
-
-        Log.e(TAG, "Updating Scenes");
+        Log.e(TAG, "Updating params for multi node");
         JsonArray finalArray = new JsonArray();
 
         for (Map.Entry<String, JsonObject> entry : map.entrySet()) {
@@ -2287,10 +2196,10 @@ public class ApiManager {
             finalArray.add(nodeObj);
         }
 
-        apiInterface.updateScenes(AppConstants.URL_USER_NODES_PARAMS, accessToken, finalArray).enqueue(new Callback<ResponseBody>() {
+        apiInterface.updateParamsForMultiNode(AppConstants.URL_USER_NODES_PARAMS, accessToken, finalArray).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                Log.d(TAG, "Get Node mapping status, Response code : " + response.code());
+                Log.d(TAG, "Update multi node param status, Response code : " + response.code());
                 try {
                     if (response.isSuccessful()) {
                         if (response.body() != null) {
@@ -2302,7 +2211,7 @@ public class ApiManager {
                         }
                     } else {
                         String jsonErrResponse = response.errorBody().string();
-                        processError(jsonErrResponse, listener, "Failed to update scene");
+                        processError(jsonErrResponse, listener, "Failed to update multi node param");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -2317,7 +2226,7 @@ public class ApiManager {
             }
         });
     }
-
+    
     private void getAddNodeRequestStatus(final String nodeId, String requestId) {
 
         Log.d(TAG, "Get Node mapping status");

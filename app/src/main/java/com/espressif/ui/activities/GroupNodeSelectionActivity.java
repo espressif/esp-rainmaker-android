@@ -171,7 +171,7 @@ public class GroupNodeSelectionActivity extends AppCompatActivity {
         body.addProperty(AppConstants.KEY_GROUP_NAME, groupName);
 
         for (int i = 0; i < devices.size(); i++) {
-            if (devices.get(i).getSelectedState() == 1) {
+            if (devices.get(i).getSelectedState() == AppConstants.ACTION_SELECTED_ALL) {
                 nodesArray.add(devices.get(i).getNodeId());
             }
         }
