@@ -33,6 +33,7 @@
     <string name="progress_accepting">Accepting...</string>
     <string name="progress_declining">Declining...</string>
     <string name="progress_wifi_scan">Scanning for Wi-Fi...</string>
+    <string name="progress_scan_networks">Scanning Networks...</string>
 
     <!--Error Messages-->
     <string name="error_title">Error!</string>
@@ -372,6 +373,7 @@
     <string name="text_alexa">Amazon Alexa</string>
     <string name="text_gva">Google Assistant</string>
     <string name="description">Description</string>
+    <string name="save_password">Save password</string>
 
     <string name="linked_with_alexa">Already linked with Amazon Alexa</string>
     <string name="alexa_link_str">You can now control your Smart Home Devices via Alexa enabled speakers using Voice commands.</string>
