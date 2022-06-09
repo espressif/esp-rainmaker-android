@@ -17,6 +17,7 @@ package com.espressif.ui.activities;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -45,12 +46,18 @@ import com.espressif.ui.adapters.AttrParamAdapter;
 import com.espressif.ui.adapters.ParamAdapter;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
+import com.espressif.ui.models.UpdateEvent;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.snackbar.Snackbar;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Iterator;
 
 public class EspDeviceActivity extends AppCompatActivity {
 
@@ -80,6 +87,7 @@ public class EspDeviceActivity extends AppCompatActivity {
     private long timeStampOfStatus;
     private boolean isNetworkAvailable = true;
     private boolean shouldGetParams = true;
+    private String nodeId;
     private RelativeLayout rlProgress, rlParam;
 
     @Override
@@ -90,28 +98,34 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         espApp = (EspApplication) getApplicationContext();
         networkApiManager = new NetworkApiManager(getApplicationContext());
-        device = getIntent().getParcelableExtra(AppConstants.KEY_ESP_DEVICE);
         handler = new Handler();
-        isNodeOnline = espApp.nodeMap.get(device.getNodeId()).isOnline();
-        timeStampOfStatus = espApp.nodeMap.get(device.getNodeId()).getTimeStampOfStatus();
-        snackbar = Snackbar.make(findViewById(R.id.params_parent_layout), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
-        ArrayList<Param> espDeviceParams = device.getParams();
-        setParamList(espDeviceParams);
+        device = getIntent().getParcelableExtra(AppConstants.KEY_ESP_DEVICE);
 
-        initViews();
-        updateUi();
+        if (device == null) {
+            finish();
+        } else {
+            nodeId = device.getNodeId();
+            isNodeOnline = espApp.nodeMap.get(nodeId).isOnline();
+            timeStampOfStatus = espApp.nodeMap.get(nodeId).getTimeStampOfStatus();
+            snackbar = Snackbar.make(findViewById(R.id.params_parent_layout), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
+            setParamList(device.getParams());
+            initViews();
+            updateUi();
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         getNodeDetails();
+        EventBus.getDefault().register(this);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         stopUpdateValueTask();
+        EventBus.getDefault().unregister(this);
     }
 
     @Override
@@ -150,6 +164,28 @@ public class EspDeviceActivity extends AppCompatActivity {
         }
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEvent(UpdateEvent event) {
+
+        Log.d(TAG, "Update Event Received : " + event.getEventType());
+
+        switch (event.getEventType()) {
+
+            case EVENT_DEVICE_ADDED:
+            case EVENT_DEVICE_REMOVED:
+            case EVENT_STATE_CHANGE_UPDATE:
+            case EVENT_LOCAL_DEVICE_UPDATE:
+            case EVENT_DEVICE_ONLINE:
+            case EVENT_DEVICE_OFFLINE:
+                // TODO
+                break;
+
+            case EVENT_DEVICE_STATUS_UPDATE:
+                updateUi();
+                break;
+        }
+    }
+
     public void updateDeviceNameInTitle(String deviceName) {
         getSupportActionBar().setTitle(deviceName);
     }
@@ -171,7 +207,7 @@ public class EspDeviceActivity extends AppCompatActivity {
 
     private void goToNodeDetailsActivity() {
         Intent intent = new Intent(EspDeviceActivity.this, NodeDetailsActivity.class);
-        intent.putExtra(AppConstants.KEY_NODE_ID, device.getNodeId());
+        intent.putExtra(AppConstants.KEY_NODE_ID, nodeId);
         startActivityForResult(intent, NODE_DETAILS_ACTIVITY_REQUEST);
     }
 
@@ -226,7 +262,7 @@ public class EspDeviceActivity extends AppCompatActivity {
         paramAdapter = new ParamAdapter(this, device, paramList);
         paramRecyclerView.setAdapter(paramAdapter);
 
-        attrAdapter = new AttrParamAdapter(this, device.getNodeId(), device.getDeviceName(), attributeList);
+        attrAdapter = new AttrParamAdapter(this, device, attributeList);
         attrRecyclerView.setAdapter(attrAdapter);
 
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -242,7 +278,7 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         stopUpdateValueTask();
 
-        networkApiManager.getNodeDetails(device.getNodeId(), new ApiResponseListener() {
+        networkApiManager.getNodeDetails(nodeId, new ApiResponseListener() {
 
             @Override
             public void onSuccess(Bundle data) {
@@ -294,7 +330,7 @@ public class EspDeviceActivity extends AppCompatActivity {
 
     private void getValues() {
 
-        networkApiManager.getParamsValues(device.getNodeId(), new ApiResponseListener() {
+        networkApiManager.getParamsValues(nodeId, new ApiResponseListener() {
 
             @Override
             public void onSuccess(Bundle data) {
@@ -345,48 +381,93 @@ public class EspDeviceActivity extends AppCompatActivity {
 
     private void setParamList(ArrayList<Param> paramArrayList) {
 
-        if (paramList == null || attributeList == null) {
-
-            paramList = new ArrayList<>();
-            attributeList = new ArrayList<>();
-        }
+        ArrayList<Param> params = new ArrayList<>();
+        ArrayList<Param> attributes = new ArrayList<>();
 
         for (int i = 0; i < paramArrayList.size(); i++) {
 
-            Param updatedParam = paramArrayList.get(i);
-            boolean isFound = false;
-
-            if (updatedParam.isDynamicParam()) {
-
-                for (int j = 0; j < paramList.size(); j++) {
-
-                    if (paramList.get(j).getName() != null && paramList.get(j).getName().equals(updatedParam.getName())) {
-
-                        isFound = true;
-                        paramList.set(j, updatedParam);
-                        break;
-                    }
-                }
-
-                if (!isFound) {
-                    paramList.add(updatedParam);
-                }
-
+            Param param = paramArrayList.get(i);
+            if (param.isDynamicParam()) {
+                params.add(new Param(param));
             } else {
+                attributes.add(new Param(param));
+            }
+        }
+        arrangeParamList(params);
 
-                for (int j = 0; j < attributeList.size(); j++) {
+        if (paramList == null || attributeList == null) {
+            paramList = new ArrayList<>();
+            attributeList = new ArrayList<>();
+            paramList.addAll(params);
+            attributeList.addAll(attributes);
+        } else {
+            paramAdapter.updateParamList(params);
+            attrAdapter.updateAttributeList(attributes);
+        }
+    }
 
-                    if (attributeList.get(j).getName() != null && attributeList.get(j).getName().equals(updatedParam.getName())) {
+    private void arrangeParamList(ArrayList<Param> paramList) {
 
-                        isFound = true;
-                        attributeList.set(j, updatedParam);
+        int firstParamIndex = -1;
+        for (int i = 0; i < paramList.size(); i++) {
+
+            Param param = paramList.get(i);
+            if (param != null && AppConstants.UI_TYPE_HUE_CIRCLE.equalsIgnoreCase(param.getUiType())) {
+                firstParamIndex = i;
+                break;
+            }
+        }
+
+        if (firstParamIndex != -1) {
+            Param paramToBeMoved = paramList.remove(firstParamIndex);
+            paramList.add(0, paramToBeMoved);
+        } else {
+
+            for (int i = 0; i < paramList.size(); i++) {
+
+                Param param = paramList.get(i);
+                if (param != null) {
+                    String dataType = param.getDataType();
+                    if (AppConstants.UI_TYPE_PUSH_BTN_BIG.equalsIgnoreCase(param.getUiType())
+                            && (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("bool") || dataType.equalsIgnoreCase("boolean")))) {
+                        firstParamIndex = i;
                         break;
                     }
                 }
+            }
 
-                if (!isFound) {
-                    attributeList.add(updatedParam);
+            if (firstParamIndex != -1) {
+                Param paramToBeMoved = paramList.remove(firstParamIndex);
+                paramList.add(0, paramToBeMoved);
+            }
+        }
+
+        int paramNameIndex = -1;
+        for (int i = 0; i < paramList.size(); i++) {
+
+            Param param = paramList.get(i);
+            if (param != null) {
+                if (param.getParamType() != null && param.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
+                    paramNameIndex = i;
+                    break;
                 }
+            }
+        }
+
+        if (paramNameIndex != -1) {
+            Param paramToBeMoved = paramList.remove(paramNameIndex);
+            if (firstParamIndex != -1) {
+                paramList.add(1, paramToBeMoved);
+            } else {
+                paramList.add(0, paramToBeMoved);
+            }
+        }
+
+        Iterator<Param> paramIterator = paramList.iterator();
+        while (paramIterator.hasNext()) {
+            Param p = paramIterator.next();
+            if (p.getUiType() != null && p.getUiType().equals(AppConstants.UI_TYPE_HIDDEN)) {
+                paramIterator.remove();
             }
         }
     }
@@ -394,22 +475,22 @@ public class EspDeviceActivity extends AppCompatActivity {
     private void updateUi() {
 
         boolean deviceFound = false;
-        if (espApp.nodeMap.containsKey(device.getNodeId())) {
+        Device updatedDevice = null;
 
-            ArrayList<Device> devices = espApp.nodeMap.get(device.getNodeId()).getDevices();
-            isNodeOnline = espApp.nodeMap.get(device.getNodeId()).isOnline();
-            timeStampOfStatus = espApp.nodeMap.get(device.getNodeId()).getTimeStampOfStatus();
+        if (espApp.nodeMap.containsKey(nodeId)) {
+
+            ArrayList<Device> devices = espApp.nodeMap.get(nodeId).getDevices();
+            isNodeOnline = espApp.nodeMap.get(nodeId).isOnline();
+            timeStampOfStatus = espApp.nodeMap.get(nodeId).getTimeStampOfStatus();
 
             for (int i = 0; i < devices.size(); i++) {
 
                 if (device.getDeviceName().equals(devices.get(i).getDeviceName())) {
-
-                    device = devices.get(i);
+                    updatedDevice = new Device(devices.get(i));
                     deviceFound = true;
                     break;
                 }
             }
-
         } else {
             Log.e(TAG, "Node does not exist in list. It may be deleted.");
             finish();
@@ -422,8 +503,7 @@ public class EspDeviceActivity extends AppCompatActivity {
             return;
         }
 
-        ArrayList<Param> espDeviceParams = device.getParams();
-        setParamList(espDeviceParams);
+        setParamList(updatedDevice.getParams());
 
         if (!isNodeOnline) {
 
@@ -431,9 +511,9 @@ public class EspDeviceActivity extends AppCompatActivity {
 
                 rlNodeStatus.setVisibility(View.VISIBLE);
 
-                if (espApp.localDeviceMap.containsKey(device.getNodeId())) {
+                if (espApp.localDeviceMap.containsKey(nodeId)) {
 
-                    EspLocalDevice localDevice = espApp.localDeviceMap.get(device.getNodeId());
+                    EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
                     if (localDevice.getSecurityType() == 1) {
                         ivSecureLocal.setVisibility(View.VISIBLE);
                     } else {
@@ -475,10 +555,10 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         } else {
 
-            if (espApp.localDeviceMap.containsKey(device.getNodeId())) {
+            if (espApp.localDeviceMap.containsKey(nodeId)) {
 
                 rlNodeStatus.setVisibility(View.VISIBLE);
-                EspLocalDevice localDevice = espApp.localDeviceMap.get(device.getNodeId());
+                EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
                 if (localDevice.getSecurityType() == 1) {
                     ivSecureLocal.setVisibility(View.VISIBLE);
                 } else {
@@ -490,11 +570,8 @@ public class EspDeviceActivity extends AppCompatActivity {
             }
         }
 
-        paramAdapter.updateList(paramList);
-        paramAdapter.notifyDataSetChanged();
-
-        attrAdapter.updateList(attributeList);
-        attrAdapter.notifyDataSetChanged();
+        paramAdapter.updateParamList(paramList);
+        attrAdapter.updateAttributeList(attributeList);
 
         if (paramList.size() <= 0 && attributeList.size() <= 0) {
 

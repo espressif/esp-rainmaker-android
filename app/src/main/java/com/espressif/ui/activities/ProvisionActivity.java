@@ -67,7 +67,8 @@ public class ProvisionActivity extends AppCompatActivity {
 
     private ImageView tick1, tick2, tick3, tick4, tick5;
     private ContentLoadingProgressBar progress1, progress2, progress3, progress4, progress5;
-    private TextView tvErrAtStep1, tvErrAtStep2, tvErrAtStep3, tvErrAtStep4, tvErrAtStep5, tvProvError;
+    private TextView tvErrAtStep1, tvErrAtStep2, tvErrAtStep3, tvErrAtStep4, tvErrAtStep5;
+    private TextView tvProvSuccess, tvProvError;
 
     private MaterialCardView btnOk;
     private TextView txtOkBtn;
@@ -189,13 +190,14 @@ public class ProvisionActivity extends AppCompatActivity {
         tvErrAtStep3 = findViewById(R.id.tv_prov_error_3);
         tvErrAtStep4 = findViewById(R.id.tv_prov_error_4);
         tvErrAtStep5 = findViewById(R.id.tv_prov_error_5);
+        tvProvSuccess = findViewById(R.id.tv_prov_success);
         tvProvError = findViewById(R.id.tv_prov_error);
 
         btnOk = findViewById(R.id.btn_ok);
         txtOkBtn = findViewById(R.id.text_btn);
         btnOk.findViewById(R.id.iv_arrow).setVisibility(View.GONE);
 
-        txtOkBtn.setText(R.string.btn_ok);
+        txtOkBtn.setText(R.string.btn_done);
         btnOk.setOnClickListener(okBtnClickListener);
     }
 
@@ -654,10 +656,11 @@ public class ProvisionActivity extends AppCompatActivity {
 
                                         @Override
                                         public void onSuccess(Bundle data) {
+                                            handler.removeCallbacks(nodeStatusReqFailed);
                                             tick5.setImageResource(R.drawable.ic_checkbox_on);
                                             tick5.setVisibility(View.VISIBLE);
                                             progress5.setVisibility(View.GONE);
-                                            handler.removeCallbacks(nodeStatusReqFailed);
+                                            tvProvSuccess.setVisibility(View.VISIBLE);
                                         }
 
                                         @Override
@@ -683,6 +686,7 @@ public class ProvisionActivity extends AppCompatActivity {
                                     tick5.setImageResource(R.drawable.ic_checkbox_on);
                                     tick5.setVisibility(View.VISIBLE);
                                     progress5.setVisibility(View.GONE);
+                                    tvProvSuccess.setVisibility(View.VISIBLE);
                                     handler.removeCallbacks(nodeStatusReqFailed);
                                 }
                             } else {

@@ -1239,7 +1239,9 @@ public class ApiManager {
                                 }
                             }
 
-                            espApp.scheduleMap = scheduleMap;
+                            espApp.scheduleMap.putAll(scheduleMap);
+                            espApp.sceneMap.putAll(sceneMap);
+
                             String nextId = jsonObject.optString(AppConstants.KEY_NEXT_ID);
                             Log.d(TAG, "Start next id : " + nextId);
 
@@ -1270,29 +1272,6 @@ public class ApiManager {
                                     if (!scheduleIds.contains(key)) {
                                         schItr.remove();
                                         Log.e(TAG, "Remove schedule for key : " + key + " and Size : " + espApp.scheduleMap.size());
-                                    }
-                                }
-
-                                listener.onSuccess(null);
-                            }
-
-                            espApp.sceneMap = sceneMap;
-                            String nextSceneId = jsonObject.optString(AppConstants.KEY_NEXT_ID);
-                            Log.d(TAG, "Start scene next id : " + nextSceneId);
-
-                            if (!TextUtils.isEmpty(nextSceneId)) {
-                                getNodesFromCloud(nextId, listener);
-                            } else {
-                                Iterator<Map.Entry<String, EspNode>> itr = espApp.nodeMap.entrySet().iterator();
-
-                                // iterate and remove items simultaneously
-                                while (itr.hasNext()) {
-
-                                    Map.Entry<String, EspNode> entry = itr.next();
-                                    String key = entry.getKey();
-
-                                    if (!nodeIds.contains(key)) {
-                                        itr.remove();
                                     }
                                 }
 
@@ -2226,7 +2205,7 @@ public class ApiManager {
             }
         });
     }
-    
+
     private void getAddNodeRequestStatus(final String nodeId, String requestId) {
 
         Log.d(TAG, "Get Node mapping status");
@@ -2495,8 +2474,14 @@ public class ApiManager {
     public void getUserGroups(final String groupId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get user groups...");
+        getUserGroupsFromCloud("", groupId, listener);
+    }
 
-        apiInterface.getUserGroups(AppConstants.URL_USER_NODE_GROUP, accessToken, groupId, true).enqueue(new Callback<ResponseBody>() {
+    private void getUserGroupsFromCloud(final String startId, final String groupId, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Get user groups from cloud with start id : " + startId);
+
+        apiInterface.getUserGroups(AppConstants.URL_USER_NODE_GROUP, accessToken, startId, groupId, true).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2509,6 +2494,8 @@ public class ApiManager {
                         String jsonResponse = response.body().string();
                         JSONObject jsonObject = new JSONObject(jsonResponse);
                         JSONArray groupJsonArray = jsonObject.optJSONArray(AppConstants.KEY_GROUPS);
+                        String nextId = jsonObject.optString(AppConstants.KEY_NEXT_ID);
+                        Log.d(TAG, "Start next id : " + nextId);
 
                         if (TextUtils.isEmpty(groupId)) {
                             espDatabase.getGroupDao().deleteAll();
@@ -2542,8 +2529,12 @@ public class ApiManager {
                                 }
                             }
                         }
-                        listener.onSuccess(null);
 
+                        if (!TextUtils.isEmpty(nextId)) {
+                            getUserGroupsFromCloud(nextId, groupId, listener);
+                        } else {
+                            listener.onSuccess(null);
+                        }
                     } else {
                         String jsonErrResponse = response.errorBody().string();
                         processError(jsonErrResponse, listener, "Failed to get user groups");
@@ -2737,7 +2728,7 @@ public class ApiManager {
 
     public void shareNodeWithUser(final String nodeId, final String email, final ApiResponseListener listener) {
 
-        Log.d(TAG, "Share Node " + nodeId + " with + User " + email);
+        Log.d(TAG, "Share Node " + nodeId + " with User " + email);
 
         JsonObject body = new JsonObject();
         JsonArray nodes = new JsonArray();

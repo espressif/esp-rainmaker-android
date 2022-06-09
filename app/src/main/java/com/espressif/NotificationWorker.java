@@ -57,6 +57,7 @@ public class NotificationWorker extends Worker {
         Log.d(TAG, "Do Notification Work");
         Data data = getInputData();
         String title = data.getString(AppConstants.KEY_TITLE);
+        String body = data.getString(AppConstants.KEY_BODY);
         String eventPayload = data.getString(AppConstants.KEY_EVENT_DATA_PAYLOAD);
 
         try {
@@ -123,7 +124,9 @@ public class NotificationWorker extends Worker {
                     } else if (AppConstants.EVENT_ALERT.equals(eventType)) {
                         processAlertEvent(title, notificationEvent, jsonEventData);
                     } else {
-                        sendNotification(title, notificationEvent.getEventDescription(), AppConstants.CHANNEL_ALERT);
+                        notificationEvent.setEventDescription(body);
+                        EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
+                        sendNotification(title, body, AppConstants.CHANNEL_ALERT);
                     }
                 }
             }
@@ -413,6 +416,7 @@ public class NotificationWorker extends Worker {
         boolean accepted = jsonEventData.optBoolean(AppConstants.KEY_REQ_ACCEPT);
         JSONObject metadataJson = jsonEventData.optJSONObject(AppConstants.KEY_METADATA);
         StringBuilder msgBuilder = new StringBuilder();
+        ArrayList<String> deviceNames = new ArrayList<>();
 
         if (!jsonEventData.has(AppConstants.KEY_REQ_ACCEPT)) {
 
@@ -423,7 +427,6 @@ public class NotificationWorker extends Worker {
 
                 if (metadataJson != null) {
 
-                    ArrayList<String> deviceNames = new ArrayList<>();
                     JSONArray deviceJsonArray = metadataJson.optJSONArray(AppConstants.KEY_DEVICES);
 
                     if (deviceJsonArray != null) {
@@ -438,25 +441,34 @@ public class NotificationWorker extends Worker {
                             }
                         }
 
-                        if (deviceNames.size() > 0) {
+                        int deviceListSize = deviceNames.size();
+                        if (deviceListSize > 0) {
 
                             if (deviceNames.size() == 1) {
                                 msgBuilder.append("device ");
+                                msgBuilder.append(" ");
+                                msgBuilder.append("(");
+                                msgBuilder.append(deviceNames.get(0));
+                                msgBuilder.append(")");
                             } else {
                                 msgBuilder.append("devices ");
-                            }
+                                msgBuilder.append(" ");
+                                msgBuilder.append("(");
+                                for (int i = 0; i < deviceListSize; i++) {
 
-                            msgBuilder.append("(");
+                                    msgBuilder.append(deviceNames.get(i));
+                                    if (i != (deviceListSize - 1)) {
+                                        msgBuilder.append(",");
+                                        msgBuilder.append(" ");
+                                    }
 
-                            for (int i = 0; i < deviceNames.size(); i++) {
-
-                                if (i != 0) {
-                                    msgBuilder.append(",");
-                                    msgBuilder.append(" ");
+                                    if (deviceListSize > 3 && i == 2) {
+                                        msgBuilder.append("...");
+                                        break;
+                                    }
                                 }
-                                msgBuilder.append(deviceNames.get(i));
+                                msgBuilder.append(")");
                             }
-                            msgBuilder.append(")");
                         } else {
                             msgBuilder.append("device(s)");
                         }
@@ -482,7 +494,6 @@ public class NotificationWorker extends Worker {
             // Comment details case
             Log.d(TAG, "Secondary User : " + secondaryUserName);
             JSONArray nodeJsonArray = jsonEventData.optJSONArray(AppConstants.KEY_NODES);
-            ArrayList<String> deviceNames = new ArrayList<>();
             loadDataFromLocalStorage();
 
             if (nodeJsonArray != null && nodeJsonArray.length() > 0) {
@@ -512,24 +523,35 @@ public class NotificationWorker extends Worker {
                     msgBuilder.append(" declined sharing request for ");
                 }
 
-                if (deviceNames.size() > 0) {
+                int deviceListSize = deviceNames.size();
+                if (deviceListSize > 0) {
 
                     if (deviceNames.size() == 1) {
                         msgBuilder.append("device ");
+                        msgBuilder.append(" ");
+                        msgBuilder.append("(");
+                        msgBuilder.append(deviceNames.get(0));
+                        msgBuilder.append(").");
                     } else {
                         msgBuilder.append("devices ");
-                    }
-                    msgBuilder.append("(");
+                        msgBuilder.append(" ");
+                        msgBuilder.append("(");
 
-                    for (int i = 0; i < deviceNames.size(); i++) {
+                        for (int i = 0; i < deviceListSize; i++) {
 
-                        if (i != 0) {
-                            msgBuilder.append(",");
-                            msgBuilder.append(" ");
+                            msgBuilder.append(deviceNames.get(i));
+                            if (i != (deviceListSize - 1)) {
+                                msgBuilder.append(",");
+                                msgBuilder.append(" ");
+                            }
+
+                            if (deviceListSize > 3 && i == 2) {
+                                msgBuilder.append("...");
+                                break;
+                            }
                         }
-                        msgBuilder.append(deviceNames.get(i));
+                        msgBuilder.append(").");
                     }
-                    msgBuilder.append(").");
                 } else {
                     msgBuilder.append("device(s)");
                 }

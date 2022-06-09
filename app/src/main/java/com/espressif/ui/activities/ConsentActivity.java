@@ -14,6 +14,7 @@
 
 package com.espressif.ui.activities;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -23,9 +24,9 @@ import android.text.TextPaint;
 import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
 import android.view.View;
-import android.widget.CompoundButton;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatCheckBox;
 
@@ -91,25 +92,22 @@ public class ConsentActivity extends AppCompatActivity {
             }
         };
 
-        stringForPolicy.setSpan(privacyPolicyClick, 59, 73, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        stringForPolicy.setSpan(termsOfUseClick, 78, 90, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        stringForPolicy.setSpan(privacyPolicyClick, 83, 97, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        stringForPolicy.setSpan(termsOfUseClick, 102, 114, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
         tvPolicy.setText(stringForPolicy);
         tvPolicy.setMovementMethod(LinkMovementMethod.getInstance());
 
-        enableGoButton(cbTermsCondition.isChecked());
         btnProceed.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
-                launchLoginScreen();
-            }
-        });
-        cbTermsCondition.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
 
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                enableGoButton(isChecked);
+                if (cbTermsCondition.isChecked()) {
+                    launchLoginScreen();
+                } else {
+                    displayConsentError();
+                }
             }
         });
     }
@@ -121,14 +119,20 @@ public class ConsentActivity extends AppCompatActivity {
         finish();
     }
 
-    private void enableGoButton(boolean isChecked) {
+    private void displayConsentError() {
 
-        if (isChecked) {
-            btnProceed.setEnabled(true);
-            btnProceed.setAlpha(1f);
-        } else {
-            btnProceed.setEnabled(false);
-            btnProceed.setAlpha(0.5f);
-        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.dialog_title_error);
+        builder.setMessage(R.string.error_user_agreement);
+        builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+                dialog.dismiss();
+            }
+        });
+        AlertDialog userDialog = builder.create();
+        userDialog.show();
     }
 }

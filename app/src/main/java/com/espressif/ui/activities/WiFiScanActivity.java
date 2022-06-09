@@ -342,6 +342,7 @@ public class WiFiScanActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        hideLoading();
                         updateProgressAndScanBtn(false);
                         Toast.makeText(WiFiScanActivity.this, "Failed to get Wi-Fi scan list", Toast.LENGTH_LONG).show();
                     }

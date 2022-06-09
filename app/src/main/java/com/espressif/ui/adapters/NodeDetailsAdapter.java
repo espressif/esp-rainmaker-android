@@ -15,6 +15,9 @@
 package com.espressif.ui.adapters;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -23,6 +26,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -77,17 +81,36 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
     }
 
     @Override
-    public void onBindViewHolder(@NonNull final NodeDetailViewHolder nodeDetailVh, final int position) {
+    public void onBindViewHolder(@NonNull final NodeDetailViewHolder nodeDetailVh, int position) {
 
         // set the data in items
         nodeDetailVh.tvNodeInfoLabel.setText(nodeInfoList.get(position));
 
-        if (nodeInfoList.get(position).equals(context.getString(R.string.node_shared_with))
+        if (nodeInfoList.get(position).equals(context.getString(R.string.node_id))) {
+
+            nodeDetailVh.rvSharedUsers.setVisibility(View.GONE);
+            nodeDetailVh.dropDownTimezone.setVisibility(View.GONE);
+            nodeDetailVh.tvNodeInfoValue.setVisibility(View.VISIBLE);
+            nodeDetailVh.ivCopy.setVisibility(View.VISIBLE);
+            nodeDetailVh.tvNodeInfoValue.setText(nodeInfoValueList.get(position));
+            nodeDetailVh.ivCopy.setOnClickListener(new View.OnClickListener() {
+
+                @Override
+                public void onClick(View v) {
+                    ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText(AppConstants.KEY_NODE_ID, nodeInfoValueList.get(nodeDetailVh.getAdapterPosition()));
+                    clipboard.setPrimaryClip(clip);
+                    Toast.makeText(context, R.string.text_copied, Toast.LENGTH_SHORT).show();
+                }
+            });
+
+        } else if (nodeInfoList.get(position).equals(context.getString(R.string.node_shared_with))
                 || nodeInfoList.get(position).equals(context.getString(R.string.node_shared_by))) {
 
             nodeDetailVh.rvSharedUsers.setVisibility(View.VISIBLE);
             nodeDetailVh.tvNodeInfoValue.setVisibility(View.GONE);
             nodeDetailVh.dropDownTimezone.setVisibility(View.GONE);
+            nodeDetailVh.ivCopy.setVisibility(View.GONE);
 
             LinearLayoutManager linearLayoutManager = new LinearLayoutManager(context);
             linearLayoutManager.setOrientation(RecyclerView.VERTICAL);
@@ -100,6 +123,7 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
             nodeDetailVh.rvSharedUsers.setVisibility(View.VISIBLE);
             nodeDetailVh.tvNodeInfoValue.setVisibility(View.GONE);
             nodeDetailVh.dropDownTimezone.setVisibility(View.GONE);
+            nodeDetailVh.ivCopy.setVisibility(View.GONE);
 
             LinearLayoutManager linearLayoutManager = new LinearLayoutManager(context);
             linearLayoutManager.setOrientation(RecyclerView.VERTICAL);
@@ -113,6 +137,7 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
             nodeDetailVh.tvNodeInfoValue.setVisibility(View.GONE);
             nodeDetailVh.rlTimezone.setVisibility(View.VISIBLE);
             nodeDetailVh.dropDownTimezone.setVisibility(View.VISIBLE);
+            nodeDetailVh.ivCopy.setVisibility(View.GONE);
             nodeDetailVh.dropDownTimezone.setEnabled(false);
             nodeDetailVh.dropDownTimezone.setOnItemSelectedListener(null);
 
@@ -177,11 +202,11 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
                 nodeDetailVh.dropDownTimezone.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
 
                     @Override
-                    public void onItemSelected(AdapterView<?> parent, View view, final int position, long id) {
+                    public void onItemSelected(AdapterView<?> parent, View view, final int pos, long id) {
 
-                        if ((int) nodeDetailVh.dropDownTimezone.getTag(R.id.position) != position) {
+                        if ((int) nodeDetailVh.dropDownTimezone.getTag(R.id.position) != pos) {
 
-                            final String newValue = parent.getItemAtPosition(position).toString();
+                            final String newValue = parent.getItemAtPosition(pos).toString();
                             nodeDetailVh.dropDownTimezone.setEnabled(false);
                             nodeDetailVh.tzProgress.setVisibility(View.VISIBLE);
                             Log.d(TAG, "New timezone value : " + newValue);
@@ -203,7 +228,7 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
 
                                             nodeDetailVh.tzProgress.setVisibility(View.GONE);
                                             nodeDetailVh.dropDownTimezone.setEnabled(true);
-                                            nodeDetailVh.dropDownTimezone.setTag(R.id.position, position);
+                                            nodeDetailVh.dropDownTimezone.setTag(R.id.position, pos);
                                         }
                                     });
                                 }
@@ -260,6 +285,7 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
             nodeDetailVh.rvSharedUsers.setVisibility(View.GONE);
             nodeDetailVh.dropDownTimezone.setVisibility(View.GONE);
             nodeDetailVh.tvNodeInfoValue.setVisibility(View.VISIBLE);
+            nodeDetailVh.ivCopy.setVisibility(View.GONE);
             nodeDetailVh.tvNodeInfoValue.setText(nodeInfoValueList.get(position));
         }
     }
@@ -276,6 +302,7 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
         EspDropDown dropDownTimezone;
         RelativeLayout rlTimezone;
         ContentLoadingProgressBar tzProgress;
+        ImageView ivCopy;
 
         public NodeDetailViewHolder(View itemView) {
             super(itemView);
@@ -286,6 +313,7 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
             dropDownTimezone = itemView.findViewById(R.id.dropdown_time_zone);
             rlTimezone = itemView.findViewById(R.id.rl_timezone);
             tzProgress = itemView.findViewById(R.id.progress_indicator_timezone);
+            ivCopy = itemView.findViewById(R.id.iv_copy);
         }
     }
 }

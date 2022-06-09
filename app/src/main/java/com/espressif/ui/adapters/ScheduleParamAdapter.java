@@ -222,13 +222,26 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
     }
 
     private void displayPalette(ScheduleParamViewHolder scheduleParamVH, final Param param) {
+
+        scheduleParamVH.rlUiTypeSlider.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeSwitch.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeLabel.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeDropDown.setVisibility(View.GONE);
+        scheduleParamVH.rlUiTypeTrigger.setVisibility(View.GONE);
         scheduleParamVH.rlPalette.setVisibility(View.VISIBLE);
+
         scheduleParamVH.tvSliderName.setVisibility(View.GONE);
         scheduleParamVH.intSlider.setVisibility(View.GONE);
         scheduleParamVH.tvLabelPalette.setText(param.getName());
         scheduleParamVH.paletteBar.setColor((int) param.getValue());
         scheduleParamVH.paletteBar.setThumbCircleRadius(12);
         scheduleParamVH.paletteBar.setTrackMarkHeight(6);
+
+        float max = param.getMaxBounds();
+        float min = param.getMinBounds();
+        scheduleParamVH.tvMinHue.setText(String.valueOf((int) min));
+        scheduleParamVH.tvMaxHue.setText(String.valueOf((int) max));
+
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
             scheduleParamVH.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
@@ -247,8 +260,10 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         scheduleParamVH.rlUiTypeLabel.setVisibility(View.GONE);
         scheduleParamVH.rlUiTypeDropDown.setVisibility(View.GONE);
         scheduleParamVH.rlUiTypeTrigger.setVisibility(View.GONE);
+        scheduleParamVH.rlPalette.setVisibility(View.GONE);
 
         double sliderValue = param.getValue();
+        scheduleParamVH.tvSliderName.setVisibility(View.VISIBLE);
         scheduleParamVH.tvSliderName.setText(param.getName());
         float max = param.getMaxBounds();
         float min = param.getMinBounds();
@@ -339,6 +354,7 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         scheduleParamVH.rlUiTypeLabel.setVisibility(View.GONE);
         scheduleParamVH.rlUiTypeDropDown.setVisibility(View.GONE);
         scheduleParamVH.rlUiTypeTrigger.setVisibility(View.GONE);
+        scheduleParamVH.rlPalette.setVisibility(View.GONE);
 
         scheduleParamVH.tvSwitchName.setText(param.getName());
         scheduleParamVH.tvSwitchStatus.setVisibility(View.VISIBLE);
@@ -379,7 +395,14 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         scheduleParamVH.rlUiTypeLabel.setVisibility(View.GONE);
         scheduleParamVH.rlUiTypeDropDown.setVisibility(View.GONE);
         scheduleParamVH.rlUiTypeTrigger.setVisibility(View.VISIBLE);
+        scheduleParamVH.rlPalette.setVisibility(View.GONE);
+
         scheduleParamVH.tvTriggerName.setText(param.getName());
+        scheduleParamVH.btnTrigger.setEnabled(false);
+        scheduleParamVH.btnTrigger.setClickable(false);
+        scheduleParamVH.btnTrigger.enableLongHold(false);
+        scheduleParamVH.btnTrigger.setOnClickListener(null);
+        scheduleParamVH.btnTrigger.setOnButtonClickListener(null);
     }
 
     private void displayLabel(final ScheduleParamViewHolder scheduleParamVH, final Param param, final int position) {
@@ -389,6 +412,7 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         scheduleParamVH.rlUiTypeLabel.setVisibility(View.VISIBLE);
         scheduleParamVH.rlUiTypeDropDown.setVisibility(View.GONE);
         scheduleParamVH.rlUiTypeTrigger.setVisibility(View.GONE);
+        scheduleParamVH.rlPalette.setVisibility(View.GONE);
 
         scheduleParamVH.tvLabelName.setText(param.getName());
         scheduleParamVH.tvLabelValue.setText(param.getLabelValue());
@@ -409,9 +433,9 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         scheduleParamVH.rlUiTypeSlider.setVisibility(View.GONE);
         scheduleParamVH.rlUiTypeSwitch.setVisibility(View.GONE);
         scheduleParamVH.rlUiTypeLabel.setVisibility(View.GONE);
-        scheduleParamVH.rlPalette.setVisibility(View.GONE);
         scheduleParamVH.rlUiTypeDropDown.setVisibility(View.VISIBLE);
         scheduleParamVH.rlUiTypeTrigger.setVisibility(View.GONE);
+        scheduleParamVH.rlPalette.setVisibility(View.GONE);
 
         scheduleParamVH.tvSpinnerName.setText(param.getName());
         scheduleParamVH.spinner.setVisibility(View.VISIBLE);
@@ -580,15 +604,20 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
                     || dataType.equalsIgnoreCase("integer")) {
 
                 etAttribute.setInputType(InputType.TYPE_CLASS_NUMBER);
+                etAttribute.setText(String.valueOf((int) param.getValue()));
 
             } else if (dataType.equalsIgnoreCase("float")
                     || dataType.equalsIgnoreCase("double")) {
 
                 etAttribute.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                etAttribute.setText(String.valueOf(param.getValue()));
 
             } else if (dataType.equalsIgnoreCase("string")) {
 
                 etAttribute.setInputType(InputType.TYPE_CLASS_TEXT);
+                if (!TextUtils.isEmpty(param.getLabelValue())) {
+                    etAttribute.setText(param.getLabelValue());
+                }
 
                 if (param.getParamType() != null && param.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
                     etAttribute.setFilters(new InputFilter[]{new InputFilter.LengthFilter(32)});
@@ -596,11 +625,8 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
             }
         }
 
-        if (!TextUtils.isEmpty(param.getLabelValue())) {
-            etAttribute.setText(param.getLabelValue());
-            etAttribute.setSelection(etAttribute.getText().length());
-            etAttribute.requestFocus();
-        }
+        etAttribute.setSelection(etAttribute.getText().length());
+        etAttribute.requestFocus();
 
         builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
 
@@ -649,18 +675,38 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
                         || dataType.equalsIgnoreCase("integer")) {
 
                     int newValue = Integer.valueOf(value);
+                    int max = param.getMaxBounds();
+                    int min = param.getMinBounds();
+
+                    if (min != max) {
+                        if (newValue < min || newValue > max) {
+                            Log.e(TAG, "New value is out of bounds");
+                            Toast.makeText(context, context.getString(R.string.error_value_out_of_bound), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
 
                     scheduleParamVH.btnEdit.setVisibility(View.VISIBLE);
                     scheduleParamVH.tvLabelValue.setText(value);
-                    params.get(position).setLabelValue(value);
+                    params.get(position).setValue(newValue);
 
                 } else if (dataType.equalsIgnoreCase("float")
                         || dataType.equalsIgnoreCase("double")) {
 
                     float newValue = Float.valueOf(value);
+                    float max = param.getMaxBounds();
+                    float min = param.getMinBounds();
+
+                    if (min != max) {
+                        if (newValue < min || newValue > max) {
+                            Log.e(TAG, "New value is out of bounds");
+                            Toast.makeText(context, context.getString(R.string.error_value_out_of_bound), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
                     scheduleParamVH.btnEdit.setVisibility(View.VISIBLE);
                     scheduleParamVH.tvLabelValue.setText(value);
-                    params.get(position).setLabelValue(value);
+                    params.get(position).setValue(newValue);
 
                 } else {
 
@@ -717,6 +763,7 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
         PaletteBar paletteBar;
         EspDropDown spinner;
         TapHoldUpButton btnTrigger;
+        TextView tvMinHue, tvMaxHue;
 
         public ScheduleParamViewHolder(View itemView) {
             super(itemView);
@@ -746,6 +793,8 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
             spinner = itemView.findViewById(R.id.card_spinner);
             tvSpinnerValue.setVisibility(View.GONE);
             btnTrigger = itemView.findViewById(R.id.btn_trigger);
+            tvMinHue = itemView.findViewById(R.id.tv_palette_start);
+            tvMaxHue = itemView.findViewById(R.id.tv_palette_end);
         }
     }
 }

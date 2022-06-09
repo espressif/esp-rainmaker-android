@@ -15,10 +15,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
+            android:gravity="center_horizontal"
             android:lineSpacingExtra="6sp"
-            android:text="@string/delete_user_confirm_instruction"
+            android:text="@string/verification_code_sent_instruction"
             android:textColor="@color/colorPrimaryDark"
-            android:textSize="14sp"
+            android:textSize="18sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />

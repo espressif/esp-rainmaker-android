@@ -39,7 +39,7 @@ public class PaletteBar extends View {
     private static float outerCircleRadius;
     private static float innerCircleRadius;
     private static int trackMarkHeight;
-    private static int thumbCircleRadiusDP = 17;
+    private static int thumbCircleRadiusDP = 14;
     private static int trackMarkHeightDP = 10;
 
 

@@ -136,11 +136,54 @@
                 android:textColor="@color/colorPrimaryDark"
                 android:textSize="12sp" />
 
-            <com.espressif.ui.widgets.PaletteBar
-                android:id="@+id/rl_palette"
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="25pt"
-                android:layout_margin="5dp" />
+                android:layout_height="wrap_content">
+
+                <com.espressif.ui.widgets.PaletteBar
+                    android:id="@+id/rl_palette"
+                    android:layout_width="match_parent"
+                    android:layout_height="25pt"
+                    android:layout_marginStart="@dimen/margin_8"
+                    android:layout_marginTop="@dimen/margin_8"
+                    android:layout_marginEnd="@dimen/margin_8"
+                    android:layout_marginBottom="@dimen/margin_18"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/tv_palette_start"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="5dp"
+                    android:layout_marginTop="@dimen/margin_18"
+                    android:gravity="start"
+                    android:paddingStart="5dp"
+                    android:src="@drawable/ic_brightness_high"
+                    android:textColor="@color/colorPrimaryDark"
+                    android:textSize="12sp"
+                    app:layout_constraintBottom_toBottomOf="@id/rl_palette"
+                    app:layout_constraintStart_toStartOf="@id/rl_palette" />
+
+
+                <TextView
+                    android:id="@+id/tv_palette_end"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginTop="@dimen/margin_18"
+                    android:gravity="end"
+                    android:paddingEnd="5dp"
+                    android:src="@drawable/ic_brightness_high"
+                    android:textColor="@color/colorPrimaryDark"
+                    android:textSize="12sp"
+                    app:layout_constraintBottom_toBottomOf="@id/rl_palette"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
         </LinearLayout>
     </RelativeLayout>
 

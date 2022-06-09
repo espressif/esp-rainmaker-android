@@ -32,6 +32,7 @@ import com.espressif.AppConstants;
 import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
+import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -53,8 +54,8 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
     private MaterialCardView btnNext;
     private TextView txtNextBtn;
 
-    private String deviceName;
-    private TextView tvPopInstruction;
+    private String deviceName = "";
+    private TextView tvPopInstruction, tvPopError;
     private EditText etPop;
     private ESPProvisionManager provisionManager;
 
@@ -67,9 +68,11 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         initViews();
         EventBus.getDefault().register(this);
 
-        deviceName = "";
-        if (provisionManager.getEspDevice() != null) {
-            deviceName = provisionManager.getEspDevice().getDeviceName();
+        deviceName = getIntent().getStringExtra(AppConstants.KEY_DEVICE_NAME);
+        if (TextUtils.isEmpty(deviceName)) {
+            if (provisionManager.getEspDevice() != null) {
+                deviceName = provisionManager.getEspDevice().getDeviceName();
+            }
         }
 
         if (!TextUtils.isEmpty(deviceName)) {
@@ -156,6 +159,7 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         });
 
         tvPopInstruction = findViewById(R.id.tv_pop);
+        tvPopError = findViewById(R.id.tv_error_pop);
         etPop = findViewById(R.id.et_pop);
 
         btnNext = findViewById(R.id.btn_next);
@@ -169,44 +173,64 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
 
         final String pop = etPop.getText().toString();
         Log.d(TAG, "Set POP : " + pop);
+        tvPopError.setVisibility(View.INVISIBLE);
         provisionManager.getEspDevice().setProofOfPossession(pop);
-        String versionInfo = provisionManager.getEspDevice().getVersionInfo();
-        ArrayList<String> rmakerCaps = new ArrayList<>();
-        ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
 
-        try {
-            JSONObject jsonObject = new JSONObject(versionInfo);
-            JSONObject rmakerInfo = jsonObject.optJSONObject("rmaker");
+        provisionManager.getEspDevice().initSession(new ResponseListener() {
 
-            if (rmakerInfo != null) {
+            @Override
+            public void onSuccess(byte[] returnData) {
 
-                JSONArray rmakerCapabilities = rmakerInfo.optJSONArray("cap");
-                if (rmakerCapabilities != null) {
-                    for (int i = 0; i < rmakerCapabilities.length(); i++) {
-                        String cap = rmakerCapabilities.getString(i);
-                        rmakerCaps.add(cap);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        ArrayList<String> rmakerCaps = new ArrayList<>();
+                        ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
+
+                        try {
+                            String versionInfo = provisionManager.getEspDevice().getVersionInfo();
+                            JSONObject jsonObject = new JSONObject(versionInfo);
+                            JSONObject rmakerInfo = jsonObject.optJSONObject("rmaker");
+
+                            if (rmakerInfo != null) {
+
+                                JSONArray rmakerCapabilities = rmakerInfo.optJSONArray("cap");
+                                if (rmakerCapabilities != null) {
+                                    for (int i = 0; i < rmakerCapabilities.length(); i++) {
+                                        String cap = rmakerCapabilities.getString(i);
+                                        rmakerCaps.add(cap);
+                                    }
+                                }
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            Log.d(TAG, "Version Info JSON not available.");
+                        }
+
+                        if (rmakerCaps.size() > 0 && rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM)) {
+                            goToClaimingActivity();
+                        } else {
+                            if (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
+                                goToWiFiScanListActivity();
+                            } else {
+                                goToWiFiConfigActivity();
+                            }
+                        }
                     }
-                }
+                });
             }
-        } catch (JSONException e) {
-            e.printStackTrace();
-            Log.d(TAG, "Version Info JSON not available.");
-        }
 
-        if (rmakerCaps.size() > 0 && rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM)) {
-
-            goToClaimingActivity();
-
-        } else {
-
-            if (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
-
-                goToWiFiScanListActivity();
-
-            } else {
-                goToWiFiConfigActivity();
+            @Override
+            public void onFailure(Exception e) {
+                e.printStackTrace();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        tvPopError.setVisibility(View.VISIBLE);
+                    }
+                });
             }
-        }
+        });
     }
 
     private void goToClaimingActivity() {

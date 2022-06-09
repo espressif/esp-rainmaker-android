@@ -31,7 +31,7 @@
 
             <LinearLayout
                 android:id="@+id/layout_prov_process"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="40dp"
                 android:layout_marginBottom="40dp"
@@ -322,8 +322,23 @@
                 android:layout_marginTop="30dp"
                 android:gravity="center_horizontal"
                 android:lineSpacingExtra="8sp"
-                android:text="@string/error_provisioning"
+                android:text="@string/prov_error"
                 android:textColor="@color/colorAccent"
+                android:textSize="14sp"
+                android:visibility="invisible"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/layout_prov_process" />
+
+            <TextView
+                android:id="@+id/tv_prov_success"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
+                android:gravity="center_horizontal"
+                android:lineSpacingExtra="8sp"
+                android:text="@string/prov_success"
+                android:textColor="@color/colorPrimary"
                 android:textSize="14sp"
                 android:visibility="invisible"
                 app:layout_constraintEnd_toEndOf="parent"

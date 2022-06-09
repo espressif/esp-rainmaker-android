@@ -226,7 +226,7 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.Schedu
                                     String jsonResponse = data.getString(AppConstants.KEY_RESPONSE);
 
                                     if (jsonResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-                                        String deviceNames = Utils.processScheduleResponse( scheduleList.get(scheduleViewHolder.getAdapterPosition()), jsonResponse, nodeIdJsonBodyMap.size());
+                                        String deviceNames = Utils.processScheduleResponse(scheduleList.get(scheduleViewHolder.getAdapterPosition()), jsonResponse, nodeIdJsonBodyMap.size());
                                         if (!TextUtils.isEmpty(deviceNames)) {
                                             String msg = context.getString(R.string.error_schedule_save_partial) + " " + deviceNames;
                                             Toast.makeText(context, msg, Toast.LENGTH_LONG).show();

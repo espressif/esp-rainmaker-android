@@ -40,6 +40,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.widget.ContentLoadingProgressBar;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.aar.tapholdupbutton.TapHoldUpButton;
@@ -59,7 +60,6 @@ import com.warkiz.tickseekbar.SeekParams;
 import com.warkiz.tickseekbar.TickSeekBar;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 
 public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -70,18 +70,16 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private final int VIEW_TYPE_HUE = 3;
 
     private Activity context;
-    private Device device;
     private ArrayList<Param> params;
     private NetworkApiManager networkApiManager;
     private String nodeId, deviceName;
 
     public ParamAdapter(Activity context, Device device, ArrayList<Param> paramList) {
         this.context = context;
-        this.device = device;
+        this.params = paramList;
         this.nodeId = device.getNodeId();
         this.deviceName = device.getDeviceName();
         networkApiManager = new NetworkApiManager(context.getApplicationContext());
-        this.params = arrangeParamList(paramList);
     }
 
     @Override
@@ -125,6 +123,11 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             }
         }
         return VIEW_TYPE_PARAM;
+    }
+
+    @Override
+    public int getItemCount() {
+        return params.size();
     }
 
     @Override
@@ -378,61 +381,13 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
     }
 
-    @Override
-    public int getItemCount() {
-        return params.size();
-    }
-
-    public void updateList(ArrayList<Param> paramList) {
-
-        this.params = arrangeParamList(paramList);
-        notifyDataSetChanged();
-    }
-
-    private ArrayList<Param> arrangeParamList(ArrayList<Param> paramList) {
-
-        int firstParamIndex = -1;
-        for (int i = 0; i < paramList.size(); i++) {
-
-            Param param = paramList.get(i);
-            if (param != null && AppConstants.UI_TYPE_HUE_CIRCLE.equalsIgnoreCase(param.getUiType())) {
-                firstParamIndex = i;
-                break;
-            }
-        }
-
-        if (firstParamIndex != -1) {
-            Param paramToBeMoved = paramList.remove(firstParamIndex);
-            paramList.add(0, paramToBeMoved);
-        } else {
-
-            for (int i = 0; i < paramList.size(); i++) {
-
-                Param param = paramList.get(i);
-                if (param != null) {
-                    String dataType = param.getDataType();
-                    if (AppConstants.UI_TYPE_PUSH_BTN_BIG.equalsIgnoreCase(param.getUiType())
-                            && (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("bool") || dataType.equalsIgnoreCase("boolean")))) {
-                        firstParamIndex = i;
-                        break;
-                    }
-                }
-            }
-
-            if (firstParamIndex != -1) {
-                Param paramToBeMoved = paramList.remove(firstParamIndex);
-                paramList.add(0, paramToBeMoved);
-            }
-        }
-
-        Iterator<Param> paramIterator = paramList.iterator();
-        while (paramIterator.hasNext()) {
-            Param p = paramIterator.next();
-            if (p.getUiType() != null && p.getUiType().equals(AppConstants.UI_TYPE_HIDDEN)) {
-                paramIterator.remove();
-            }
-        }
-        return paramList;
+    public void updateParamList(ArrayList<Param> paramList) {
+        ArrayList<Param> newParamList = new ArrayList<>(paramList);
+        final ParamDiffCallback diffCallback = new ParamDiffCallback(this.params, newParamList);
+        final DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(diffCallback);
+        this.params.clear();
+        this.params.addAll(newParamList);
+        diffResult.dispatchUpdatesTo(this);
     }
 
     private void displayPalette(ParamViewHolder paramViewHolder, final Param param, final int position) {
@@ -446,8 +401,14 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
         paramViewHolder.tvLabelPalette.setText(param.getName());
         paramViewHolder.paletteBar.setColor((int) param.getValue());
-        paramViewHolder.paletteBar.setThumbCircleRadius(17);
+        paramViewHolder.paletteBar.setThumbCircleRadius(14);
         paramViewHolder.paletteBar.setTrackMarkHeight(10);
+
+        float max = param.getMaxBounds();
+        float min = param.getMinBounds();
+        paramViewHolder.tvMinHue.setText(String.valueOf((int) min));
+        paramViewHolder.tvMaxHue.setText(String.valueOf((int) max));
+
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
             if (((EspDeviceActivity) context).isNodeOnline()) {
@@ -598,14 +559,10 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                             });
                         }
                     });
-
                 } else {
-
                     paramViewHolder.intSlider.setEnabled(false);
                 }
-
             } else {
-
                 paramViewHolder.intSlider.setOnTouchListener(new View.OnTouchListener() {
                     @Override
                     public boolean onTouch(View v, MotionEvent event) {
@@ -682,7 +639,6 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                             });
                         }
                     });
-
                 } else {
                     paramViewHolder.floatSlider.setEnabled(false);
                 }
@@ -1155,15 +1111,20 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     || dataType.equalsIgnoreCase("integer")) {
 
                 etAttribute.setInputType(InputType.TYPE_CLASS_NUMBER);
+                etAttribute.setText(String.valueOf((int) param.getValue()));
 
             } else if (dataType.equalsIgnoreCase("float")
                     || dataType.equalsIgnoreCase("double")) {
 
                 etAttribute.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                etAttribute.setText(String.valueOf(param.getValue()));
 
             } else if (dataType.equalsIgnoreCase("string")) {
 
                 etAttribute.setInputType(InputType.TYPE_CLASS_TEXT);
+                if (!TextUtils.isEmpty(param.getLabelValue())) {
+                    etAttribute.setText(param.getLabelValue());
+                }
 
                 if (param.getParamType() != null && param.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
                     etAttribute.setFilters(new InputFilter[]{new InputFilter.LengthFilter(32)});
@@ -1171,11 +1132,8 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             }
         }
 
-        if (!TextUtils.isEmpty(param.getLabelValue())) {
-            etAttribute.setText(param.getLabelValue());
-            etAttribute.setSelection(etAttribute.getText().length());
-            etAttribute.requestFocus();
-        }
+        etAttribute.setSelection(etAttribute.getText().length());
+        etAttribute.requestFocus();
 
         builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
 
@@ -1294,6 +1252,16 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                         || dataType.equalsIgnoreCase("integer")) {
 
                     int newValue = Integer.valueOf(value);
+                    int max = param.getMaxBounds();
+                    int min = param.getMinBounds();
+
+                    if (min != max) {
+                        if (newValue < min || newValue > max) {
+                            Log.e(TAG, "New value is out of bounds");
+                            Toast.makeText(context, context.getString(R.string.error_value_out_of_bound), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
                     jsonParam.addProperty(param.getName(), newValue);
                     body.add(deviceName, jsonParam);
 
@@ -1350,6 +1318,16 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                         || dataType.equalsIgnoreCase("double")) {
 
                     float newValue = Float.valueOf(value);
+                    float max = param.getMaxBounds();
+                    float min = param.getMinBounds();
+
+                    if (min != max) {
+                        if (newValue < min || newValue > max) {
+                            Log.e(TAG, "New value is out of bounds");
+                            Toast.makeText(context, context.getString(R.string.error_value_out_of_bound), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
                     jsonParam.addProperty(param.getName(), newValue);
                     body.add(deviceName, jsonParam);
 
@@ -1490,6 +1468,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         PaletteBar paletteBar;
         EspDropDown spinner;
         TapHoldUpButton btnTrigger;
+        TextView tvMinHue, tvMaxHue;
 
         public ParamViewHolder(View itemView) {
             super(itemView);
@@ -1520,6 +1499,8 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             paletteBar = itemView.findViewById(R.id.rl_palette);
             spinner = itemView.findViewById(R.id.card_spinner);
             btnTrigger = itemView.findViewById(R.id.btn_trigger);
+            tvMinHue = itemView.findViewById(R.id.tv_palette_start);
+            tvMaxHue = itemView.findViewById(R.id.tv_palette_end);
         }
     }
 

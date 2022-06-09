@@ -140,7 +140,7 @@ public class SignUpFragment extends Fragment {
 
         if (!cbTermsCondition.isChecked()) {
 
-            Toast.makeText(getActivity(), R.string.error_agree_terms_n_condition, Toast.LENGTH_SHORT).show();
+            Toast.makeText(getActivity(), R.string.error_user_agreement, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -179,7 +179,7 @@ public class SignUpFragment extends Fragment {
         progressBar = view.findViewById(R.id.progress_indicator);
         tvPolicy = view.findViewById(R.id.tv_terms_condition);
 
-        SpannableString stringForPolicy = new SpannableString(getString(R.string.read_terms_condition));
+        SpannableString stringForPolicy = new SpannableString(getString(R.string.user_agreement));
 
         ClickableSpan privacyPolicyClick = new ClickableSpan() {
 
@@ -215,8 +215,8 @@ public class SignUpFragment extends Fragment {
             }
         };
 
-        stringForPolicy.setSpan(privacyPolicyClick, 29, 43, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        stringForPolicy.setSpan(termsOfUseClick, 48, 60, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        stringForPolicy.setSpan(privacyPolicyClick, 83, 97, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        stringForPolicy.setSpan(termsOfUseClick, 102, 114, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
         tvPolicy.setText(stringForPolicy);
         tvPolicy.setMovementMethod(LinkMovementMethod.getInstance());
