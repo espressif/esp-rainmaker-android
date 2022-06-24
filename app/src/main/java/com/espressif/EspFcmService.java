@@ -72,6 +72,7 @@ public class EspFcmService extends FirebaseMessagingService {
                 Log.e(TAG, "Event type : " + eventType);
                 Data data = new Data.Builder()
                         .putString(AppConstants.KEY_TITLE, title)
+                        .putString(AppConstants.KEY_BODY, body)
                         .putString(AppConstants.KEY_EVENT_DATA_PAYLOAD, eventPayload)
                         .build();
                 OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(NotificationWorker.class)

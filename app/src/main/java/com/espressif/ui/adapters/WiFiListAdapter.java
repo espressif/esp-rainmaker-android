@@ -14,8 +14,8 @@
 
 package com.espressif.ui.adapters;
 
-import android.app.Activity;
 import android.content.Context;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,7 +23,8 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import androidx.core.content.ContextCompat;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.WiFiAccessPoint;
@@ -36,41 +37,59 @@ public class WiFiListAdapter extends ArrayAdapter<WiFiAccessPoint> {
     private Context context;
     private ArrayList<WiFiAccessPoint> wifiApList;
 
-    public WiFiListAdapter(Context context, int resource, ArrayList<WiFiAccessPoint> wifiList) {
-        super(context, resource, wifiList);
+    public WiFiListAdapter(Context context, ArrayList<WiFiAccessPoint> wifiList) {
+        super(context, 0, wifiList);
         this.context = context;
         this.wifiApList = wifiList;
     }
 
     public View getView(int position, View convertView, ViewGroup parent) {
+        return initView(position, convertView, parent);
+    }
+
+    private View initView(int position, View convertView, ViewGroup parent) {
 
         WiFiAccessPoint wiFiAccessPoint = wifiApList.get(position);
 
-        //get the inflater and inflate the XML layout for each item
-        LayoutInflater inflater = (LayoutInflater) context.getSystemService(Activity.LAYOUT_INFLATER_SERVICE);
-        View view = inflater.inflate(R.layout.item_wifi_access_point, null);
-
-        TextView wifiNameText = view.findViewById(R.id.tv_wifi_name);
-        ImageView rssiImage = view.findViewById(R.id.iv_wifi_rssi);
-        ImageView lockImage = view.findViewById(R.id.iv_wifi_security);
-
-        wifiNameText.setText(wiFiAccessPoint.getWifiName());
-        rssiImage.setImageLevel(getRssiLevel(wiFiAccessPoint.getRssi()));
-
-        if (wiFiAccessPoint.getSecurity() == ESPConstants.WIFI_OPEN) {
-            lockImage.setVisibility(View.GONE);
-        } else {
-            lockImage.setVisibility(View.VISIBLE);
+        // It is used to set our custom view.
+        if (convertView == null) {
+            convertView = LayoutInflater.from(getContext()).inflate(R.layout.item_wifi_access_point, parent, false);
         }
 
-        if (wiFiAccessPoint.getWifiName().equals(context.getString(R.string.join_other_network))) {
+        TextView wifiNameText = convertView.findViewById(R.id.tv_wifi_name);
+        ImageView rssiImage = convertView.findViewById(R.id.iv_wifi_rssi);
+        ImageView lockImage = convertView.findViewById(R.id.iv_wifi_security);
 
-            wifiNameText.setTextColor(ContextCompat.getColor(context.getApplicationContext(), R.color.colorPrimary));
-            rssiImage.setVisibility(View.VISIBLE);
-            rssiImage.setImageResource(R.drawable.ic_right_arrow);
+        // It is used the name to the TextView when the
+        // current item is not null.
+        if (wiFiAccessPoint != null) {
+
+            String wifiName = wiFiAccessPoint.getWifiName();
+            wifiNameText.setText(wifiName);
+            rssiImage.setImageLevel(getRssiLevel(wiFiAccessPoint.getRssi()));
+
+            if (!TextUtils.isEmpty(wifiName)
+                    && wifiName.equals(context.getString(R.string.select_network))) {
+                rssiImage.setVisibility(View.GONE);
+                lockImage.setVisibility(View.VISIBLE);
+                lockImage.setImageResource(R.drawable.ic_down_arrow);
+            } else {
+                rssiImage.setVisibility(View.VISIBLE);
+                lockImage.setImageResource(R.drawable.ic_lock);
+
+                if (wiFiAccessPoint.getSecurity() == ESPConstants.WIFI_OPEN) {
+                    lockImage.setVisibility(View.INVISIBLE);
+                } else {
+                    lockImage.setVisibility(View.VISIBLE);
+                }
+            }
         }
+        return convertView;
+    }
 
-        return view;
+    @Override
+    public View getDropDownView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+        return initView(position, convertView, parent);
     }
 
     private int getRssiLevel(int rssiValue) {

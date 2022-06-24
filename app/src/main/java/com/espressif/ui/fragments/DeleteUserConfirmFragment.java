@@ -14,8 +14,11 @@
 
 package com.espressif.ui.fragments;
 
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.text.Html;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,6 +30,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.fragment.app.Fragment;
 
+import com.espressif.AppConstants;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.user_module.DeleteUserActivity;
 import com.google.android.material.card.MaterialCardView;
@@ -37,6 +41,7 @@ public class DeleteUserConfirmFragment extends Fragment {
     private MaterialCardView btnConfirmDelete;
     private TextView txtConfirmDeleteBtn;
     private ContentLoadingProgressBar progressBar;
+    private TextView tvVerificationCodeMsg;
 
     public DeleteUserConfirmFragment() {
         // Required empty public constructor
@@ -76,6 +81,13 @@ public class DeleteUserConfirmFragment extends Fragment {
         btnConfirmDelete = view.findViewById(R.id.btn_delete_account_confirm);
         txtConfirmDeleteBtn = view.findViewById(R.id.text_btn);
         progressBar = view.findViewById(R.id.progress_indicator);
+        tvVerificationCodeMsg = view.findViewById(R.id.tv_verification_code_msg);
+
+        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
+        String userName = sharedPreferences.getString(AppConstants.KEY_EMAIL, "");
+
+        String confMsg = getString(R.string.verification_code_sent_instruction) + "<b>" + userName + "</b> ";
+        tvVerificationCodeMsg.setText(Html.fromHtml(confMsg));
 
         txtConfirmDeleteBtn.setText(R.string.btn_confirm);
         btnConfirmDelete.setOnClickListener(deleteBtnClickListener);

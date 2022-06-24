@@ -113,12 +113,14 @@ public class JsonDataParser {
                 int value = deviceJson.optInt(paramName);
                 labelValue = String.valueOf(value);
                 param.setLabelValue(labelValue);
+                param.setValue(value);
 
             } else if (dataType.equalsIgnoreCase("float") || dataType.equalsIgnoreCase("double")) {
 
                 double value = deviceJson.optDouble(paramName);
                 labelValue = String.valueOf(value);
                 param.setLabelValue(labelValue);
+                param.setValue(value);
 
             } else {
 

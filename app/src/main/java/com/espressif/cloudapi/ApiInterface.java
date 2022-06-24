@@ -149,6 +149,7 @@ public interface ApiInterface {
     // Get user group
     @GET
     Call<ResponseBody> getUserGroups(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                     @Query(AppConstants.KEY_START_ID) String startId,
                                      @Query(AppConstants.KEY_GROUP_ID) String groupId,
                                      @Query(AppConstants.KEY_NODE_LIST) boolean shouldGetNodeList);
 

@@ -83,6 +83,7 @@ public class GroupDetailActivity extends AppCompatActivity {
     private ApiManager apiManager;
     private Group group;
     private String groupName;
+    private boolean isDeviceAvailable = false;
     private ArrayList<EspNode> nodes = new ArrayList<>();
     private ArrayList<Device> devices = new ArrayList<>();
 
@@ -94,6 +95,9 @@ public class GroupDetailActivity extends AppCompatActivity {
         espApp = (EspApplication) getApplicationContext();
         apiManager = ApiManager.getInstance(getApplicationContext());
         group = getIntent().getParcelableExtra(AppConstants.KEY_GROUP);
+        if (espApp.nodeMap.size() > 0) {
+            isDeviceAvailable = true;
+        }
         initViews();
         updateUI();
     }
@@ -107,9 +111,13 @@ public class GroupDetailActivity extends AppCompatActivity {
                 Toast.makeText(GroupDetailActivity.this, R.string.error_group_name_empty, Toast.LENGTH_LONG).show();
                 return;
             } else {
-                Intent intent = new Intent(GroupDetailActivity.this, GroupNodeSelectionActivity.class);
-                intent.putExtra(AppConstants.KEY_GROUP_NAME, groupName);
-                startActivityForResult(intent, REQ_ADD_NODE_SELECTION);
+                if (isDeviceAvailable) {
+                    Intent intent = new Intent(GroupDetailActivity.this, GroupNodeSelectionActivity.class);
+                    intent.putExtra(AppConstants.KEY_GROUP_NAME, groupName);
+                    startActivityForResult(intent, REQ_ADD_NODE_SELECTION);
+                } else {
+                    createGroup();
+                }
             }
         }
     };
@@ -196,18 +204,21 @@ public class GroupDetailActivity extends AppCompatActivity {
         rlGroupName.setOnClickListener(groupNameClickListener);
         btnRemoveGroup.setOnClickListener(removeGroupBtnClickListener);
 
+        if (!isDeviceAvailable) {
+            txtNextBtn.setText(R.string.btn_add);
+            findViewById(R.id.iv_arrow).setVisibility(View.GONE);
+        }
+
         ((SimpleItemAnimator) rvDevices.getItemAnimator()).setSupportsChangeAnimations(false);
         deviceAdapter = new GroupDeviceAdapter(this, group, devices, false, true);
         GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 2);
         rvDevices.setLayoutManager(gridLayoutManager);
         rvDevices.setAdapter(deviceAdapter);
-//        rvDevices.setHasFixedSize(true);
 
         ((SimpleItemAnimator) rvNodes.getItemAnimator()).setSupportsChangeAnimations(false);
         nodeAdapter = new GroupNodeAdapter(this, group, nodes, false);
         rvNodes.setLayoutManager(new LinearLayoutManager(this));
         rvNodes.setAdapter(nodeAdapter);
-//        rvNodes.setHasFixedSize(true);
     }
 
     private void updateUI() {
@@ -223,24 +234,29 @@ public class GroupDetailActivity extends AppCompatActivity {
             getSupportActionBar().setTitle(R.string.title_activity_edit_group);
             groupName = group.getGroupName();
             tvGroupName.setText(groupName);
-            rlAddDevice.setVisibility(View.VISIBLE);
             btnRemoveGroup.setVisibility(View.VISIBLE);
             btnNext.setVisibility(View.GONE);
-            devices.clear();
-            nodes.clear();
-            ArrayList<String> nodeIds = group.getNodeList();
 
-            if (nodeIds != null && nodeIds.size() > 0) {
-                for (int i = 0; i < nodeIds.size(); i++) {
-                    EspNode node = espApp.nodeMap.get(nodeIds.get(i));
-                    if (node != null) {
-                        if (node.getDevices().size() == 1) {
-                            devices.add(new Device(node.getDevices().get(0)));
-                        } else if (node.getDevices().size() > 1) {
-                            nodes.add(new EspNode(node));
+            if (isDeviceAvailable) {
+                rlAddDevice.setVisibility(View.VISIBLE);
+                devices.clear();
+                nodes.clear();
+                ArrayList<String> nodeIds = group.getNodeList();
+
+                if (nodeIds != null && nodeIds.size() > 0) {
+                    for (int i = 0; i < nodeIds.size(); i++) {
+                        EspNode node = espApp.nodeMap.get(nodeIds.get(i));
+                        if (node != null) {
+                            if (node.getDevices().size() == 1) {
+                                devices.add(new Device(node.getDevices().get(0)));
+                            } else if (node.getDevices().size() > 1) {
+                                nodes.add(new EspNode(node));
+                            }
                         }
                     }
                 }
+            } else {
+                rlAddDevice.setVisibility(View.GONE);
             }
 
             if (nodes.size() > 0 || devices.size() > 0) {
@@ -369,6 +385,7 @@ public class GroupDetailActivity extends AppCompatActivity {
 
                 group = espApp.groupMap.get(group.getGroupId());
                 hideLoading();
+                Toast.makeText(GroupDetailActivity.this, R.string.success_group_update, Toast.LENGTH_LONG).show();
                 updateUI();
             }
 
@@ -491,5 +508,41 @@ public class GroupDetailActivity extends AppCompatActivity {
         txtRemoveGroupBtn.setText(R.string.btn_remove);
         progressBar.setVisibility(View.GONE);
         removeGroupImage.setVisibility(View.VISIBLE);
+    }
+
+    private void createGroup() {
+
+        showLoading(getString(R.string.progress_create_group));
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_GROUP_NAME, groupName);
+
+        apiManager.createGroup(body, new ApiResponseListener() {
+            @Override
+            public void onSuccess(Bundle data) {
+                Toast.makeText(GroupDetailActivity.this, R.string.success_group_create, Toast.LENGTH_LONG).show();
+                hideLoading();
+                finish();
+            }
+
+            @Override
+            public void onResponseFailure(Exception exception) {
+                hideLoading();
+                if (exception instanceof CloudException) {
+                    Toast.makeText(GroupDetailActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(GroupDetailActivity.this, R.string.error_group_create, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                hideLoading();
+                if (exception instanceof CloudException) {
+                    Toast.makeText(GroupDetailActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(GroupDetailActivity.this, R.string.error_group_create, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 }

@@ -27,10 +27,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="@dimen/margin_32"
+                android:gravity="center_horizontal"
                 android:lineSpacingExtra="6sp"
-                android:text="A confirmation code was sent."
+                android:text="@string/verification_code_sent_instruction"
                 android:textColor="@color/colorPrimaryDark"
-                android:textSize="14sp"
+                android:textSize="18sp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />

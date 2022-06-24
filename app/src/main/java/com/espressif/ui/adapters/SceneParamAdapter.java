@@ -228,13 +228,26 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
     }
 
     private void displayPalette(SceneParamViewHolder sceneParamVH, final Param param) {
+
+        sceneParamVH.rlUiTypeSlider.setVisibility(View.GONE);
+        sceneParamVH.rlUiTypeSwitch.setVisibility(View.GONE);
+        sceneParamVH.rlUiTypeLabel.setVisibility(View.GONE);
+        sceneParamVH.rlUiTypeDropDown.setVisibility(View.GONE);
+        sceneParamVH.rlUiTypeTrigger.setVisibility(View.GONE);
         sceneParamVH.rlPalette.setVisibility(View.VISIBLE);
+
         sceneParamVH.tvSliderName.setVisibility(View.GONE);
         sceneParamVH.intSlider.setVisibility(View.GONE);
         sceneParamVH.tvLabelPalette.setText(param.getName());
         sceneParamVH.paletteBar.setColor((int) param.getValue());
         sceneParamVH.paletteBar.setThumbCircleRadius(12);
         sceneParamVH.paletteBar.setTrackMarkHeight(6);
+
+        float max = param.getMaxBounds();
+        float min = param.getMinBounds();
+        sceneParamVH.tvMinHue.setText(String.valueOf((int) min));
+        sceneParamVH.tvMaxHue.setText(String.valueOf((int) max));
+
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
             sceneParamVH.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
@@ -253,8 +266,10 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
         sceneParamVH.rlUiTypeLabel.setVisibility(View.GONE);
         sceneParamVH.rlUiTypeDropDown.setVisibility(View.GONE);
         sceneParamVH.rlUiTypeTrigger.setVisibility(View.GONE);
+        sceneParamVH.rlPalette.setVisibility(View.GONE);
 
         double sliderValue = param.getValue();
+        sceneParamVH.tvSliderName.setVisibility(View.VISIBLE);
         sceneParamVH.tvSliderName.setText(param.getName());
         float max = param.getMaxBounds();
         float min = param.getMinBounds();
@@ -345,6 +360,7 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
         sceneParamVH.rlUiTypeLabel.setVisibility(View.GONE);
         sceneParamVH.rlUiTypeDropDown.setVisibility(View.GONE);
         sceneParamVH.rlUiTypeTrigger.setVisibility(View.GONE);
+        sceneParamVH.rlPalette.setVisibility(View.GONE);
 
         sceneParamVH.tvSwitchName.setText(param.getName());
         sceneParamVH.tvSwitchStatus.setVisibility(View.VISIBLE);
@@ -385,7 +401,14 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
         sceneParamVH.rlUiTypeLabel.setVisibility(View.GONE);
         sceneParamVH.rlUiTypeDropDown.setVisibility(View.GONE);
         sceneParamVH.rlUiTypeTrigger.setVisibility(View.VISIBLE);
+        sceneParamVH.rlPalette.setVisibility(View.GONE);
+
         sceneParamVH.tvTriggerName.setText(param.getName());
+        sceneParamVH.btnTrigger.setEnabled(false);
+        sceneParamVH.btnTrigger.setClickable(false);
+        sceneParamVH.btnTrigger.enableLongHold(false);
+        sceneParamVH.btnTrigger.setOnClickListener(null);
+        sceneParamVH.btnTrigger.setOnButtonClickListener(null);
     }
 
     private void displayLabel(final SceneParamViewHolder sceneParamVH, final Param param, final int position) {
@@ -395,6 +418,7 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
         sceneParamVH.rlUiTypeLabel.setVisibility(View.VISIBLE);
         sceneParamVH.rlUiTypeDropDown.setVisibility(View.GONE);
         sceneParamVH.rlUiTypeTrigger.setVisibility(View.GONE);
+        sceneParamVH.rlPalette.setVisibility(View.GONE);
 
         sceneParamVH.tvLabelName.setText(param.getName());
         sceneParamVH.tvLabelValue.setText(param.getLabelValue());
@@ -415,9 +439,9 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
         sceneParamVH.rlUiTypeSlider.setVisibility(View.GONE);
         sceneParamVH.rlUiTypeSwitch.setVisibility(View.GONE);
         sceneParamVH.rlUiTypeLabel.setVisibility(View.GONE);
-        sceneParamVH.rlPalette.setVisibility(View.GONE);
         sceneParamVH.rlUiTypeDropDown.setVisibility(View.VISIBLE);
         sceneParamVH.rlUiTypeTrigger.setVisibility(View.GONE);
+        sceneParamVH.rlPalette.setVisibility(View.GONE);
 
         sceneParamVH.tvSpinnerName.setText(param.getName());
         sceneParamVH.spinner.setVisibility(View.VISIBLE);
@@ -586,15 +610,20 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
                     || dataType.equalsIgnoreCase("integer")) {
 
                 etAttribute.setInputType(InputType.TYPE_CLASS_NUMBER);
+                etAttribute.setText(String.valueOf((int) param.getValue()));
 
             } else if (dataType.equalsIgnoreCase("float")
                     || dataType.equalsIgnoreCase("double")) {
 
                 etAttribute.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                etAttribute.setText(String.valueOf(param.getValue()));
 
             } else if (dataType.equalsIgnoreCase("string")) {
 
                 etAttribute.setInputType(InputType.TYPE_CLASS_TEXT);
+                if (!TextUtils.isEmpty(param.getLabelValue())) {
+                    etAttribute.setText(param.getLabelValue());
+                }
 
                 if (param.getParamType() != null && param.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
                     etAttribute.setFilters(new InputFilter[]{new InputFilter.LengthFilter(32)});
@@ -602,11 +631,8 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
             }
         }
 
-        if (!TextUtils.isEmpty(param.getLabelValue())) {
-            etAttribute.setText(param.getLabelValue());
-            etAttribute.setSelection(etAttribute.getText().length());
-            etAttribute.requestFocus();
-        }
+        etAttribute.setSelection(etAttribute.getText().length());
+        etAttribute.requestFocus();
 
         builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
 
@@ -655,18 +681,37 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
                         || dataType.equalsIgnoreCase("integer")) {
 
                     int newValue = Integer.valueOf(value);
+                    int max = param.getMaxBounds();
+                    int min = param.getMinBounds();
 
+                    if (min != max) {
+                        if (newValue < min || newValue > max) {
+                            Log.e(TAG, "New value is out of bounds");
+                            Toast.makeText(context, context.getString(R.string.error_value_out_of_bound), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
                     sceneParamVH.btnEdit.setVisibility(View.VISIBLE);
                     sceneParamVH.tvLabelValue.setText(value);
-                    params.get(position).setLabelValue(value);
+                    params.get(position).setValue(newValue);
 
                 } else if (dataType.equalsIgnoreCase("float")
                         || dataType.equalsIgnoreCase("double")) {
 
                     float newValue = Float.valueOf(value);
+                    float max = param.getMaxBounds();
+                    float min = param.getMinBounds();
+
+                    if (min != max) {
+                        if (newValue < min || newValue > max) {
+                            Log.e(TAG, "New value is out of bounds");
+                            Toast.makeText(context, context.getString(R.string.error_value_out_of_bound), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
                     sceneParamVH.btnEdit.setVisibility(View.VISIBLE);
                     sceneParamVH.tvLabelValue.setText(value);
-                    params.get(position).setLabelValue(value);
+                    params.get(position).setValue(newValue);
 
                 } else {
 
@@ -723,6 +768,7 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
         PaletteBar paletteBar;
         EspDropDown spinner;
         TapHoldUpButton btnTrigger;
+        TextView tvMinHue, tvMaxHue;
 
         public SceneParamViewHolder(View itemView) {
             super(itemView);
@@ -752,6 +798,8 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
             spinner = itemView.findViewById(R.id.card_spinner);
             tvSpinnerValue.setVisibility(View.GONE);
             btnTrigger = itemView.findViewById(R.id.btn_trigger);
+            tvMinHue = itemView.findViewById(R.id.tv_palette_start);
+            tvMaxHue = itemView.findViewById(R.id.tv_palette_end);
         }
     }
 }

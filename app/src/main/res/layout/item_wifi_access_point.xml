@@ -4,35 +4,37 @@
     android:layout_height="match_parent">
 
     <RelativeLayout
+        android:id="@+id/rl_wifi_ap"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
-        android:padding="16dp">
+        android:padding="@dimen/margin_16">
 
         <TextView
             android:id="@+id/tv_wifi_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
+            android:textColor="@color/colorPrimaryDark"
             android:textSize="16sp" />
-
-        <ImageView
-            android:id="@+id/iv_wifi_rssi"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            android:src="@drawable/ic_wifi" />
 
         <ImageView
             android:id="@+id/iv_wifi_security"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:layout_marginEnd="20dp"
-            android:layout_toStartOf="@id/iv_wifi_rssi"
             android:src="@drawable/ic_lock" />
 
-    </RelativeLayout>
+        <ImageView
+            android:id="@+id/iv_wifi_rssi"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="20dp"
+            android:layout_toStartOf="@id/iv_wifi_security"
+            android:src="@drawable/ic_wifi" />
 
+    </RelativeLayout>
+    
 </RelativeLayout>

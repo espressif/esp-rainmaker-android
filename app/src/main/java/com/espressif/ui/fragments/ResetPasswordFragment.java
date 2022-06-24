@@ -15,6 +15,7 @@
 package com.espressif.ui.fragments;
 
 import android.os.Bundle;
+import android.text.Html;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -89,8 +90,8 @@ public class ResetPasswordFragment extends Fragment {
         if (extras != null) {
             if (extras.containsKey(AppConstants.KEY_USER_NAME)) {
                 userName = extras.getString(AppConstants.KEY_USER_NAME);
-                String textToDisplay = "To set a new password we sent a verification code to " + userName;
-                tvResetPasswordMsg.setText(textToDisplay);
+                String confMsg = getString(R.string.verification_code_sent_instruction) + "<b>" + userName + "</b> ";
+                tvResetPasswordMsg.setText(Html.fromHtml(confMsg));
             }
         }
 

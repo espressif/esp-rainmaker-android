@@ -59,7 +59,7 @@
                         android:layout_marginTop="@dimen/margin_18"
                         android:background="@drawable/bg_dropdown"
                         android:gravity="end"
-                        android:padding="@dimen/margin_10"
+                        android:padding="@dimen/margin_8"
                         android:spinnerMode="dropdown"
                         android:textAlignment="gravity" />
 
@@ -68,6 +68,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/margin_24"
+                        android:visibility="invisible"
                         app:boxBackgroundMode="none"
                         app:hintEnabled="false"
                         app:passwordToggleEnabled="true"
@@ -98,6 +99,7 @@
                         android:layout_marginTop="@dimen/margin_8"
                         android:layout_marginBottom="@dimen/margin_18"
                         android:orientation="horizontal"
+                        android:visibility="invisible"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/btn_start">
@@ -110,7 +112,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Save password" />
+                            android:text="@string/save_password" />
                     </androidx.appcompat.widget.LinearLayoutCompat>
 
                 </androidx.appcompat.widget.LinearLayoutCompat>

@@ -37,7 +37,6 @@ import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.R;
-import com.espressif.ui.Utils;
 import com.espressif.ui.activities.NodeDetailsActivity;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.SharingRequest;
@@ -116,7 +115,7 @@ public class SharedUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     }
 
     @Override
-    public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, final int position) {
+    public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, int position) {
 
         switch (holder.getItemViewType()) {
 
@@ -138,7 +137,7 @@ public class SharedUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                     memberViewHolder.ivRemoveMember.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            confirmForRemoveNodeSharing(memberViewHolder, users.get(position));
+                            confirmForRemoveNodeSharing(memberViewHolder, users.get(holder.getAdapterPosition()));
                         }
                     });
                 } else {
@@ -168,7 +167,8 @@ public class SharedUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                 pendingRequestViewHolder.ivRemoveMember.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        confirmForRemoveNodeSharingRequest(pendingRequestViewHolder, pendingRequests.get(position));
+                        confirmForRemoveNodeSharingRequest(pendingRequestViewHolder,
+                                pendingRequests.get(holder.getAdapterPosition()));
                     }
                 });
                 break;
@@ -256,23 +256,23 @@ public class SharedUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
             @Override
             public void onClick(DialogInterface dialog, int which) {
 
-                final String email = etEmail.getText().toString();
-                if (TextUtils.isEmpty(email)) {
+                String userName = etEmail.getText().toString();
+                if (TextUtils.isEmpty(userName)) {
                     etEmail.setError(context.getString(R.string.error_email_empty));
-                } else if (!Utils.isValidEmail(email)) {
-                    etEmail.setError(context.getString(R.string.error_invalid_email));
                 } else {
                     dialog.dismiss();
+                    userName = userName.trim();
                     addMemberViewHolder.ivRightArrow.setVisibility(View.GONE);
                     addMemberViewHolder.loadingAddMember.setVisibility(View.VISIBLE);
-                    apiManager.shareNodeWithUser(node.getNodeId(), email, new ApiResponseListener() {
+                    String finalUserName = userName;
+                    apiManager.shareNodeWithUser(node.getNodeId(), userName, new ApiResponseListener() {
 
                         @Override
                         public void onSuccess(Bundle data) {
                             if (data != null) {
                                 String reqId = data.getString(AppConstants.KEY_REQ_ID);
                                 SharingRequest request = new SharingRequest(reqId);
-                                request.setUserName(email);
+                                request.setUserName(finalUserName);
                                 long timestampInSec = TimeUnit.SECONDS.convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
                                 request.setReqTime(timestampInSec);
                                 ((NodeDetailsActivity) context).addPendingRequest(request);

@@ -17,6 +17,7 @@ package com.espressif.ui.user_module;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Html;
 import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.View;
@@ -51,7 +52,7 @@ public class SignUpConfirmActivity extends AppCompatActivity {
     private AlertDialog userDialog;
 
     private ApiManager apiManager;
-    private String email, password;
+    private String userName, password;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,12 +63,12 @@ public class SignUpConfirmActivity extends AppCompatActivity {
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
             if (extras.containsKey(AppConstants.KEY_USER_NAME)) {
-                email = extras.getString(AppConstants.KEY_USER_NAME);
+                userName = extras.getString(AppConstants.KEY_USER_NAME);
                 password = extras.getString(AppConstants.KEY_PASSWORD);
             }
         }
 
-        if (TextUtils.isEmpty(email)) {
+        if (TextUtils.isEmpty(userName)) {
             Toast.makeText(SignUpConfirmActivity.this, getString(R.string.error_email_empty), Toast.LENGTH_LONG).show();
             finish();
         } else {
@@ -107,9 +108,8 @@ public class SignUpConfirmActivity extends AppCompatActivity {
 
         txtConfirmBtn.setText(R.string.btn_confirm);
         etConfCode.requestFocus();
-        String confMsg = "A confirmation code was sent to " + email;
-        confMsg = confMsg + "\n\n" + getString(R.string.signup_confirm_msg);
-        tvConfMsg.setText(confMsg);
+        String confMsg = getString(R.string.verification_code_sent_instruction) + "<b>" + userName + "</b> ";
+        tvConfMsg.setText(Html.fromHtml(confMsg));
 
         btnConfirm.setOnClickListener(new View.OnClickListener() {
 
@@ -151,12 +151,12 @@ public class SignUpConfirmActivity extends AppCompatActivity {
         }
 
         showLoading();
-        apiManager.confirmUser(email, confirmCode, new ApiResponseListener() {
+        apiManager.confirmUser(userName, confirmCode, new ApiResponseListener() {
 
             @Override
             public void onSuccess(Bundle data) {
                 hideLoading();
-                showDialogMessage(getString(R.string.success), email + " has been confirmed!", true);
+                showDialogMessage(getString(R.string.success), userName + " has been confirmed!", true);
             }
 
             @Override
@@ -180,12 +180,12 @@ public class SignUpConfirmActivity extends AppCompatActivity {
     private void reqConfCode() {
 
         ApiManager apiManager = ApiManager.getInstance(getApplicationContext());
-        apiManager.createUser(email, password, new ApiResponseListener() {
+        apiManager.createUser(userName, password, new ApiResponseListener() {
 
             @Override
             public void onSuccess(Bundle data) {
                 etConfCode.requestFocus();
-                showDialogMessage(getString(R.string.dialog_title_conf_code_sent), "Code sent to " + email, false);
+                showDialogMessage(getString(R.string.dialog_title_conf_code_sent), "Code sent to " + userName, false);
             }
 
             @Override
@@ -217,7 +217,7 @@ public class SignUpConfirmActivity extends AppCompatActivity {
                     if (exitActivity) {
 
                         Intent intent = new Intent();
-                        intent.putExtra(AppConstants.KEY_USER_NAME, email);
+                        intent.putExtra(AppConstants.KEY_USER_NAME, userName);
                         intent.putExtra(AppConstants.KEY_PASSWORD, password);
                         setResult(RESULT_OK, intent);
                         finish();

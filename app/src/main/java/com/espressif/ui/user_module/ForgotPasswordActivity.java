@@ -137,7 +137,7 @@ public class ForgotPasswordActivity extends AppCompatActivity {
             @Override
             public void onSuccess(Bundle data) {
                 hideLoading();
-                Utils.showAlertDialog(ForgotPasswordActivity.this, getString(R.string.dialog_title_password_changed), "", true);
+                Utils.showAlertDialog(ForgotPasswordActivity.this, getString(R.string.success), getString(R.string.dialog_title_password_changed), true);
             }
 
             @Override

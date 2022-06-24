@@ -66,7 +66,7 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
     }
 
     @Override
-    public void onBindViewHolder(@NonNull final SharingRequestVH sharingRequestVH, final int position) {
+    public void onBindViewHolder(@NonNull final SharingRequestVH sharingRequestVH, int position) {
 
         SharingRequest sharingReq = pendingRequests.get(position);
         StringBuilder text = new StringBuilder();
@@ -85,6 +85,7 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
 
                     text.append(" ");
                     text.append(context.getString(R.string.wants_to_share));
+                    text.append(" ");
                     ArrayList<String> deviceNames = new ArrayList<>();
 
                     for (int i = 0; i < deviceJsonArray.length(); i++) {
@@ -100,9 +101,11 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
                         text = new StringBuilder();
                         text.append(displayGeneralText(sharingReq));
                     } else if (deviceListSize == 1) {
+                        text.append(context.getString(R.string.device));
                         text.append(" ");
                         text.append(deviceNames.get(0));
                     } else {
+                        text.append(context.getString(R.string.devices));
 
                         for (int i = 0; i < deviceNames.size(); i++) {
                             text.append(" ");
@@ -118,15 +121,8 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
                     }
 
                     text.append(" ");
-                    if (deviceListSize > 1) {
-                        text.append(context.getString(R.string.devices));
-                    } else {
-                        text.append(context.getString(R.string.device));
-                    }
-                    text.append(" ");
                     text.append(context.getString(R.string.with_you));
                     text.append(".");
-
                 } else {
                     text = new StringBuilder();
                     text.append(displayGeneralText(sharingReq));
@@ -147,11 +143,11 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
             public void onClick(View v) {
                 ((NotificationsActivity) context).showLoading(context.getString(R.string.progress_accepting));
 
-                apiManager.updateSharingRequest(pendingRequests.get(position).getReqId(), true, new ApiResponseListener() {
+                apiManager.updateSharingRequest(pendingRequests.get(sharingRequestVH.getAdapterPosition()).getReqId(), true, new ApiResponseListener() {
 
                     @Override
                     public void onSuccess(Bundle data) {
-                        pendingRequests.remove(position);
+                        pendingRequests.remove(sharingRequestVH.getAdapterPosition());
                         notifyDataSetChanged();
                         if (pendingRequests.size() == 0) {
                             ((NotificationsActivity) context).clearPendingRequest();
@@ -188,10 +184,10 @@ public class SharingRequestAdapter extends RecyclerView.Adapter<SharingRequestAd
             public void onClick(View v) {
                 ((NotificationsActivity) context).showLoading(context.getString(R.string.progress_declining));
 
-                apiManager.updateSharingRequest(pendingRequests.get(position).getReqId(), false, new ApiResponseListener() {
+                apiManager.updateSharingRequest(pendingRequests.get(sharingRequestVH.getAdapterPosition()).getReqId(), false, new ApiResponseListener() {
                     @Override
                     public void onSuccess(Bundle data) {
-                        pendingRequests.remove(position);
+                        pendingRequests.remove(sharingRequestVH.getAdapterPosition());
                         notifyDataSetChanged();
                         if (pendingRequests.size() == 0) {
                             ((NotificationsActivity) context).clearPendingRequest();

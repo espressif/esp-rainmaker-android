@@ -33,13 +33,14 @@
     <string name="progress_accepting">Accepting...</string>
     <string name="progress_declining">Declining...</string>
     <string name="progress_wifi_scan">Scanning for Wi-Fi...</string>
+    <string name="progress_scan_networks">Scanning Networks...</string>
 
     <!--Error Messages-->
     <string name="error_title">Error!</string>
     <string name="error_ble_not_supported">Sorry! BLE is not supported.</string>
     <string name="error_bluetooth_not_supported">Sorry! Bluetooth is not supported.</string>
     <string name="error_device_not_supported">Communication failed. Device may not be supported.</string>
-    <string name="error_pop_incorrect">Error establishing session.\n Check if Proof of Possession(POP) is correct!</string>
+    <string name="error_pop_incorrect">Please retry with correct proof of possession PIN.</string>
     <string name="error_qr_code_not_valid">Error! QR code is not valid. Please try again.</string>
     <string name="error_device_connect_failed">Error! Failed to connect with device.</string>
     <string name="error_device_communication_failed">Error! Unable to communicate with device.</string>
@@ -57,8 +58,7 @@
     <string name="error_ssid_empty">Network name cannot be empty</string>
     <string name="error_network_select">No network selected</string>
     <string name="error_password_not_matched">Passwords not matched</string>
-    <string name="error_agree_terms_n_condition">Please agree to privacy policy and terms of Use.</string>
-    <string name="error_provisioning">Reset your board to factory defaults and retry</string>
+    <string name="error_user_agreement">To proceed, please agree to privacy policy and terms of use.</string>
     <string name="error_authentication_failed">Wi-Fi Authentication failed.</string>
     <string name="error_network_not_found">Network not found.</string>
     <string name="error_unknown">Unknown Error.</string>
@@ -76,6 +76,7 @@
     <string name="error_claiming_init">Claim init failed</string>
     <string name="error_claiming_verify">Claim verify failed</string>
     <string name="error_device_type_not_supported">Device may not be supported.</string>
+    <string name="error_value_out_of_bound">Value out of bound</string>
     <string name="error_schedule_name_empty">Schedule name cannot be empty</string>
     <string name="error_invalid_schedule_name">Please enter a name for the schedule to proceed.</string>
     <string name="error_schedule_action">Please select action for schedule</string>
@@ -197,7 +198,7 @@
     <string name="btn_start">Start</string>
     <string name="btn_info">Node Info</string>
     <string name="btn_delete_user">Delete Account</string>
-    <string name="btn_deleting_user">Deleting Account&#8230;</string>
+    <string name="btn_deleting_user">Proceeding&#8230;</string>
     <string name="btn_delete_user_confirm">Confirm Delete</string>
     <string name="btn_proceed">Proceed</string>
     <string name="btn_link_alexa">Link with Amazon Alexa</string>
@@ -268,6 +269,7 @@
     <string name="dialog_msg_delete_user">This will permanently delete your account and all information associated with it, including all the devices.\nProceed with caution.</string>
     <string name="dialog_title_unlink_skill">Disable Skill</string>
     <string name="dialog_msg_unlink_skill">Do you want to unlink your account?</string>
+    <string name="dialog_title_error">Error!!</string>
 
     <!--Node Details-->
     <string name="node_id">Node Id</string>
@@ -287,12 +289,11 @@
     <string name="connect_device_instruction_specific">To provision your device, make sure it is turned ON. Connect your mobile phone to the Wi-Fi network with the name</string>
     <string name="password_instruction">Password should contain at least one capital letter and a number.</string>
     <string name="forgot_password_instruction">Please enter your registered email id to reset your password.</string>
-    <string name="reset_password_instruction">Set your new password with the verification code that was sent to you.</string>
     <string name="enable_bluetooth_instructions">To provision your new device, please make sure that your Phone\'s Bluetooth is turned on and within range of your new device.</string>
     <string name="enabled_bluetooth_instructions">To provision the device, please enter your Network credentials on the next page.</string>
     <string name="delete_user_msg">Delete account will remove all your devices which are linked to your account.</string>
-    <string name="delete_user_confirm_instruction">Verification code was sent to your email.\nPlease enter it here to delete your account.</string>
     <string name="alexa_link_instruction">Linking your account with Amazon Alexa allows you to control your Smart Home Devices using Voice commands via Alexa enabled speakers. (E.g. Alexa, Turn on the Light)</string>
+    <string name="verification_code_sent_instruction">Verification code sent to\n</string>
 
     <!--    Schedule -->
     <string name="msg_schedule_added">Schedule created successfully</string>
@@ -325,8 +326,7 @@
     <string name="error_scene_activate_partial">Failed to activate scene for</string>
 
     <!--Other Strings-->
-    <string name="read_terms_condition">I have read and agree to the Privacy Policy and Terms of Use.</string>
-    <string name="user_agreement">By proceeding, I confirm that I have read and agree to the Privacy Policy and Terms of Use.</string>
+    <string name="user_agreement">By proceeding, I confirm that I am 18+ yrs of age and I have read and agree to the Privacy Policy and Terms of Use.</string>
     <string name="login_with">Login with</string>
     <string name="use_email_id">or use your email id</string>
     <string name="forgot_password">Forgot password?</string>
@@ -372,6 +372,8 @@
     <string name="text_alexa">Amazon Alexa</string>
     <string name="text_gva">Google Assistant</string>
     <string name="description">Description</string>
+    <string name="save_password">Save password</string>
+    <string name="text_copied">Copied to clipboard</string>
 
     <string name="linked_with_alexa">Already linked with Amazon Alexa</string>
     <string name="alexa_link_str">You can now control your Smart Home Devices via Alexa enabled speakers using Voice commands.</string>
@@ -381,14 +383,16 @@
 
     <string name="prov_step_1">Sending Wi-Fi credentials</string>
     <string name="prov_step_2">Confirming Wi-Fi connection</string>
-    <string name="prov_step_3">Configuring User-Node association</string>
-    <string name="prov_step_4">Confirming User-Node association</string>
+    <string name="prov_step_3">Configuring Node association</string>
+    <string name="prov_step_4">Confirming Node association</string>
     <string name="prov_step_5">Setting up the Node</string>
     <string name="error_prov_step_1">Failed to associate device</string>
     <string name="error_prov_step_2">Failed to send Wi-Fi credentials</string>
     <string name="error_prov_step_3">Failed to configure node association</string>
     <string name="error_prov_step_4">Failed to confirm node association</string>
     <string name="error_prov_step_5">Failed to setup node</string>
+    <string name="prov_success">Device Added Successfully!!</string>
+    <string name="prov_error">Reset your board to factory defaults and retry</string>
 
     <string name="schedule_on_day">On</string>
     <string name="schedule_once">Once</string>

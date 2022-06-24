@@ -46,8 +46,8 @@
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="@dimen/margin_8"
                 android:lineSpacingExtra="6sp"
-                android:textIsSelectable="true"
                 android:textColor="@color/colorPrimaryDark"
+                android:textIsSelectable="true"
                 android:textSize="15sp" />
 
         </LinearLayout>
@@ -65,7 +65,7 @@
                 android:id="@+id/tv_documentation"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/color_text_secondary"
+                android:textColorLink="@color/colorPrimary"
                 android:textSize="14sp"
                 app:layout_constraintEnd_toStartOf="@+id/tv_privacy"
                 app:layout_constraintHorizontal_chainStyle="spread_inside"
@@ -76,7 +76,7 @@
                 android:id="@+id/tv_privacy"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/color_text_secondary"
+                android:textColorLink="@color/colorPrimary"
                 android:textSize="14sp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintEnd_toStartOf="@+id/tv_terms_condition"
@@ -87,7 +87,7 @@
                 android:id="@+id/tv_terms_condition"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/color_text_secondary"
+                android:textColorLink="@color/colorPrimary"
                 android:textSize="14sp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/tv_privacy"
@@ -104,7 +104,7 @@
             android:layout_marginBottom="@dimen/margin_32"
             android:text="@string/powered_by_esp"
             android:textColor="@color/colorPrimaryDark"
-            android:textSize="12sp"
+            android:textSize="14sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent" />

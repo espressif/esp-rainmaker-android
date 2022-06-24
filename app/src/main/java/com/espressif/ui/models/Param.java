@@ -19,7 +19,7 @@ import android.os.Parcelable;
 
 import java.util.ArrayList;
 
-public class Param implements Parcelable {
+public class Param implements Parcelable, Comparable {
 
     private String name;
     private String paramType;
@@ -228,5 +228,34 @@ public class Param implements Parcelable {
                 ", dataType ='" + dataType + '\'' +
                 ", uiType ='" + uiType + '\'' +
                 '}';
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        Param compare = (Param) o;
+        if (compare.name != null && this.name != null && !compare.name.equals(this.name)) {
+            return 1;
+        } else if (compare.paramType != null && this.paramType != null && !compare.paramType.equals(this.paramType)) {
+            return 1;
+        } else if (compare.dataType != null && this.dataType != null && !compare.dataType.equals(this.dataType)) {
+            return 1;
+        } else if (compare.uiType != null && this.uiType != null && !compare.uiType.equals(this.uiType)) {
+            return 1;
+        } else if (compare.labelValue != null && this.labelValue != null && !compare.labelValue.equals(this.labelValue)) {
+            return 1;
+        } else if (compare.properties != null && this.properties != null && !compare.properties.equals(this.properties)) {
+            return 1;
+        } else if (compare.validStrings != null && this.validStrings != null && !compare.validStrings.equals(this.validStrings)) {
+            return 1;
+        } else if (compare.minBounds == this.minBounds
+                && compare.maxBounds == this.maxBounds
+                && compare.stepCount == this.stepCount
+                && compare.value == this.value
+                && compare.switchStatus == this.switchStatus
+                && compare.isDynamicParam == this.isDynamicParam
+                && compare.isSelected == this.isSelected) {
+            return 0;
+        }
+        return 1;
     }
 }

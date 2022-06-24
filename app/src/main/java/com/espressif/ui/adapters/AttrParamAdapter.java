@@ -21,9 +21,11 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.rainmaker.R;
+import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
 
 import java.util.ArrayList;
@@ -35,9 +37,9 @@ public class AttrParamAdapter extends RecyclerView.Adapter<AttrParamAdapter.MyVi
     private Context context;
     private ArrayList<Param> params;
 
-    public AttrParamAdapter(Context context, String nodeId, String deviceName, ArrayList<Param> deviceList) {
+    public AttrParamAdapter(Context context, Device device, ArrayList<Param> paramList) {
         this.context = context;
-        this.params = deviceList;
+        this.params = paramList;
     }
 
     @Override
@@ -64,9 +66,13 @@ public class AttrParamAdapter extends RecyclerView.Adapter<AttrParamAdapter.MyVi
         return params.size();
     }
 
-    public void updateList(ArrayList<Param> updatedDeviceList) {
-        params = updatedDeviceList;
-        notifyDataSetChanged();
+    public void updateAttributeList(ArrayList<Param> paramList) {
+        ArrayList<Param> newParamList = new ArrayList<>(paramList);
+        final ParamDiffCallback diffCallback = new ParamDiffCallback(this.params, newParamList);
+        final DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(diffCallback);
+        this.params.clear();
+        this.params.addAll(newParamList);
+        diffResult.dispatchUpdatesTo(this);
     }
 
     public class MyViewHolder extends RecyclerView.ViewHolder {
