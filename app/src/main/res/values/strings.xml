@@ -138,6 +138,10 @@
     <string name="tab_scenes">Scenes</string>
     <string name="tab_user">User</string>
     <string name="tab_settings">Settings</string>
+    <string name="tab_1d">1D</string>
+    <string name="tab_7d">7D</string>
+    <string name="tab_4w">4W</string>
+    <string name="tab_1y">1Y</string>
 
     <!--Hint texts-->
     <string name="hint_email">Email</string>
@@ -374,6 +378,9 @@
     <string name="description">Description</string>
     <string name="save_password">Save password</string>
     <string name="text_copied">Copied to clipboard</string>
+    <string name="no_chart_data">No chart data</string>
+    <string name="ts_not_supported">Not supported for this duration</string>
+    <string name="no_internet_connection">No internet connection</string>
 
     <string name="linked_with_alexa">Already linked with Amazon Alexa</string>
     <string name="alexa_link_str">You can now control your Smart Home Devices via Alexa enabled speakers using Voice commands.</string>
@@ -399,6 +406,9 @@
     <string name="schedule_daily">Every day</string>
     <string name="schedule_weekends">On Weekends</string>
     <string name="schedule_weekdays">On Weekdays</string>
+
+    <string name="chart_bar">Bar</string>
+    <string name="chart_line">Line</string>
 
     <string name="day_1">MON</string>
     <string name="day_2">TUE</string>

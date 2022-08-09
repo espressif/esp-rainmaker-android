@@ -119,6 +119,14 @@ Sharing can be enabled/disabled by setting true/false value of `isNodeSharingSup
 Sharing feature is optional but enabled by default.
 Add `isNodeSharingSupported=false` in `local.properties` file to disable this feature.
 
+### Time Series
+
+- Time series allows a user to see historical values of parameters plotted as a bar or line chart.
+- Users can select the different time duration to see reported parameter values like 1 day, 7 days, 4 weeks and 1 year.
+- Users can see graph for raw data and can also select from different aggregate types like avg, min, max, count and latest.
+
+Note : Time series feature requires support in firmware. It will be available only for the parameters who have "time_series" property.
+
 ### Alexa App to App Linking
 
 This account linking flow enables users to link their Alexa user identity with their RainMaker identity by starting from Rainmaker app. When they start the account linking flow from the app, users can:

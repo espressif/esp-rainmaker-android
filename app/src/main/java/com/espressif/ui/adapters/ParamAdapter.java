@@ -16,6 +16,7 @@ package com.espressif.ui.adapters;
 
 import android.app.Activity;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.InputFilter;
@@ -49,6 +50,7 @@ import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.EspDeviceActivity;
+import com.espressif.ui.activities.TimeSeriesActivity;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.widgets.EspDropDown;
@@ -843,6 +845,36 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         paramViewHolder.tvLabelName.setText(param.getName());
         paramViewHolder.tvLabelValue.setText(param.getLabelValue());
 
+        if (param.getProperties().contains(AppConstants.KEY_PROPERTY_TS)) {
+
+            paramViewHolder.ivTsArrow.setVisibility(View.VISIBLE);
+            paramViewHolder.ivTsArrow.setOnClickListener(new View.OnClickListener() {
+
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent(context, TimeSeriesActivity.class);
+                    intent.putExtra(AppConstants.KEY_NODE_ID, nodeId);
+                    intent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceName);
+                    intent.putExtra(AppConstants.KEY_PARAM_NAME, param);
+                    context.startActivity(intent);
+                }
+            });
+
+            paramViewHolder.itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent(context, TimeSeriesActivity.class);
+                    intent.putExtra(AppConstants.KEY_NODE_ID, nodeId);
+                    intent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceName);
+                    intent.putExtra(AppConstants.KEY_PARAM_NAME, param);
+                    context.startActivity(intent);
+                }
+            });
+        } else {
+            paramViewHolder.ivTsArrow.setVisibility(View.GONE);
+            paramViewHolder.ivTsArrow.setOnClickListener(null);
+        }
+
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE) && ((EspDeviceActivity) context).isNodeOnline()) {
 
             paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
@@ -854,9 +886,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     askForNewValue(paramViewHolder, param, position);
                 }
             });
-
         } else {
-
             paramViewHolder.btnEdit.setVisibility(View.GONE);
         }
     }
@@ -1469,6 +1499,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         EspDropDown spinner;
         TapHoldUpButton btnTrigger;
         TextView tvMinHue, tvMaxHue;
+        ImageView ivTsArrow;
 
         public ParamViewHolder(View itemView) {
             super(itemView);
@@ -1501,6 +1532,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             btnTrigger = itemView.findViewById(R.id.btn_trigger);
             tvMinHue = itemView.findViewById(R.id.tv_palette_start);
             tvMaxHue = itemView.findViewById(R.id.tv_palette_end);
+            ivTsArrow = itemView.findViewById(R.id.iv_ts_arrow);
         }
     }
 
