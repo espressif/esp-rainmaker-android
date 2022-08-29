@@ -38,6 +38,7 @@ import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
 import com.espressif.ui.models.SharingRequest;
+import com.espressif.ui.models.TsData;
 import com.espressif.ui.models.UpdateEvent;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -2973,6 +2974,102 @@ public class ApiManager {
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
                 listener.onNetworkFailure(new RuntimeException("Failed to unregister fcm token"));
+            }
+        });
+    }
+
+    public void getTimeSeriesData(String nodeId, String paramName, String aggregate,
+                                  String timeInterval, long startTime,
+                                  long endTime, String weekStart, String timezone, final ApiResponseListener listener) {
+        ArrayList<TsData> tsData = new ArrayList<>();
+        getTimeSeriesDataForOnePage(nodeId, paramName, aggregate, timeInterval, startTime, endTime,
+                weekStart, timezone, "", listener, tsData);
+    }
+
+    private void getTimeSeriesDataForOnePage(String nodeId, String paramName, String aggregate,
+                                             String timeInterval, long startTime,
+                                             long endTime, String weekStart, String timezone,
+                                             String startId, final ApiResponseListener listener,
+                                             ArrayList<TsData> tsData) {
+
+        Log.d(TAG, "Get time series data...");
+
+        apiInterface.getTimeSeriesData(AppConstants.URL_USER_NODES_TS, accessToken, nodeId, paramName,
+                aggregate, timeInterval, startTime, endTime, weekStart, timezone, startId).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.e(TAG, "Get time series data, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonResponse = response.body().string();
+                        Log.e(TAG, "Response : " + jsonResponse);
+                        JSONObject jsonObject = new JSONObject(jsonResponse);
+                        JSONArray jsonArray = jsonObject.optJSONArray("ts_data");
+                        String nextId = "";
+
+                        if (jsonArray != null) {
+                            for (int arrayIndex = 0; arrayIndex < jsonArray.length(); arrayIndex++) {
+                                JSONObject tsDataJson = jsonArray.optJSONObject(arrayIndex);
+                                if (tsDataJson != null) {
+                                    String node_id = tsDataJson.optString(AppConstants.KEY_NODE_ID);
+                                    nextId = tsDataJson.optString(AppConstants.KEY_NEXT_ID);
+                                    if (!nodeId.equals(node_id)) {
+                                        continue;
+                                    }
+                                    JSONArray paramsJsonArray = tsDataJson.optJSONArray(AppConstants.KEY_PARAMS);
+                                    if (paramsJsonArray != null) {
+                                        for (int paramIndex = 0; paramIndex < paramsJsonArray.length(); paramIndex++) {
+                                            JSONObject paramJson = paramsJsonArray.optJSONObject(paramIndex);
+                                            if (paramJson != null) {
+                                                String param_name = paramJson.optString(AppConstants.KEY_PARAM_NAME);
+                                                if (!paramName.equals(param_name)) {
+                                                    continue;
+                                                }
+                                                JSONArray valuesArray = paramJson.optJSONArray("values");
+                                                if (valuesArray != null) {
+                                                    for (int valueIndex = 0; valueIndex < valuesArray.length(); valueIndex++) {
+                                                        JSONObject valueJson = valuesArray.optJSONObject(valueIndex);
+                                                        if (valueJson != null) {
+                                                            long ts = valueJson.optLong("ts");
+                                                            float value = (float) valueJson.optDouble("val");
+                                                            tsData.add(new TsData(ts, value));
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Log.d(TAG, "Start next id : " + nextId);
+                        if (!TextUtils.isEmpty(nextId)) {
+                            getTimeSeriesDataForOnePage(nodeId, paramName, aggregate, timeInterval, startTime, endTime,
+                                    weekStart, timezone, nextId, listener, tsData);
+                        } else {
+                            Log.e(TAG, "TS DATA Array list size : " + tsData.size());
+                            Bundle data = new Bundle();
+                            data.putParcelableArrayList("ts_data", tsData);
+                            listener.onSuccess(data);
+                        }
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to time series data");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to time series data"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to time series data"));
             }
         });
     }

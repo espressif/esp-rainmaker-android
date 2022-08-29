@@ -33,10 +33,22 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 
+import java.util.Calendar;
+import java.util.TimeZone;
+
 public class Utils {
 
     public static boolean isValidEmail(CharSequence target) {
         return (!TextUtils.isEmpty(target) && Patterns.EMAIL_ADDRESS.matcher(target).matches());
+    }
+
+    public static String getCurrentTimeZone() {
+        return TimeZone.getDefault().getID();
+    }
+
+    public static Calendar getCalendarForTimeZone(String timeZoneStr) {
+        TimeZone tz = TimeZone.getTimeZone(timeZoneStr);
+        return Calendar.getInstance(tz);
     }
 
     public static void showAlertDialog(final Activity activityContext, String title, String msg, final boolean shouldExit) {

@@ -88,6 +88,8 @@ public class AppConstants {
             + AppConstants.CURRENT_VERSION + "/user/nodes/sharing/requests";
     public static final String URL_USER_NODES_SHARING = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/nodes/sharing";
+    public static final String URL_USER_NODES_TS = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/user/nodes/tsdata";
 
     // UI Types of Device
     public static final String UI_TYPE_TOGGLE = "esp.ui.toggle";
@@ -154,6 +156,15 @@ public class AppConstants {
     public static final String KEY_GCM = "GCM";
     public static final String KEY_MESSAGE_BODY = "message_body";
     public static final String KEY_ALERT_STRING = "esp.alert.str";
+    public static final String KEY_PARAM_NAME = "param_name";
+    public static final String KEY_AGGREGATE = "aggregate";
+    public static final String KEY_AGGREGATION_INTERVAL = "aggregation_interval";
+    public static final String KEY_WEEK_START = "week_start";
+    public static final String KEY_START_TIME = "start_time";
+    public static final String KEY_END_TIME = "end_time";
+    public static final String KEY_NUM_INTERVALS = "num_intervals";
+    public static final String KEY_NUM_RECORDS = "num_records";
+    public static final String KEY_TIMEZONE = "timezone";
 
     // Keys used in JSON responses and used to pass data between activities.
     public static final String KEY_NAME = "name";
@@ -201,6 +212,7 @@ public class AppConstants {
     public static final String KEY_TIMESTAMP = "timestamp";
     public static final String KEY_DESCRIPTION = "description";
     public static final String KEY_PROPERTY_WRITE = "write";
+    public static final String KEY_PROPERTY_TS = "time_series";
     public static final String KEY_FAILURE_RESPONSE = "failure";
     public static final String KEY_SECRET_KEY = "secret_key";
     public static final String KEY_PROPERTY_COUNT = "property_count";
