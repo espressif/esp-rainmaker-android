@@ -34,6 +34,9 @@
     <string name="progress_declining">Declining...</string>
     <string name="progress_wifi_scan">Scanning for Wi-Fi...</string>
     <string name="progress_scan_networks">Scanning Networks...</string>
+    <string name="progress_add_automation">Adding Automation...</string>
+    <string name="progress_get_automation">Getting automation...</string>
+    <string name="progress_update">Update in progress...</string>
 
     <!--Error Messages-->
     <string name="error_title">Error!</string>
@@ -82,6 +85,7 @@
     <string name="error_schedule_action">Please select action for schedule</string>
     <string name="error_scene_name_empty">Scene name cannot be empty</string>
     <string name="error_invalid_scene_name">Please enter a name for the scene to proceed.</string>
+    <string name="error_invalid_automation_name">Please enter a name for the automation to proceed.</string>
     <string name="error_scene_action">Please select action for scene</string>
     <string name="error_group_device_remove">Failed to remove device from group</string>
     <string name="error_group_name_empty">Group name cannot be empty</string>
@@ -96,6 +100,10 @@
     <string name="error_update_timezone">Failed to update timezone</string>
     <string name="error_camera_permission">Camera permission is not given. App will not be able to scan QR code to add device.</string>
     <string name="error_location_permission">Location permission is not given. It will be require to add BLE or SoftAP devices.</string>
+    <string name="error_automation_create">Failed to create automation</string>
+    <string name="error_automation_update">Failed to update automation</string>
+    <string name="error_automation_remove">Failed to remove automation</string>
+    <string name="error_automation_name_empty">Automation name cannot be empty</string>
 
     <string name="title_activity_esp_device">Device</string>
 
@@ -113,11 +121,13 @@
     <string name="Username">Username</string>
     <string name="Password">Password</string>
     <string name="Menu">Menu</string>
+    <string name="name">Name</string>
     <string name="app_main_desc">A sample app to showcase Cognito Identity and the SDK for Android.</string>
     <string name="powered_by_esp">Powered by ESPRESSIF</string>
     <string name="no_devices">No devices added</string>
     <string name="no_schedules">No Schedules added</string>
     <string name="no_scenes">No Scenes added</string>
+    <string name="no_automations">No Automations added.</string>
     <string name="no_groups">No Groups created</string>
     <string name="no_sharing_requests">No notifications</string>
     <string name="add_device_txt">You can provision a device by scanning the QR code or you can do it manually my tapping on + icon on right-top of this screen.</string>
@@ -136,6 +146,7 @@
     <string name="tab_devices">Devices</string>
     <string name="tab_schedules">Schedules</string>
     <string name="tab_scenes">Scenes</string>
+    <string name="tab_automations">Automations</string>
     <string name="tab_user">User</string>
     <string name="tab_settings">Settings</string>
     <string name="tab_1d">1D</string>
@@ -157,6 +168,7 @@
     <string name="hint_description">Enter description here (optional)</string>
     <string name="hint_schedule_name">Choose name for your schedule</string>
     <string name="hint_scene_name">Choose name for your scene</string>
+    <string name="hint_automation_name">Choose name for your automation</string>
 
     <!--Button text-->
     <string name="btn_register">Register</string>
@@ -186,6 +198,7 @@
     <string name="btn_add_device">Add Device</string>
     <string name="btn_add_schedule">Add Schedule</string>
     <string name="btn_add_scene">Add Scene</string>
+    <string name="btn_add_automation">Add Automation</string>
     <string name="btn_scan_again">Rescan</string>
     <string name="btn_sign_out">Sign Out</string>
     <string name="btn_skip">Skip</string>
@@ -208,6 +221,12 @@
     <string name="btn_link_alexa">Link with Amazon Alexa</string>
     <string name="btn_unlink_alexa">Unlink from Amazon Alexa</string>
     <string name="btn_activate">Activate</string>
+    <string name="btn_equals">Equals</string>
+    <string name="btn_less_than_sign">&lt;</string>
+    <string name="btn_greater_than_sign">&gt;</string>
+    <string name="btn_equal_sign">=</string>
+    <string name="btn_change_event">Change Event</string>
+    <string name="btn_change_actions">Change Actions</string>
 
     <!--Screen titles-->
     <string name="title_activity_devices">Devices</string>
@@ -231,8 +250,11 @@
     <string name="title_activity_actions">Actions</string>
     <string name="title_activity_schedules">Schedules</string>
     <string name="title_activity_scenes">Scenes</string>
+    <string name="title_activity_automations">Automations</string>
+    <string name="title_activity_automation_details">Automation</string>
     <string name="title_activity_select_devices">Select Devices</string>
     <string name="title_activity_select_actions">Select Actions</string>
+    <string name="title_activity_select_event">Select Event</string>
     <string name="title_activity_manage_groups">Manage Groups</string>
     <string name="title_activity_create_group">Create Group</string>
     <string name="title_activity_edit_group">Edit Group</string>
@@ -277,7 +299,6 @@
 
     <!--Node Details-->
     <string name="node_id">Node Id</string>
-    <string name="node_name">Name</string>
     <string name="node_type">Type</string>
     <string name="node_fw_version">Firmware Version</string>
     <string name="node_config_version">Config Version</string>
@@ -354,12 +375,18 @@
     <string name="process_take_time">This may take time.</string>
     <string name="not_set">Not set</string>
     <string name="msg_no_internet">No internet connection</string>
+    <string name="event">Event</string>
     <string name="actions">Actions</string>
     <string name="group_all_devices">All Devices</string>
     <string name="success_group_name_update">Group name updated successfully</string>
     <string name="success_group_create">Group created successfully</string>
     <string name="success_group_update">Group updated successfully</string>
     <string name="success_group_remove">Group removed successfully</string>
+    <string name="success_automation_create">Automation added successfully</string>
+    <string name="success_automation_update">Automation updated successfully</string>
+    <string name="success_automation_remove">Automation removed successfully</string>
+    <string name="success_automation_enable">Automation enabled successfully</string>
+    <string name="success_automation_disable">Automation disabled successfully</string>
     <string name="wants_to_share">wants to share</string>
     <string name="with_you">with you</string>
     <string name="and">and</string>
@@ -381,6 +408,7 @@
     <string name="no_chart_data">No chart data</string>
     <string name="ts_not_supported">Not supported for this duration</string>
     <string name="no_internet_connection">No internet connection</string>
+    <string name="choose_parameter">Choose Parameter</string>
 
     <string name="linked_with_alexa">Already linked with Amazon Alexa</string>
     <string name="alexa_link_str">You can now control your Smart Home Devices via Alexa enabled speakers using Voice commands.</string>
@@ -425,12 +453,14 @@
     <string name="channel_node_removed">Node Removed</string>
     <string name="channel_node_sharing">Node Sharing</string>
     <string name="channel_node_alert">Alert Messages</string>
+    <string name="channel_node_automation_trigger">Automation Triggers</string>
 
     <string name="notify_node_added">New device(s) are added. Tap to view.</string>
     <string name="notify_node_removed">Some device(s) are removed. Tap to view.</string>
     <string name="notify_node_connected">Some device(s) came online. Tap to view.</string>
     <string name="notify_node_disconnected">Some device(s) went offline. Tap to view.</string>
     <string name="notify_node_alert">Alert received from a device. Tap to view.</string>
+    <string name="notify_node_automation_trigger">Node automation triggered for some device(s).</string>
 
     <string-array name="days">
         <item>Sun</item>

@@ -95,6 +95,10 @@ public class NotificationWorker extends Worker {
 
                         processSharingAddEvent(title, notificationEvent, jsonEventData);
 
+                    } else if (AppConstants.EVENT_NODE_AUTOMATION_TRIGGER.equals(eventType)) {
+
+                        processAutomationTriggerEvent(title, notificationEvent, jsonEventData);
+
                     } else if (AppConstants.EVENT_NODE_PARAM_MODIFIED.equals(eventType)) {
 
                         String nodeId = jsonEventData.optString(AppConstants.KEY_NODE_ID);
@@ -677,6 +681,97 @@ public class NotificationWorker extends Worker {
         notificationManager.notify(id, notificationBuilder.build());
     }
 
+    // Event type - Node automation trigger
+
+    private void processAutomationTriggerEvent(String title, NotificationEvent notificationEvent, JSONObject jsonEventData) {
+
+        EspApplication espApp = (EspApplication) getApplicationContext();
+        String automationName = jsonEventData.optString(AppConstants.KEY_AUTOMATION_NAME);
+        JSONArray actionJsonArr = jsonEventData.optJSONArray(AppConstants.KEY_ACTIONS);
+        JSONArray statusJsonArr = jsonEventData.optJSONArray(AppConstants.KEY_STATUS);
+
+        Log.d(TAG, "Automation name : " + automationName);
+        title = "Automation: " + automationName;
+        StringBuilder msgBuilder = new StringBuilder();
+        ArrayList<String> successDeviceNames = new ArrayList<>();
+        ArrayList<String> failedDeviceNames = new ArrayList<>();
+
+        if (actionJsonArr != null) {
+            for (int actionIndex = 0; actionIndex < actionJsonArr.length(); actionIndex++) {
+                JSONObject actionJson = actionJsonArr.optJSONObject(actionIndex);
+                String actionDeviceNodeId = actionJson.optString(AppConstants.KEY_NODE_ID);
+                JSONObject paramsJson = actionJson.optJSONObject(AppConstants.KEY_PARAMS);
+
+                if (!espApp.nodeMap.containsKey(actionDeviceNodeId)) {
+                    ApiManager.getInstance(espApp).getNodeDetails(actionDeviceNodeId);
+                }
+
+                if (!espApp.nodeMap.containsKey(actionDeviceNodeId)) {
+                    loadDataFromLocalStorage();
+                }
+
+                if (espApp.nodeMap.containsKey(actionDeviceNodeId)) {
+
+                    EspNode node = espApp.nodeMap.get(actionDeviceNodeId);
+                    ArrayList<Device> devices = node.getDevices();
+                    if (devices != null) {
+
+                        for (Device device : devices) {
+                            if (paramsJson.has(device.getDeviceName())) {
+                                if (getStatusForNodeId(statusJsonArr, actionDeviceNodeId)) {
+                                    successDeviceNames.add(device.getUserVisibleName());
+                                } else {
+                                    failedDeviceNames.add(device.getUserVisibleName());
+                                }
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    Log.e(TAG, "Node id is not available for this event.");
+                }
+            }
+        }
+
+
+        if (successDeviceNames.size() > 0) {
+            msgBuilder.append("Successfully executed action for ");
+
+            if (successDeviceNames.size() == 1) {
+                msgBuilder.append("device: ");
+            } else {
+                msgBuilder.append("devices: ");
+            }
+            msgBuilder.append(getDeviceNameString(successDeviceNames));
+        }
+
+        if (failedDeviceNames.size() > 0) {
+
+            if (!TextUtils.isEmpty(msgBuilder.toString())) {
+                msgBuilder.append(";");
+            }
+            msgBuilder.append("Failed to execute action for ");
+
+            if (failedDeviceNames.size() == 1) {
+                msgBuilder.append("device: ");
+            } else {
+                msgBuilder.append("devices: ");
+            }
+            msgBuilder.append(getDeviceNameString(failedDeviceNames));
+        }
+
+        if (TextUtils.isEmpty(msgBuilder.toString())) {
+            msgBuilder.append(espApp.getString(R.string.notify_node_automation_trigger));
+        } else {
+            msgBuilder.append(".");
+        }
+        notificationEvent.setNotificationMsg(msgBuilder.toString());
+        EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
+        Log.d(TAG, "Automation Notification inserted in database");
+
+        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_AUTOMATION_TRIGGER, NotificationsActivity.class);
+    }
+
     // Event type - Alert
 
     private void processAlertEvent(String title, NotificationEvent notificationEvent, JSONObject jsonEventData) {
@@ -869,5 +964,49 @@ public class NotificationWorker extends Worker {
             }
         }
         Log.d(TAG, "Node list size from local storage : " + espApp.nodeMap.size());
+    }
+
+    private String getDeviceNameString(ArrayList<String> deviceNames) {
+
+        StringBuilder deviceNameString = new StringBuilder();
+        if (deviceNames.size() > 0) {
+
+            if (deviceNames.size() == 1) {
+                deviceNameString.append(deviceNames.get(0));
+            } else {
+                for (int i = 0; i < deviceNames.size(); i++) {
+
+                    if (i != 0) {
+                        deviceNameString.append(",");
+                        deviceNameString.append(" ");
+                    }
+                    deviceNameString.append(deviceNames.get(i));
+                }
+            }
+        }
+        return deviceNameString.toString();
+    }
+
+    private boolean getStatusForNodeId(JSONArray statusJsonArr, String nodeId) {
+        if (statusJsonArr != null) {
+
+            for (int statusIndex = 0; statusIndex < statusJsonArr.length(); statusIndex++) {
+
+                JSONObject statusJson = statusJsonArr.optJSONObject(statusIndex);
+                String nId = statusJson.optString(AppConstants.KEY_NODE_ID);
+
+                if (!TextUtils.isEmpty(nId) && nId.equals(nodeId)) {
+
+                    // Node found
+                    String status = statusJson.optString(AppConstants.KEY_STATUS);
+                    if (!TextUtils.isEmpty(status) && status.equalsIgnoreCase("success")) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }

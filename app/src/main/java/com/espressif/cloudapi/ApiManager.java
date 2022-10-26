@@ -30,6 +30,7 @@ import com.espressif.JsonDataParser;
 import com.espressif.db.EspDatabase;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.ui.models.Action;
+import com.espressif.ui.models.Automation;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
@@ -83,6 +84,7 @@ public class ApiManager {
     private static ArrayList<String> nodeIds = new ArrayList<>();
     private static ArrayList<String> scheduleIds = new ArrayList<>();
     private static ArrayList<String> sceneIds = new ArrayList<>();
+    private static ArrayList<String> automationIds = new ArrayList<>();
 
     private static ApiManager apiManager;
 
@@ -3070,6 +3072,410 @@ public class ApiManager {
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
                 listener.onNetworkFailure(new RuntimeException("Failed to time series data"));
+            }
+        });
+    }
+
+    public void addAutomations(JsonObject body, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Create automation...");
+
+        apiInterface.createGroup(AppConstants.URL_USER_NODE_AUTOMATION, accessToken, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Create automation, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        listener.onSuccess(null);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to create automation");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to create automation"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to create automation"));
+            }
+        });
+    }
+
+    public void getAutomations(ApiResponseListener listener) {
+        Log.d(TAG, "Get Automations");
+        automationIds.clear();
+        getAutomations("", listener);
+    }
+
+    private void getAutomations(String startId, ApiResponseListener listener) {
+
+        Log.d(TAG, "Get automations from cloud with start id : " + startId);
+
+        apiInterface.getAutomations(AppConstants.URL_USER_NODE_AUTOMATION, accessToken, startId).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Get automations, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        JSONObject jsonObject = new JSONObject(jsonResponse);
+                        JSONArray automationJsonArray = jsonObject.optJSONArray(AppConstants.KEY_AUTOMATION_TRIGGER_ACTIONS);
+                        String nextId = jsonObject.optString(AppConstants.KEY_NEXT_ID);
+                        Log.d(TAG, "Start next id : " + nextId);
+
+                        if (automationJsonArray != null) {
+
+                            for (int automationIndex = 0; automationIndex < automationJsonArray.length(); automationIndex++) {
+
+                                JSONObject automationJson = automationJsonArray.optJSONObject(automationIndex);
+
+                                if (automationJson != null) {
+
+                                    // Node ID
+                                    String id = automationJson.optString(AppConstants.KEY_AUTOMATION_ID);
+                                    String name = automationJson.optString(AppConstants.KEY_NAME);
+                                    boolean isEnabled = automationJson.optBoolean(AppConstants.KEY_ENABLED);
+                                    String nodeId = automationJson.optString(AppConstants.KEY_NODE_ID);
+                                    JSONArray actionArrayJson = automationJson.optJSONArray(AppConstants.KEY_ACTIONS);
+                                    JSONArray eventsArrayJson = automationJson.optJSONArray(AppConstants.KEY_EVENTS);
+                                    automationIds.add(id);
+
+                                    Automation automation = null;
+                                    if (espApp.automations.containsKey(id)) {
+                                        automation = espApp.automations.get(id);
+                                    } else {
+                                        automation = new Automation();
+                                        automation.setId(id);
+                                    }
+
+                                    automation.setName(name);
+                                    automation.setNodeId(nodeId);
+                                    automation.setEnabled(isEnabled);
+
+                                    if (actionArrayJson != null) {
+
+                                        for (int actionArrIndex = 0; actionArrIndex < actionArrayJson.length(); actionArrIndex++) {
+
+                                            JSONObject actionJson = actionArrayJson.optJSONObject(actionArrIndex);
+                                            String actionDeviceNodeId = actionJson.optString(AppConstants.KEY_NODE_ID);
+                                            JSONObject paramsJson = actionJson.optJSONObject(AppConstants.KEY_PARAMS);
+
+                                            if (actionJson != null && paramsJson != null && espApp.nodeMap.containsKey(actionDeviceNodeId)) {
+
+                                                EspNode node = new EspNode(espApp.nodeMap.get(actionDeviceNodeId));
+                                                ArrayList<Device> devices = node.getDevices();
+                                                ArrayList<Action> actions = automation.getActions();
+
+                                                if (automation.getActions() == null) {
+                                                    actions = new ArrayList<>();
+                                                }
+
+                                                for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
+
+                                                    Device d = new Device(devices.get(deviceIndex));
+                                                    ArrayList<Param> params = d.getParams();
+                                                    String deviceName = d.getDeviceName();
+                                                    JSONObject deviceAction = paramsJson.optJSONObject(deviceName);
+
+                                                    if (deviceAction != null) {
+
+                                                        Action action = null;
+                                                        Device actionDevice = null;
+                                                        int actionIndex = -1;
+
+                                                        for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
+
+                                                            Action a = actions.get(aIndex);
+                                                            if (a.getDevice().getNodeId().equals(actionDeviceNodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
+                                                                action = actions.get(aIndex);
+                                                                actionIndex = aIndex;
+                                                                actionDevice = action.getDevice();
+                                                            }
+                                                        }
+
+                                                        if (action == null) {
+                                                            action = new Action();
+                                                            action.setNodeId(actionDeviceNodeId);
+
+                                                            for (int k = 0; k < devices.size(); k++) {
+
+                                                                if (devices.get(k).getNodeId().equals(actionDeviceNodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
+                                                                    actionDevice = new Device(devices.get(k));
+                                                                    actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
+                                                                    break;
+                                                                }
+                                                            }
+
+                                                            if (actionDevice == null) {
+                                                                actionDevice = new Device(actionDeviceNodeId);
+                                                            }
+                                                            action.setDevice(actionDevice);
+                                                        }
+
+                                                        ArrayList<Param> actionParams = new ArrayList<>();
+                                                        if (params != null) {
+
+                                                            Iterator<Param> iterator = params.iterator();
+                                                            while (iterator.hasNext()) {
+                                                                Param p = iterator.next();
+                                                                actionParams.add(new Param(p));
+                                                            }
+
+                                                            Iterator itr = actionParams.iterator();
+
+                                                            while (itr.hasNext()) {
+
+                                                                Param p = (Param) itr.next();
+
+                                                                if (!p.isDynamicParam()) {
+                                                                    itr.remove();
+                                                                } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
+                                                                    itr.remove();
+                                                                } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
+                                                                    itr.remove();
+                                                                }
+                                                            }
+                                                        }
+                                                        actionDevice.setParams(actionParams);
+
+                                                        for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                                            Param p = actionParams.get(paramIndex);
+                                                            String paramName = p.getName();
+
+                                                            if (deviceAction.has(paramName)) {
+                                                                p.setSelected(true);
+                                                                JsonDataParser.setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
+                                                            }
+                                                        }
+
+                                                        for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                                            if (!actionParams.get(paramIndex).isSelected()) {
+                                                                actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
+                                                            }
+                                                        }
+
+                                                        if (actionIndex == -1) {
+                                                            actions.add(action);
+                                                        } else {
+                                                            actions.set(actionIndex, action);
+                                                        }
+                                                        automation.setActions(actions);
+                                                    }
+                                                }
+
+                                                automation.setActions(actions);
+                                            }
+                                        }
+                                    }
+
+                                    if (eventsArrayJson != null) {
+
+                                        for (int eventArrIndex = 0; eventArrIndex < eventsArrayJson.length(); eventArrIndex++) {
+
+                                            JSONObject eventJson = eventsArrayJson.optJSONObject(eventArrIndex);
+                                            String condition = eventJson.optString(AppConstants.KEY_CHECK);
+                                            JSONObject paramsJson = eventJson.optJSONObject(AppConstants.KEY_PARAMS);
+                                            automation.setCondition(condition);
+
+                                            if (eventJson != null && paramsJson != null && espApp.nodeMap.containsKey(nodeId)) {
+
+                                                EspNode node = new EspNode(espApp.nodeMap.get(nodeId));
+                                                ArrayList<Device> devices = node.getDevices();
+                                                Device eventDevice = automation.getEventDevice();
+
+                                                for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
+
+                                                    Device d = new Device(devices.get(deviceIndex));
+                                                    ArrayList<Param> params = d.getParams();
+                                                    String deviceName = d.getDeviceName();
+                                                    JSONObject eventDeviceJson = paramsJson.optJSONObject(deviceName);
+
+                                                    if (eventDeviceJson != null) {
+
+                                                        for (int k = 0; k < devices.size(); k++) {
+
+                                                            if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
+                                                                eventDevice = new Device(devices.get(k));
+                                                                eventDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
+                                                                break;
+                                                            }
+                                                        }
+
+                                                        if (eventDevice == null) {
+                                                            eventDevice = new Device(nodeId);
+                                                        }
+
+                                                        ArrayList<Param> actionParams = new ArrayList<>();
+                                                        if (params != null) {
+
+                                                            Iterator<Param> iterator = params.iterator();
+                                                            while (iterator.hasNext()) {
+                                                                Param p = iterator.next();
+                                                                actionParams.add(new Param(p));
+                                                            }
+
+                                                            Iterator itr = actionParams.iterator();
+
+                                                            while (itr.hasNext()) {
+
+                                                                Param p = (Param) itr.next();
+
+                                                                if (!p.isDynamicParam()) {
+                                                                    itr.remove();
+                                                                } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
+                                                                    itr.remove();
+                                                                }
+                                                            }
+                                                        }
+                                                        eventDevice.setParams(actionParams);
+
+                                                        for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                                            Param p = actionParams.get(paramIndex);
+                                                            String paramName = p.getName();
+
+                                                            if (eventDeviceJson.has(paramName)) {
+                                                                p.setSelected(true);
+                                                                JsonDataParser.setDeviceParamValue(eventDeviceJson, devices.get(deviceIndex), p);
+                                                            }
+                                                        }
+
+                                                        for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                                            if (!actionParams.get(paramIndex).isSelected()) {
+                                                                eventDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
+                                                            }
+                                                        }
+                                                        automation.setEventDevice(eventDevice);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    espApp.automations.put(id, automation);
+                                }
+                            }
+                        }
+
+                        if (!TextUtils.isEmpty(nextId)) {
+                            getAutomations(nextId, listener);
+                        } else {
+                            Iterator<Map.Entry<String, Automation>> itr = espApp.automations.entrySet().iterator();
+                            while (itr.hasNext()) {
+
+                                Map.Entry<String, Automation> entry = itr.next();
+                                String key = entry.getKey();
+
+                                if (!automationIds.contains(key)) {
+                                    itr.remove();
+                                }
+                            }
+                            listener.onSuccess(null);
+                        }
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to get automations");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to get automations"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to get automations"));
+            }
+        });
+    }
+
+    public void updateAutomation(Automation automation, JsonObject body, ApiResponseListener listener) {
+
+        String automationId = automation.getId();
+        Log.d(TAG, "Update automation for automation id : " + automationId);
+
+        apiInterface.updateAutomation(AppConstants.URL_USER_NODE_AUTOMATION, accessToken, automationId, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Update automation, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        espApp.automations.put(automationId, automation);
+                        listener.onSuccess(null);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to update automation");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to update automation"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to update automation"));
+            }
+        });
+    }
+
+    public void deleteAutomation(String automationId, ApiResponseListener listener) {
+
+        Log.d(TAG, "Delete automation for automation id : " + automationId);
+
+        apiInterface.deleteAutomation(AppConstants.URL_USER_NODE_AUTOMATION, accessToken, automationId).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Delete automation, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        espApp.automations.remove(automationId);
+                        listener.onSuccess(null);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to delete automation");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to delete automation"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to delete automation"));
             }
         });
     }

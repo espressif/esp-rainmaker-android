@@ -44,8 +44,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 23
         targetSdkVersion 31
-        versionCode 64
-        versionName "2.7.0 - ${getGitHash()}"
+        versionCode 70
+        versionName "2.8.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -89,6 +89,7 @@ android {
         buildConfigField "boolean", "isLocalControlSupported", localProperties.getProperty("isLocalControlSupported", "true")
         buildConfigField "boolean", "isNodeGroupingSupported", localProperties.getProperty("isNodeGroupingSupported", "true")
         buildConfigField "boolean", "isNodeSharingSupported", localProperties.getProperty("isNodeSharingSupported", "true")
+        buildConfigField "boolean", "isAutomationSupported", localProperties.getProperty("isAutomationSupported", "true")
 
         def clientId = localProperties.getProperty("clientId", defaultClientId)
         def authUrl = localProperties.getProperty("authUrl", defaultAuthUrl)

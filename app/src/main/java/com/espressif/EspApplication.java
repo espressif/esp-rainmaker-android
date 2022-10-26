@@ -30,13 +30,15 @@ import androidx.annotation.NonNull;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.db.EspDatabase;
-import com.espressif.local_control.LocalControlApiManager;
 import com.espressif.local_control.EspLocalDevice;
+import com.espressif.local_control.LocalControlApiManager;
 import com.espressif.local_control.mDNSManager;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.ConsentActivity;
+import com.espressif.ui.models.Automation;
+import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
 import com.espressif.ui.models.Param;
@@ -56,6 +58,8 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class EspApplication extends Application {
 
@@ -68,6 +72,7 @@ public class EspApplication extends Application {
     public HashMap<String, Scene> sceneMap;
     public HashMap<String, EspLocalDevice> localDeviceMap;
     public HashMap<String, Group> groupMap;
+    public HashMap<String, Automation> automations;
 
     private SharedPreferences appPreferences;
     private ApiManager apiManager;
@@ -92,6 +97,8 @@ public class EspApplication extends Application {
         sceneMap = new HashMap<>();
         localDeviceMap = new HashMap<>();
         groupMap = new HashMap<>();
+        automations = new HashMap<>();
+
         appPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
         apiManager = ApiManager.getInstance(this);
         ESPProvisionManager.getInstance(this);
@@ -327,6 +334,7 @@ public class EspApplication extends Application {
         sceneMap.clear();
         localDeviceMap.clear();
         groupMap.clear();
+        automations.clear();
     }
 
     private void startLocalDeviceDiscovery() {
@@ -341,6 +349,27 @@ public class EspApplication extends Application {
         if (BuildConfig.isLocalControlSupported) {
             mdnsManager.stopDiscovery();
         }
+    }
+
+    /**
+     * This method is used to get copy of all devices.
+     *
+     * @return Copy of all devices array for the user.
+     */
+    public ArrayList<Device> getAllDevices() {
+        ArrayList<Device> devices = new ArrayList<>();
+        for (Map.Entry<String, EspNode> entry : nodeMap.entrySet()) {
+
+            EspNode node = entry.getValue();
+            if (node != null) {
+                ArrayList<Device> espDevices = node.getDevices();
+                Iterator<Device> iterator = espDevices.iterator();
+                while (iterator.hasNext()) {
+                    devices.add(new Device(iterator.next()));
+                }
+            }
+        }
+        return devices;
     }
 
     mDNSManager.mDNSEvenListener listener = new mDNSManager.mDNSEvenListener() {
@@ -506,6 +535,9 @@ public class EspApplication extends Application {
             NotificationChannel alertChannel = new NotificationChannel(AppConstants.CHANNEL_ALERT,
                     getString(R.string.channel_node_alert), NotificationManager.IMPORTANCE_HIGH);
 
+            NotificationChannel automationChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_AUTOMATION_TRIGGER,
+                    getString(R.string.channel_node_automation_trigger), NotificationManager.IMPORTANCE_HIGH);
+
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(nodeConnectedChannel);
             notificationManager.createNotificationChannel(nodeDisconnectedChannel);
@@ -513,6 +545,7 @@ public class EspApplication extends Application {
             notificationManager.createNotificationChannel(nodeRemovedChannel);
             notificationManager.createNotificationChannel(nodeSharingChannel);
             notificationManager.createNotificationChannel(alertChannel);
+            notificationManager.createNotificationChannel(automationChannel);
         }
     }
 

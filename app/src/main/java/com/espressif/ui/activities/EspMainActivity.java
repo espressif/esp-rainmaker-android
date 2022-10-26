@@ -56,10 +56,13 @@ import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.HomeScreenPagerAdapter;
+import com.espressif.ui.fragments.AutomationFragment;
 import com.espressif.ui.fragments.DevicesFragment;
 import com.espressif.ui.fragments.ScenesFragment;
 import com.espressif.ui.fragments.SchedulesFragment;
 import com.espressif.ui.fragments.UserProfileFragment;
+import com.espressif.ui.models.Automation;
+import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
 import com.espressif.ui.models.UpdateEvent;
@@ -86,7 +89,7 @@ public class EspMainActivity extends AppCompatActivity {
     private BottomNavigationView bottomNavigationView;
     private ViewPager viewPager;
 
-    private Fragment deviceFragment, scheduleFragment, sceneFragment;
+    private Fragment deviceFragment, scheduleFragment, sceneFragment, automationFragment;
     private MenuItem prevMenuItem;
     private HomeScreenPagerAdapter pagerAdapter;
     private Snackbar snackbar;
@@ -105,10 +108,11 @@ public class EspMainActivity extends AppCompatActivity {
         espApp = (EspApplication) getApplicationContext();
         apiManager = ApiManager.getInstance(getApplicationContext());
         snackbar = Snackbar.make(findViewById(R.id.frame_container), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
-
-        initViews();
-        loadDataFromLocalStorage();
+        boolean shouldLoadAutomation = getIntent().getBooleanExtra(AppConstants.KEY_LOAD_AUTOMATION_PAGE, false);
         String reqId = getIntent().getStringExtra(AppConstants.KEY_REQ_ID);
+        initViews(shouldLoadAutomation);
+        loadDataFromLocalStorage();
+
         if (!TextUtils.isEmpty(reqId)) {
             Log.e(TAG, "Intent string is not empty");
             Log.e(TAG, "Req id : " + reqId);
@@ -206,6 +210,9 @@ public class EspMainActivity extends AppCompatActivity {
             case R.id.action_scenes:
                 askForSceneName();
                 break;
+            case R.id.action_automations:
+                askForAutomationName();
+                break;
             case R.id.action_user:
                 break;
         }
@@ -299,6 +306,7 @@ public class EspMainActivity extends AppCompatActivity {
         if (menuAdd != null) {
             switch (bottomNavigationView.getSelectedItemId()) {
                 case R.id.action_devices:
+                case R.id.action_automations:
                     if (espApp.nodeMap.size() > 0) {
                         menuAdd.setVisible(true);
                     } else {
@@ -326,7 +334,7 @@ public class EspMainActivity extends AppCompatActivity {
         }
     }
 
-    private void initViews() {
+    private void initViews(boolean shouldLoadAutomation) {
 
         collapsingToolbarLayout = findViewById(R.id.collapsing_toolbar_layout);
         collapsingToolbarLayout.setTitle(getResources().getString(R.string.devices_title));
@@ -341,10 +349,28 @@ public class EspMainActivity extends AppCompatActivity {
         if (!BuildConfig.isSceneSupported) {
             menu.removeItem(R.id.action_scenes);
         }
+        if (!BuildConfig.isAutomationSupported) {
+            menu.removeItem(R.id.action_automations);
+        }
 
         viewPager = findViewById(R.id.view_pager);
         bottomNavigationView.setOnNavigationItemSelectedListener(navigationItemSelectedListener);
         setupViewPager();
+
+        if (shouldLoadAutomation) {
+            if (prevMenuItem != null) {
+                prevMenuItem.setChecked(false);
+            } else {
+                bottomNavigationView.getMenu().getItem(3).setChecked(false);
+            }
+            viewPager.setCurrentItem(3);
+            bottomNavigationView.getMenu().getItem(3).setChecked(true);
+            prevMenuItem = bottomNavigationView.getMenu().getItem(3);
+            String title = bottomNavigationView.getMenu().getItem(3).getTitle().toString();
+            collapsingToolbarLayout.setTitle(title);
+            updateActionBar();
+            updateUi();
+        }
     }
 
     private void setupViewPager() {
@@ -362,6 +388,12 @@ public class EspMainActivity extends AppCompatActivity {
             sceneFragment = new ScenesFragment();
             pagerAdapter.addFragment(sceneFragment);
         }
+
+        if (BuildConfig.isAutomationSupported) {
+            automationFragment = new AutomationFragment();
+            pagerAdapter.addFragment(automationFragment);
+        }
+
         pagerAdapter.addFragment(new UserProfileFragment());
         viewPager.setAdapter(pagerAdapter);
         viewPager.addOnPageChangeListener(pageChangeListener);
@@ -692,6 +724,51 @@ public class EspMainActivity extends AppCompatActivity {
         alertDialog.show();
     }
 
+    private void askForAutomationName() {
+
+        LayoutInflater inflater = this.getLayoutInflater();
+        final View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
+        final EditText etAutomationName = dialogView.findViewById(R.id.et_attr_value);
+        etAutomationName.setInputType(InputType.TYPE_CLASS_TEXT);
+        etAutomationName.setHint(R.string.hint_automation_name);
+        etAutomationName.setFilters(new InputFilter[]{new InputFilter.LengthFilter(32)});
+        final AlertDialog alertDialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setTitle(R.string.dialog_title_add_name)
+                .setPositiveButton(R.string.btn_ok, null)
+                .setNegativeButton(R.string.btn_cancel, null)
+                .create();
+
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+
+                Button buttonPositive = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_POSITIVE);
+                buttonPositive.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        final String value = etAutomationName.getText().toString();
+                        if (!TextUtils.isEmpty(value)) {
+                            dialog.dismiss();
+                            goToEventDeviceActivity(value);
+                        } else {
+                            etAutomationName.setError(getString(R.string.error_invalid_automation_name));
+                        }
+                    }
+                });
+
+                Button buttonNegative = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_NEGATIVE);
+                buttonNegative.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        dialog.dismiss();
+                    }
+                });
+            }
+        });
+        alertDialog.show();
+    }
+
     private void goToAddScheduleActivity(String scheduleName) {
 
         Intent intent = new Intent(this, ScheduleDetailActivity.class);
@@ -703,6 +780,18 @@ public class EspMainActivity extends AppCompatActivity {
 
         Intent intent = new Intent(this, SceneDetailActivity.class);
         intent.putExtra(AppConstants.KEY_NAME, sceneName);
+        startActivity(intent);
+    }
+
+    private void goToEventDeviceActivity(String name) {
+
+        Automation automation = new Automation();
+        automation.setName(name);
+
+        Intent intent = new Intent(this, EventDeviceActivity.class);
+        intent.putExtra(AppConstants.KEY_AUTOMATION, automation);
+        ArrayList<Device> devices = espApp.getAllDevices();
+        intent.putParcelableArrayListExtra(AppConstants.KEY_DEVICES, devices);
         startActivity(intent);
     }
 

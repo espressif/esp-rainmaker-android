@@ -90,6 +90,8 @@ public class AppConstants {
             + AppConstants.CURRENT_VERSION + "/user/nodes/sharing";
     public static final String URL_USER_NODES_TS = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/nodes/tsdata";
+    public static final String URL_USER_NODE_AUTOMATION = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/user/node_automation";
 
     // UI Types of Device
     public static final String UI_TYPE_TOGGLE = "esp.ui.toggle";
@@ -200,6 +202,8 @@ public class AppConstants {
     public static final String KEY_SCENE = "Scene";
     public static final String KEY_ACTION = "action";
     public static final String KEY_ACTIONS = "actions";
+    public static final String KEY_EVENTS = "events";
+    public static final String KEY_CHECK = "check";
     public static final String KEY_DAYS = "d";
     public static final String KEY_MINUTES = "m";
     public static final String KEY_ENABLED = "enabled";
@@ -270,6 +274,11 @@ public class AppConstants {
     public static final String KEY_SKILL = "skill";
     public static final String KEY_STATUS_LINKED = "LINKED";
     public static final String KEY_RESPONSE = "response";
+    public static final String KEY_AUTOMATION_ID = "automation_id";
+    public static final String KEY_AUTOMATION_NAME = "automation_name";
+    public static final String KEY_AUTOMATION_TRIGGER_ACTIONS = "automation_trigger_actions";
+    public static final String KEY_AUTOMATION = "automation";
+    public static final String KEY_LOAD_AUTOMATION_PAGE = "load_automation";
 
     public static final String KEY_OPERATION = "operation";
     public static final String KEY_OPERATION_ADD = "add";
@@ -303,6 +312,7 @@ public class AppConstants {
     public static final String EVENT_NODE_SHARING_ADD = "rmaker.event.user_node_sharing_add";
     public static final String EVENT_NODE_PARAM_MODIFIED = "rmaker.event.node_params_changed";
     public static final String EVENT_ALERT = "rmaker.event.alert";
+    public static final String EVENT_NODE_AUTOMATION_TRIGGER = "rmaker.event.node_automation_trigger";
 
     // Notification channel IDs
     public static final String CHANNEL_NODE_ONLINE_ID = "notify_node_online_id";
@@ -311,6 +321,7 @@ public class AppConstants {
     public static final String CHANNEL_NODE_REMOVED = "notify_node_removed_id";
     public static final String CHANNEL_ALERT = "notify_alert_id";
     public static final String CHANNEL_NODE_SHARING = "notify_node_sharing_id";
+    public static final String CHANNEL_NODE_AUTOMATION_TRIGGER = "notify_node_automation_trigger";
 
     public static final String ACTION_ACCEPT = "com.espressif.rainmaker.ACTION_ACCEPT";
     public static final String ACTION_DECLINE = "com.espressif.rainmaker.ACTION_DECLINE";

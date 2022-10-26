@@ -17,7 +17,7 @@ package com.espressif.ui.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-public class Action implements Parcelable {
+public class Action implements Parcelable, Comparable {
 
     private String nodeId;
     private Device device;
@@ -68,4 +68,15 @@ public class Action implements Parcelable {
             return new Action[size];
         }
     };
+
+    @Override
+    public int compareTo(Object o) {
+        Action compare = (Action) o;
+        if (compare.nodeId != null && this.nodeId != null && !compare.nodeId.equals(this.nodeId)) {
+            return 1;
+        } else if (compare.device != null && this.device != null && !compare.device.equals(this.device)) {
+            return 1;
+        }
+        return 1;
+    }
 }

@@ -20,7 +20,6 @@ import com.google.gson.JsonObject;
 
 import java.util.HashMap;
 
-import io.reactivex.Observable;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
@@ -206,4 +205,38 @@ public interface ApiInterface {
                                          @Query(AppConstants.KEY_WEEK_START) String weekStart,
                                          @Query(AppConstants.KEY_TIMEZONE) String timezone,
                                          @Query(AppConstants.KEY_START_ID) String startId);
+
+    // Device Automation
+    @POST
+    Call<ResponseBody> addAutomations(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                      @Body JsonObject body);
+
+    @PUT
+    Call<ResponseBody> updateAutomations(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                         @Query(AppConstants.KEY_START_ID) String startId,
+                                         @Query(AppConstants.KEY_NODE_ID) String nodeId,
+                                         @Query(AppConstants.KEY_AUTOMATION_ID) String automationId);
+
+    // GET
+    @GET
+    Call<ResponseBody> getAutomations(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                      @Query(AppConstants.KEY_START_ID) String startId);
+
+    // GET
+    @GET
+    Call<ResponseBody> getAutomationWithId(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                           @Query(AppConstants.KEY_START_ID) String startId,
+                                           @Query(AppConstants.KEY_NODE_ID) String nodeId,
+                                           @Query(AppConstants.KEY_AUTOMATION_ID) String automationId);
+
+    // Update automation
+    @PUT
+    Call<ResponseBody> updateAutomation(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                   @Query(AppConstants.KEY_AUTOMATION_ID) String automationId,
+                                   @Body JsonObject body);
+
+    // DELETE
+    @DELETE
+    Call<ResponseBody> deleteAutomation(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                        @Query(AppConstants.KEY_AUTOMATION_ID) String automationId);
 }
