@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -126,7 +127,7 @@ public class NotificationWorker extends Worker {
                     } else {
                         notificationEvent.setEventDescription(body);
                         EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
-                        sendNotification(title, body, AppConstants.CHANNEL_ALERT);
+                        sendNotification(title, body, AppConstants.CHANNEL_ALERT, NotificationsActivity.class);
                     }
                 }
             }
@@ -134,7 +135,6 @@ public class NotificationWorker extends Worker {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-
 
         return Result.success();
     }
@@ -220,10 +220,10 @@ public class NotificationWorker extends Worker {
         Log.d(TAG, "Connectivity Notification inserted in database");
 
         if (AppConstants.EVENT_NODE_CONNECTED.equals(notificationEvent.getEventType())) {
-            sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ONLINE_ID);
+            sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ONLINE_ID, SplashActivity.class);
             EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_ONLINE));
         } else {
-            sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_OFFLINE_ID);
+            sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_OFFLINE_ID, SplashActivity.class);
             EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_OFFLINE));
         }
     }
@@ -282,7 +282,7 @@ public class NotificationWorker extends Worker {
                 notificationEvent.setNotificationMsg(msgBuilder.toString());
                 EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
                 Log.d(TAG, "Node added Notification inserted in database");
-                sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED);
+                sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED, SplashActivity.class);
                 EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
 
             } else {
@@ -332,7 +332,7 @@ public class NotificationWorker extends Worker {
                         notificationEvent.setNotificationMsg(msgBuilder.toString());
                         EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
                         Log.d(TAG, "Node added Notification inserted in database");
-                        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED);
+                        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED, SplashActivity.class);
                         EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                     }
 
@@ -342,7 +342,7 @@ public class NotificationWorker extends Worker {
                         notificationEvent.setNotificationMsg(msgBuilder.toString());
                         EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
                         Log.d(TAG, "Node added Notification inserted in database");
-                        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED);
+                        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED, SplashActivity.class);
                         EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                     }
                 });
@@ -401,7 +401,7 @@ public class NotificationWorker extends Worker {
         notificationEvent.setNotificationMsg(msgBuilder.toString());
         EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
         Log.d(TAG, "Node removed Notification inserted in database");
-        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_REMOVED);
+        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_REMOVED, SplashActivity.class);
         EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
     }
 
@@ -569,10 +569,18 @@ public class NotificationWorker extends Worker {
 
         Intent activityIntent = new Intent(espApp, NotificationsActivity.class);
         activityIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent contentIntent = PendingIntent.getActivity(espApp,
-                0 /* Request code */,
-                activityIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent contentIntent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            contentIntent = PendingIntent.getActivity(espApp,
+                    0 /* Request code */,
+                    activityIntent,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        } else {
+            contentIntent = PendingIntent.getActivity(espApp,
+                    0 /* Request code */,
+                    activityIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT);
+        }
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
         Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
@@ -596,10 +604,21 @@ public class NotificationWorker extends Worker {
     private void sendSharingRequestNotification(String title, String contentText, String reqId) {
 
         Log.d(TAG, "Display sharing notification with request id : " + reqId);
-        Intent intent = new Intent(espApp, NotificationsActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent contentIntent = PendingIntent.getActivity(espApp, 0 /* Request code */, intent,
-                PendingIntent.FLAG_ONE_SHOT);
+        Intent activityIntent = new Intent(espApp, NotificationsActivity.class);
+        activityIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent contentIntent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            contentIntent = PendingIntent.getActivity(espApp,
+                    0 /* Request code */,
+                    activityIntent,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_ONE_SHOT);
+        } else {
+            contentIntent = PendingIntent.getActivity(espApp,
+                    0 /* Request code */,
+                    activityIntent,
+                    PendingIntent.FLAG_ONE_SHOT);
+        }
+
         int id = notificationId++;
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
@@ -617,27 +636,40 @@ public class NotificationWorker extends Worker {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(contentIntent);
 
-//        Intent acceptIntent = new Intent(espApp, EspBroadcastReceiver.class);
-//        acceptIntent.setAction(AppConstants.ACTION_ACCEPT);
-//        acceptIntent.putExtra(AppConstants.KEY_REQ_ID, reqId);
-//        acceptIntent.putExtra(AppConstants.KEY_ID, id);
-//        PendingIntent acceptPendingIntent =
-//                PendingIntent.getBroadcast(espApp, notificationId++, acceptIntent, PendingIntent.FLAG_ONE_SHOT);
-
         Intent acceptIntent = new Intent(espApp, SplashActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+        acceptIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
                 | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
         acceptIntent.putExtra(AppConstants.KEY_REQ_ID, reqId);
         acceptIntent.putExtra(AppConstants.KEY_ID, id);
-        PendingIntent acceptPendingIntent = PendingIntent.getActivity(espApp, notificationId++ /* Request code */,
-                acceptIntent, PendingIntent.FLAG_ONE_SHOT);
+        PendingIntent acceptPendingIntent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            acceptPendingIntent = PendingIntent.getActivity(espApp,
+                    notificationId++ /* Request code */,
+                    acceptIntent,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_ONE_SHOT);
+        } else {
+            acceptPendingIntent = PendingIntent.getActivity(espApp,
+                    notificationId++ /* Request code */,
+                    acceptIntent,
+                    PendingIntent.FLAG_ONE_SHOT);
+        }
 
         Intent declineIntent = new Intent(espApp, NodeSharingActionReceiver.class);
         declineIntent.setAction(AppConstants.ACTION_DECLINE);
         declineIntent.putExtra(AppConstants.KEY_REQ_ID, reqId);
         declineIntent.putExtra(AppConstants.KEY_ID, id);
-        PendingIntent declinePendingIntent =
-                PendingIntent.getBroadcast(espApp, notificationId++, declineIntent, PendingIntent.FLAG_ONE_SHOT);
+        PendingIntent declinePendingIntent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            declinePendingIntent = PendingIntent.getActivity(espApp,
+                    notificationId++ /* Request code */,
+                    declineIntent,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_ONE_SHOT);
+        } else {
+            declinePendingIntent = PendingIntent.getActivity(espApp,
+                    notificationId++ /* Request code */,
+                    declineIntent,
+                    PendingIntent.FLAG_ONE_SHOT);
+        }
 
         notificationBuilder.addAction(R.drawable.ic_notify_accept, espApp.getString(R.string.btn_accept), acceptPendingIntent);
         notificationBuilder.addAction(R.drawable.ic_notify_decline, espApp.getString(R.string.btn_deny), declinePendingIntent);
@@ -742,48 +774,35 @@ public class NotificationWorker extends Worker {
         notificationEvent.setNotificationMsg(msgBuilder.toString());
         EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
         Log.d(TAG, "Alert Notification inserted in database");
-        sendAlertNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_ALERT);
+        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_ALERT, NotificationsActivity.class);
         // Send event for UI update
         EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
     }
 
-    private void sendAlertNotification(String title, String messageBody, String channelId) {
-
-        Intent activityIntent = new Intent(espApp, NotificationsActivity.class);
-        activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        PendingIntent contentIntent = PendingIntent.getActivity(espApp,
-                0 /* Request code */,
-                activityIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
-
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
-        Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-
-        Notification notification = new NotificationCompat.Builder(espApp, channelId)
-                .setSmallIcon(R.drawable.ic_notify_rainmaker)
-                .setColor(espApp.getColor(R.color.color_esp_logo))
-                .setContentTitle(title)
-                .setContentText(messageBody)
-                .setStyle(new NotificationCompat.BigTextStyle()
-                        .bigText(messageBody))
-                .setContentIntent(contentIntent)
-                .setAutoCancel(true)
-                .setSound(defaultSoundUri)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .build();
-
-        notificationManager.notify(notificationId++, notification);
-    }
-
-    private void sendNotification(String title, String messageBody, String channelId) {
+    private void sendNotification(String title, String messageBody, String channelId, Class activityClass) {
 
         Log.e(TAG, "Message : " + messageBody);
-        Intent activityIntent = new Intent(espApp, SplashActivity.class);
-        activityIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent contentIntent = PendingIntent.getActivity(espApp,
-                0 /* Request code */,
-                activityIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Intent activityIntent = new Intent(espApp, activityClass);
+
+        if (activityClass.equals(SplashActivity.class)) {
+            activityIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        } else if (activityClass.equals(NotificationsActivity.class)) {
+            activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        }
+
+        PendingIntent contentIntent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            contentIntent = PendingIntent.getActivity(espApp,
+                    0 /* Request code */,
+                    activityIntent,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        } else {
+            contentIntent = PendingIntent.getActivity(espApp,
+                    0 /* Request code */,
+                    activityIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT);
+        }
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
         Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);

@@ -38,12 +38,12 @@ localProperties.load(new FileInputStream(rootProject.file("local.properties")))
 
 android {
 
-    compileSdkVersion 30
+    compileSdkVersion 31
 
     defaultConfig {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 23
-        targetSdkVersion 30
+        targetSdkVersion 31
         versionCode 64
         versionName "2.7.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -137,12 +137,7 @@ android {
         }
     }
 
-    buildToolsVersion '29.0.3'
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
+    namespace 'com.espressif.rainmaker'
 }
 
 protobuf {
@@ -193,11 +188,11 @@ dependencies {
     implementation 'info.hoang8f:android-segmented:1.0.6'
 
     // Room dependencies
-    def room_version = "2.3.0"
-    implementation "android.arch.persistence.room:runtime:$room_version"
-    annotationProcessor "android.arch.persistence.room:compiler:$room_version"
+    def room_version = "2.4.3"
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
 
-    def work_version = "2.5.0"
+    def work_version = "2.7.1"
     implementation "androidx.work:work-runtime:$work_version"
 
     // Import the BoM for the Firebase platform
