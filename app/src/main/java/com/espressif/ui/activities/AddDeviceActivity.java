@@ -25,7 +25,6 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
@@ -165,7 +164,16 @@ public class AddDeviceActivity extends AppCompatActivity {
                 openCamera();
             }
         } else if (requestCode == REQUEST_ACCESS_FINE_LOCATION && grantResults.length > 0) {
-            if (grantResults[0] == PackageManager.PERMISSION_DENIED) {
+
+            boolean permissionGranted = true;
+            for (int grantResult : grantResults) {
+                if (grantResult == PackageManager.PERMISSION_DENIED) {
+                    Log.e(TAG, "User has denied permission");
+                    permissionGranted = false;
+                }
+            }
+
+            if (!permissionGranted) {
                 findViewById(R.id.scanner_view).setVisibility(View.GONE);
                 layoutQrCode.setVisibility(View.GONE);
                 layoutPermissionErr.setVisibility(View.VISIBLE);
@@ -246,10 +254,24 @@ public class AddDeviceActivity extends AppCompatActivity {
                 ActivityCompat.requestPermissions(AddDeviceActivity.this, new
                         String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
 
-            } else if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            } else {
 
-                ActivityCompat.requestPermissions(AddDeviceActivity.this, new
-                        String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_ACCESS_FINE_LOCATION);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+
+                    if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                            || ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED
+                            || ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+
+                        ActivityCompat.requestPermissions(AddDeviceActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.BLUETOOTH_SCAN,
+                                Manifest.permission.BLUETOOTH_CONNECT}, REQUEST_ACCESS_FINE_LOCATION);
+                    }
+                } else {
+                    if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(AddDeviceActivity.this, new
+                                String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_ACCESS_FINE_LOCATION);
+                    }
+                }
             }
         }
     };
@@ -311,11 +333,22 @@ public class AddDeviceActivity extends AppCompatActivity {
 
     private void scanQrCode() {
 
-        if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            provisionManager.scanQRCode(codeScanner, qrCodeScanListener);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                    && ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+                    && ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                provisionManager.scanQRCode(codeScanner, qrCodeScanListener);
+            } else {
+                ActivityCompat.requestPermissions(AddDeviceActivity.this, new
+                        String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT}, REQUEST_ACCESS_FINE_LOCATION);
+            }
         } else {
-            ActivityCompat.requestPermissions(AddDeviceActivity.this, new
-                    String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_ACCESS_FINE_LOCATION);
+            if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                provisionManager.scanQRCode(codeScanner, qrCodeScanListener);
+            } else {
+                ActivityCompat.requestPermissions(AddDeviceActivity.this, new
+                        String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_ACCESS_FINE_LOCATION);
+            }
         }
     }
 
