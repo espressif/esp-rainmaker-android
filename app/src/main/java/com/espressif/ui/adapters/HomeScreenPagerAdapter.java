@@ -22,6 +22,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
 
 import com.espressif.rainmaker.R;
+import com.espressif.ui.fragments.AutomationFragment;
 import com.espressif.ui.fragments.DevicesFragment;
 import com.espressif.ui.fragments.ScenesFragment;
 import com.espressif.ui.fragments.SchedulesFragment;
@@ -56,6 +57,8 @@ public class HomeScreenPagerAdapter extends FragmentPagerAdapter {
             return context.getString(R.string.title_activity_schedules);
         } else if (page instanceof ScenesFragment) {
             return context.getString(R.string.title_activity_scenes);
+        } else if (page instanceof AutomationFragment) {
+            return context.getString(R.string.title_activity_automations);
         } else if (page instanceof UserProfileFragment) {
             return context.getString(R.string.tab_settings);
         }
@@ -80,6 +83,9 @@ public class HomeScreenPagerAdapter extends FragmentPagerAdapter {
                 return i;
             } else if (title.equals(context.getString(R.string.title_activity_scenes))
                     && page instanceof ScenesFragment) {
+                return i;
+            } else if (title.equals(context.getString(R.string.title_activity_automations))
+                    && page instanceof AutomationFragment) {
                 return i;
             } else if (title.equals(context.getString(R.string.tab_settings))
                     && page instanceof UserProfileFragment) {

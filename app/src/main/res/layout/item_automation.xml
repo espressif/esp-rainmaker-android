@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    card_view:cardCornerRadius="8dp"
+    card_view:cardElevation="1dp"
+    card_view:cardUseCompatPadding="true">
+
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <RelativeLayout
+            android:id="@+id/rl_automation_info"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="@dimen/margin_16">
+
+            <RelativeLayout
+                android:id="@+id/rl_automation_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <RelativeLayout
+                    android:id="@+id/rl_automation_enable"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginEnd="@dimen/margin_8">
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/automation_enable_switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:padding="@dimen/margin_10"
+                        android:theme="@style/AppTheme.PurpleAccent" />
+
+                    <androidx.core.widget.ContentLoadingProgressBar
+                        android:id="@+id/auto_progress_indicator"
+                        style="?android:attr/progressBarStyle"
+                        android:layout_width="25dp"
+                        android:layout_height="25dp"
+                        android:layout_centerVertical="true" />
+                </RelativeLayout>
+
+                <TextView
+                    android:id="@+id/tv_automation_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:layout_toStartOf="@id/rl_automation_enable"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Automation Name"
+                    android:textColor="@color/colorPrimaryDark"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+            </RelativeLayout>
+
+            <TextView
+                android:id="@+id/tv_event"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/rl_automation_name"
+                android:alpha="0.9"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="If: Light: Power:true"
+                android:textColor="@color/colorPrimaryDark"
+                android:textSize="13sp" />
+
+            <View
+                android:id="@+id/divider"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_below="@id/tv_event"
+                android:layout_marginTop="@dimen/margin_8"
+                android:layout_marginEnd="@dimen/margin_16"
+                android:layout_marginBottom="@dimen/margin_8"
+                android:alpha="0.3"
+                android:background="@color/colorPrimaryDark" />
+
+            <TextView
+                android:id="@+id/tv_action_devices"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/divider"
+                android:layout_marginBottom="@dimen/margin_10"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:paddingEnd="@dimen/margin_10"
+                android:text="Set: Light: Saturation:100,Power:true,Hue:180,Brightness:100"
+                android:textColor="@color/colorPrimaryDark"
+                android:textSize="13sp" />
+
+        </RelativeLayout>
+
+    </androidx.appcompat.widget.LinearLayoutCompat>
+
+</com.google.android.material.card.MaterialCardView>

@@ -119,6 +119,22 @@ Sharing can be enabled/disabled by setting true/false value of `isNodeSharingSup
 Sharing feature is optional but enabled by default.
 Add `isNodeSharingSupported=false` in `local.properties` file to disable this feature.
 
+### Device Automation
+
+Device Automation is a set of actions that will be triggered based on the completion of certain events. For example, the user can set an event as the Temperature sensor equals 35 degrees celsius. Then based on this event user can trigger different actions like Switching on AC or Setting the AC temperature to 20 degrees celsius or a combination of both.
+
+Users will be allowed to perform different automation operations in the app as mentioned below:
+
+1. Adding new automation.
+2. Updating existing automation.
+3. Enabling/disabling automation triggers.
+4. Deleting automation.
+5. Receiving notifications related to triggered automation.
+
+Device automation can be enabled/disabled by setting true/false value of `isAutomationSupported` field in `local.properties`.
+Device automation is optional but enabled by default.
+Add `isAutomationSupported=false` in `local.properties` file to disable this feature.
+
 ### Time Series
 
 - Time series allows a user to see historical values of parameters plotted as a bar or line chart.

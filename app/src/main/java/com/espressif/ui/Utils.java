@@ -24,16 +24,19 @@ import androidx.appcompat.app.AlertDialog;
 import com.espressif.AppConstants;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Action;
+import com.espressif.ui.models.Device;
+import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Schedule;
+import com.google.gson.JsonObject;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-
 import java.util.Calendar;
+import java.util.Iterator;
 import java.util.TimeZone;
 
 public class Utils {
@@ -166,5 +169,168 @@ public class Utils {
             e.printStackTrace();
         }
         return deviceNames.toString();
+    }
+
+    public static ArrayList<Param> getEventDeviceParams(ArrayList<Param> allParams) {
+        Iterator itr = allParams.iterator();
+        while (itr.hasNext()) {
+            Param p = (Param) itr.next();
+
+            if (!p.isDynamicParam()) {
+                itr.remove();
+            } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
+                itr.remove();
+            } else if (p.getUiType() != null && p.getUiType().equals(AppConstants.UI_TYPE_HIDDEN)) {
+                itr.remove();
+            }
+        }
+        return allParams;
+    }
+
+    public static ArrayList<Param> getWritableParams(ArrayList<Param> allParams) {
+        Iterator itr = allParams.iterator();
+        while (itr.hasNext()) {
+            Param p = (Param) itr.next();
+
+            if (!p.isDynamicParam()) {
+                itr.remove();
+            } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
+                itr.remove();
+            } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
+                itr.remove();
+            } else if (p.getUiType() != null && p.getUiType().equals(AppConstants.UI_TYPE_HIDDEN)) {
+                itr.remove();
+            }
+        }
+        return allParams;
+    }
+
+    public static JsonObject getParamJson(Device device) {
+
+        JsonObject paramJson = new JsonObject();
+        ArrayList<Param> params = device.getParams();
+
+        for (int j = 0; j < params.size(); j++) {
+
+            Param param = params.get(j);
+
+            if (param.isSelected()) {
+
+                String dataType = param.getDataType();
+
+                if (AppConstants.UI_TYPE_SLIDER.equalsIgnoreCase(param.getUiType())) {
+
+                    if (dataType.equalsIgnoreCase("int")
+                            || dataType.equalsIgnoreCase("integer")) {
+
+                        int max = param.getMaxBounds();
+                        int min = param.getMinBounds();
+
+                        if ((min < max)) {
+                            int value = (int) param.getValue();
+                            paramJson.addProperty(param.getName(), value);
+                        } else {
+
+                            int value = Integer.parseInt(param.getLabelValue());
+                            paramJson.addProperty(param.getName(), value);
+                        }
+                    } else if (dataType.equalsIgnoreCase("float")
+                            || dataType.equalsIgnoreCase("double")) {
+
+                        int max = param.getMaxBounds();
+                        int min = param.getMinBounds();
+
+                        if ((min < max)) {
+                            paramJson.addProperty(param.getName(), param.getValue());
+                        } else {
+
+                            float value = Float.parseFloat(param.getLabelValue());
+                            paramJson.addProperty(param.getName(), value);
+                        }
+                    }
+                } else if (AppConstants.UI_TYPE_TRIGGER.equalsIgnoreCase(param.getUiType())
+                        && dataType.equalsIgnoreCase("bool")
+                        || dataType.equalsIgnoreCase("boolean")) {
+
+                    paramJson.addProperty(param.getName(), true);
+
+                } else {
+                    if (dataType.equalsIgnoreCase("bool")
+                            || dataType.equalsIgnoreCase("boolean")) {
+
+                        paramJson.addProperty(param.getName(), param.getSwitchStatus());
+
+                    } else if (dataType.equalsIgnoreCase("int")
+                            || dataType.equalsIgnoreCase("integer")) {
+
+                        int value = (int) param.getValue();
+                        paramJson.addProperty(param.getName(), value);
+
+                    } else if (dataType.equalsIgnoreCase("float")
+                            || dataType.equalsIgnoreCase("double")) {
+
+                        paramJson.addProperty(param.getName(), param.getValue());
+
+                    } else if (dataType.equalsIgnoreCase("string")) {
+
+                        paramJson.addProperty(param.getName(), param.getLabelValue());
+                    }
+                }
+            }
+        }
+
+        return paramJson;
+    }
+
+    public static String getEventParamString(ArrayList<Param> params, String condition) {
+
+        StringBuilder paramText = new StringBuilder();
+
+        for (int j = 0; j < params.size(); j++) {
+
+            Param param = params.get(j);
+            String dataType = param.getDataType();
+
+            if (param.isSelected()) {
+                paramText.append(param.getName());
+
+                if (dataType.equalsIgnoreCase("bool") || dataType.equalsIgnoreCase("boolean")) {
+                    paramText.append(":");
+                } else if (!TextUtils.isEmpty(condition) && condition.equals("==")) {
+                    paramText.append(":");
+                } else {
+                    paramText.append(condition);
+                }
+                paramText.append(param.getLabelValue());
+            }
+        }
+        return paramText.toString();
+    }
+
+    public static String getActionParamsString(ArrayList<Param> params) {
+
+        ArrayList<Param> paramList = new ArrayList<>(params);
+        StringBuilder paramText = new StringBuilder();
+
+        Iterator itr = paramList.iterator();
+        while (itr.hasNext()) {
+            Param p = (Param) itr.next();
+            if (!p.isSelected()) {
+                itr.remove();
+            }
+        }
+
+        for (int j = 0; j < paramList.size(); j++) {
+
+            Param param = paramList.get(j);
+            paramText.append(param.getName());
+            paramText.append(":");
+            paramText.append(param.getLabelValue());
+
+            if (j != (paramList.size() - 1)) {
+                paramText.append(",");
+            }
+        }
+        return paramText.toString();
     }
 }
