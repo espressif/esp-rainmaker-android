@@ -17,9 +17,11 @@ package com.espressif.ui.activities;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -264,7 +266,7 @@ public class AutomationDetailActivity extends AppCompatActivity {
         final View dialogView = inflater.inflate(R.layout.dialog_attribute, null);
         final EditText etAutomationName = dialogView.findViewById(R.id.et_attr_value);
         etAutomationName.setInputType(InputType.TYPE_CLASS_TEXT);
-        etAutomationName.setFilters(new InputFilter[]{new InputFilter.LengthFilter(32)});
+        etAutomationName.setFilters(new InputFilter[]{new InputFilter.LengthFilter(256)});
         final AlertDialog alertDialog = new AlertDialog.Builder(this)
                 .setView(dialogView)
                 .setTitle(R.string.dialog_title_add_name)
@@ -278,6 +280,13 @@ public class AutomationDetailActivity extends AppCompatActivity {
             public void onShow(DialogInterface dialog) {
 
                 Button buttonPositive = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_POSITIVE);
+
+                if (TextUtils.isEmpty(automationName) || automationName.length() < 2) {
+                    buttonPositive.setEnabled(false);
+                } else {
+                    buttonPositive.setEnabled(true);
+                }
+
                 buttonPositive.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
@@ -302,6 +311,27 @@ public class AutomationDetailActivity extends AppCompatActivity {
             }
         });
         alertDialog.show();
+
+        etAutomationName.addTextChangedListener(new TextWatcher() {
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+                if (TextUtils.isEmpty(s) || s.length() < 2) {
+                    alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+                } else {
+                    alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+                }
+            }
+        });
     }
 
     private void confirmForRemoveAutomation() {

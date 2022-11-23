@@ -175,6 +175,7 @@ public class Utils {
         Iterator itr = allParams.iterator();
         while (itr.hasNext()) {
             Param p = (Param) itr.next();
+            p.setSelected(false);
 
             if (!p.isDynamicParam()) {
                 itr.remove();

@@ -99,7 +99,7 @@
     <string name="error_remove_sharing_req">Failed to remove sharing request</string>
     <string name="error_update_timezone">Failed to update timezone</string>
     <string name="error_camera_permission">Camera permission is not given. App will not be able to scan QR code to add device.</string>
-    <string name="error_location_permission">Location permission is not given. It will be require to add BLE or SoftAP devices.</string>
+    <string name="error_location_permission">Location permission is not given. It will be required to add BLE or SoftAP devices.</string>
     <string name="error_automation_create">Failed to create automation</string>
     <string name="error_automation_update">Failed to update automation</string>
     <string name="error_automation_remove">Failed to remove automation</string>

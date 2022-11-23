@@ -82,10 +82,11 @@ public class ParamSelectionFragment extends BottomSheetDialogFragment implements
     @Override
     public void onEventSelected(Device device, Param selectedParam, String condition) {
 
-        if (automation != null) {
-            automation.setEventDevice(eventDevice);
-            automation.setCondition(condition);
+        if (automation == null) {
+            automation = new Automation();
         }
+        automation.setEventDevice(eventDevice);
+        automation.setCondition(condition);
         eventSelectionListener.onEventSelected(eventDevice, selectedParam, condition);
         dismiss();
     }

@@ -416,6 +416,8 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             if (((EspDeviceActivity) context).isNodeOnline()) {
 
                 paramViewHolder.paletteBar.setEnabled(true);
+                paramViewHolder.tvMinHue.setAlpha(1f);
+                paramViewHolder.tvMaxHue.setAlpha(1f);
                 paramViewHolder.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
                     @Override
                     public void onColorSelected(int colorInt) {
@@ -447,6 +449,8 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 });
             } else {
                 paramViewHolder.paletteBar.setEnabled(false);
+                paramViewHolder.tvMinHue.setAlpha(0.4f);
+                paramViewHolder.tvMaxHue.setAlpha(0.4f);
             }
         }
     }

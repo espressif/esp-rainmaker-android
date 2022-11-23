@@ -16,9 +16,11 @@ package com.espressif.ui.fragments;
 
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -87,6 +89,18 @@ public class ForgotPasswordFragment extends Fragment {
 
         txtResetPasswordBtn.setText(R.string.btn_reset_password);
         btnResetPassword.setOnClickListener(resetPasswordBtnClickListener);
+
+        etEmail.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+
+                if (actionId == EditorInfo.IME_ACTION_GO) {
+                    resetPassword();
+                }
+                return false;
+            }
+        });
     }
 
     private void resetPassword() {

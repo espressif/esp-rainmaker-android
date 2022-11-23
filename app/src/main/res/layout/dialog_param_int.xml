@@ -80,7 +80,7 @@
                 android:textStyle="bold" />
 
             <RadioButton
-                android:id="@+id/radio_btn_1y"
+                android:id="@+id/radio_btn_lesser"
                 style="@style/RadioButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

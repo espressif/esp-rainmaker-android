@@ -31,12 +31,14 @@ import com.espressif.AppConstants;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.user_module.ForgotPasswordActivity;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 public class ResetPasswordFragment extends Fragment {
 
     private TextView tvResetPasswordMsg;
-    private EditText etPassword;
-    private EditText etConfirmPassword;
+    private TextInputEditText etPassword, etConfirmPassword;
+    private TextInputLayout layoutPassword, layoutCnfPassword;
     private EditText etVerificationCode;
     private MaterialCardView btnSetPassword;
     private TextView txtSetPasswordBtn;
@@ -82,6 +84,8 @@ public class ResetPasswordFragment extends Fragment {
         etPassword = view.findViewById(R.id.et_new_password);
         etConfirmPassword = view.findViewById(R.id.et_confirm_new_password);
         etVerificationCode = view.findViewById(R.id.et_verification_code);
+        layoutPassword = view.findViewById(R.id.layout_new_password);
+        layoutCnfPassword = view.findViewById(R.id.layout_confirm_new_password);
         btnSetPassword = view.findViewById(R.id.btn_set_password);
         txtSetPasswordBtn = view.findViewById(R.id.text_btn);
         arrowImage = view.findViewById(R.id.iv_arrow);
@@ -101,23 +105,26 @@ public class ResetPasswordFragment extends Fragment {
 
     private void getCode() {
 
+        layoutPassword.setError(null);
+        layoutCnfPassword.setError(null);
+
         String newPassword = etPassword.getText().toString();
         if (TextUtils.isEmpty(newPassword)) {
 
-            etPassword.setError(getString(R.string.error_password_empty));
+            layoutPassword.setError(getString(R.string.error_password_empty));
             return;
         }
 
         String newConfirmPassword = etConfirmPassword.getText().toString();
         if (TextUtils.isEmpty(newConfirmPassword)) {
 
-            etConfirmPassword.setError(getString(R.string.error_confirm_password_empty));
+            layoutCnfPassword.setError(getString(R.string.error_confirm_password_empty));
             return;
         }
 
         if (!newPassword.equals(newConfirmPassword)) {
 
-            etConfirmPassword.setError(getString(R.string.error_password_not_matched));
+            layoutCnfPassword.setError(getString(R.string.error_password_not_matched));
             return;
         }
 

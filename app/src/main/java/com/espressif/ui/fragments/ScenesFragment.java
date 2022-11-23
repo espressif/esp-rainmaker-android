@@ -220,10 +220,9 @@ public class ScenesFragment extends Fragment {
             for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
 
                 EspNode node = entry.getValue();
-                ArrayList<Service> services = node.getServices();
-
                 if (node != null) {
 
+                    ArrayList<Service> services = node.getServices();
                     for (int i = 0; i < services.size(); i++) {
 
                         Service s = services.get(i);
