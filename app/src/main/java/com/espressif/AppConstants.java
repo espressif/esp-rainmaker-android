@@ -120,6 +120,7 @@ public class AppConstants {
     public static final String SERVICE_TYPE_SCENES = "esp.service.scenes";
     public static final String SERVICE_TYPE_TIME = "esp.service.time";
     public static final String SERVICE_TYPE_LOCAL_CONTROL = "esp.service.local_control";
+    public static final String SERVICE_TYPE_SYSTEM = "esp.service.system";
 
     // Param Types
     public static final String PARAM_TYPE_NAME = "esp.param.name";
@@ -132,6 +133,9 @@ public class AppConstants {
     public static final String PARAM_TYPE_TZ_POSIX = "esp.param.tz_posix";
     public static final String PARAM_TYPE_LOCAL_CONTROL_POP = "esp.param.local_control_pop";
     public static final String PARAM_TYPE_LOCAL_CONTROL_TYPE = "esp.param.local_control_type";
+    public static final String PARAM_TYPE_REBOOT = "esp.param.reboot";
+    public static final String PARAM_TYPE_FACTORY_RESET = "esp.param.factory-reset";
+    public static final String PARAM_TYPE_WIFI_RESET = "esp.param.wifi-reset";
 
     // Keys used to pass data between activities and to store data in SharedPreference.
     public static final String KEY_DEVICE_NAME_PREFIX = "device_prefix";
@@ -279,6 +283,7 @@ public class AppConstants {
     public static final String KEY_AUTOMATION_TRIGGER_ACTIONS = "automation_trigger_actions";
     public static final String KEY_AUTOMATION = "automation";
     public static final String KEY_LOAD_AUTOMATION_PAGE = "load_automation";
+    public static final String KEY_SYSTEM = "System";
 
     public static final String KEY_OPERATION = "operation";
     public static final String KEY_OPERATION_ADD = "add";

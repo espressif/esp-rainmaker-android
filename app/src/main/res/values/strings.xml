@@ -306,6 +306,8 @@
     <string name="node_shared_with">Shared with</string>
     <string name="node_shared_by">Shared by</string>
     <string name="pending_requests">Pending for acceptance</string>
+    <string name="system_services">System Services</string>
+    <string name="add_member">Add Member</string>
 
     <!-- Instruction Strings -->
     <string name="pop_instruction">Enter your proof of possession PIN for</string>
@@ -461,6 +463,10 @@
     <string name="notify_node_disconnected">Some device(s) went offline. Tap to view.</string>
     <string name="notify_node_alert">Alert received from a device. Tap to view.</string>
     <string name="notify_node_automation_trigger">Node automation triggered for some device(s).</string>
+
+    <string name="alert_factory_reset">Doing a factory reset on your device will erase all the data including Wi-Fi credentials from your device. You will no longer be able to control the device from the app. You need to provision the device again in order to control it. Do you wish to proceed?</string>
+    <string name="alert_reboot">Device will be rebooted. Please wait sometime after reset. Do you wish to proceed?</string>
+    <string name="alert_wifi_reset">Doing a Wi-Fi reset on your device will erase the Wi-Fi credentials from your device. You will no longer be able to control the device from the app. You need to provision the device again in order to control it. Do you wish to proceed?</string>
 
     <string-array name="days">
         <item>Sun</item>

@@ -45,7 +45,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 32
         versionCode 73
-        versionName "2.8.1 - ${getGitHash()}"
+        versionName "2.9.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""

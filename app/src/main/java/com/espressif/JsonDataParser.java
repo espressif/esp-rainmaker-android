@@ -378,6 +378,7 @@ public class JsonDataParser {
         JSONObject sceneJson = paramsJson.optJSONObject(AppConstants.KEY_SCENES);
         JSONObject timeJson = paramsJson.optJSONObject(AppConstants.KEY_TIME);
         JSONObject localControlJson = paramsJson.optJSONObject(AppConstants.KEY_LOCAL_CONTROL);
+        JSONObject systemServiceJson = paramsJson.optJSONObject(AppConstants.KEY_SYSTEM);
         int scheduleCnt = 0, sceneCnt = 0;
 
         if (devices != null) {
@@ -723,11 +724,13 @@ public class JsonDataParser {
         }
         node.setSceneCurrentCnt(sceneCnt);
 
-        // Timezone
-        if (timeJson != null && services != null) {
+        if (services != null) {
+
             for (int serviceIdx = 0; serviceIdx < services.size(); serviceIdx++) {
                 Service service = services.get(serviceIdx);
-                if (AppConstants.SERVICE_TYPE_TIME.equals(service.getType())) {
+
+                if (AppConstants.SERVICE_TYPE_TIME.equals(service.getType()) && timeJson != null) {
+                    // Timezone service
                     ArrayList<Param> timeParams = service.getParams();
                     if (timeParams != null) {
                         for (int paramIdx = 0; paramIdx < timeParams.size(); paramIdx++) {
@@ -740,17 +743,8 @@ public class JsonDataParser {
                             }
                         }
                     }
-                }
-            }
-        } else {
-            Log.e(TAG, "Time JSON is not available");
-        }
-
-        // Local control
-        if (localControlJson != null && services != null) {
-            for (int serviceIdx = 0; serviceIdx < services.size(); serviceIdx++) {
-                Service service = services.get(serviceIdx);
-                if (AppConstants.SERVICE_TYPE_LOCAL_CONTROL.equals(service.getType())) {
+                } else if (AppConstants.SERVICE_TYPE_LOCAL_CONTROL.equals(service.getType()) && localControlJson != null) {
+                    // Local control service
                     ArrayList<Param> localParams = service.getParams();
                     if (localParams != null) {
                         for (int paramIdx = 0; paramIdx < localParams.size(); paramIdx++) {
@@ -766,10 +760,29 @@ public class JsonDataParser {
                             }
                         }
                     }
+                } else if (AppConstants.SERVICE_TYPE_SYSTEM.equals(service.getType()) && systemServiceJson != null) {
+                    // System service
+                    ArrayList<Param> localParams = service.getParams();
+                    if (localParams != null) {
+                        for (int paramIdx = 0; paramIdx < localParams.size(); paramIdx++) {
+                            Param localParam = localParams.get(paramIdx);
+                            String dataType = localParam.getDataType();
+                            if (!TextUtils.isEmpty(dataType)) {
+
+                                if (dataType.equalsIgnoreCase("bool") || dataType.equalsIgnoreCase("boolean")) {
+                                    boolean value = systemServiceJson.optBoolean(localParam.getName());
+                                    localParam.setSwitchStatus(value);
+                                    if (value) {
+                                        localParam.setLabelValue("true");
+                                    } else {
+                                        localParam.setLabelValue("false");
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        } else {
-            Log.e(TAG, "Local control JSON is not available");
         }
     }
 }
