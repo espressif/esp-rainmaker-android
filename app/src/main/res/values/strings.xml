@@ -37,6 +37,9 @@
     <string name="progress_add_automation">Adding Automation...</string>
     <string name="progress_get_automation">Getting automation...</string>
     <string name="progress_update">Update in progress...</string>
+    <string name="progress_check_update">Checking for update...</string>
+    <string name="progress_check_fw_update_status">Checking firmware update status...</string>
+    <string name="progress_push_fw_update">Pushing OTA update...</string>
 
     <!--Error Messages-->
     <string name="error_title">Error!</string>
@@ -104,6 +107,11 @@
     <string name="error_automation_update">Failed to update automation</string>
     <string name="error_automation_remove">Failed to remove automation</string>
     <string name="error_automation_name_empty">Automation name cannot be empty</string>
+    <string name="error_check_update">Failed to check updates.</string>
+    <string name="error_fw_update">Failed to push OTA update.</string>
+    <string name="error_device_connection">Check your connections and please try again after some time.</string>
+    <string name="error_fw_update_rejected">OTA update rejected.</string>
+    <string name="error_fw_update_failed">OTA update failed.</string>
 
     <string name="title_activity_esp_device">Device</string>
 
@@ -227,6 +235,8 @@
     <string name="btn_equal_sign">=</string>
     <string name="btn_change_event">Change Event</string>
     <string name="btn_change_actions">Change Actions</string>
+    <string name="btn_check_update">Check firmware update</string>
+    <string name="btn_check_again">Check Again</string>
 
     <!--Screen titles-->
     <string name="title_activity_devices">Devices</string>
@@ -265,6 +275,7 @@
     <string name="title_activity_about">About</string>
     <string name="title_activity_delete_user">Delete Account</string>
     <string name="title_activity_amazon_alexa">Amazon Alexa</string>
+    <string name="title_activity_fw_update">Firmware Update</string>
 
     <!--Dialog texts-->
     <string name="dialog_title_login_failed">Sign-in failed</string>
@@ -296,6 +307,8 @@
     <string name="dialog_title_unlink_skill">Disable Skill</string>
     <string name="dialog_msg_unlink_skill">Do you want to unlink your account?</string>
     <string name="dialog_title_error">Error!!</string>
+    <string name="dialog_msg_proceed_confirmation">Do you want to proceed?</string>
+    <string name="dialog_msg_device_offline">Device is offline. Please connect your device to network and try again.</string>
 
     <!--Node Details-->
     <string name="node_id">Node Id</string>
@@ -308,6 +321,7 @@
     <string name="pending_requests">Pending for acceptance</string>
     <string name="system_services">System Services</string>
     <string name="add_member">Add Member</string>
+    <string name="node_fw_update">Firmware update</string>
 
     <!-- Instruction Strings -->
     <string name="pop_instruction">Enter your proof of possession PIN for</string>
@@ -411,6 +425,12 @@
     <string name="ts_not_supported">Not supported for this duration</string>
     <string name="no_internet_connection">No internet connection</string>
     <string name="choose_parameter">Choose Parameter</string>
+    <string name="fw_update_available">A new firmware version is available for update.</string>
+    <string name="current_version">Current version</string>
+    <string name="available_version">Available version</string>
+    <string name="fw_up_to_date">Firmware is already up to date.</string>
+    <string name="fw_update_success">Firmware update is successful.</string>
+    <string name="fw_update_check">Click below to check for firmware update.</string>
 
     <string name="linked_with_alexa">Already linked with Amazon Alexa</string>
     <string name="alexa_link_str">You can now control your Smart Home Devices via Alexa enabled speakers using Voice commands.</string>

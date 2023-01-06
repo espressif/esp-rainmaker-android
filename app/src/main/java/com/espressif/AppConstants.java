@@ -92,6 +92,10 @@ public class AppConstants {
             + AppConstants.CURRENT_VERSION + "/user/nodes/tsdata";
     public static final String URL_USER_NODE_AUTOMATION = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/node_automation";
+    public static final String URL_NODE_OTA_UPDATE = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/user/nodes/ota_update";
+    public static final String URL_NODE_OTA_STATUS = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/user/nodes/ota_status";
 
     // UI Types of Device
     public static final String UI_TYPE_TOGGLE = "esp.ui.toggle";
@@ -171,6 +175,9 @@ public class AppConstants {
     public static final String KEY_NUM_INTERVALS = "num_intervals";
     public static final String KEY_NUM_RECORDS = "num_records";
     public static final String KEY_TIMEZONE = "timezone";
+    public static final String KEY_OTA_JOB_ID = "ota_job_id";
+    public static final String KEY_OTA_DETAILS = "ota_details";
+    public static final String KEY_OTA_AVAILABLE = "ota_available";
 
     // Keys used in JSON responses and used to pass data between activities.
     public static final String KEY_NAME = "name";
@@ -350,4 +357,13 @@ public class AppConstants {
     public static final int ACTION_SELECTED_NONE = 0;
     public static final int ACTION_SELECTED_PARTIAL = 1;
     public static final int ACTION_SELECTED_ALL = 2;
+
+    public static final String OTA_STATUS_TRIGGERED = "triggered";
+    public static final String OTA_STATUS_IN_PROGRESS = "in-progress";
+    public static final String OTA_STATUS_STARTED = "started";
+    public static final String OTA_STATUS_COMPLETED = "completed";
+    public static final String OTA_STATUS_SUCCESS = "success";
+    public static final String OTA_STATUS_REJECTED = "rejected";
+    public static final String OTA_STATUS_FAILED = "failed";
+    public static final String OTA_STATUS_UNKNOWN = "unknown";
 }

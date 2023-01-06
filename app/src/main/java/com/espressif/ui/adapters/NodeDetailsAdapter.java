@@ -18,6 +18,7 @@ import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -42,6 +43,7 @@ import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.activities.FwUpdateActivity;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Service;
@@ -111,6 +113,35 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
                     ClipData clip = ClipData.newPlainText(AppConstants.KEY_NODE_ID, nodeInfoValueList.get(nodeDetailVh.getAdapterPosition()));
                     clipboard.setPrimaryClip(clip);
                     Toast.makeText(context, R.string.text_copied, Toast.LENGTH_SHORT).show();
+                }
+            });
+
+        } else if (nodeInfoLabel.equals(context.getString(R.string.node_fw_update))) {
+
+            nodeDetailVh.rvSharedUsers.setVisibility(View.GONE);
+            nodeDetailVh.dropDownTimezone.setVisibility(View.GONE);
+            nodeDetailVh.tvNodeInfoValue.setVisibility(View.VISIBLE);
+            nodeDetailVh.ivCopy.setImageResource(R.drawable.ic_side_arrow);
+            nodeDetailVh.ivCopy.setVisibility(View.VISIBLE);
+            nodeDetailVh.tvNodeInfoValue.setText(nodeInfoValueList.get(position));
+
+            nodeDetailVh.tvNodeInfoValue.setOnClickListener(new View.OnClickListener() {
+
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent(context, FwUpdateActivity.class);
+                    intent.putExtra(AppConstants.KEY_NODE_ID, node.getNodeId());
+                    context.startActivity(intent);
+                }
+            });
+
+            nodeDetailVh.ivCopy.setOnClickListener(new View.OnClickListener() {
+
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent(context, FwUpdateActivity.class);
+                    intent.putExtra(AppConstants.KEY_NODE_ID, node.getNodeId());
+                    context.startActivity(intent);
                 }
             });
 
@@ -333,6 +364,7 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
             nodeDetailVh.tvNodeInfoValue.setVisibility(View.VISIBLE);
             nodeDetailVh.ivCopy.setVisibility(View.GONE);
             nodeDetailVh.tvNodeInfoValue.setText(nodeInfoValueList.get(position));
+            nodeDetailVh.tvNodeInfoValue.setOnClickListener(null);
         }
     }
 

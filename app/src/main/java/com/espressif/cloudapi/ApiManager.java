@@ -33,6 +33,7 @@ import com.espressif.ui.models.Action;
 import com.espressif.ui.models.Automation;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
+import com.espressif.ui.models.EspOtaUpdate;
 import com.espressif.ui.models.Group;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Scene;
@@ -3476,6 +3477,156 @@ public class ApiManager {
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
                 listener.onNetworkFailure(new RuntimeException("Failed to delete automation"));
+            }
+        });
+    }
+
+    public void checkFwUpdate(String nodeId, ApiResponseListener listener) {
+
+        Log.d(TAG, "Check OTA update for node id : " + nodeId);
+
+        apiInterface.checkFwUpdate(AppConstants.URL_NODE_OTA_UPDATE, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Check OTA update, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.d(TAG, "Response : " + jsonResponse);
+
+                        JSONObject jsonObject = new JSONObject(jsonResponse);
+                        EspOtaUpdate espOtaUpdate = new EspOtaUpdate(nodeId);
+                        espOtaUpdate.setOtaAvailable(jsonObject.optBoolean(AppConstants.KEY_OTA_AVAILABLE, false));
+                        espOtaUpdate.setStatus(jsonObject.optString(AppConstants.KEY_STATUS));
+                        espOtaUpdate.setOtaJobID(jsonObject.optString(AppConstants.KEY_OTA_JOB_ID));
+                        espOtaUpdate.setOtaStatusDescription(jsonObject.optString(AppConstants.KEY_DESCRIPTION));
+                        espOtaUpdate.setFwVersion(jsonObject.optString(AppConstants.KEY_FW_VERSION));
+                        espOtaUpdate.setFileSize(jsonObject.optInt("file_size", 0));
+                        espApp.otaUpdateInfo = espOtaUpdate;
+                        Bundle data = new Bundle();
+                        data.putParcelable(AppConstants.KEY_OTA_DETAILS, espOtaUpdate);
+                        listener.onSuccess(data);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to check OTA update");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to check OTA update"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to check OTA update"));
+            }
+        });
+    }
+
+    public void getFwUpdateStatus(String nodeId, String otaJobId, ApiResponseListener listener) {
+
+        Log.d(TAG, "Get OTA update status for node id : " + nodeId);
+
+        apiInterface.getFwUpdateStatus(AppConstants.URL_NODE_OTA_STATUS, accessToken, nodeId, otaJobId).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Get OTA update status, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.d(TAG, "Response : " + jsonResponse);
+
+                        JSONObject jsonObject = new JSONObject(jsonResponse);
+                        EspOtaUpdate espOtaUpdate;
+                        if (espApp.otaUpdateInfo != null && nodeId.equals(espApp.otaUpdateInfo.getNodeId())) {
+                            espOtaUpdate = espApp.otaUpdateInfo;
+                        } else {
+                            espOtaUpdate = new EspOtaUpdate(nodeId);
+                        }
+                        espOtaUpdate.setStatus(jsonObject.optString(AppConstants.KEY_STATUS));
+                        espOtaUpdate.setAdditionalInfo(jsonObject.optString("additional_info"));
+                        espOtaUpdate.setTimestamp(jsonObject.optLong(AppConstants.KEY_TIMESTAMP));
+                        espApp.otaUpdateInfo = espOtaUpdate;
+                        Bundle data = new Bundle();
+                        data.putParcelable(AppConstants.KEY_OTA_DETAILS, espOtaUpdate);
+                        listener.onSuccess(data);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to get OTA update status");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to get OTA update status"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to get OTA update status"));
+            }
+        });
+    }
+
+    public void pushFwUpdate(String nodeId, String otaJobId, ApiResponseListener listener) {
+
+        Log.d(TAG, "Push firmware update : " + nodeId);
+
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_NODE_ID, nodeId);
+        body.addProperty(AppConstants.KEY_OTA_JOB_ID, otaJobId);
+
+        apiInterface.pushFwUpdate(AppConstants.URL_NODE_OTA_UPDATE, accessToken, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Push firmware update, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.d(TAG, "Response : " + jsonResponse);
+
+                        JSONObject jsonObject = new JSONObject(jsonResponse);
+                        EspOtaUpdate espOtaUpdate;
+                        if (espApp.otaUpdateInfo != null && nodeId.equals(espApp.otaUpdateInfo.getNodeId())) {
+                            espOtaUpdate = espApp.otaUpdateInfo;
+                        } else {
+                            espOtaUpdate = new EspOtaUpdate(nodeId);
+                        }
+                        espOtaUpdate.setStatus(jsonObject.optString(AppConstants.KEY_STATUS));
+                        espOtaUpdate.setOtaStatusDescription(jsonObject.optString(AppConstants.KEY_DESCRIPTION));
+                        Bundle data = new Bundle();
+                        data.putParcelable(AppConstants.KEY_OTA_DETAILS, espOtaUpdate);
+                        listener.onSuccess(data);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to push OTA update");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to push OTA update"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to push OTA update"));
             }
         });
     }
