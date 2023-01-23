@@ -506,11 +506,14 @@ public class BLEProvisionLanding extends AppCompatActivity {
         @Override
         public void onPeripheralFound(BluetoothDevice device, ScanResult scanResult) {
 
-            if (ActivityCompat.checkSelfPermission(BLEProvisionLanding.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                Log.e(TAG, "Permissions are not granted.");
-                return;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (ActivityCompat.checkSelfPermission(BLEProvisionLanding.this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "====== onPeripheralFound ===== " + device.getName());
+                }
+            } else {
+                Log.d(TAG, "====== onPeripheralFound ===== " + device.getName());
             }
-            Log.d(TAG, "====== onPeripheralFound ===== " + device.getName());
+            
             boolean deviceExists = false;
             String serviceUuid = "";
 

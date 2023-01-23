@@ -765,7 +765,12 @@ public class NotificationWorker extends Worker {
         } else {
             msgBuilder.append(".");
         }
-        notificationEvent.setNotificationMsg(msgBuilder.toString());
+
+        StringBuilder notificationMsg = new StringBuilder();
+        notificationMsg.append(title);
+        notificationMsg.append("\n");
+        notificationMsg.append(msgBuilder);
+        notificationEvent.setNotificationMsg(notificationMsg.toString());
         EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
         Log.d(TAG, "Automation Notification inserted in database");
 

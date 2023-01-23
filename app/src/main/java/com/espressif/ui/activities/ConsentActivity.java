@@ -16,6 +16,8 @@ package com.espressif.ui.activities;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.SpannableString;
@@ -97,6 +99,19 @@ public class ConsentActivity extends AppCompatActivity {
 
         tvPolicy.setText(stringForPolicy);
         tvPolicy.setMovementMethod(LinkMovementMethod.getInstance());
+
+        TextView tvAppVersion = findViewById(R.id.tv_app_version);
+
+        String version = "";
+        try {
+            PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            version = pInfo.versionName;
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        String appVersion = getString(R.string.app_version) + " - v" + version;
+        tvAppVersion.setText(appVersion);
 
         btnProceed.setOnClickListener(new View.OnClickListener() {
 
