@@ -239,4 +239,18 @@ public interface ApiInterface {
     @DELETE
     Call<ResponseBody> deleteAutomation(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
                                         @Query(AppConstants.KEY_AUTOMATION_ID) String automationId);
+
+    // OTA Update
+    @GET
+    Call<ResponseBody> checkFwUpdate(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                     @Query(AppConstants.KEY_NODE_ID) String nodeId);
+
+    @GET
+    Call<ResponseBody> getFwUpdateStatus(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                         @Query(AppConstants.KEY_NODE_ID) String nodeId,
+                                         @Query(AppConstants.KEY_OTA_JOB_ID) String otaJobId);
+
+    @POST
+    Call<ResponseBody> pushFwUpdate(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                    @Body JsonObject body);
 }

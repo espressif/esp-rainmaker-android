@@ -40,6 +40,7 @@ import com.espressif.ui.activities.ConsentActivity;
 import com.espressif.ui.models.Automation;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
+import com.espressif.ui.models.EspOtaUpdate;
 import com.espressif.ui.models.Group;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Scene;
@@ -73,6 +74,7 @@ public class EspApplication extends Application {
     public HashMap<String, EspLocalDevice> localDeviceMap;
     public HashMap<String, Group> groupMap;
     public HashMap<String, Automation> automations;
+    public EspOtaUpdate otaUpdateInfo;
 
     private SharedPreferences appPreferences;
     private ApiManager apiManager;

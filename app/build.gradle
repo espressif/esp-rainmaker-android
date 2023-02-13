@@ -44,8 +44,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 23
         targetSdkVersion 32
-        versionCode 73
-        versionName "2.9.0 - ${getGitHash()}"
+        versionCode 77
+        versionName "2.10.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -90,6 +90,7 @@ android {
         buildConfigField "boolean", "isNodeGroupingSupported", localProperties.getProperty("isNodeGroupingSupported", "true")
         buildConfigField "boolean", "isNodeSharingSupported", localProperties.getProperty("isNodeSharingSupported", "true")
         buildConfigField "boolean", "isAutomationSupported", localProperties.getProperty("isAutomationSupported", "true")
+        buildConfigField "boolean", "isOtaSupported", localProperties.getProperty("isOtaSupported", "false")
 
         def clientId = localProperties.getProperty("clientId", defaultClientId)
         def authUrl = localProperties.getProperty("authUrl", defaultAuthUrl)
@@ -187,6 +188,7 @@ dependencies {
     implementation 'com.github.abdularis:TapHoldUpButton:0.1.2'
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
     implementation 'info.hoang8f:android-segmented:1.0.6'
+    implementation 'pl.droidsonroids.gif:android-gif-drawable:1.2.25'
 
     // Room dependencies
     def room_version = "2.4.3"
