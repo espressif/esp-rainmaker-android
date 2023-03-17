@@ -378,4 +378,7 @@ public class AppConstants {
 
     public static final int USER_POOL_1 = 1;
     public static final int USER_POOL_2 = 2;
+    public static final int MIN_THROTTLE_DELAY = 50;
+    public static final int MAX_THROTTLE_DELAY = 300;
+    public static final int MID_THROTTLE_DELAY = 100;
 }

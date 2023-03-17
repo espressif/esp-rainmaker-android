@@ -173,11 +173,11 @@ public class PaletteBar extends View {
                 x = mViewWidth - mColorMargin;
 
             mCurrentHueColor = getColorFromCoords(x, y);
-            if (mListener != null && event.getAction() == MotionEvent.ACTION_UP) {
-                mListener.onColorSelected(mCurrentHueColor);
-                v.getParent().requestDisallowInterceptTouchEvent(false);
+            if (mListener != null && (event.getAction() == MotionEvent.ACTION_MOVE)) {
+                mListener.onColorSelected(mCurrentHueColor, true);
+            } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                mListener.onColorSelected(mCurrentHueColor, false);
             }
-            performClick();
             invalidate();
             return true;
         }
@@ -209,8 +209,7 @@ public class PaletteBar extends View {
      * Interface for receiving color selection
      */
     public interface PaletteBarListener {
-        void onColorSelected(int colorHue);
+        void onColorSelected(int colorHue, boolean isMoving);
     }
-
 
 }

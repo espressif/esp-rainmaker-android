@@ -246,7 +246,7 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
 
             scheduleParamVH.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
                 @Override
-                public void onColorSelected(int colorHue) {
+                public void onColorSelected(int colorHue, boolean isMoving) {
                     param.setValue(colorHue);
                 }
             });

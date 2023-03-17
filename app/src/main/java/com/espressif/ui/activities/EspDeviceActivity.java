@@ -41,6 +41,7 @@ import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
 import com.espressif.local_control.EspLocalDevice;
+import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.AttrParamAdapter;
 import com.espressif.ui.adapters.ParamAdapter;
@@ -65,6 +66,7 @@ public class EspDeviceActivity extends AppCompatActivity {
 
     private static final int NODE_DETAILS_ACTIVITY_REQUEST = 10;
     private static final int UPDATE_INTERVAL = 5000;
+    private static final int UI_UPDATE_INTERVAL = 4500;
 
     private RelativeLayout rlNodeStatus;
     private TextView tvNoParam, tvNodeStatus;
@@ -89,6 +91,8 @@ public class EspDeviceActivity extends AppCompatActivity {
     private boolean shouldGetParams = true;
     private String nodeId;
     private RelativeLayout rlProgress, rlParam;
+    private boolean isUpdateView = true;
+    private long lastUpdateRequestTime = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -181,10 +185,20 @@ public class EspDeviceActivity extends AppCompatActivity {
                 break;
 
             case EVENT_DEVICE_STATUS_UPDATE:
-                updateUi();
+                long currentTime = System.currentTimeMillis();
+                if (BuildConfig.isContinuousUpdateEnable) {
+                    if (isUpdateView && currentTime - lastUpdateRequestTime > UI_UPDATE_INTERVAL) {
+                        handler.removeCallbacks(updateViewTask);
+                        handler.post(updateViewTask);
+                    }
+                } else {
+                    updateUi();
+                }
                 break;
         }
     }
+
+    Runnable updateViewTask = this::updateUi;
 
     public void updateDeviceNameInTitle(String deviceName) {
         getSupportActionBar().setTitle(deviceName);
@@ -192,6 +206,14 @@ public class EspDeviceActivity extends AppCompatActivity {
 
     public boolean isNodeOnline() {
         return isNodeOnline;
+    }
+
+    public void setIsUpdateView(boolean isUpdateView) {
+        this.isUpdateView = isUpdateView;
+    }
+
+    public void setLastUpdateRequestTime(long lastUpdateRequestTime) {
+        this.lastUpdateRequestTime = lastUpdateRequestTime;
     }
 
     public void startUpdateValueTask() {
@@ -211,12 +233,22 @@ public class EspDeviceActivity extends AppCompatActivity {
         startActivityForResult(intent, NODE_DETAILS_ACTIVITY_REQUEST);
     }
 
-    private Runnable updateValuesTask = new Runnable() {
-
+    private final Runnable updateValuesTask = new Runnable() {
         @Override
         public void run() {
             if (shouldGetParams) {
-                getValues();
+
+                if (BuildConfig.isContinuousUpdateEnable) {
+                    long currentTime = System.currentTimeMillis();
+                    if (isUpdateView && currentTime - lastUpdateRequestTime >= UI_UPDATE_INTERVAL) {
+                        getValues();
+                    } else {
+                        handler.removeCallbacks(updateValuesTask);
+                        handler.postDelayed(updateValuesTask, UI_UPDATE_INTERVAL);
+                    }
+                } else {
+                    getValues();
+                }
             }
         }
     };
@@ -343,6 +375,7 @@ public class EspDeviceActivity extends AppCompatActivity {
                         hideLoading();
                         swipeRefreshLayout.setRefreshing(false);
                         updateUi();
+                        handler.removeCallbacks(updateValuesTask);
                         handler.postDelayed(updateValuesTask, UPDATE_INTERVAL);
                     }
                 });
@@ -476,6 +509,7 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         boolean deviceFound = false;
         Device updatedDevice = null;
+        lastUpdateRequestTime = System.currentTimeMillis();
 
         if (espApp.nodeMap.containsKey(nodeId)) {
 
