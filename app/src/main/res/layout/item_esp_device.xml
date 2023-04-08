@@ -68,15 +68,19 @@
 
                 <TextView
                     android:id="@+id/tv_string"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:layout_alignParentEnd="true"
+                    android:ellipsize="end"
                     android:gravity="end"
                     android:maxLines="1"
                     android:text="Test"
                     android:textColor="@color/color_dark_gray"
-                    android:textSize="20sp"
-                    android:visibility="visible" />
+                    android:visibility="visible"
+                    app:autoSizeMaxTextSize="20sp"
+                    app:autoSizeMinTextSize="11sp"
+                    app:autoSizeStepGranularity="2sp"
+                    app:autoSizeTextType="uniform" />
 
             </RelativeLayout>
 
