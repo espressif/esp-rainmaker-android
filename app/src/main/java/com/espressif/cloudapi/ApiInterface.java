@@ -42,7 +42,7 @@ public interface ApiInterface {
     Call<ResponseBody> login(@Url String url, @Body JsonObject body);
 
     @POST
-    Call<ResponseBody> logout(@Url String url);
+    Call<ResponseBody> logout(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token);
 
     @POST
     Call<ResponseBody> createUser(@Url String url, @Body JsonObject body);

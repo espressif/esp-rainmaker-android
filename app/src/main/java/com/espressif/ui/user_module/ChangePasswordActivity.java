@@ -14,6 +14,7 @@
 
 package com.espressif.ui.user_module;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.KeyEvent;
@@ -22,9 +23,11 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.widget.ContentLoadingProgressBar;
 
+import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
@@ -138,7 +141,7 @@ public class ChangePasswordActivity extends AppCompatActivity {
             @Override
             public void onSuccess(Bundle data) {
                 hideLoading();
-                Utils.showAlertDialog(ChangePasswordActivity.this, getString(R.string.success), getString(R.string.password_change_success), true);
+                showAlertDialog(getString(R.string.success), getString(R.string.password_change_success));
                 clearInput();
             }
 
@@ -158,6 +161,26 @@ public class ChangePasswordActivity extends AppCompatActivity {
                 Utils.showAlertDialog(ChangePasswordActivity.this, getString(R.string.dialog_title_no_network), getString(R.string.dialog_msg_no_network), false);
             }
         });
+    }
+
+    private void showAlertDialog(String title, String msg) {
+
+        final AlertDialog.Builder builder = new AlertDialog.Builder(ChangePasswordActivity.this);
+
+        if (!TextUtils.isEmpty(title)) {
+            builder.setTitle(title);
+        }
+        builder.setMessage(msg);
+        builder.setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                EspApplication appContext = (EspApplication) getApplicationContext();
+                appContext.logout();
+            }
+        });
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     private void clearInput() {
