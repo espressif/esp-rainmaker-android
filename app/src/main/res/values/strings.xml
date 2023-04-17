@@ -423,6 +423,7 @@
     <string name="text_copied">Copied to clipboard</string>
     <string name="no_chart_data">No chart data</string>
     <string name="ts_not_supported">Not supported for this duration</string>
+    <string name="ts_data_type_not_supported">Data type not supported.</string>
     <string name="no_internet_connection">No internet connection</string>
     <string name="choose_parameter">Choose Parameter</string>
     <string name="fw_update_available">A new firmware version is available for update.</string>

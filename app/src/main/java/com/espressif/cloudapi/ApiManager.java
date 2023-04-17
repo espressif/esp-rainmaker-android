@@ -3001,23 +3001,23 @@ public class ApiManager {
         });
     }
 
-    public void getTimeSeriesData(String nodeId, String paramName, String aggregate,
-                                  String timeInterval, long startTime,
+    public void getTimeSeriesData(String nodeId, String paramName, String dataType,
+                                  String aggregate, String timeInterval, long startTime,
                                   long endTime, String weekStart, String timezone, final ApiResponseListener listener) {
         ArrayList<TsData> tsData = new ArrayList<>();
-        getTimeSeriesDataForOnePage(nodeId, paramName, aggregate, timeInterval, startTime, endTime,
+        getTimeSeriesDataForOnePage(nodeId, paramName, dataType, aggregate, timeInterval, startTime, endTime,
                 weekStart, timezone, "", listener, tsData);
     }
 
-    private void getTimeSeriesDataForOnePage(String nodeId, String paramName, String aggregate,
-                                             String timeInterval, long startTime,
+    private void getTimeSeriesDataForOnePage(String nodeId, String paramName, String dataType,
+                                             String aggregate, String timeInterval, long startTime,
                                              long endTime, String weekStart, String timezone,
                                              String startId, final ApiResponseListener listener,
                                              ArrayList<TsData> tsData) {
 
         Log.d(TAG, "Get time series data...");
 
-        apiInterface.getTimeSeriesData(AppConstants.URL_USER_NODES_TS, accessToken, nodeId, paramName,
+        apiInterface.getTimeSeriesData(AppConstants.URL_USER_NODES_TS, accessToken, nodeId, paramName, dataType,
                 aggregate, timeInterval, startTime, endTime, weekStart, timezone, startId).enqueue(new Callback<ResponseBody>() {
 
             @Override
@@ -3071,7 +3071,7 @@ public class ApiManager {
 
                         Log.d(TAG, "Start next id : " + nextId);
                         if (!TextUtils.isEmpty(nextId)) {
-                            getTimeSeriesDataForOnePage(nodeId, paramName, aggregate, timeInterval, startTime, endTime,
+                            getTimeSeriesDataForOnePage(nodeId, paramName, dataType, aggregate, timeInterval, startTime, endTime,
                                     weekStart, timezone, nextId, listener, tsData);
                         } else {
                             Log.e(TAG, "TS DATA Array list size : " + tsData.size());
