@@ -110,11 +110,13 @@ public class ApiManager {
     public void login(final String userName, String password, final ApiResponseListener listener) {
 
         Log.d(TAG, "Login...");
+        String loginUrl = getLoginEndpointUrl();
+
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_USER_NAME, userName);
         body.addProperty(AppConstants.KEY_PASSWORD, password);
 
-        apiInterface.login(AppConstants.URL_LOGIN, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.login(loginUrl, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -226,11 +228,13 @@ public class ApiManager {
     public void createUser(String email, String password, final ApiResponseListener listener) {
 
         Log.d(TAG, "Create user...");
+        String userEndpointUrl = getUserEndpointUrl();
+
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_USER_NAME, email);
         body.addProperty(AppConstants.KEY_PASSWORD, password);
 
-        apiInterface.createUser(AppConstants.URL_USER, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.createUser(userEndpointUrl, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -265,11 +269,13 @@ public class ApiManager {
     public void confirmUser(String email, String verificationCode, final ApiResponseListener listener) {
 
         Log.d(TAG, "Confirm user...");
+        String userEndpointUrl = getUserEndpointUrl();
+
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_USER_NAME, email);
         body.addProperty(AppConstants.KEY_VERIFICATION_CODE, verificationCode);
 
-        apiInterface.confirmUser(AppConstants.URL_USER, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.confirmUser(userEndpointUrl, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -304,8 +310,9 @@ public class ApiManager {
     public void deleteUserRequest(boolean request, final ApiResponseListener listener) {
 
         Log.d(TAG, "Delete user request...");
+        String userEndpointUrl = getUserEndpointUrl();
 
-        apiInterface.deleteUserRequest(AppConstants.URL_USER, accessToken, request).enqueue(new Callback<ResponseBody>() {
+        apiInterface.deleteUserRequest(userEndpointUrl, accessToken, request).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -340,8 +347,9 @@ public class ApiManager {
     public void deleteUserConfirm(String verificationCode, final ApiResponseListener listener) {
 
         Log.d(TAG, "Delete user confirm...");
+        String userEndpointUrl = getUserEndpointUrl();
 
-        apiInterface.deleteUserConfirm(AppConstants.URL_USER, accessToken, verificationCode).enqueue(new Callback<ResponseBody>() {
+        apiInterface.deleteUserConfirm(userEndpointUrl, accessToken, verificationCode).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -376,10 +384,12 @@ public class ApiManager {
     public void forgotPassword(String email, final ApiResponseListener listener) {
 
         Log.d(TAG, "Forgot password...");
+        String forgotPasswordUrl = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_FORGOT_PASSWORD : AppConstants.URL_FORGOT_PASSWORD_2;
+
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_USER_NAME, email);
 
-        apiInterface.forgotPassword(AppConstants.URL_FORGOT_PASSWORD, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.forgotPassword(forgotPasswordUrl, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -414,12 +424,14 @@ public class ApiManager {
     public void resetPassword(String email, String newPassword, String verificationCode, final ApiResponseListener listener) {
 
         Log.d(TAG, "Reset password...");
+        String forgotPasswordUrl = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_FORGOT_PASSWORD : AppConstants.URL_FORGOT_PASSWORD_2;
+
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_USER_NAME, email);
         body.addProperty(AppConstants.KEY_PASSWORD, newPassword);
         body.addProperty(AppConstants.KEY_VERIFICATION_CODE, verificationCode);
 
-        apiInterface.forgotPassword(AppConstants.URL_FORGOT_PASSWORD, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.forgotPassword(forgotPasswordUrl, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -454,11 +466,13 @@ public class ApiManager {
     public void changePassword(String oldPassword, String newPassword, final ApiResponseListener listener) {
 
         Log.d(TAG, "Change password...");
+        String changePasswordUrl = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_CHANGE_PASSWORD : AppConstants.URL_CHANGE_PASSWORD_2;
+
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_PASSWORD, oldPassword);
         body.addProperty(AppConstants.KEY_NEW_PASSWORD, newPassword);
 
-        apiInterface.changePassword(AppConstants.URL_CHANGE_PASSWORD, accessToken, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.changePassword(changePasswordUrl, accessToken, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -548,12 +562,14 @@ public class ApiManager {
 
         Log.d(TAG, "Get New Token For Cognito user");
         Log.d(TAG, "Login...");
+        String loginUrl = getLoginEndpointUrl();
+
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_USER_NAME, userName);
         body.addProperty("refreshtoken", refreshToken);
 
         try {
-            Response<ResponseBody> response = apiInterface.login(AppConstants.URL_LOGIN, body).execute();
+            Response<ResponseBody> response = apiInterface.login(loginUrl, body).execute();
 
             if (response.isSuccessful()) {
 
@@ -593,12 +609,14 @@ public class ApiManager {
     public String getNewTokenForOAuthUser() {
 
         Log.d(TAG, "Get New Token For OAuth User");
+        String loginUrl = getLoginEndpointUrl();
+
         HashMap<String, String> body = new HashMap<>();
         body.put("user_name", userId);
         body.put("refreshtoken", refreshToken);
 
         try {
-            Response<ResponseBody> response = apiInterface.getOAuthLoginToken(AppConstants.URL_OAUTH_LOGIN, body).execute();
+            Response<ResponseBody> response = apiInterface.getOAuthLoginToken(loginUrl, body).execute();
 
             if (response.isSuccessful()) {
                 ResponseBody responseBody = response.body();
@@ -634,7 +652,9 @@ public class ApiManager {
     public void logout(final ApiResponseListener listener) {
 
         Log.d(TAG, "Logout...");
-        apiInterface.logout(AppConstants.URL_LOGOUT).enqueue(new Callback<ResponseBody>() {
+        String logoutUrl = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_LOGOUT : AppConstants.URL_LOGOUT_2;
+
+        apiInterface.logout(logoutUrl).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -3652,6 +3672,14 @@ public class ApiManager {
             e.printStackTrace();
             listener.onResponseFailure(new RuntimeException(errMsg));
         }
+    }
+
+    private String getLoginEndpointUrl() {
+        return Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_LOGIN : AppConstants.URL_LOGIN_2;
+    }
+
+    private String getUserEndpointUrl() {
+        return Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_USER : AppConstants.URL_USER_2;
     }
 
     private Runnable stopRequestStatusPollingTask = new Runnable() {

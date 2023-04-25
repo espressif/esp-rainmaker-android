@@ -258,7 +258,7 @@ public class SharedUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
                 String userName = etEmail.getText().toString();
                 if (TextUtils.isEmpty(userName)) {
-                    etEmail.setError(context.getString(R.string.error_email_empty));
+                    etEmail.setError(context.getString(R.string.error_username_empty));
                 } else {
                     dialog.dismiss();
                     userName = userName.trim();

@@ -65,7 +65,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/margin_16"
                     android:background="@drawable/bg_edit_text"
-                    android:hint="@string/hint_email"
+                    android:hint="@string/hint_username"
                     android:imeOptions="actionNext"
                     android:inputType="textEmailAddress"
                     android:paddingStart="@dimen/margin_16"

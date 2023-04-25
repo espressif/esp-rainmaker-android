@@ -109,7 +109,7 @@ public class SignUpFragment extends Fragment {
         email = etEmail.getText().toString();
         if (TextUtils.isEmpty(email)) {
 
-            etEmail.setError(getString(R.string.error_email_empty));
+            etEmail.setError(getString(R.string.error_username_empty));
             return;
 
         } else if (!Utils.isValidEmail(email)) {

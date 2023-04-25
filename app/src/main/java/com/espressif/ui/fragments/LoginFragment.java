@@ -213,7 +213,7 @@ public class LoginFragment extends Fragment {
 
         if (TextUtils.isEmpty(email)) {
 
-            etEmail.setError(getString(R.string.error_email_empty));
+            etEmail.setError(getString(R.string.error_username_empty));
             return;
         } else if (!Utils.isValidEmail(email)) {
 
@@ -241,7 +241,7 @@ public class LoginFragment extends Fragment {
 
         if (TextUtils.isEmpty(email)) {
 
-            etEmail.setError(getString(R.string.error_email_empty));
+            etEmail.setError(getString(R.string.error_username_empty));
             return;
         } else if (!Utils.isValidEmail(email)) {
 

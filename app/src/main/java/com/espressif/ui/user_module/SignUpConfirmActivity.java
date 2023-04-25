@@ -69,7 +69,7 @@ public class SignUpConfirmActivity extends AppCompatActivity {
         }
 
         if (TextUtils.isEmpty(userName)) {
-            Toast.makeText(SignUpConfirmActivity.this, getString(R.string.error_email_empty), Toast.LENGTH_LONG).show();
+            Toast.makeText(SignUpConfirmActivity.this, getString(R.string.error_username_empty), Toast.LENGTH_LONG).show();
             finish();
         } else {
             initViews();

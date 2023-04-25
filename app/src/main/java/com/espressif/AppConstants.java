@@ -58,18 +58,27 @@ public class AppConstants {
     // Cloud API End point Urls
     public static final String URL_LOGIN = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/login";
-    public static final String URL_LOGOUT = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
-            + AppConstants.CURRENT_VERSION + "/logout";
     public static final String URL_USER = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user";
     public static final String URL_FORGOT_PASSWORD = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/forgotpassword";
     public static final String URL_CHANGE_PASSWORD = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/password";
+    public static final String URL_LOGOUT = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/logout";
+
+    public static final String URL_LOGIN_2 = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/login2";
+    public static final String URL_USER_2 = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/user2";
+    public static final String URL_FORGOT_PASSWORD_2 = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/forgotpassword2";
+    public static final String URL_CHANGE_PASSWORD_2 = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/password2";
+    public static final String URL_LOGOUT_2 = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+            + AppConstants.CURRENT_VERSION + "/logout2";
 
     public static final String URL_SUPPORTED_VERSIONS = BuildConfig.BASE_URL + "/apiversions";
-    public static final String URL_OAUTH_LOGIN = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
-            + AppConstants.CURRENT_VERSION + "/login";
     public static final String URL_USER_NODE_MAPPING = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/nodes/mapping";
     public static final String URL_USER_NODES = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
@@ -366,4 +375,7 @@ public class AppConstants {
     public static final String OTA_STATUS_REJECTED = "rejected";
     public static final String OTA_STATUS_FAILED = "failed";
     public static final String OTA_STATUS_UNKNOWN = "unknown";
+
+    public static final int USER_POOL_1 = 1;
+    public static final int USER_POOL_2 = 2;
 }

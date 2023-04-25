@@ -55,7 +55,7 @@
     <string name="error_ble_device_config_failed">Bluetooth device could not be configured. Please try another device.</string>
     <string name="error_device_list_not_received">Error : Device list not received</string>
     <string name="error_schedule_not_received">Error : Schedules not received</string>
-    <string name="error_email_empty">Email cannot be empty</string>
+    <string name="error_username_empty">Username cannot be empty</string>
     <string name="error_invalid_email">Please enter valid email</string>
     <string name="error_password_empty">Password cannot be empty</string>
     <string name="error_confirm_password_empty">Confirm Password cannot be empty</string>
@@ -163,7 +163,7 @@
     <string name="tab_1y">1Y</string>
 
     <!--Hint texts-->
-    <string name="hint_email">Email</string>
+    <string name="hint_username">Username</string>
     <string name="hint_password">Password</string>
     <string name="hint_confirm_password">Confirm Password</string>
     <string name="hint_old_password">Old Password</string>
