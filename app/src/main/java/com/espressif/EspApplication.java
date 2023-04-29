@@ -272,20 +272,28 @@ public class EspApplication extends Application {
 
                 @Override
                 public void onSuccess(Bundle data) {
+                    unregisterDeviceToken();
                 }
 
                 @Override
                 public void onResponseFailure(Exception exception) {
                     // Ignore failure
+                    unregisterDeviceToken();
                 }
 
                 @Override
                 public void onNetworkFailure(Exception exception) {
                     // Ignore failure
+                    unregisterDeviceToken();
                 }
             });
+        } else {
+            unregisterDeviceToken();
         }
+        clearUserSession();
+    }
 
+    private void unregisterDeviceToken() {
         if (isPlayServicesAvailable()) {
             // Delete endpoint API
             apiManager.unregisterDeviceToken(deviceToken, new ApiResponseListener() {
@@ -302,7 +310,6 @@ public class EspApplication extends Application {
                 }
             });
         }
-        clearUserSession();
     }
 
     public void clearUserSession() {

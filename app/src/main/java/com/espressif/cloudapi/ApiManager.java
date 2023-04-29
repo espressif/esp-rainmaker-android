@@ -654,7 +654,7 @@ public class ApiManager {
         Log.d(TAG, "Logout...");
         String logoutUrl = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_LOGOUT : AppConstants.URL_LOGOUT_2;
 
-        apiInterface.logout(logoutUrl).enqueue(new Callback<ResponseBody>() {
+        apiInterface.logout(logoutUrl, accessToken).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
