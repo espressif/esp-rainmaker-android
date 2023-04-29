@@ -18,6 +18,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
@@ -154,26 +155,29 @@ public class TimeSeriesActivity extends AppCompatActivity {
         tvDate.setText(today);
         updateDate();
 
-        getTsData(aggregateType, timeInterval, startTime, endTime, null, timeZone
-                , new ApiResponseListener() {
+        if (isDataTypeSupported()) {
+            getTsData(aggregateType, timeInterval, startTime, endTime, null, timeZone, new ApiResponseListener() {
 
-                    @Override
-                    public void onSuccess(Bundle data) {
-                        hideLoading();
-                        updateChart();
-                    }
+                @Override
+                public void onSuccess(Bundle data) {
+                    hideLoading();
+                    updateChart();
+                }
 
-                    @Override
-                    public void onResponseFailure(Exception exception) {
-                        hideLoading();
-                        updateChart();
-                    }
+                @Override
+                public void onResponseFailure(Exception exception) {
+                    hideLoading();
+                    updateChart();
+                }
 
-                    @Override
-                    public void onNetworkFailure(Exception exception) {
-                        displayNetworkError();
-                    }
-                });
+                @Override
+                public void onNetworkFailure(Exception exception) {
+                    displayNetworkError();
+                }
+            });
+        } else {
+            displayDataTypeNotSupported();
+        }
     }
 
     private void initViews() {
@@ -451,6 +455,11 @@ public class TimeSeriesActivity extends AppCompatActivity {
                 break;
         }
 
+        if (!isDataTypeSupported()) {
+            displayDataTypeNotSupported();
+            return;
+        }
+
         if (!isSupported) {
             barChart.setVisibility(View.INVISIBLE);
             lineChart.setVisibility(View.INVISIBLE);
@@ -522,7 +531,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
     private void getTsData(String aggregate, String timeInterval, long startTime, long endTime,
                            String weekStart, String timeZone, ApiResponseListener listener) {
 
-        apiManager.getTimeSeriesData(nodeId, paramName, aggregate, timeInterval,
+        apiManager.getTimeSeriesData(nodeId, paramName, param.getDataType(), aggregate, timeInterval,
                 startTime, endTime, weekStart, timeZone, new ApiResponseListener() {
 
                     @Override
@@ -1344,6 +1353,25 @@ public class TimeSeriesActivity extends AppCompatActivity {
     private boolean isSameDay(Date date1, Date date2) {
         SimpleDateFormat fmt = new SimpleDateFormat("yyyyMMdd");
         return fmt.format(date1).equals(fmt.format(date2));
+    }
+
+    /**
+     * This method is used to check param data type.
+     * Only int & float data types are supported currently.
+     *
+     * @return Returns true of param data type is supported, false otherwise.
+     */
+    private boolean isDataTypeSupported() {
+        String dataType = param.getDataType();
+        return !TextUtils.isEmpty(dataType) && (dataType.equals("int") || dataType.equals("float"));
+    }
+
+    private void displayDataTypeNotSupported() {
+        barChart.setVisibility(View.INVISIBLE);
+        lineChart.setVisibility(View.INVISIBLE);
+        tvNoTsData.setVisibility(View.VISIBLE);
+        tvNoTsData.setText(R.string.ts_data_type_not_supported);
+        hideLoading();
     }
 
     private void showLoading() {
