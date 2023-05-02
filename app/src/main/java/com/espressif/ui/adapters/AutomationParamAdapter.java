@@ -245,7 +245,7 @@ public class AutomationParamAdapter extends RecyclerView.Adapter<AutomationParam
 
             automationParamVH.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
                 @Override
-                public void onColorSelected(int colorHue) {
+                public void onColorSelected(int colorHue,boolean isMoving) {
                     param.setValue(colorHue);
                     param.setLabelValue(String.valueOf(colorHue));
                 }

@@ -48,8 +48,10 @@ import com.aar.tapholdupbutton.TapHoldUpButton;
 import com.espressif.AppConstants;
 import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.EspDeviceActivity;
+import com.espressif.ui.activities.ParamAdapterManager;
 import com.espressif.ui.activities.TimeSeriesActivity;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
@@ -72,9 +74,12 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private final int VIEW_TYPE_HUE = 3;
 
     private Activity context;
-    private ArrayList<Param> params;
-    private NetworkApiManager networkApiManager;
-    private String nodeId, deviceName;
+    private final ArrayList<Param> params;
+    private final NetworkApiManager networkApiManager;
+    private final ParamAdapterManager paramAdapterManager;
+
+    private final String nodeId;
+    private final String deviceName;
 
     public ParamAdapter(Activity context, Device device, ArrayList<Param> paramList) {
         this.context = context;
@@ -82,6 +87,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         this.nodeId = device.getNodeId();
         this.deviceName = device.getDeviceName();
         networkApiManager = new NetworkApiManager(context.getApplicationContext());
+        paramAdapterManager = ParamAdapterManager.getInstance(context, deviceName, nodeId, networkApiManager);
     }
 
     @Override
@@ -160,9 +166,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     }
                 }
             } else if (AppConstants.UI_TYPE_HUE_SLIDER.equalsIgnoreCase(param.getUiType())) {
-
-                displayPalette(paramViewHolder, param, position);
-
+                displayPalette(paramViewHolder, param);
             } else if (AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())) {
 
                 if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("bool")
@@ -297,89 +301,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             }
 
         } else if (holder.getItemViewType() == VIEW_TYPE_HUE) {
-
-            final HueViewHolder hueViewHolder = (HueViewHolder) holder;
-
-            int hueColor = (int) param.getValue();
-
-            float[] hsv = new float[3];
-            hsv[0] = hueColor;
-            hsv[1] = 10.0f;
-            hsv[2] = 10.0f;
-
-            Log.e(TAG, "hsv[0] : " + hsv[0]);
-            int mCurrentIntColor = Color.HSVToColor(hsv);
-            hueViewHolder.colorPickerView.setShowOldCenterColor(false);
-            hueViewHolder.colorPickerView.setColor(mCurrentIntColor);
-
-            if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
-
-                if (((EspDeviceActivity) context).isNodeOnline()) {
-
-                    hueViewHolder.colorPickerView.setAlpha(1f);
-                    hueViewHolder.colorPickerView.setEnabled(true);
-
-                    hueViewHolder.colorPickerView.setOnColorChangedListener(new ColorPicker.OnColorChangedListener() {
-
-                        @Override
-                        public void onColorChanged(int color) {
-                            Log.e(TAG, "====================== onColorChanged : Stop updates");
-                            ((EspDeviceActivity) context).stopUpdateValueTask();
-                        }
-                    });
-
-                    hueViewHolder.colorPickerView.setOnColorSelectedListener(new ColorPicker.OnColorSelectedListener() {
-                        @Override
-                        public void onColorSelected(int color) {
-                            Log.e(TAG, "====================== onColorSelected : " + color);
-                            Log.e(TAG, "Color  : " + hueViewHolder.colorPickerView.getColor());
-                            float[] newHsv = new float[3];
-                            Color.colorToHSV(color, newHsv);
-                            int hue = (int) newHsv[0];
-                            Log.e(TAG, "New Hue color : " + hue);
-
-                            JsonObject jsonParam = new JsonObject();
-                            JsonObject body = new JsonObject();
-                            jsonParam.addProperty(param.getName(), hue);
-                            body.add(deviceName, jsonParam);
-
-                            ((EspDeviceActivity) context).stopUpdateValueTask();
-                            ((EspDeviceActivity) context).showParamUpdateLoading("Updating...");
-                            Log.e(TAG, "Body : " + body.toString());
-
-                            networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
-
-                                @Override
-                                public void onSuccess(Bundle data) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                    ((EspDeviceActivity) context).hideParamUpdateLoading();
-                                }
-
-                                @Override
-                                public void onResponseFailure(Exception exception) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                    ((EspDeviceActivity) context).hideParamUpdateLoading();
-                                }
-
-                                @Override
-                                public void onNetworkFailure(Exception exception) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                    ((EspDeviceActivity) context).hideParamUpdateLoading();
-                                }
-                            });
-                        }
-                    });
-                } else {
-                    hueViewHolder.colorPickerView.setAlpha(0.5f);
-                    hueViewHolder.colorPickerView.setEnabled(false);
-                    hueViewHolder.colorPickerView.setOnColorChangedListener(null);
-                    hueViewHolder.colorPickerView.setOnColorChangedListener(null);
-                }
-            } else {
-                hueViewHolder.colorPickerView.setEnabled(false);
-                hueViewHolder.colorPickerView.setOnColorChangedListener(null);
-                hueViewHolder.colorPickerView.setOnColorChangedListener(null);
-            }
+            displayHueCircle((HueViewHolder) holder, param);
         }
     }
 
@@ -392,7 +314,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         diffResult.dispatchUpdatesTo(this);
     }
 
-    private void displayPalette(ParamViewHolder paramViewHolder, final Param param, final int position) {
+    private void displayPalette(ParamViewHolder paramViewHolder, final Param param) {
 
         paramViewHolder.rlUiTypeSlider.setVisibility(View.GONE);
         paramViewHolder.rlUiTypeSwitch.setVisibility(View.GONE);
@@ -418,39 +340,137 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 paramViewHolder.paletteBar.setEnabled(true);
                 paramViewHolder.tvMinHue.setAlpha(1f);
                 paramViewHolder.tvMaxHue.setAlpha(1f);
+
                 paramViewHolder.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
                     @Override
-                    public void onColorSelected(int colorInt) {
+                    public void onColorSelected(int colorInt, boolean isMoving) {
+                        ((EspDeviceActivity) context).setIsUpdateView(!isMoving);
+                        if (BuildConfig.isContinuousUpdateEnable) {
+                            paramAdapterManager.processSliderChange(param.getName(), colorInt, isMoving);
+                        } else {
+                            if (!isMoving) {
+                                ((EspDeviceActivity) context).stopUpdateValueTask();
+                                JsonObject jsonParam = new JsonObject();
+                                JsonObject body = new JsonObject();
 
-                        ((EspDeviceActivity) context).stopUpdateValueTask();
-                        JsonObject jsonParam = new JsonObject();
-                        JsonObject body = new JsonObject();
+                                jsonParam.addProperty(param.getName(), colorInt);
+                                body.add(deviceName, jsonParam);
+                                networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
 
-                        jsonParam.addProperty(param.getName(), colorInt);
-                        body.add(deviceName, jsonParam);
-                        networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                                    @Override
+                                    public void onSuccess(Bundle data) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
 
-                            @Override
-                            public void onSuccess(Bundle data) {
-                                ((EspDeviceActivity) context).startUpdateValueTask();
+                                    @Override
+                                    public void onResponseFailure(Exception exception) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+
+                                    @Override
+                                    public void onNetworkFailure(Exception exception) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+                                });
                             }
-
-                            @Override
-                            public void onResponseFailure(Exception exception) {
-                                ((EspDeviceActivity) context).startUpdateValueTask();
-                            }
-
-                            @Override
-                            public void onNetworkFailure(Exception exception) {
-                                ((EspDeviceActivity) context).startUpdateValueTask();
-                            }
-                        });
+                        }
                     }
                 });
             } else {
                 paramViewHolder.paletteBar.setEnabled(false);
                 paramViewHolder.tvMinHue.setAlpha(0.4f);
                 paramViewHolder.tvMaxHue.setAlpha(0.4f);
+            }
+        }
+    }
+
+    private void displayHueCircle(HueViewHolder holder, Param param) {
+        final HueViewHolder hueViewHolder = holder;
+
+        int hueColor = (int) param.getValue();
+
+        float[] hsv = new float[3];
+        hsv[0] = hueColor;
+        hsv[1] = 10.0f;
+        hsv[2] = 10.0f;
+
+        int mCurrentIntColor = Color.HSVToColor(hsv);
+        hueViewHolder.colorPickerView.setShowOldCenterColor(false);
+        hueViewHolder.colorPickerView.setColor(mCurrentIntColor);
+
+        if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
+
+            if (((EspDeviceActivity) context).isNodeOnline()) {
+
+                hueViewHolder.colorPickerView.setAlpha(1f);
+                hueViewHolder.colorPickerView.setEnabled(true);
+
+                hueViewHolder.colorPickerView.setOnColorChangedListener(new ColorPicker.OnColorChangedListener() {
+
+                    @Override
+                    public void onColorChanged(int color) {
+                        ((EspDeviceActivity) context).setIsUpdateView(false);
+                        circularColorChange(hueViewHolder, param, color, true);
+                    }
+                });
+
+                hueViewHolder.colorPickerView.setOnColorSelectedListener(new ColorPicker.OnColorSelectedListener() {
+                    @Override
+                    public void onColorSelected(int color) {
+                        ((EspDeviceActivity) context).setIsUpdateView(true);
+                        circularColorChange(hueViewHolder, param, color, false);
+                    }
+                });
+            } else {
+                hueViewHolder.colorPickerView.setAlpha(0.5f);
+                hueViewHolder.colorPickerView.setEnabled(false);
+                hueViewHolder.colorPickerView.setOnColorChangedListener(null);
+            }
+        } else {
+            hueViewHolder.colorPickerView.setEnabled(false);
+            hueViewHolder.colorPickerView.setOnColorChangedListener(null);
+        }
+    }
+
+    private void circularColorChange(HueViewHolder hueViewHolder, Param param, int color, boolean isMoving) {
+        float[] newHsv = new float[3];
+        Color.colorToHSV(color, newHsv);
+        int colorInt = (int) newHsv[0];
+
+        if (BuildConfig.isContinuousUpdateEnable) {
+            paramAdapterManager.processSliderChange(param.getName(), colorInt, isMoving);
+        } else {
+            if (!isMoving) {
+                JsonObject jsonParam = new JsonObject();
+                JsonObject body = new JsonObject();
+                jsonParam.addProperty(param.getName(), colorInt);
+                body.add(deviceName, jsonParam);
+
+                ((EspDeviceActivity) context).stopUpdateValueTask();
+                ((EspDeviceActivity) context).showParamUpdateLoading("Updating...");
+
+                networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+
+                    @Override
+                    public void onSuccess(Bundle data) {
+                        ((EspDeviceActivity) context).startUpdateValueTask();
+                        ((EspDeviceActivity) context).hideParamUpdateLoading();
+                    }
+
+                    @Override
+                    public void onResponseFailure(Exception exception) {
+                        ((EspDeviceActivity) context).startUpdateValueTask();
+                        ((EspDeviceActivity) context).hideParamUpdateLoading();
+                    }
+
+                    @Override
+                    public void onNetworkFailure(Exception exception) {
+                        ((EspDeviceActivity) context).startUpdateValueTask();
+                        ((EspDeviceActivity) context).hideParamUpdateLoading();
+                    }
+                });
+            } else {
+                ((EspDeviceActivity) context).stopUpdateValueTask();
             }
         }
     }
@@ -527,42 +547,54 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                         @Override
                         public void onSeeking(SeekParams seekParams) {
+                            if (seekParams.fromUser) {
+                                ((EspDeviceActivity) context).setIsUpdateView(false);
+                                if (BuildConfig.isContinuousUpdateEnable) {
+                                    paramAdapterManager.processSliderChange(param.getName(), seekParams.progress, true);
+                                }
+                            }
                         }
 
                         @Override
                         public void onStartTrackingTouch(TickSeekBar seekBar) {
-                            ((EspDeviceActivity) context).stopUpdateValueTask();
+                            ((EspDeviceActivity) context).setIsUpdateView(false);
+                            if (!BuildConfig.isContinuousUpdateEnable) {
+                                ((EspDeviceActivity) context).stopUpdateValueTask();
+                            }
                         }
 
                         @Override
                         public void onStopTrackingTouch(TickSeekBar seekBar) {
+                            ((EspDeviceActivity) context).setIsUpdateView(true);
+                            if (BuildConfig.isContinuousUpdateEnable) {
+                                paramAdapterManager.processSliderChange(param.getName(), seekBar.getProgress(), false);
+                            } else {
+                                int finalProgress = seekBar.getProgress();
 
-                            int progress = seekBar.getProgress();
-                            int finalProgress = progress;
+                                JsonObject jsonParam = new JsonObject();
+                                JsonObject body = new JsonObject();
 
-                            JsonObject jsonParam = new JsonObject();
-                            JsonObject body = new JsonObject();
+                                jsonParam.addProperty(param.getName(), finalProgress);
+                                body.add(deviceName, jsonParam);
 
-                            jsonParam.addProperty(param.getName(), finalProgress);
-                            body.add(deviceName, jsonParam);
+                                networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
 
-                            networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                                    @Override
+                                    public void onSuccess(Bundle data) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
 
-                                @Override
-                                public void onSuccess(Bundle data) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                }
+                                    @Override
+                                    public void onResponseFailure(Exception exception) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
 
-                                @Override
-                                public void onResponseFailure(Exception exception) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                }
-
-                                @Override
-                                public void onNetworkFailure(Exception exception) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                }
-                            });
+                                    @Override
+                                    public void onNetworkFailure(Exception exception) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+                                });
+                            }
                         }
                     });
                 } else {
@@ -607,42 +639,54 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                         @Override
                         public void onSeeking(SeekParams seekParams) {
+                            if (seekParams.fromUser) {
+                                ((EspDeviceActivity) context).setIsUpdateView(false);
+                                if (BuildConfig.isContinuousUpdateEnable) {
+                                    paramAdapterManager.processSliderChange(param.getName(), seekParams.progressFloat, true);
+                                }
+                            }
                         }
 
                         @Override
                         public void onStartTrackingTouch(TickSeekBar seekBar) {
-                            ((EspDeviceActivity) context).stopUpdateValueTask();
+                            ((EspDeviceActivity) context).setIsUpdateView(false);
+                            if (!BuildConfig.isContinuousUpdateEnable) {
+                                ((EspDeviceActivity) context).stopUpdateValueTask();
+                            }
                         }
 
                         @Override
                         public void onStopTrackingTouch(TickSeekBar seekBar) {
+                            ((EspDeviceActivity) context).setIsUpdateView(true);
+                            if (BuildConfig.isContinuousUpdateEnable) {
+                                paramAdapterManager.processSliderChange(param.getName(), seekBar.getProgressFloat(), false);
+                            } else {
+                                float finalProgress = seekBar.getProgressFloat();
 
-                            float progress = seekBar.getProgressFloat();
-                            float finalProgress = progress;
+                                JsonObject jsonParam = new JsonObject();
+                                JsonObject body = new JsonObject();
 
-                            JsonObject jsonParam = new JsonObject();
-                            JsonObject body = new JsonObject();
+                                jsonParam.addProperty(param.getName(), finalProgress);
+                                body.add(deviceName, jsonParam);
 
-                            jsonParam.addProperty(param.getName(), finalProgress);
-                            body.add(deviceName, jsonParam);
+                                networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
 
-                            networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                                    @Override
+                                    public void onSuccess(Bundle data) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
 
-                                @Override
-                                public void onSuccess(Bundle data) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                }
+                                    @Override
+                                    public void onResponseFailure(Exception exception) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
 
-                                @Override
-                                public void onResponseFailure(Exception exception) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                }
-
-                                @Override
-                                public void onNetworkFailure(Exception exception) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                }
-                            });
+                                    @Override
+                                    public void onNetworkFailure(Exception exception) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+                                });
+                            }
                         }
                     });
                 } else {

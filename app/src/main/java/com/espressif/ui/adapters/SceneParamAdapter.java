@@ -252,7 +252,7 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
 
             sceneParamVH.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
                 @Override
-                public void onColorSelected(int colorHue) {
+                public void onColorSelected(int colorHue,boolean isMoving) {
                     param.setValue(colorHue);
                 }
             });
