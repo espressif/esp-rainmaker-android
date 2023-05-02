@@ -44,11 +44,14 @@ public class NotificationWorker extends Worker {
     private static final String TAG = NotificationWorker.class.getSimpleName();
 
     private EspApplication espApp;
+    private NotificationManagerCompat notificationManager;
+    private boolean isNotificationAllowed;
     private static int notificationId = 0;
 
     public NotificationWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         espApp = (EspApplication) getApplicationContext();
+        notificationManager = NotificationManagerCompat.from(espApp);
     }
 
     @NonNull
@@ -73,6 +76,7 @@ public class NotificationWorker extends Worker {
             notificationEvent.setEventDescription(eventDataJson.optString(AppConstants.KEY_DESCRIPTION));
             notificationEvent.setTimestamp(eventDataJson.optLong(AppConstants.KEY_TIMESTAMP));
             Log.e(TAG, "Event type : " + eventType);
+            isNotificationAllowed = shouldSendNotification();
 
             if (!TextUtils.isEmpty(eventType)) {
 
@@ -131,7 +135,9 @@ public class NotificationWorker extends Worker {
                     } else {
                         notificationEvent.setEventDescription(body);
                         EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
-                        sendNotification(title, body, AppConstants.CHANNEL_ALERT, NotificationsActivity.class);
+                        if (isNotificationAllowed) {
+                            sendNotification(title, body, AppConstants.CHANNEL_ALERT, NotificationsActivity.class);
+                        }
                     }
                 }
             }
@@ -224,10 +230,14 @@ public class NotificationWorker extends Worker {
         Log.d(TAG, "Connectivity Notification inserted in database");
 
         if (AppConstants.EVENT_NODE_CONNECTED.equals(notificationEvent.getEventType())) {
-            sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ONLINE_ID, SplashActivity.class);
+            if (isNotificationAllowed) {
+                sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ONLINE_ID, SplashActivity.class);
+            }
             EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_ONLINE));
         } else {
-            sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_OFFLINE_ID, SplashActivity.class);
+            if (isNotificationAllowed) {
+                sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_OFFLINE_ID, SplashActivity.class);
+            }
             EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_OFFLINE));
         }
     }
@@ -286,7 +296,9 @@ public class NotificationWorker extends Worker {
                 notificationEvent.setNotificationMsg(msgBuilder.toString());
                 EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
                 Log.d(TAG, "Node added Notification inserted in database");
-                sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED, SplashActivity.class);
+                if (isNotificationAllowed) {
+                    sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED, SplashActivity.class);
+                }
                 EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
 
             } else {
@@ -336,7 +348,9 @@ public class NotificationWorker extends Worker {
                         notificationEvent.setNotificationMsg(msgBuilder.toString());
                         EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
                         Log.d(TAG, "Node added Notification inserted in database");
-                        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED, SplashActivity.class);
+                        if (isNotificationAllowed) {
+                            sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED, SplashActivity.class);
+                        }
                         EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                     }
 
@@ -346,7 +360,9 @@ public class NotificationWorker extends Worker {
                         notificationEvent.setNotificationMsg(msgBuilder.toString());
                         EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
                         Log.d(TAG, "Node added Notification inserted in database");
-                        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED, SplashActivity.class);
+                        if (isNotificationAllowed) {
+                            sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED, SplashActivity.class);
+                        }
                         EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                     }
                 });
@@ -405,7 +421,9 @@ public class NotificationWorker extends Worker {
         notificationEvent.setNotificationMsg(msgBuilder.toString());
         EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
         Log.d(TAG, "Node removed Notification inserted in database");
-        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_REMOVED, SplashActivity.class);
+        if (isNotificationAllowed) {
+            sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_REMOVED, SplashActivity.class);
+        }
         EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
     }
 
@@ -586,7 +604,6 @@ public class NotificationWorker extends Worker {
                     PendingIntent.FLAG_UPDATE_CURRENT);
         }
 
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
         Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
         Notification notification = new NotificationCompat.Builder(espApp, AppConstants.CHANNEL_NODE_SHARING)
@@ -624,8 +641,6 @@ public class NotificationWorker extends Worker {
         }
 
         int id = notificationId++;
-
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
         Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(espApp, AppConstants.CHANNEL_NODE_SHARING)
@@ -773,8 +788,9 @@ public class NotificationWorker extends Worker {
         notificationEvent.setNotificationMsg(notificationMsg.toString());
         EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
         Log.d(TAG, "Automation Notification inserted in database");
-
-        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_AUTOMATION_TRIGGER, NotificationsActivity.class);
+        if (isNotificationAllowed) {
+            sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_AUTOMATION_TRIGGER, NotificationsActivity.class);
+        }
     }
 
     // Event type - Alert
@@ -874,7 +890,9 @@ public class NotificationWorker extends Worker {
         notificationEvent.setNotificationMsg(msgBuilder.toString());
         EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
         Log.d(TAG, "Alert Notification inserted in database");
-        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_ALERT, NotificationsActivity.class);
+        if (isNotificationAllowed) {
+            sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_ALERT, NotificationsActivity.class);
+        }
         // Send event for UI update
         EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
     }
@@ -904,7 +922,6 @@ public class NotificationWorker extends Worker {
                     PendingIntent.FLAG_UPDATE_CURRENT);
         }
 
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
         Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
         Notification notification = new NotificationCompat.Builder(espApp, channelId)
@@ -1013,5 +1030,10 @@ public class NotificationWorker extends Worker {
             }
         }
         return false;
+    }
+
+    private boolean shouldSendNotification() {
+        return (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && notificationManager.areNotificationsEnabled())
+                || (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU);
     }
 }
