@@ -57,6 +57,7 @@ import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.Utils;
 import com.espressif.ui.adapters.HomeScreenPagerAdapter;
 import com.espressif.ui.fragments.AutomationFragment;
 import com.espressif.ui.fragments.DevicesFragment;
@@ -601,34 +602,21 @@ public class EspMainActivity extends AppCompatActivity {
             startActivity(intent);
         } else {
 
-            boolean isSec1 = true;
-            ESPProvisionManager provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
-
-            if (AppConstants.SECURITY_0.equalsIgnoreCase(BuildConfig.SECURITY)) {
-                isSec1 = false;
-            }
+            int securityType = Integer.parseInt(BuildConfig.SECURITY);
 
             if (AppConstants.TRANSPORT_SOFTAP.equalsIgnoreCase(BuildConfig.TRANSPORT)) {
 
-                if (isSec1) {
-                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_1);
-                } else {
-                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_0);
-                }
-                goToWiFiProvisionLanding(isSec1);
+                Utils.createESPDevice(getApplicationContext(), ESPConstants.TransportType.TRANSPORT_SOFTAP, securityType);
+                goToWiFiProvisionLanding(securityType);
 
             } else if (AppConstants.TRANSPORT_BLE.equalsIgnoreCase(BuildConfig.TRANSPORT)) {
 
-                if (isSec1) {
-                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_1);
-                } else {
-                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_0);
-                }
-                goToBLEProvisionLanding(isSec1);
+                Utils.createESPDevice(getApplicationContext(), ESPConstants.TransportType.TRANSPORT_BLE, securityType);
+                goToBLEProvisionLanding(securityType);
 
             } else if (AppConstants.TRANSPORT_BOTH.equalsIgnoreCase(BuildConfig.TRANSPORT)) {
 
-                askForDeviceType(isSec1);
+                askForDeviceType(securityType);
 
             } else {
                 Toast.makeText(this, R.string.error_device_type_not_supported, Toast.LENGTH_LONG).show();
@@ -819,7 +807,7 @@ public class EspMainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private void askForDeviceType(final boolean isSec1) {
+    private void askForDeviceType(int securityType) {
 
         final String[] deviceTypes = getResources().getStringArray(R.array.prov_transport_types);
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -834,21 +822,13 @@ public class EspMainActivity extends AppCompatActivity {
 
                 switch (position) {
                     case 0:
-                        if (isSec1) {
-                            provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_1);
-                        } else {
-                            provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_0);
-                        }
-                        goToBLEProvisionLanding(isSec1);
+                        Utils.createESPDevice(getApplicationContext(), ESPConstants.TransportType.TRANSPORT_BLE, securityType);
+                        goToBLEProvisionLanding(securityType);
                         break;
 
                     case 1:
-                        if (isSec1) {
-                            provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_1);
-                        } else {
-                            provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_0);
-                        }
-                        goToWiFiProvisionLanding(isSec1);
+                        Utils.createESPDevice(getApplicationContext(), ESPConstants.TransportType.TRANSPORT_SOFTAP, securityType);
+                        goToWiFiProvisionLanding(securityType);
                         break;
                 }
                 dialog.dismiss();
@@ -857,25 +837,17 @@ public class EspMainActivity extends AppCompatActivity {
         builder.show();
     }
 
-    private void goToBLEProvisionLanding(boolean isSec1) {
+    private void goToBLEProvisionLanding(int securityType) {
 
         Intent intent = new Intent(getApplicationContext(), BLEProvisionLanding.class);
-        if (isSec1) {
-            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_1);
-        } else {
-            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_0);
-        }
+        intent.putExtra(AppConstants.KEY_SECURITY_TYPE, securityType);
         startActivity(intent);
     }
 
-    private void goToWiFiProvisionLanding(boolean isSec1) {
+    private void goToWiFiProvisionLanding(int securityType) {
 
         Intent intent = new Intent(getApplicationContext(), ProvisionLanding.class);
-        if (isSec1) {
-            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_1);
-        } else {
-            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_0);
-        }
+        intent.putExtra(AppConstants.KEY_SECURITY_TYPE, securityType);
         startActivity(intent);
     }
 

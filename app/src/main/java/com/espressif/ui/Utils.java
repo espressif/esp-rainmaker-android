@@ -15,13 +15,18 @@
 package com.espressif.ui;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.Patterns;
 
 import androidx.appcompat.app.AlertDialog;
 
 import com.espressif.AppConstants;
+import com.espressif.provisioning.ESPConstants;
+import com.espressif.provisioning.ESPProvisionManager;
+import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Action;
 import com.espressif.ui.models.Device;
@@ -40,6 +45,74 @@ import java.util.Iterator;
 import java.util.TimeZone;
 
 public class Utils {
+
+    public static final String TAG = Utils.class.getSimpleName();
+
+    public static void createESPDevice(Context appContext, ESPConstants.TransportType transportType, int securityType) {
+        ESPProvisionManager provisionManager = ESPProvisionManager.getInstance(appContext);
+        switch (securityType) {
+            case AppConstants.SEC_TYPE_0:
+                provisionManager.createESPDevice(transportType, ESPConstants.SecurityType.SECURITY_0);
+                break;
+            case AppConstants.SEC_TYPE_1:
+                provisionManager.createESPDevice(transportType, ESPConstants.SecurityType.SECURITY_1);
+                break;
+            case AppConstants.SEC_TYPE_2:
+            default:
+                provisionManager.createESPDevice(transportType, ESPConstants.SecurityType.SECURITY_2);
+                break;
+        }
+    }
+
+    public static void setSecurityTypeFromVersionInfo(Context appContext) {
+        ESPProvisionManager provisionManager = ESPProvisionManager.getInstance(appContext);
+        String protoVerStr = provisionManager.getEspDevice().getVersionInfo();
+
+        // Prov Json
+        try {
+            JSONObject jsonObject = new JSONObject(protoVerStr);
+            JSONObject provInfo = jsonObject.getJSONObject("prov");
+
+            if (provInfo != null) {
+                if (provInfo.has(AppConstants.KEY_SEC_VER)) {
+
+                    int serVer = provInfo.optInt(AppConstants.KEY_SEC_VER);
+                    Log.d(TAG, "Security Version : " + serVer);
+
+                    switch (serVer) {
+                        case AppConstants.SEC_TYPE_0:
+                            provisionManager.getEspDevice().setSecurityType(ESPConstants.SecurityType.SECURITY_0);
+                            break;
+                        case AppConstants.SEC_TYPE_1:
+                            provisionManager.getEspDevice().setSecurityType(ESPConstants.SecurityType.SECURITY_1);
+                            break;
+                        case AppConstants.SEC_TYPE_2:
+                        default:
+                            provisionManager.getEspDevice().setSecurityType(ESPConstants.SecurityType.SECURITY_2);
+                            String userName = provisionManager.getEspDevice().getUserName();
+                            if (TextUtils.isEmpty(userName)) {
+                                if (TextUtils.isEmpty(BuildConfig.SECURITY_2_USERNAME)) {
+                                    userName = BuildConfig.SECURITY_2_USERNAME;
+                                } else {
+                                    userName = AppConstants.DEFAULT_SEC2_USER_NAME;
+                                }
+                            }
+                            provisionManager.getEspDevice().setUserName(userName);
+                            break;
+                    }
+                } else {
+                    if (provisionManager.getEspDevice().getSecurityType().equals(ESPConstants.SecurityType.SECURITY_2)) {
+                        provisionManager.getEspDevice().setSecurityType(ESPConstants.SecurityType.SECURITY_1);
+                    }
+                }
+            } else {
+                Log.e(TAG, "proto-ver info is not available.");
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Log.e(TAG, "Capabilities JSON not available.");
+        }
+    }
 
     public static boolean isValidEmail(CharSequence target) {
         // TODO Add phone number validation

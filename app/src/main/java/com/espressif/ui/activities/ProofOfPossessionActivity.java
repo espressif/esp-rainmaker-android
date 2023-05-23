@@ -35,6 +35,7 @@ import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.Utils;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 
@@ -184,6 +185,8 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        Utils.setSecurityTypeFromVersionInfo(getApplicationContext());
+
                         ArrayList<String> rmakerCaps = new ArrayList<>();
                         ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
 
@@ -235,26 +238,29 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
 
     private void goToClaimingActivity() {
 
+        finish();
         Intent claimingIntent = new Intent(getApplicationContext(), ClaimingActivity.class);
+        claimingIntent.putExtras(getIntent());
         claimingIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(claimingIntent);
-        finish();
     }
 
     private void goToWiFiScanListActivity() {
 
+        finish();
         Intent wifiListIntent = new Intent(getApplicationContext(), WiFiScanActivity.class);
+        wifiListIntent.putExtras(getIntent());
         wifiListIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiListIntent);
-        finish();
     }
 
     private void goToWiFiConfigActivity() {
 
+        finish();
         Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
+        wifiConfigIntent.putExtras(getIntent());
         wifiConfigIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiConfigIntent);
-        finish();
     }
 
     private void showAlertForDeviceDisconnected() {

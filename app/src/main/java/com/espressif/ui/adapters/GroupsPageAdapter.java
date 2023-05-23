@@ -44,9 +44,9 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.provisioning.ESPConstants;
-import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.Utils;
 import com.espressif.ui.activities.AddDeviceActivity;
 import com.espressif.ui.activities.BLEProvisionLanding;
 import com.espressif.ui.activities.EspMainActivity;
@@ -267,49 +267,34 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
             context.startActivity(intent);
         } else {
 
-            boolean isSec1 = true;
-            ESPProvisionManager provisionManager = ESPProvisionManager.getInstance(context.getApplicationContext());
-
-            if (AppConstants.SECURITY_0.equalsIgnoreCase(BuildConfig.SECURITY)) {
-                isSec1 = false;
-            }
+            int securityType = Integer.parseInt(BuildConfig.SECURITY);
 
             if (AppConstants.TRANSPORT_SOFTAP.equalsIgnoreCase(BuildConfig.TRANSPORT)) {
 
-                if (isSec1) {
-                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_1);
-                } else {
-                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_0);
-                }
-                goToWiFiProvisionLanding(isSec1);
+                Utils.createESPDevice(context.getApplicationContext(), ESPConstants.TransportType.TRANSPORT_SOFTAP, securityType);
+                goToWiFiProvisionLanding(securityType);
 
             } else if (AppConstants.TRANSPORT_BLE.equalsIgnoreCase(BuildConfig.TRANSPORT)) {
 
-                if (isSec1) {
-                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_1);
-                } else {
-                    provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_0);
-                }
-                goToBLEProvisionLanding(isSec1);
+                Utils.createESPDevice(context.getApplicationContext(), ESPConstants.TransportType.TRANSPORT_BLE, securityType);
+                goToBLEProvisionLanding(securityType);
 
             } else if (AppConstants.TRANSPORT_BOTH.equalsIgnoreCase(BuildConfig.TRANSPORT)) {
 
-                askForDeviceType(isSec1);
+                askForDeviceType(securityType);
 
             } else {
                 Toast.makeText(context, R.string.error_device_type_not_supported, Toast.LENGTH_LONG).show();
             }
-
         }
     }
 
-    private void askForDeviceType(final boolean isSec1) {
+    private void askForDeviceType(int securityType) {
 
         final String[] deviceTypes = context.getResources().getStringArray(R.array.prov_transport_types);
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setCancelable(true);
         builder.setTitle(R.string.dialog_msg_device_selection);
-        final ESPProvisionManager provisionManager = ESPProvisionManager.getInstance(context.getApplicationContext());
 
         builder.setItems(deviceTypes, new DialogInterface.OnClickListener() {
 
@@ -318,21 +303,13 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
 
                 switch (position) {
                     case 0:
-                        if (isSec1) {
-                            provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_1);
-                        } else {
-                            provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_0);
-                        }
-                        goToBLEProvisionLanding(isSec1);
+                        Utils.createESPDevice(context.getApplicationContext(), ESPConstants.TransportType.TRANSPORT_BLE, securityType);
+                        goToBLEProvisionLanding(securityType);
                         break;
 
                     case 1:
-                        if (isSec1) {
-                            provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_1);
-                        } else {
-                            provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_SOFTAP, ESPConstants.SecurityType.SECURITY_0);
-                        }
-                        goToWiFiProvisionLanding(isSec1);
+                        Utils.createESPDevice(context.getApplicationContext(), ESPConstants.TransportType.TRANSPORT_SOFTAP, securityType);
+                        goToWiFiProvisionLanding(securityType);
                         break;
                 }
                 dialog.dismiss();
@@ -341,25 +318,17 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
         builder.show();
     }
 
-    private void goToBLEProvisionLanding(boolean isSec1) {
+    private void goToBLEProvisionLanding(int securityType) {
 
         Intent intent = new Intent(context, BLEProvisionLanding.class);
-        if (isSec1) {
-            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_1);
-        } else {
-            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_0);
-        }
+        intent.putExtra(AppConstants.KEY_SECURITY_TYPE, securityType);
         context.startActivity(intent);
     }
 
-    private void goToWiFiProvisionLanding(boolean isSec1) {
+    private void goToWiFiProvisionLanding(int securityType) {
 
         Intent intent = new Intent(context, ProvisionLanding.class);
-        if (isSec1) {
-            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_1);
-        } else {
-            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SECURITY_0);
-        }
+        intent.putExtra(AppConstants.KEY_SECURITY_TYPE, securityType);
         context.startActivity(intent);
     }
 

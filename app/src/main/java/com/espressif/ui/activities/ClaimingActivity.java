@@ -664,6 +664,7 @@ public class ClaimingActivity extends AppCompatActivity {
     private void goToWiFiScanActivity() {
         finish();
         Intent wifiListIntent = new Intent(getApplicationContext(), WiFiScanActivity.class);
+        wifiListIntent.putExtras(getIntent());
         wifiListIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiListIntent);
     }
@@ -671,6 +672,7 @@ public class ClaimingActivity extends AppCompatActivity {
     private void goToWiFiConfigActivity() {
         finish();
         Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
+        wifiConfigIntent.putExtras(getIntent());
         wifiConfigIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiConfigIntent);
     }
