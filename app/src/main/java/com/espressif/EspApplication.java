@@ -394,9 +394,8 @@ public class EspApplication extends Application {
 
             if (node == null) {
                 Log.e(TAG, "Node is not available with id : " + nodeId);
-//                return;
+                return;
             } else {
-                newDevice.setNodeId(nodeId);
                 ArrayList<Service> services = node.getServices();
 
                 for (int i = 0; i < services.size(); i++) {
@@ -412,6 +411,8 @@ public class EspApplication extends Application {
             if (localDeviceMap.containsKey(nodeId)) {
                 Log.e(TAG, "Local Device session is already available");
                 newDevice = localDeviceMap.get(nodeId);
+            } else {
+                localDeviceMap.put(nodeId, newDevice);
             }
 
             if (localService != null) {
@@ -431,95 +432,99 @@ public class EspApplication extends Application {
             }
 
             final EspLocalDevice localDevice = newDevice;
-            localControlApiManager.getPropertyCount(AppConstants.LOCAL_CONTROL_ENDPOINT, localDevice, new ApiResponseListener() {
 
-                @Override
-                public void onSuccess(Bundle data) {
+            if (newDevice.getPropertyCount() == -1) {
+                localControlApiManager.getPropertyCount(AppConstants.LOCAL_CONTROL_ENDPOINT, localDevice, new ApiResponseListener() {
 
-                    if (data != null) {
+                    @Override
+                    public void onSuccess(Bundle data) {
 
-                        int count = data.getInt(AppConstants.KEY_PROPERTY_COUNT, 0);
-                        localDevice.setPropertyCount(count);
+                        if (data != null) {
 
-                        localControlApiManager.getPropertyValues(AppConstants.LOCAL_CONTROL_ENDPOINT, localDevice, new ApiResponseListener() {
+                            int count = data.getInt(AppConstants.KEY_PROPERTY_COUNT, 0);
+                            localDevice.setPropertyCount(count);
 
-                            @Override
-                            public void onSuccess(Bundle data) {
+                            localControlApiManager.getPropertyValues(AppConstants.LOCAL_CONTROL_ENDPOINT, localDevice, new ApiResponseListener() {
 
-                                if (data != null) {
+                                @Override
+                                public void onSuccess(Bundle data) {
 
-                                    String configData = data.getString(AppConstants.KEY_CONFIG);
-                                    String paramsData = data.getString(AppConstants.KEY_PARAMS);
+                                    if (data != null) {
 
-                                    Log.d(TAG, "Config data : " + configData);
-                                    Log.d(TAG, "Params data : " + paramsData);
+                                        String configData = data.getString(AppConstants.KEY_CONFIG);
+                                        String paramsData = data.getString(AppConstants.KEY_PARAMS);
 
-                                    if (!TextUtils.isEmpty(configData)) {
+                                        Log.d(TAG, "Config data : " + configData);
+                                        Log.d(TAG, "Params data : " + paramsData);
 
-                                        JSONObject configJson = null;
-                                        try {
-                                            configJson = new JSONObject(configData);
-                                        } catch (JSONException e) {
-                                            e.printStackTrace();
-                                        }
+                                        if (!TextUtils.isEmpty(configData)) {
 
-                                        String id = configJson.optString(AppConstants.KEY_NODE_ID);
-                                        EspNode node = nodeMap.get(id);
-                                        boolean isDeviceFound = false;
-                                        if (node != null) {
-                                            isDeviceFound = true;
-                                        }
-                                        EspNode localNode = JsonDataParser.setNodeConfig(node, configJson);
-
-                                        if (node != null) {
-                                            Log.e(TAG, "Found node " + localNode.getNodeId() + " on local network.");
-                                            isDeviceFound = true;
-                                            localNode.setAvailableLocally(true);
-                                            localNode.setIpAddress(localDevice.getIpAddr());
-                                            localNode.setPort(localDevice.getPort());
-                                            localNode.setOnline(true);
-                                            localDeviceMap.put(localNode.getNodeId(), localDevice);
-                                        }
-
-                                        if (!TextUtils.isEmpty(paramsData) && isDeviceFound) {
-
-                                            JSONObject paramsJson = null;
+                                            JSONObject configJson = null;
                                             try {
-                                                paramsJson = new JSONObject(paramsData);
+                                                configJson = new JSONObject(configData);
                                             } catch (JSONException e) {
                                                 e.printStackTrace();
                                             }
-                                            JsonDataParser.setAllParams(EspApplication.this, localNode, paramsJson);
-                                            nodeMap.put(localNode.getNodeId(), localNode);
-                                            EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_LOCAL_DEVICE_UPDATE));
+
+                                            String id = configJson.optString(AppConstants.KEY_NODE_ID);
+                                            EspNode node = nodeMap.get(id);
+
+                                            EspNode localNode = JsonDataParser.setNodeConfig(node, configJson);
+
+                                            if (node != null) {
+                                                Log.e(TAG, "Found node " + localNode.getNodeId() + " on local network.");
+                                                localNode.setAvailableLocally(true);
+                                                localNode.setIpAddress(localDevice.getIpAddr());
+                                                localNode.setPort(localDevice.getPort());
+                                                localNode.setOnline(true);
+                                                localDeviceMap.put(localNode.getNodeId(), localDevice);
+                                            }
+
+                                            if (!TextUtils.isEmpty(paramsData)) {
+
+                                                JSONObject paramsJson = null;
+                                                try {
+                                                    paramsJson = new JSONObject(paramsData);
+                                                } catch (JSONException e) {
+                                                    e.printStackTrace();
+                                                }
+                                                JsonDataParser.setAllParams(EspApplication.this, localNode, paramsJson);
+                                                nodeMap.put(localNode.getNodeId(), localNode);
+                                                EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_LOCAL_DEVICE_UPDATE));
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            @Override
-                            public void onResponseFailure(Exception exception) {
-                                // Nothing to do
-                            }
+                                @Override
+                                public void onResponseFailure(Exception exception) {
+                                    // Nothing to do
+                                }
 
-                            @Override
-                            public void onNetworkFailure(Exception exception) {
-                                // Nothing to do
-                            }
-                        });
+                                @Override
+                                public void onNetworkFailure(Exception exception) {
+                                    // Nothing to do
+                                }
+                            });
+                        }
                     }
-                }
 
-                @Override
-                public void onResponseFailure(Exception exception) {
-                    // Nothing to do
-                }
+                    @Override
+                    public void onResponseFailure(Exception exception) {
+                        if (localDeviceMap.containsKey(nodeId)) {
+                            Log.e(TAG, "Remove local device from list");
+                            localDeviceMap.remove(nodeId);
+                        }
+                    }
 
-                @Override
-                public void onNetworkFailure(Exception exception) {
-                    // Nothing to do
-                }
-            });
+                    @Override
+                    public void onNetworkFailure(Exception exception) {
+                        // Nothing to do
+                    }
+                });
+            } else {
+                Log.e(TAG, "Local device is already available and properties are already available");
+            }
         }
     };
 
