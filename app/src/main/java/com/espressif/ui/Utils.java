@@ -408,4 +408,12 @@ public class Utils {
         }
         return paramText.toString();
     }
+
+    public static long getThrottleDelay() {
+        if (BuildConfig.continuosUpdateInterval > AppConstants.MIN_THROTTLE_DELAY
+                && BuildConfig.continuosUpdateInterval < AppConstants.MAX_THROTTLE_DELAY) {
+            return BuildConfig.continuosUpdateInterval;
+        }
+        return AppConstants.MID_THROTTLE_DELAY;
+    }
 }
