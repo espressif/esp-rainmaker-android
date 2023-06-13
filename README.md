@@ -176,7 +176,7 @@ Add below lines in `local.properties` and customize as per your requirement.
  
  ```
  transport=Both
- security=Sec1
+ security=2
  POP=abcd1234
  deviceNamePrefix=PROV_
  isFilterPrefixEditable=true
@@ -190,14 +190,14 @@ Add below lines in `local.properties` and customize as per your requirement.
 
 Description of each key can be found below.
 
-| Key                    	| Type    	| Description                                                                                                                                                                                                     	|
-|------------------------	|---------	|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	|
-| transport              	| String  	| Possible values:   <br> **Both** (Default) : Supports both BLE and SoftAP device provisioning. <br> **SoftAP** : supports only SoftAP device provisioning. <br> **BLE**: supports only BLE device provisioning. 	|
-| security               	| String  	| Possible values:   <br> **Sec1** (Default) : for secure/encrypted communication between device and app. <br> **Sec0**: for unencrypted communication between device and app.                                    	|
-| POP                    	| String  	| Proof of Possession. It's default value is **empty string**.                                                                                                                                                    	|
-| deviceNamePrefix       	| String  	| Search for BLE devices with this prefix in scanning. It's default value is "**PROV_**".                                                                                                                         	|
-| isFilterPrefixEditable 	| boolean 	| Allow users to edit the prefix used for filtering BLE devices. It's default value is **true**.                                                                                                                  	|
-| isQRCodeSupported      	| boolean 	| Allow users to connect with the device and start provisioning using QR code which has device information. It's default value is **true**.                                                                       	|
+| Key                    	| Type    	| Description                                                                                                                                                                                                     	 |
+|------------------------	|---------	|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| transport              	| String  	| Possible values:   <br> **Both** (Default) : Supports both BLE and SoftAP device provisioning. <br> **SoftAP** : supports only SoftAP device provisioning. <br> **BLE**: supports only BLE device provisioning. 	 |
+| security               	| int 	   | It can be 0, 1 or 2 int value. (Default value is 2).  <br> **0**: for unencrypted communication between device and app. <br> **1/2** : for secure/encrypted communication between device and app.                   |
+| POP                    	| String  	| Proof of Possession. It's default value is **empty string**.                                                                                                                                                    	 |
+| deviceNamePrefix       	| String  	| Search for BLE devices with this prefix in scanning. It's default value is "**PROV_**".                                                                                                                         	 |
+| isFilterPrefixEditable 	| boolean 	| Allow users to edit the prefix used for filtering BLE devices. It's default value is **true**.                                                                                                                  	 |
+| isQRCodeSupported      	| boolean 	| Allow users to connect with the device and start provisioning using QR code which has device information. It's default value is **true**.                                                                       	 |
 
 
 ## Supports

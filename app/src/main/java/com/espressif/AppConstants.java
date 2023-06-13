@@ -18,9 +18,6 @@ import com.espressif.rainmaker.BuildConfig;
 
 public class AppConstants {
 
-    public static final String SECURITY_0 = "Sec0";
-    public static final String SECURITY_1 = "Sec1";
-
     public static final String TRANSPORT_SOFTAP = "softap";
     public static final String TRANSPORT_BLE = "ble";
     public static final String TRANSPORT_BOTH = "both";
@@ -381,4 +378,11 @@ public class AppConstants {
     public static final int MIN_THROTTLE_DELAY = 50;
     public static final int MAX_THROTTLE_DELAY = 300;
     public static final int MID_THROTTLE_DELAY = 100;
+
+    public static final String KEY_SEC_VER = "sec_ver";
+    public static final int SEC_TYPE_0 = 0;
+    public static final int SEC_TYPE_1 = 1;
+    public static final int SEC_TYPE_2 = 2;
+    public static final int SEC_TYPE_DEFAULT = SEC_TYPE_2;
+    public static final String DEFAULT_SEC2_USER_NAME = "wifiprov";
 }

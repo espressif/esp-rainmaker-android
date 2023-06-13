@@ -14,10 +14,11 @@ def getGitHash = { ->
 
 def defaultAppName = "ESP RainMaker"
 def defaultTransport = "Both"
-def defaultSecurity = "Sec1"
+def defaultSecurity = "2"
 def defaultPoP = ""
 def defaultPrefix = "PROV_"
 def defaultWiFiScanSrc = "Device"
+def defaultSec2Username = "wifiprov"
 
 def defaultClientId = "1h7ujqjs8140n17v0ahb4n51m2"
 
@@ -46,8 +47,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 23
         targetSdkVersion 32
-        versionCode 87
-        versionName "2.11.1 - ${getGitHash()}"
+        versionCode 90
+        versionName "2.11.2 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -67,7 +68,7 @@ android {
         def security = localProperties.getProperty("security", defaultSecurity)
         if (security == null) {
             throw new GradleException("Security not found. Define security in the local.properties file.")
-        } else if (!security.equalsIgnoreCase("Sec0") && !security.equalsIgnoreCase("Sec1")) {
+        } else if (!security.equalsIgnoreCase("0") && !security.equalsIgnoreCase("1") && !security.equalsIgnoreCase("2")) {
             throw new GradleException("Invalid 'security' value. Please check 'security' value in local.properties file.")
         } else {
             buildConfigField "String", "SECURITY", '"' + security + '"'
@@ -81,6 +82,8 @@ android {
         } else {
             buildConfigField "String", "WIFI_SCAN_SRC", '"' + wifiScanSrc + '"'
         }
+
+        buildConfigField "String", "SECURITY_2_USERNAME", '"' + localProperties.getProperty("security2Username", defaultSec2Username) + '"'
 
         buildConfigField "boolean", "isFilterPrefixEditable", localProperties.getProperty("isFilterPrefixEditable", "true")
         buildConfigField "String", "DEVICE_NAME_PREFIX", '"' + localProperties.getProperty("deviceNamePrefix", defaultPrefix) + '"'
@@ -183,7 +186,7 @@ dependencies {
     implementation 'com.google.protobuf:protobuf-javalite:3.18.0'
     implementation 'com.google.crypto.tink:tink-android:1.6.1'
 
-    implementation 'org.greenrobot:eventbus:3.2.0'
+    implementation 'org.greenrobot:eventbus:3.3.1'
     implementation 'com.auth0.android:jwtdecode:1.4.0'
     implementation 'com.google.code.gson:gson:2.8.6'
     implementation 'com.squareup.retrofit2:retrofit:2.6.0'
@@ -196,7 +199,7 @@ dependencies {
     implementation 'com.larswerkman:HoloColorPicker:1.5'
     implementation 'com.aventrix.jnanoid:jnanoid:2.0.0'
     implementation 'com.github.yuriy-budiyev:code-scanner:2.1.2'
-    implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.0.13'
+    implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.1.2'
     implementation 'com.github.warkiz.tickseekbar:tickseekbar:0.1.4'
     implementation 'com.github.abdularis:TapHoldUpButton:0.1.2'
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'

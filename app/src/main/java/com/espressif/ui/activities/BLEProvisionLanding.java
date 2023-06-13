@@ -52,6 +52,7 @@ import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.BleScanListener;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.Utils;
 import com.espressif.ui.adapters.BleDeviceListAdapter;
 import com.espressif.ui.models.BleDevice;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -94,22 +95,17 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
     private int position = -1;
     private boolean isDeviceConnected = false, isConnecting = false;
-    private ESPProvisionManager provisionManager;
     private SharedPreferences sharedPreferences;
-    private String securityType;
     private boolean isScanning = false;
     private String deviceNamePrefix;
+    private int securityType;
+    private ESPProvisionManager provisionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bleprovision_landing);
-
-        securityType = AppConstants.SECURITY_1;
-        if (AppConstants.SECURITY_0.equalsIgnoreCase(BuildConfig.SECURITY)) {
-            securityType = AppConstants.SECURITY_0;
-        }
 
         // Use this check to determine whether BLE is supported on the device.  Then you can
         // selectively disable BLE-related features.
@@ -134,6 +130,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
         bluetoothDevices = new HashMap<>();
         deviceList = new ArrayList<>();
 
+        securityType = getIntent().getIntExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SEC_TYPE_DEFAULT);
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         sharedPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
         if (BuildConfig.isFilterPrefixEditable) {
@@ -245,6 +242,8 @@ public class BLEProvisionLanding extends AppCompatActivity {
                 progressBar.setVisibility(View.GONE);
                 isConnecting = false;
                 isDeviceConnected = true;
+                Utils.setSecurityTypeFromVersionInfo(getApplicationContext());
+                securityType = provisionManager.getEspDevice().getSecurityType().ordinal();
                 checkDeviceCapabilities();
                 break;
 
@@ -468,7 +467,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
             Log.d(TAG, "Version Info JSON not available.");
         }
 
-        if (deviceCaps != null && !deviceCaps.contains(AppConstants.CAPABILITY_NO_POP) && AppConstants.SECURITY_1.equalsIgnoreCase(securityType)) {
+        if (deviceCaps != null && !deviceCaps.contains(AppConstants.CAPABILITY_NO_POP) && AppConstants.SEC_TYPE_0 != securityType) {
 
             goToPopActivity();
 
@@ -513,7 +512,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
             } else {
                 Log.d(TAG, "====== onPeripheralFound ===== " + device.getName());
             }
-            
+
             boolean deviceExists = false;
             String serviceUuid = "";
 
@@ -566,16 +565,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
         if (hasLocationAndBtPermissions()) {
 
-            boolean isSec1 = true;
-            if (AppConstants.SECURITY_0.equalsIgnoreCase(BuildConfig.SECURITY)) {
-                isSec1 = false;
-            }
-            if (isSec1) {
-                provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_1);
-            } else {
-                provisionManager.createESPDevice(ESPConstants.TransportType.TRANSPORT_BLE, ESPConstants.SecurityType.SECURITY_0);
-            }
-
+            Utils.createESPDevice(getApplicationContext(), ESPConstants.TransportType.TRANSPORT_BLE, securityType);
             provisionManager.getEspDevice().connectBLEDevice(bleDevice.getBluetoothDevice(), uuid);
             handler.postDelayed(disconnectDeviceTask, DEVICE_CONNECT_TIMEOUT);
         } else {
@@ -652,30 +642,30 @@ public class BLEProvisionLanding extends AppCompatActivity {
     private void goToPopActivity() {
         finish();
         Intent popIntent = new Intent(getApplicationContext(), ProofOfPossessionActivity.class);
+        popIntent.putExtras(getIntent());
         popIntent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceList.get(position).getName());
-        popIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(popIntent);
     }
 
     private void goToWifiScanListActivity() {
         finish();
         Intent wifiListIntent = new Intent(getApplicationContext(), WiFiScanActivity.class);
+        wifiListIntent.putExtras(getIntent());
         wifiListIntent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceList.get(position).getName());
-        wifiListIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiListIntent);
     }
 
     private void goToWiFiConfigActivity() {
         finish();
         Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
-        wifiConfigIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
+        wifiConfigIntent.putExtras(getIntent());
         startActivity(wifiConfigIntent);
     }
 
     private void goToClaimingActivity() {
         finish();
         Intent claimingIntent = new Intent(getApplicationContext(), ClaimingActivity.class);
-        claimingIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
+        claimingIntent.putExtras(getIntent());
         startActivity(claimingIntent);
     }
 }

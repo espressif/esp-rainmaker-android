@@ -18,7 +18,6 @@ import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.TextUtils;
@@ -37,6 +36,7 @@ import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.Utils;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 
@@ -61,16 +61,17 @@ public class ProvisionLanding extends AppCompatActivity {
     private TextView tvConnectDeviceInstruction, tvDeviceName;
     private ContentLoadingProgressBar progressBar;
 
+    private String deviceName, pop;
+    private int securityType;
     private ESPProvisionManager provisionManager;
-    private String securityType, deviceName, pop;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_provision_landing);
-        securityType = getIntent().getStringExtra(AppConstants.KEY_SECURITY_TYPE);
         deviceName = getIntent().getStringExtra(AppConstants.KEY_DEVICE_NAME);
         pop = getIntent().getStringExtra(AppConstants.KEY_PROOF_OF_POSSESSION);
+        securityType = getIntent().getIntExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SEC_TYPE_DEFAULT);
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
         EventBus.getDefault().register(this);
@@ -82,13 +83,10 @@ public class ProvisionLanding extends AppCompatActivity {
         super.onDestroy();
     }
 
-    @Override
     public void onBackPressed() {
-
         if (provisionManager.getEspDevice() != null) {
             provisionManager.getEspDevice().disconnectDevice();
         }
-
         super.onBackPressed();
     }
 
@@ -109,6 +107,7 @@ public class ProvisionLanding extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
 
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
 
             case REQUEST_FINE_LOCATION:
@@ -132,7 +131,8 @@ public class ProvisionLanding extends AppCompatActivity {
                 btnConnect.setAlpha(1f);
                 txtConnectBtn.setText(R.string.btn_connect);
                 progressBar.setVisibility(View.GONE);
-
+                Utils.setSecurityTypeFromVersionInfo(getApplicationContext());
+                securityType = provisionManager.getEspDevice().getSecurityType().ordinal();
                 checkDeviceCapabilities();
                 break;
 
@@ -220,11 +220,12 @@ public class ProvisionLanding extends AppCompatActivity {
     private void checkDeviceCapabilities() {
 
         ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
-        String versionInfo = provisionManager.getEspDevice().getVersionInfo();
+        String protoVerStr = provisionManager.getEspDevice().getVersionInfo();
         ArrayList<String> rmakerCaps = new ArrayList<>();
 
+        // RM Json
         try {
-            JSONObject jsonObject = new JSONObject(versionInfo);
+            JSONObject jsonObject = new JSONObject(protoVerStr);
             JSONObject rmakerInfo = jsonObject.optJSONObject("rmaker");
 
             if (rmakerInfo != null) {
@@ -254,26 +255,17 @@ public class ProvisionLanding extends AppCompatActivity {
                 provisionManager.getEspDevice().setProofOfPossession(pop);
 
                 if (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
-
                     goToWifiScanListActivity();
-
                 } else {
-
                     goToWiFiConfigActivity();
                 }
 
             } else {
-
-                if (deviceCaps != null && !deviceCaps.contains(AppConstants.CAPABILITY_NO_POP) && AppConstants.SECURITY_1.equalsIgnoreCase(securityType)) {
-
+                if (deviceCaps != null && !deviceCaps.contains(AppConstants.CAPABILITY_NO_POP) && AppConstants.SEC_TYPE_0 != securityType) {
                     goToPopActivity();
-
                 } else if (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
-
                     goToWifiScanListActivity();
-
                 } else {
-
                     goToWiFiConfigActivity();
                 }
             }
@@ -284,7 +276,7 @@ public class ProvisionLanding extends AppCompatActivity {
 
         finish();
         Intent popIntent = new Intent(getApplicationContext(), ProofOfPossessionActivity.class);
-        popIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
+        popIntent.putExtras(getIntent());
         startActivity(popIntent);
     }
 
@@ -292,7 +284,7 @@ public class ProvisionLanding extends AppCompatActivity {
 
         finish();
         Intent wifiListIntent = new Intent(getApplicationContext(), WiFiScanActivity.class);
-        wifiListIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
+        wifiListIntent.putExtras(getIntent());
         startActivity(wifiListIntent);
     }
 
@@ -300,7 +292,7 @@ public class ProvisionLanding extends AppCompatActivity {
 
         finish();
         Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
-        wifiConfigIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
+        wifiConfigIntent.putExtras(getIntent());
         startActivity(wifiConfigIntent);
     }
 
