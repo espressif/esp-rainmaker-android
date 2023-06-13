@@ -17,6 +17,7 @@ package com.espressif.local_control;
 import android.content.Context;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.espressif.AppConstants;
@@ -271,12 +272,11 @@ public class mDNSManager {
 
                 String addr = hostAddress.toString();
                 addr = addr.replace("/", "");
-                EspLocalDevice device = new EspLocalDevice();
-                device.setNodeId(nodeId);
-                device.setServiceName(serviceInfo.getServiceName());
-                device.setIpAddr(addr);
-                device.setPort(hostPort);
-                listener.deviceFound(device);
+                if (!TextUtils.isEmpty(nodeId)) {
+                    EspLocalDevice device = new EspLocalDevice(nodeId, addr, hostPort);
+                    device.setServiceName(serviceInfo.getServiceName());
+                    listener.deviceFound(device);
+                }
 
                 // Process the next service waiting to be resolved
                 resolveNextInQueue();

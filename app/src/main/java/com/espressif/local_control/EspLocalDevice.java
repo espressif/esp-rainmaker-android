@@ -37,40 +37,65 @@ public class EspLocalDevice {
     private int propertyCount;
 
     private EspLocalSession session;
+    private EspLocalTransport transport;
+    private SessionState sessionState = SessionState.NOT_CREATED;
+
+    enum SessionState {
+        NOT_CREATED,
+        CREATING,
+        CREATED,
+        FAILED
+    }
+
+    public EspLocalDevice(String nodeId, String ipAddr, int port) {
+        this.nodeId = nodeId;
+        this.ipAddr = ipAddr;
+        this.port = port;
+        this.propertyCount = -1;
+    }
 
     private void initSession(final ResponseListener listener) {
 
-        Log.d(TAG, "========= Init Session for local device =========");
-        final String url = "http://" + getIpAddr() + ":" + getPort();
-        Security security = null;
-        if (securityType == 1) {
-            security = new Security1(pop);
-            Log.e(TAG, "Created security 1 with pop : " + pop);
-        } else if (securityType == 0) {
-            security = new Security0();
-        } else {
-            // Consider Sec0 for other
-            security = new Security0();
+        if (!sessionState.equals(SessionState.CREATING)) {
+
+            sessionState = SessionState.CREATING;
+            Log.d(TAG, "========= Init Session for local device =========");
+
+            final String url = "http://" + getIpAddr() + ":" + getPort();
+            Security security = null;
+            if (securityType == 1) {
+                security = new Security1(pop);
+                Log.d(TAG, "Created security 1 with pop : " + pop);
+            } else if (securityType == 0) {
+                security = new Security0();
+            } else {
+                // Consider Sec0 for other
+                security = new Security0();
 //            listener.onFailure(new RuntimeException("Security type " + securityType + " not supported"));
+            }
+            Log.d(TAG, "POP : " + pop);
+            Log.d(TAG, "Type : " + securityType);
+            transport = new EspLocalTransport(url);
+            session = new EspLocalSession(transport, security);
+
+            session.init(null, new EspLocalSession.SessionListener() {
+
+                @Override
+                public void OnSessionEstablished() {
+                    sessionState = SessionState.CREATED;
+                    Log.d(TAG, "========= Session established on local network");
+                    listener.onSuccess(null);
+                }
+
+                @Override
+                public void OnSessionEstablishFailed(Exception e) {
+                    sessionState = SessionState.FAILED;
+                    listener.onFailure(e);
+                }
+            });
+        } else {
+            Log.e(TAG, "Incorrect session initialisation for local device.");
         }
-        Log.d(TAG, "POP : " + pop);
-        Log.d(TAG, "Type : " + securityType);
-        EspLocalTransport transport = new EspLocalTransport(url);
-        session = new EspLocalSession(transport, security);
-
-        session.init(null, new EspLocalSession.SessionListener() {
-
-            @Override
-            public void OnSessionEstablished() {
-                Log.d(TAG, "========= Session established on local network");
-                listener.onSuccess(null);
-            }
-
-            @Override
-            public void OnSessionEstablishFailed(Exception e) {
-                listener.onFailure(e);
-            }
-        });
     }
 
     public void sendData(final String path, final byte[] data, final ResponseListener listener) {
@@ -129,10 +154,6 @@ public class EspLocalDevice {
         return nodeId;
     }
 
-    public void setNodeId(String nodeId) {
-        this.nodeId = nodeId;
-    }
-
     public String getServiceName() {
         return serviceName;
     }
@@ -145,16 +166,8 @@ public class EspLocalDevice {
         return ipAddr;
     }
 
-    public void setIpAddr(String ipAddr) {
-        this.ipAddr = ipAddr;
-    }
-
     public int getPort() {
         return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
     }
 
     public HashMap<String, String> getEndpointList() {
