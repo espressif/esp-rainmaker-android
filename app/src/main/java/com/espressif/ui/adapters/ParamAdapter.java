@@ -46,12 +46,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.aar.tapholdupbutton.TapHoldUpButton;
 import com.espressif.AppConstants;
-import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.EspDeviceActivity;
-import com.espressif.ui.activities.ParamAdapterManager;
 import com.espressif.ui.activities.TimeSeriesActivity;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
@@ -75,19 +73,17 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     private Activity context;
     private final ArrayList<Param> params;
-    private final NetworkApiManager networkApiManager;
-    private final ParamAdapterManager paramAdapterManager;
 
     private final String nodeId;
     private final String deviceName;
+    private DeviceParamUpdates deviceParamUpdates;
 
     public ParamAdapter(Activity context, Device device, ArrayList<Param> paramList) {
         this.context = context;
         this.params = paramList;
         this.nodeId = device.getNodeId();
         this.deviceName = device.getDeviceName();
-        networkApiManager = new NetworkApiManager(context.getApplicationContext());
-        paramAdapterManager = ParamAdapterManager.getInstance(context, deviceName, nodeId, networkApiManager);
+        deviceParamUpdates = new DeviceParamUpdates(context, nodeId, deviceName);
     }
 
     @Override
@@ -254,7 +250,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                             jsonParam.addProperty(param.getName(), !param.getSwitchStatus());
                             body.add(deviceName, jsonParam);
 
-                            networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                            deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
 
                                 @Override
                                 public void onSuccess(Bundle data) {
@@ -346,7 +342,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     public void onColorSelected(int colorInt, boolean isMoving) {
                         ((EspDeviceActivity) context).setIsUpdateView(!isMoving);
                         if (BuildConfig.isContinuousUpdateEnable) {
-                            paramAdapterManager.processSliderChange(param.getName(), colorInt, isMoving);
+                            deviceParamUpdates.processSliderChange(param.getName(), colorInt);
                         } else {
                             if (!isMoving) {
                                 ((EspDeviceActivity) context).stopUpdateValueTask();
@@ -355,7 +351,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                                 jsonParam.addProperty(param.getName(), colorInt);
                                 body.add(deviceName, jsonParam);
-                                networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                                deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
 
                                     @Override
                                     public void onSuccess(Bundle data) {
@@ -438,7 +434,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         int colorInt = (int) newHsv[0];
 
         if (BuildConfig.isContinuousUpdateEnable) {
-            paramAdapterManager.processSliderChange(param.getName(), colorInt, isMoving);
+            deviceParamUpdates.processSliderChange(param.getName(), colorInt);
         } else {
             if (!isMoving) {
                 JsonObject jsonParam = new JsonObject();
@@ -449,7 +445,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 ((EspDeviceActivity) context).stopUpdateValueTask();
                 ((EspDeviceActivity) context).showParamUpdateLoading("Updating...");
 
-                networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
 
                     @Override
                     public void onSuccess(Bundle data) {
@@ -550,7 +546,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                             if (seekParams.fromUser) {
                                 ((EspDeviceActivity) context).setIsUpdateView(false);
                                 if (BuildConfig.isContinuousUpdateEnable) {
-                                    paramAdapterManager.processSliderChange(param.getName(), seekParams.progress, true);
+                                    deviceParamUpdates.processSliderChange(param.getName(), seekParams.progress);
                                 }
                             }
                         }
@@ -565,36 +561,26 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                         @Override
                         public void onStopTrackingTouch(TickSeekBar seekBar) {
+
                             ((EspDeviceActivity) context).setIsUpdateView(true);
-                            if (BuildConfig.isContinuousUpdateEnable) {
-                                paramAdapterManager.processSliderChange(param.getName(), seekBar.getProgress(), false);
-                            } else {
-                                int finalProgress = seekBar.getProgress();
+                            int lastProgressValue = seekBar.getProgress();
 
-                                JsonObject jsonParam = new JsonObject();
-                                JsonObject body = new JsonObject();
+                            deviceParamUpdates.clearQueueAndSendLastValue(param.getName(), lastProgressValue, new ApiResponseListener() {
+                                @Override
+                                public void onSuccess(Bundle data) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
 
-                                jsonParam.addProperty(param.getName(), finalProgress);
-                                body.add(deviceName, jsonParam);
+                                @Override
+                                public void onResponseFailure(Exception exception) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
 
-                                networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
-
-                                    @Override
-                                    public void onSuccess(Bundle data) {
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
-                                    }
-
-                                    @Override
-                                    public void onResponseFailure(Exception exception) {
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
-                                    }
-
-                                    @Override
-                                    public void onNetworkFailure(Exception exception) {
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
-                                    }
-                                });
-                            }
+                                @Override
+                                public void onNetworkFailure(Exception exception) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+                            });
                         }
                     });
                 } else {
@@ -642,7 +628,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                             if (seekParams.fromUser) {
                                 ((EspDeviceActivity) context).setIsUpdateView(false);
                                 if (BuildConfig.isContinuousUpdateEnable) {
-                                    paramAdapterManager.processSliderChange(param.getName(), seekParams.progressFloat, true);
+                                    deviceParamUpdates.processSliderChange(param.getName(), seekParams.progressFloat);
                                 }
                             }
                         }
@@ -657,36 +643,26 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                         @Override
                         public void onStopTrackingTouch(TickSeekBar seekBar) {
+
                             ((EspDeviceActivity) context).setIsUpdateView(true);
-                            if (BuildConfig.isContinuousUpdateEnable) {
-                                paramAdapterManager.processSliderChange(param.getName(), seekBar.getProgressFloat(), false);
-                            } else {
-                                float finalProgress = seekBar.getProgressFloat();
+                            float lastProgressValue = seekBar.getProgressFloat();
 
-                                JsonObject jsonParam = new JsonObject();
-                                JsonObject body = new JsonObject();
+                            deviceParamUpdates.clearQueueAndSendLastValue(param.getName(), lastProgressValue, new ApiResponseListener() {
+                                @Override
+                                public void onSuccess(Bundle data) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
 
-                                jsonParam.addProperty(param.getName(), finalProgress);
-                                body.add(deviceName, jsonParam);
+                                @Override
+                                public void onResponseFailure(Exception exception) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
 
-                                networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
-
-                                    @Override
-                                    public void onSuccess(Bundle data) {
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
-                                    }
-
-                                    @Override
-                                    public void onResponseFailure(Exception exception) {
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
-                                    }
-
-                                    @Override
-                                    public void onNetworkFailure(Exception exception) {
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
-                                    }
-                                });
-                            }
+                                @Override
+                                public void onNetworkFailure(Exception exception) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+                            });
                         }
                     });
                 } else {
@@ -756,7 +732,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                         jsonParam.addProperty(param.getName(), isChecked);
                         body.add(deviceName, jsonParam);
 
-                        networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                        deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
 
                             @Override
                             public void onSuccess(Bundle data) {
@@ -820,7 +796,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                         jsonParam.addProperty(param.getName(), true);
                         body.add(deviceName, jsonParam);
 
-                        networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                        deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
 
                             @Override
                             public void onSuccess(Bundle data) {
@@ -848,7 +824,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                         jsonParam.addProperty(param.getName(), true);
                         body.add(deviceName, jsonParam);
 
-                        networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                        deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
 
                             @Override
                             public void onSuccess(Bundle data) {
@@ -1102,7 +1078,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                         }
                         body.add(deviceName, jsonParam);
 
-                        networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                        deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
 
                             @Override
                             public void onSuccess(Bundle data) {
@@ -1255,7 +1231,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                             body.add(deviceName, jsonParam);
 
                             final boolean finalIsOn = isOn;
-                            networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                            deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
 
                                 @Override
                                 public void onSuccess(Bundle data) {
@@ -1343,7 +1319,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     jsonParam.addProperty(param.getName(), newValue);
                     body.add(deviceName, jsonParam);
 
-                    networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                    deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
 
                         @Override
                         public void onSuccess(Bundle data) {
@@ -1409,7 +1385,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     jsonParam.addProperty(param.getName(), newValue);
                     body.add(deviceName, jsonParam);
 
-                    networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                    deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
 
                         @Override
                         public void onSuccess(Bundle data) {
@@ -1463,7 +1439,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     jsonParam.addProperty(param.getName(), value);
                     body.add(deviceName, jsonParam);
 
-                    networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {
+                    deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
 
                         @Override
                         public void onSuccess(Bundle data) {
