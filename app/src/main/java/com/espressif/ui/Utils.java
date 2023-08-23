@@ -20,6 +20,7 @@ import android.content.DialogInterface;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Patterns;
+import android.widget.ImageView;
 
 import androidx.appcompat.app.AlertDialog;
 
@@ -415,5 +416,88 @@ public class Utils {
             return BuildConfig.continuosUpdateInterval;
         }
         return AppConstants.MID_THROTTLE_DELAY;
+    }
+
+    public static void setDeviceIcon(ImageView ivDevice, String deviceType) {
+
+        if (TextUtils.isEmpty(deviceType)) {
+            ivDevice.setImageResource(R.drawable.ic_device);
+        } else {
+
+            switch (deviceType) {
+                case AppConstants.ESP_DEVICE_LIGHT_BULB:
+                case AppConstants.ESP_DEVICE_LIGHT:
+                    ivDevice.setImageResource(R.drawable.ic_device_light);
+                    break;
+                case AppConstants.ESP_DEVICE_BULB_CCT:
+                    ivDevice.setImageResource(R.drawable.ic_device_bulb_cct);
+                    break;
+                case AppConstants.ESP_DEVICE_BULB_RGB:
+                    ivDevice.setImageResource(R.drawable.ic_device_bulb_rgb);
+                    break;
+                case AppConstants.ESP_DEVICE_SWITCH:
+                    ivDevice.setImageResource(R.drawable.ic_device_switch);
+                    break;
+                case AppConstants.ESP_DEVICE_LOCK:
+                    ivDevice.setImageResource(R.drawable.ic_device_lock);
+                    break;
+                case AppConstants.ESP_DEVICE_THERMOSTAT:
+                    ivDevice.setImageResource(R.drawable.ic_device_thermostat);
+                    break;
+                case AppConstants.ESP_DEVICE_FAN:
+                    ivDevice.setImageResource(R.drawable.ic_device_fan);
+                    break;
+                case AppConstants.ESP_DEVICE_TEMP_SENSOR:
+                    ivDevice.setImageResource(R.drawable.ic_device_temp_sensor);
+                    break;
+                case AppConstants.ESP_DEVICE_OUTLET:
+                    ivDevice.setImageResource(R.drawable.ic_device_outlet);
+                    break;
+                case AppConstants.ESP_DEVICE_PLUG:
+                    ivDevice.setImageResource(R.drawable.ic_device_plug);
+                    break;
+                case AppConstants.ESP_DEVICE_SOCKET:
+                    ivDevice.setImageResource(R.drawable.ic_device_socket);
+                    break;
+                case AppConstants.ESP_DEVICE_BLINDS_INTERNAL:
+                    ivDevice.setImageResource(R.drawable.ic_device_internal_blinds);
+                    break;
+                case AppConstants.ESP_DEVICE_BLINDS_EXTERNAL:
+                    ivDevice.setImageResource(R.drawable.ic_device_external_blinds);
+                    break;
+                case AppConstants.ESP_DEVICE_GARAGE_DOOR:
+                    ivDevice.setImageResource(R.drawable.ic_device_garage_door);
+                    break;
+                case AppConstants.ESP_DEVICE_SPEAKER:
+                    ivDevice.setImageResource(R.drawable.ic_device_speaker);
+                    break;
+                case AppConstants.ESP_DEVICE_AIR_CONDITIONER:
+                    ivDevice.setImageResource(R.drawable.ic_device_air_conditioner);
+                    break;
+                case AppConstants.ESP_DEVICE_TV:
+                    ivDevice.setImageResource(R.drawable.ic_device_tv);
+                    break;
+                case AppConstants.ESP_DEVICE_WASHER:
+                    ivDevice.setImageResource(R.drawable.ic_device_washer);
+                    break;
+                case AppConstants.ESP_DEVICE_CONTACT_SENSOR:
+                    ivDevice.setImageResource(R.drawable.ic_device_contact_sensor);
+                    break;
+                case AppConstants.ESP_DEVICE_MOTION_SENSOR:
+                    ivDevice.setImageResource(R.drawable.ic_device_motion_sensor);
+                    break;
+                case AppConstants.ESP_DEVICE_DOORBELL:
+                    ivDevice.setImageResource(R.drawable.ic_device_door_bell);
+                    break;
+                case AppConstants.ESP_DEVICE_SECURITY_PANEL:
+                    ivDevice.setImageResource(R.drawable.ic_device_security_panel);
+                    break;
+                case AppConstants.ESP_DEVICE_OTHER:
+                case AppConstants.ESP_DEVICE_SENSOR:
+                default:
+                    ivDevice.setImageResource(R.drawable.ic_device);
+                    break;
+            }
+        }
     }
 }

@@ -24,9 +24,9 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.espressif.AppConstants;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.EventSelectionListener;
+import com.espressif.ui.Utils;
 import com.espressif.ui.fragments.ParamSelectionFragment;
 import com.espressif.ui.models.Automation;
 import com.espressif.ui.models.Device;
@@ -59,34 +59,7 @@ public class EventDeviceAdapter extends RecyclerView.Adapter<EventDeviceAdapter.
 
         Device device = deviceList.get(position);
         holder.tvDeviceName.setText(device.getUserVisibleName());
-
-        if (TextUtils.isEmpty(device.getDeviceType())) {
-            holder.ivDevice.setImageResource(R.drawable.ic_device);
-        } else {
-            if (AppConstants.ESP_DEVICE_BULB.equals(device.getDeviceType())) {
-                holder.ivDevice.setImageResource(R.drawable.ic_device_bulb);
-            } else if (AppConstants.ESP_DEVICE_BULB_CCT.equals(device.getDeviceType())) {
-                holder.ivDevice.setImageResource(R.drawable.ic_device_bulb_cct);
-            } else if (AppConstants.ESP_DEVICE_BULB_RGB.equals(device.getDeviceType())) {
-                holder.ivDevice.setImageResource(R.drawable.ic_device_bulb_rgb);
-            } else if (AppConstants.ESP_DEVICE_SWITCH.equals(device.getDeviceType())) {
-                holder.ivDevice.setImageResource(R.drawable.ic_device_switch);
-            } else if (AppConstants.ESP_DEVICE_LOCK.equals(device.getDeviceType())) {
-                holder.ivDevice.setImageResource(R.drawable.ic_device_lock);
-            } else if (AppConstants.ESP_DEVICE_THERMOSTAT.equals(device.getDeviceType())) {
-                holder.ivDevice.setImageResource(R.drawable.ic_device_thermostat);
-            } else if (AppConstants.ESP_DEVICE_FAN.equals(device.getDeviceType())) {
-                holder.ivDevice.setImageResource(R.drawable.ic_device_fan);
-            } else if (AppConstants.ESP_DEVICE_SENSOR.equals(device.getDeviceType())) {
-                holder.ivDevice.setImageResource(R.drawable.ic_device);
-            } else if (AppConstants.ESP_DEVICE_TEMP_SENSOR.equals(device.getDeviceType())) {
-                holder.ivDevice.setImageResource(R.drawable.ic_device_temp_sensor);
-            } else if (AppConstants.ESP_DEVICE_OUTLET.equals(device.getDeviceType())) {
-                holder.ivDevice.setImageResource(R.drawable.ic_device_outlet);
-            } else {
-                holder.ivDevice.setImageResource(R.drawable.ic_device);
-            }
-        }
+        Utils.setDeviceIcon(holder.ivDevice, device.getDeviceType());
 
         holder.itemView.setOnClickListener(new View.OnClickListener() {
 
