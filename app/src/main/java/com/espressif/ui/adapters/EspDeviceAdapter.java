@@ -36,6 +36,7 @@ import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.local_control.EspLocalDevice;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.Utils;
 import com.espressif.ui.activities.EspDeviceActivity;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
@@ -76,57 +77,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
 
         // set the data in items
         deviceVh.tvDeviceName.setText(device.getUserVisibleName());
-
-        if (TextUtils.isEmpty(device.getDeviceType())) {
-
-            deviceVh.ivDevice.setImageResource(R.drawable.ic_device);
-
-        } else {
-
-            if (AppConstants.ESP_DEVICE_BULB.equals(device.getDeviceType())) {
-
-                deviceVh.ivDevice.setImageResource(R.drawable.ic_device_bulb);
-
-            } else if (AppConstants.ESP_DEVICE_BULB_CCT.equals(device.getDeviceType())) {
-
-                deviceVh.ivDevice.setImageResource(R.drawable.ic_device_bulb_cct);
-
-            } else if (AppConstants.ESP_DEVICE_BULB_RGB.equals(device.getDeviceType())) {
-
-                deviceVh.ivDevice.setImageResource(R.drawable.ic_device_bulb_rgb);
-
-            } else if (AppConstants.ESP_DEVICE_SWITCH.equals(device.getDeviceType())) {
-
-                deviceVh.ivDevice.setImageResource(R.drawable.ic_device_switch);
-
-            } else if (AppConstants.ESP_DEVICE_LOCK.equals(device.getDeviceType())) {
-
-                deviceVh.ivDevice.setImageResource(R.drawable.ic_device_lock);
-
-            } else if (AppConstants.ESP_DEVICE_THERMOSTAT.equals(device.getDeviceType())) {
-
-                deviceVh.ivDevice.setImageResource(R.drawable.ic_device_thermostat);
-
-            } else if (AppConstants.ESP_DEVICE_FAN.equals(device.getDeviceType())) {
-
-                deviceVh.ivDevice.setImageResource(R.drawable.ic_device_fan);
-
-            } else if (AppConstants.ESP_DEVICE_SENSOR.equals(device.getDeviceType())) {
-
-                deviceVh.ivDevice.setImageResource(R.drawable.ic_device);
-
-            } else if (AppConstants.ESP_DEVICE_TEMP_SENSOR.equals(device.getDeviceType())) {
-
-                deviceVh.ivDevice.setImageResource(R.drawable.ic_device_temp_sensor);
-
-            } else if (AppConstants.ESP_DEVICE_OUTLET.equals(device.getDeviceType())) {
-
-                deviceVh.ivDevice.setImageResource(R.drawable.ic_device_outlet);
-
-            } else {
-                deviceVh.ivDevice.setImageResource(R.drawable.ic_device);
-            }
-        }
+        Utils.setDeviceIcon(deviceVh.ivDevice, device.getDeviceType());
 
         if (!TextUtils.isEmpty(device.getPrimaryParamName())) {
 

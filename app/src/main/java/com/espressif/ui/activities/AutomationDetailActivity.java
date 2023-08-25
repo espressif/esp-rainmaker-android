@@ -367,35 +367,7 @@ public class AutomationDetailActivity extends AppCompatActivity {
     private void updateEventDeviceUi() {
 
         Device eventDevice = automation.getEventDevice();
-
-        if (TextUtils.isEmpty(eventDevice.getDeviceType())) {
-            ivEventDevice.setImageResource(R.drawable.ic_device);
-        } else {
-            if (AppConstants.ESP_DEVICE_BULB.equals(eventDevice.getDeviceType())) {
-                ivEventDevice.setImageResource(R.drawable.ic_device_bulb);
-            } else if (AppConstants.ESP_DEVICE_BULB_CCT.equals(eventDevice.getDeviceType())) {
-                ivEventDevice.setImageResource(R.drawable.ic_device_bulb_cct);
-            } else if (AppConstants.ESP_DEVICE_BULB_RGB.equals(eventDevice.getDeviceType())) {
-                ivEventDevice.setImageResource(R.drawable.ic_device_bulb_rgb);
-            } else if (AppConstants.ESP_DEVICE_SWITCH.equals(eventDevice.getDeviceType())) {
-                ivEventDevice.setImageResource(R.drawable.ic_device_switch);
-            } else if (AppConstants.ESP_DEVICE_LOCK.equals(eventDevice.getDeviceType())) {
-                ivEventDevice.setImageResource(R.drawable.ic_device_lock);
-            } else if (AppConstants.ESP_DEVICE_THERMOSTAT.equals(eventDevice.getDeviceType())) {
-                ivEventDevice.setImageResource(R.drawable.ic_device_thermostat);
-            } else if (AppConstants.ESP_DEVICE_FAN.equals(eventDevice.getDeviceType())) {
-                ivEventDevice.setImageResource(R.drawable.ic_device_fan);
-            } else if (AppConstants.ESP_DEVICE_SENSOR.equals(eventDevice.getDeviceType())) {
-                ivEventDevice.setImageResource(R.drawable.ic_device);
-            } else if (AppConstants.ESP_DEVICE_TEMP_SENSOR.equals(eventDevice.getDeviceType())) {
-                ivEventDevice.setImageResource(R.drawable.ic_device_temp_sensor);
-            } else if (AppConstants.ESP_DEVICE_OUTLET.equals(eventDevice.getDeviceType())) {
-                ivEventDevice.setImageResource(R.drawable.ic_device_outlet);
-            } else {
-                ivEventDevice.setImageResource(R.drawable.ic_device);
-            }
-        }
-
+        Utils.setDeviceIcon(ivEventDevice, eventDevice.getDeviceType());
         Log.e(TAG, "Event device name : " + eventDevice.getUserVisibleName());
         tvEventDeviceName.setText(eventDevice.getUserVisibleName());
         tvEventParamName.setText(Utils.getEventParamString(eventDevice.getParams(), automation.getCondition()));

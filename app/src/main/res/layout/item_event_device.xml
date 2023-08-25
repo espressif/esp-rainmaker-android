@@ -22,7 +22,7 @@
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:padding="@dimen/margin_8"
-            android:src="@drawable/ic_device_bulb" />
+            android:src="@drawable/ic_device_light" />
 
         <TextView
             android:id="@+id/tv_device_name"

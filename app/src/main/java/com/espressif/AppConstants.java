@@ -115,7 +115,7 @@ public class AppConstants {
 
     // ESP Device Types
     public static final String ESP_DEVICE_SWITCH = "esp.device.switch";
-    public static final String ESP_DEVICE_BULB = "esp.device.lightbulb";
+    public static final String ESP_DEVICE_LIGHT_BULB = "esp.device.lightbulb";
     public static final String ESP_DEVICE_BULB_CCT = "esp.device.lightbulb-cct";
     public static final String ESP_DEVICE_BULB_RGB = "esp.device.lightbulb-rgb";
     public static final String ESP_DEVICE_LOCK = "esp.device.lock";
@@ -124,6 +124,21 @@ public class AppConstants {
     public static final String ESP_DEVICE_SENSOR = "esp.device.sensor";
     public static final String ESP_DEVICE_TEMP_SENSOR = "esp.device.temperature-sensor";
     public static final String ESP_DEVICE_OUTLET = "esp.device.outlet";
+    public static final String ESP_DEVICE_LIGHT = "esp.device.light";
+    public static final String ESP_DEVICE_PLUG = "esp.device.plug";
+    public static final String ESP_DEVICE_SOCKET = "esp.device.socket";
+    public static final String ESP_DEVICE_BLINDS_INTERNAL = "esp.device.blinds-internal";
+    public static final String ESP_DEVICE_BLINDS_EXTERNAL = "esp.device.blinds-external";
+    public static final String ESP_DEVICE_GARAGE_DOOR = "esp.device.garage-door";
+    public static final String ESP_DEVICE_SPEAKER = "esp.device.speaker";
+    public static final String ESP_DEVICE_AIR_CONDITIONER = "esp.device.air-conditioner";
+    public static final String ESP_DEVICE_TV = "esp.device.tv";
+    public static final String ESP_DEVICE_WASHER = "esp.device.washer";
+    public static final String ESP_DEVICE_CONTACT_SENSOR = "esp.device.contact-sensor";
+    public static final String ESP_DEVICE_MOTION_SENSOR = "esp.device.motion-sensor";
+    public static final String ESP_DEVICE_DOORBELL = "esp.device.doorbell";
+    public static final String ESP_DEVICE_SECURITY_PANEL = "esp.device.security-panel";
+    public static final String ESP_DEVICE_OTHER = "esp.device.other";
 
     // Service Types
     public static final String SERVICE_TYPE_SCHEDULE = "esp.service.schedule";
