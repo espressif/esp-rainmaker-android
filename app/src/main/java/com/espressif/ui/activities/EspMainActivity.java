@@ -14,9 +14,11 @@
 
 package com.espressif.ui.activities;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Build;
@@ -43,6 +45,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager.widget.ViewPager;
@@ -86,6 +89,7 @@ public class EspMainActivity extends AppCompatActivity {
     private static final String TAG = EspMainActivity.class.getSimpleName();
 
     private static final int REQUEST_LOCATION = 1;
+    private static final int REQUEST_NOTIFICATION_PERMISSION = 2;
 
     private CollapsingToolbarLayout collapsingToolbarLayout;
     private Toolbar appbar;
@@ -107,6 +111,13 @@ public class EspMainActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_esp_main);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ActivityCompat.checkSelfPermission(EspMainActivity.this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(EspMainActivity.this, new
+                        String[]{Manifest.permission.POST_NOTIFICATIONS}, REQUEST_NOTIFICATION_PERMISSION);
+            }
+        }
 
         espApp = (EspApplication) getApplicationContext();
         apiManager = ApiManager.getInstance(getApplicationContext());
