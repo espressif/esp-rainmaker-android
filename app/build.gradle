@@ -1,7 +1,11 @@
-apply plugin: 'com.android.application'
-apply plugin: 'com.google.protobuf'
-apply plugin: 'com.google.gms.google-services'
-apply plugin: 'com.google.firebase.crashlytics'
+plugins {
+    id 'com.android.application'
+    id 'com.google.protobuf'
+    id 'com.google.gms.google-services'
+    id 'com.google.firebase.crashlytics'
+    id 'kotlin-android'
+    id 'org.jetbrains.kotlin.android'
+}
 
 def getGitHash = { ->
     def stdout = new ByteArrayOutputStream()
@@ -47,8 +51,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 23
         targetSdkVersion 33
-        versionCode 92
-        versionName "2.11.3 - ${getGitHash()}"
+        versionCode 93
+        versionName "2.11.4 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -141,6 +145,10 @@ android {
         // User pool selection
         def userPool = localProperties.getProperty("userPool", defaultUserPool)
         buildConfigField "String", "USER_POOL", '"' + userPool + '"'
+    }
+
+    buildFeatures {
+        viewBinding true
     }
 
     buildTypes {
