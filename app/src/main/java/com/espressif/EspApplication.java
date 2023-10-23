@@ -66,6 +66,8 @@ public class EspApplication extends Application {
 
     private static final String TAG = EspApplication.class.getSimpleName();
 
+    public static String BASE_URL = BuildConfig.BASE_URL;
+
     private AppState appState = AppState.NO_USER_LOGIN;
 
     public HashMap<String, EspNode> nodeMap;
@@ -102,6 +104,7 @@ public class EspApplication extends Application {
         automations = new HashMap<>();
 
         appPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
+        BASE_URL = appPreferences.getString(AppConstants.KEY_BASE_URL, BuildConfig.BASE_URL);
         apiManager = ApiManager.getInstance(this);
         ESPProvisionManager.getInstance(this);
         if (BuildConfig.isLocalControlSupported) {

@@ -112,14 +112,17 @@
     <string name="error_device_connection">Check your connections and please try again after some time.</string>
     <string name="error_fw_update_rejected">OTA update rejected.</string>
     <string name="error_fw_update_failed">OTA update failed.</string>
+    <string name="error_base_url_empty">Cloud Endpoint URL cannot be empty</string>
 
     <string name="title_activity_esp_device">Device</string>
 
     <string name="prefix">Prefix :</string>
+    <string name="base_url_title">Cloud Endpoint URL : </string>
     <string name="hint_prefix">Enter Prefix</string>
     <string name="hint_key">Enter PIN</string>
     <string name="devices_title">Devices</string>
     <string name="enter_device_key">Enter Your Proof Of Possession PIN</string>
+    <string name="hint_base_url">Enter your cloud endpoint URL</string>
 
     <string name="join_other_network">Join Other Network</string>
     <string name="networks">Networks</string>

@@ -17,7 +17,7 @@ package com.espressif.cloudapi;
 import android.content.Context;
 
 import com.espressif.AppConstants;
-import com.espressif.rainmaker.BuildConfig;
+import com.espressif.EspApplication;
 import com.espressif.rainmaker.R;
 
 import java.io.IOException;
@@ -115,7 +115,7 @@ public class ApiClient {
         }
 
         retrofitClient = new Retrofit.Builder()
-                .baseUrl(BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + AppConstants.PATH_SEPARATOR)
+                .baseUrl(EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + AppConstants.PATH_SEPARATOR)
                 .addConverterFactory(GsonConverterFactory.create())
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .client(okHttpClient)
