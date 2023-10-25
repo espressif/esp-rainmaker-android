@@ -1,4 +1,4 @@
-// Copyright 2020 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2023 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,18 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.espressif.cloudapi;
+package com.espressif.cloudapi
 
-import android.os.Bundle;
+import android.os.Bundle
 
 /**
  * This response listener is used to pass received response from ApiManager to calling class.
  */
-public interface ApiResponseListener {
+interface ApiResponseListener {
 
-    void onSuccess(Bundle data);
-
-    void onResponseFailure(Exception exception);
-
-    void onNetworkFailure(Exception exception);
+    fun onSuccess(data: Bundle?)
+    fun onResponseFailure(exception: Exception)
+    fun onNetworkFailure(exception: Exception)
 }

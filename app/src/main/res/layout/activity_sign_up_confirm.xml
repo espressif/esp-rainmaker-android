@@ -5,7 +5,9 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
-    <include layout="@layout/toolbar" />
+    <include
+        android:id="@+id/toolbar_signup_confirm"
+        layout="@layout/toolbar" />
 
     <FrameLayout
         android:id="@+id/ScrollView01"
