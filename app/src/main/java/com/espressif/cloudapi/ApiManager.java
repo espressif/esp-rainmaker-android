@@ -42,6 +42,7 @@ import com.espressif.ui.models.Service;
 import com.espressif.ui.models.SharingRequest;
 import com.espressif.ui.models.TsData;
 import com.espressif.ui.models.UpdateEvent;
+import com.espressif.AppConstants.Companion.UpdateEventType;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -111,6 +112,8 @@ public class ApiManager {
 
         Log.d(TAG, "Login...");
         String loginUrl = getLoginEndpointUrl();
+        Log.d(TAG, "App base URL : " + EspApplication.BASE_URL);
+        Log.d(TAG, "Login URL : " + loginUrl);
 
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_USER_NAME, userName);
@@ -384,7 +387,8 @@ public class ApiManager {
     public void forgotPassword(String email, final ApiResponseListener listener) {
 
         Log.d(TAG, "Forgot password...");
-        String forgotPasswordUrl = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_FORGOT_PASSWORD : AppConstants.URL_FORGOT_PASSWORD_2;
+        String endpoint = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_FORGOT_PASSWORD : AppConstants.URL_FORGOT_PASSWORD_2;
+        String forgotPasswordUrl = getBaseUrl() + endpoint;
 
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_USER_NAME, email);
@@ -424,7 +428,8 @@ public class ApiManager {
     public void resetPassword(String email, String newPassword, String verificationCode, final ApiResponseListener listener) {
 
         Log.d(TAG, "Reset password...");
-        String forgotPasswordUrl = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_FORGOT_PASSWORD : AppConstants.URL_FORGOT_PASSWORD_2;
+        String endpoint = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_FORGOT_PASSWORD : AppConstants.URL_FORGOT_PASSWORD_2;
+        String forgotPasswordUrl = getBaseUrl() + endpoint;
 
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_USER_NAME, email);
@@ -466,7 +471,8 @@ public class ApiManager {
     public void changePassword(String oldPassword, String newPassword, final ApiResponseListener listener) {
 
         Log.d(TAG, "Change password...");
-        String changePasswordUrl = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_CHANGE_PASSWORD : AppConstants.URL_CHANGE_PASSWORD_2;
+        String endpoint = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_CHANGE_PASSWORD : AppConstants.URL_CHANGE_PASSWORD_2;
+        String changePasswordUrl = getBaseUrl() + endpoint;
 
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_PASSWORD, oldPassword);
@@ -652,7 +658,8 @@ public class ApiManager {
     public void logout(final ApiResponseListener listener) {
 
         Log.d(TAG, "Logout...");
-        String logoutUrl = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_LOGOUT : AppConstants.URL_LOGOUT_2;
+        String endpoint = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_LOGOUT : AppConstants.URL_LOGOUT_2;
+        String logoutUrl = getBaseUrl() + endpoint;
 
         apiInterface.logout(logoutUrl, accessToken).enqueue(new Callback<ResponseBody>() {
 
@@ -693,8 +700,9 @@ public class ApiManager {
     public void getSupportedVersions(final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Supported Versions");
+        String url = EspApplication.BASE_URL + AppConstants.URL_SUPPORTED_VERSIONS;
 
-        apiInterface.getSupportedVersions(AppConstants.URL_SUPPORTED_VERSIONS)
+        apiInterface.getSupportedVersions(url)
 
                 .enqueue(new Callback<ResponseBody>() {
 
@@ -772,7 +780,9 @@ public class ApiManager {
     private void getNodesFromCloud(final String startId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Nodes from cloud with start id : " + startId);
-        apiInterface.getNodes(AppConstants.URL_USER_NODES_DETAILS, accessToken, startId).enqueue(new Callback<ResponseBody>() {
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES_DETAILS;
+
+        apiInterface.getNodes(url, accessToken, startId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1349,9 +1359,10 @@ public class ApiManager {
     public void getNodeDetails(String nodeId) {
 
         Log.d(TAG, "Get Node Details for id : " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES;
 
         try {
-            Response<ResponseBody> response = apiInterface.getNode(AppConstants.URL_USER_NODES, accessToken, nodeId).execute();
+            Response<ResponseBody> response = apiInterface.getNode(url, accessToken, nodeId).execute();
             Log.d(TAG, "Get Node Details, Response code : " + response.code());
 
             try {
@@ -1419,7 +1430,7 @@ public class ApiManager {
 
                                             if (espNode.isOnline() != nodeStatus) {
                                                 espNode.setOnline(nodeStatus);
-                                                EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
+                                                EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                                             }
                                         } else {
                                             Log.e(TAG, "Connectivity object is null");
@@ -1448,8 +1459,9 @@ public class ApiManager {
     public void getNodeDetails(String nodeId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Node Details for id : " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES;
 
-        apiInterface.getNode(AppConstants.URL_USER_NODES, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getNode(url, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1521,7 +1533,7 @@ public class ApiManager {
 
                                                 if (espNode.isOnline() != nodeStatus) {
                                                     espNode.setOnline(nodeStatus);
-                                                    EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
+                                                    EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                                                 }
                                             } else {
                                                 Log.e(TAG, "Connectivity object is null");
@@ -1561,8 +1573,9 @@ public class ApiManager {
     public void getNodeStatus(final String nodeId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Node connectivity status for id : " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_STATUS;
 
-        apiInterface.getNodeStatus(AppConstants.URL_USER_NODE_STATUS, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getNodeStatus(url, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1592,7 +1605,7 @@ public class ApiManager {
 
                                     if (espNode.isOnline() != nodeStatus) {
                                         espNode.setOnline(nodeStatus);
-                                        EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
+                                        EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                                     }
                                 } else {
                                     Log.e(TAG, "Connectivity object is null");
@@ -1637,13 +1650,14 @@ public class ApiManager {
                         final ApiResponseListener listener) {
 
         Log.d(TAG, "Add Node, nodeId : " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_MAPPING;
 
         DeviceOperationRequest req = new DeviceOperationRequest();
         req.setNodeId(nodeId);
         req.setSecretKey(secretKey);
         req.setOperation(AppConstants.KEY_OPERATION_ADD);
 
-        apiInterface.addNode(AppConstants.URL_USER_NODE_MAPPING, accessToken, req).enqueue(new Callback<ResponseBody>() {
+        apiInterface.addNode(url, accessToken, req).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1699,12 +1713,13 @@ public class ApiManager {
     public void removeNode(final String nodeId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Remove Node, nodeId : " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_MAPPING;
 
         DeviceOperationRequest req = new DeviceOperationRequest();
         req.setNodeId(nodeId);
         req.setOperation(AppConstants.KEY_OPERATION_REMOVE);
 
-        apiInterface.removeNode(AppConstants.URL_USER_NODE_MAPPING, accessToken, req).enqueue(new Callback<ResponseBody>() {
+        apiInterface.removeNode(url, accessToken, req).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -1745,8 +1760,9 @@ public class ApiManager {
     public void getParamsValues(final String nodeId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Param values for node : " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES_PARAMS;
 
-        apiInterface.getParamValue(AppConstants.URL_USER_NODES_PARAMS, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getParamValue(url, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2134,8 +2150,9 @@ public class ApiManager {
     public void updateParamValue(final String nodeId, JsonObject body, final ApiResponseListener listener) {
 
         Log.d(TAG, "Updating param value");
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES_PARAMS;
 
-        apiInterface.updateParamValue(AppConstants.URL_USER_NODES_PARAMS, accessToken, nodeId, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.updateParamValue(url, accessToken, nodeId, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2185,6 +2202,7 @@ public class ApiManager {
                                          final ApiResponseListener listener) {
 
         Log.e(TAG, "Updating params for multi node");
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES_PARAMS;
         JsonArray finalArray = new JsonArray();
 
         for (Map.Entry<String, JsonObject> entry : map.entrySet()) {
@@ -2199,7 +2217,7 @@ public class ApiManager {
             finalArray.add(nodeObj);
         }
 
-        apiInterface.updateParamsForMultiNode(AppConstants.URL_USER_NODES_PARAMS, accessToken, finalArray).enqueue(new Callback<ResponseBody>() {
+        apiInterface.updateParamsForMultiNode(url, accessToken, finalArray).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 Log.d(TAG, "Update multi node param status, Response code : " + response.code());
@@ -2233,8 +2251,9 @@ public class ApiManager {
     private void getAddNodeRequestStatus(final String nodeId, String requestId) {
 
         Log.d(TAG, "Get Node mapping status");
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_MAPPING;
 
-        apiInterface.getAddNodeRequestStatus(AppConstants.URL_USER_NODE_MAPPING, accessToken, requestId, true).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getAddNodeRequestStatus(url, accessToken, requestId, true).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2256,14 +2275,14 @@ public class ApiManager {
                                 requestIds.remove(nodeId);
 
                                 // Send event for update UI
-                                EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_ADDED));
+                                EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_ADDED));
 
                             } else if (!TextUtils.isEmpty(reqStatus) && reqStatus.equals(AppConstants.KEY_REQ_TIMEDOUT)) {
 
                                 requestIds.remove(nodeId);
 
                                 // Send event for update UI
-                                EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_ADD_DEVICE_TIME_OUT));
+                                EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_ADD_DEVICE_TIME_OUT));
                             }
 
                         } catch (IOException e) {
@@ -2390,8 +2409,9 @@ public class ApiManager {
     public void createGroup(JsonObject body, final ApiResponseListener listener) {
 
         Log.d(TAG, "Create Group...");
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP;
 
-        apiInterface.createGroup(AppConstants.URL_USER_NODE_GROUP, accessToken, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.createGroup(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2425,8 +2445,9 @@ public class ApiManager {
     public void updateGroup(final String groupId, JsonObject body, final ApiResponseListener listener) {
 
         Log.d(TAG, "Update Group for group id : " + groupId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP;
 
-        apiInterface.updateGroup(AppConstants.URL_USER_NODE_GROUP, accessToken, groupId, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.updateGroup(url, accessToken, groupId, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2460,8 +2481,9 @@ public class ApiManager {
     public void removeGroup(final String groupId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Remove Group, group id : " + groupId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP;
 
-        apiInterface.removeGroup(AppConstants.URL_USER_NODE_GROUP, accessToken, groupId).enqueue(new Callback<ResponseBody>() {
+        apiInterface.removeGroup(url, accessToken, groupId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2504,8 +2526,9 @@ public class ApiManager {
     private void getUserGroupsFromCloud(final String startId, final String groupId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get user groups from cloud with start id : " + startId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP;
 
-        apiInterface.getUserGroups(AppConstants.URL_USER_NODE_GROUP, accessToken, startId, groupId, true).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getUserGroups(url, accessToken, startId, groupId, true).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2588,7 +2611,9 @@ public class ApiManager {
                                     final ArrayList<SharingRequest> sharingRequests, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get sharing request, start request id : " + startReqId);
-        apiInterface.getSharingRequests(AppConstants.URL_USER_NODES_SHARING_REQUESTS, accessToken, isPrimaryUser,
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES_SHARING_REQUESTS;
+
+        apiInterface.getSharingRequests(url, accessToken, isPrimaryUser,
                 startReqId, startUserName).enqueue(new Callback<ResponseBody>() {
 
             @Override
@@ -2682,12 +2707,13 @@ public class ApiManager {
     public void updateSharingRequest(final String requestId, final boolean requestAccepted, final ApiResponseListener listener) {
 
         Log.d(TAG, "Update sharing request status with : " + requestAccepted + " for request id : " + requestId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES_SHARING_REQUESTS;
 
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_REQ_ACCEPT, requestAccepted);
         body.addProperty(AppConstants.KEY_REQ_ID, requestId);
 
-        apiInterface.updateSharingRequest(AppConstants.URL_USER_NODES_SHARING_REQUESTS, accessToken, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.updateSharingRequest(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2720,8 +2746,9 @@ public class ApiManager {
     public void removeSharingRequest(final String requestId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Remove sharing request : " + requestId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES_SHARING_REQUESTS;
 
-        apiInterface.removeSharingRequest(AppConstants.URL_USER_NODES_SHARING_REQUESTS, accessToken, requestId).enqueue(new Callback<ResponseBody>() {
+        apiInterface.removeSharingRequest(url, accessToken, requestId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2753,6 +2780,7 @@ public class ApiManager {
     public void shareNodeWithUser(final String nodeId, final String email, final ApiResponseListener listener) {
 
         Log.d(TAG, "Share Node " + nodeId + " with User " + email);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES_SHARING;
 
         JsonObject body = new JsonObject();
         JsonArray nodes = new JsonArray();
@@ -2775,7 +2803,7 @@ public class ApiManager {
         metadataJson.add(AppConstants.KEY_DEVICES, devicesJsonArr);
         body.add(AppConstants.KEY_METADATA, metadataJson);
 
-        apiInterface.shareNodeWithUser(AppConstants.URL_USER_NODES_SHARING, accessToken, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.shareNodeWithUser(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2812,8 +2840,9 @@ public class ApiManager {
     public void getNodeSharing(final String nodeId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Node Sharing information for node : " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES_SHARING;
 
-        apiInterface.getNodeSharing(AppConstants.URL_USER_NODES_SHARING, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getNodeSharing(url, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2893,8 +2922,9 @@ public class ApiManager {
     public void removeSharing(final String nodeId, final String email, final ApiResponseListener listener) {
 
         Log.d(TAG, "Remove user : " + email + " from sharing, for nodes : " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES_SHARING;
 
-        apiInterface.removeSharing(AppConstants.URL_USER_NODES_SHARING, accessToken, nodeId, email).enqueue(new Callback<ResponseBody>() {
+        apiInterface.removeSharing(url, accessToken, nodeId, email).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2928,8 +2958,7 @@ public class ApiManager {
     public void registerDeviceToken(final String deviceToken, final ApiResponseListener listener) {
 
         Log.d(TAG, "Register device token : " + deviceToken);
-        String url = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
-                + AppConstants.CURRENT_VERSION + "/user/push_notification/mobile_platform_endpoint";
+        String url = getBaseUrl() + "/user/push_notification/mobile_platform_endpoint";
 
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_PLATFORM, AppConstants.KEY_GCM);
@@ -2968,8 +2997,7 @@ public class ApiManager {
     public void unregisterDeviceToken(final String deviceToken, final ApiResponseListener listener) {
 
         Log.d(TAG, "Unregister FCM token...");
-        String url = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
-                + AppConstants.CURRENT_VERSION + "/user/push_notification/mobile_platform_endpoint";
+        String url = getBaseUrl() + "/user/push_notification/mobile_platform_endpoint";
 
         apiInterface.unregisterDeviceToken(url, accessToken, deviceToken).enqueue(new Callback<ResponseBody>() {
 
@@ -3016,8 +3044,9 @@ public class ApiManager {
                                              ArrayList<TsData> tsData) {
 
         Log.d(TAG, "Get time series data...");
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES_TS;
 
-        apiInterface.getTimeSeriesData(AppConstants.URL_USER_NODES_TS, accessToken, nodeId, paramName, dataType,
+        apiInterface.getTimeSeriesData(url, accessToken, nodeId, paramName, dataType,
                 aggregate, timeInterval, startTime, endTime, weekStart, timezone, startId).enqueue(new Callback<ResponseBody>() {
 
             @Override
@@ -3100,8 +3129,9 @@ public class ApiManager {
     public void addAutomations(JsonObject body, final ApiResponseListener listener) {
 
         Log.d(TAG, "Create automation...");
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_AUTOMATION;
 
-        apiInterface.createGroup(AppConstants.URL_USER_NODE_AUTOMATION, accessToken, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.addAutomations(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -3141,8 +3171,9 @@ public class ApiManager {
     private void getAutomations(String startId, ApiResponseListener listener) {
 
         Log.d(TAG, "Get automations from cloud with start id : " + startId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_AUTOMATION;
 
-        apiInterface.getAutomations(AppConstants.URL_USER_NODE_AUTOMATION, accessToken, startId).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getAutomations(url, accessToken, startId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -3432,8 +3463,9 @@ public class ApiManager {
 
         String automationId = automation.getId();
         Log.d(TAG, "Update automation for automation id : " + automationId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_AUTOMATION;
 
-        apiInterface.updateAutomation(AppConstants.URL_USER_NODE_AUTOMATION, accessToken, automationId, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.updateAutomation(url, accessToken, automationId, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -3468,8 +3500,9 @@ public class ApiManager {
     public void deleteAutomation(String automationId, ApiResponseListener listener) {
 
         Log.d(TAG, "Delete automation for automation id : " + automationId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_AUTOMATION;
 
-        apiInterface.deleteAutomation(AppConstants.URL_USER_NODE_AUTOMATION, accessToken, automationId).enqueue(new Callback<ResponseBody>() {
+        apiInterface.deleteAutomation(url, accessToken, automationId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -3504,8 +3537,9 @@ public class ApiManager {
     public void checkFwUpdate(String nodeId, ApiResponseListener listener) {
 
         Log.d(TAG, "Check OTA update for node id : " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_NODE_OTA_UPDATE;
 
-        apiInterface.checkFwUpdate(AppConstants.URL_NODE_OTA_UPDATE, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
+        apiInterface.checkFwUpdate(url, accessToken, nodeId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -3552,8 +3586,9 @@ public class ApiManager {
     public void getFwUpdateStatus(String nodeId, String otaJobId, ApiResponseListener listener) {
 
         Log.d(TAG, "Get OTA update status for node id : " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_NODE_OTA_STATUS;
 
-        apiInterface.getFwUpdateStatus(AppConstants.URL_NODE_OTA_STATUS, accessToken, nodeId, otaJobId).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getFwUpdateStatus(url, accessToken, nodeId, otaJobId).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -3602,12 +3637,13 @@ public class ApiManager {
     public void pushFwUpdate(String nodeId, String otaJobId, ApiResponseListener listener) {
 
         Log.d(TAG, "Push firmware update : " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_NODE_OTA_UPDATE;
 
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_NODE_ID, nodeId);
         body.addProperty(AppConstants.KEY_OTA_JOB_ID, otaJobId);
 
-        apiInterface.pushFwUpdate(AppConstants.URL_NODE_OTA_UPDATE, accessToken, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.pushFwUpdate(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -3674,12 +3710,20 @@ public class ApiManager {
         }
     }
 
+    private String getBaseUrl() {
+        return EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION;
+    }
+
     private String getLoginEndpointUrl() {
-        return Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_LOGIN : AppConstants.URL_LOGIN_2;
+        String endpoint = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_LOGIN : AppConstants.URL_LOGIN_2;
+        String loginUrl = getBaseUrl() + endpoint;
+        return loginUrl;
     }
 
     private String getUserEndpointUrl() {
-        return Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_USER : AppConstants.URL_USER_2;
+        String endpoint = Integer.valueOf(BuildConfig.USER_POOL) == AppConstants.USER_POOL_1 ? AppConstants.URL_USER : AppConstants.URL_USER_2;
+        String userUrl = getBaseUrl() + endpoint;
+        return userUrl;
     }
 
     private Runnable stopRequestStatusPollingTask = new Runnable() {
@@ -3689,7 +3733,7 @@ public class ApiManager {
             requestIds.clear();
             Log.d(TAG, "Stopped Polling Task");
             handler.removeCallbacks(getUserNodeMappingStatusTask);
-            EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_ADD_DEVICE_TIME_OUT));
+            EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_ADD_DEVICE_TIME_OUT));
         }
     };
 
