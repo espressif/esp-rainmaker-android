@@ -53,54 +53,54 @@ public class AppConstants {
     public static final String HEADER_AUTHORIZATION = "Authorization";
 
     // Cloud API End point Urls
-    public static final String URL_LOGIN = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_LOGIN = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/login";
-    public static final String URL_USER = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_USER = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user";
-    public static final String URL_FORGOT_PASSWORD = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_FORGOT_PASSWORD = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/forgotpassword";
-    public static final String URL_CHANGE_PASSWORD = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_CHANGE_PASSWORD = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/password";
-    public static final String URL_LOGOUT = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_LOGOUT = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/logout";
 
-    public static final String URL_LOGIN_2 = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_LOGIN_2 = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/login2";
-    public static final String URL_USER_2 = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_USER_2 = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user2";
-    public static final String URL_FORGOT_PASSWORD_2 = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_FORGOT_PASSWORD_2 = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/forgotpassword2";
-    public static final String URL_CHANGE_PASSWORD_2 = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_CHANGE_PASSWORD_2 = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/password2";
-    public static final String URL_LOGOUT_2 = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_LOGOUT_2 = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/logout2";
 
-    public static final String URL_SUPPORTED_VERSIONS = BuildConfig.BASE_URL + "/apiversions";
-    public static final String URL_USER_NODE_MAPPING = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_SUPPORTED_VERSIONS = EspApplication.BASE_URL + "/apiversions";
+    public static final String URL_USER_NODE_MAPPING = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/nodes/mapping";
-    public static final String URL_USER_NODES = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_USER_NODES = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/nodes";
-    public static final String URL_USER_NODES_DETAILS = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_USER_NODES_DETAILS = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/nodes?node_details=true";
-    public static final String URL_USER_NODE_STATUS = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_USER_NODE_STATUS = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/nodes/status";
-    public static final String URL_USER_NODES_PARAMS = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_USER_NODES_PARAMS = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/nodes/params";
     public static final String URL_CLAIM_INITIATE = BuildConfig.CLAIM_BASE_URL + "/claim/initiate";
     public static final String URL_CLAIM_VERIFY = BuildConfig.CLAIM_BASE_URL + "/claim/verify";
-    public static final String URL_USER_NODE_GROUP = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_USER_NODE_GROUP = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/node_group";
-    public static final String URL_USER_NODES_SHARING_REQUESTS = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_USER_NODES_SHARING_REQUESTS = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/nodes/sharing/requests";
-    public static final String URL_USER_NODES_SHARING = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_USER_NODES_SHARING = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/nodes/sharing";
-    public static final String URL_USER_NODES_TS = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_USER_NODES_TS = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/nodes/tsdata";
-    public static final String URL_USER_NODE_AUTOMATION = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_USER_NODE_AUTOMATION = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/node_automation";
-    public static final String URL_NODE_OTA_UPDATE = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_NODE_OTA_UPDATE = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/nodes/ota_update";
-    public static final String URL_NODE_OTA_STATUS = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+    public static final String URL_NODE_OTA_STATUS = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
             + AppConstants.CURRENT_VERSION + "/user/nodes/ota_status";
 
     // UI Types of Device
@@ -163,6 +163,7 @@ public class AppConstants {
     public static final String PARAM_TYPE_WIFI_RESET = "esp.param.wifi-reset";
 
     // Keys used to pass data between activities and to store data in SharedPreference.
+    public static final String KEY_BASE_URL = "base_url";
     public static final String KEY_DEVICE_NAME_PREFIX = "device_prefix";
     public static final String KEY_PROOF_OF_POSSESSION = "proof_of_possession";
     public static final String KEY_DEVICE_NAME = "device_name";

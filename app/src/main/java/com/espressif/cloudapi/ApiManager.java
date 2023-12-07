@@ -2928,7 +2928,7 @@ public class ApiManager {
     public void registerDeviceToken(final String deviceToken, final ApiResponseListener listener) {
 
         Log.d(TAG, "Register device token : " + deviceToken);
-        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+        String url = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
                 + AppConstants.CURRENT_VERSION + "/user/push_notification/mobile_platform_endpoint";
 
         JsonObject body = new JsonObject();
@@ -2968,7 +2968,7 @@ public class ApiManager {
     public void unregisterDeviceToken(final String deviceToken, final ApiResponseListener listener) {
 
         Log.d(TAG, "Unregister FCM token...");
-        String url = BuildConfig.BASE_URL + AppConstants.PATH_SEPARATOR
+        String url = EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR
                 + AppConstants.CURRENT_VERSION + "/user/push_notification/mobile_platform_endpoint";
 
         apiInterface.unregisterDeviceToken(url, accessToken, deviceToken).enqueue(new Callback<ResponseBody>() {

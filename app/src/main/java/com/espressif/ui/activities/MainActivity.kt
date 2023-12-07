@@ -14,9 +14,17 @@
 
 package com.espressif.ui.activities
 
+import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
+import android.text.TextUtils
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.EditText
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 
 import com.espressif.AppConstants
@@ -36,9 +44,13 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "MainActivity"
         const val SIGN_UP_CONFIRM_ACTIVITY_REQUEST = 10
+        const val CLICK_TIME_DURATION = 5000
     }
 
     private lateinit var binding: ActivityMainBinding
+
+    private var clickCount = 0
+    private var startTimeOfClick: Long = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +63,7 @@ class MainActivity : AppCompatActivity() {
         binding.viewPager.adapter = tabsPagerAdapter
         val tabs = findViewById<TabLayout>(R.id.tabs)
         tabs.setupWithViewPager(binding.viewPager)
+        binding.ivTitle.setOnClickListener { rmLogoClicked() }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -125,6 +138,66 @@ class MainActivity : AppCompatActivity() {
     private fun setToolbar() {
         binding.toolbar.title = ""
         setSupportActionBar(binding.toolbar)
+    }
+
+    private fun rmLogoClicked() {
+        val currentTIme = System.currentTimeMillis()
+
+        when (clickCount) {
+            0 -> {
+                clickCount = 1
+                startTimeOfClick = currentTIme
+            }
+            1 -> if (currentTIme - startTimeOfClick < CLICK_TIME_DURATION) {
+                clickCount++
+            } else {
+                clickCount = 1
+                startTimeOfClick = currentTIme
+            }
+            2 -> if (currentTIme - startTimeOfClick < CLICK_TIME_DURATION) {
+                clickCount = 0
+                askForBaseUrl()
+            } else {
+                clickCount = 1
+                startTimeOfClick = currentTIme
+            }
+        }
+    }
+
+    private fun askForBaseUrl() {
+        val builder: AlertDialog.Builder = AlertDialog.Builder(this)
+        builder.setCancelable(true)
+        builder.setTitle(R.string.base_url_title)
+        val layoutInflaterAndroid = LayoutInflater.from(this)
+        val view: View = layoutInflaterAndroid.inflate(R.layout.dialog_base_url, null)
+        builder.setView(view)
+        val etPrefix: EditText = view.findViewById(R.id.et_base_url)
+        etPrefix.setText(EspApplication.BASE_URL)
+        etPrefix.setSelection(etPrefix.text.length)
+
+        // Set up the buttons
+        builder.setPositiveButton(R.string.btn_update,
+            DialogInterface.OnClickListener { dialog, which ->
+                var baseUrl = etPrefix.text.toString()
+                if (baseUrl != null) {
+                    baseUrl = baseUrl.trim()
+                }
+
+                if (TextUtils.isEmpty(baseUrl)) {
+                    Toast.makeText(this, R.string.error_base_url_empty, Toast.LENGTH_LONG).show()
+                } else {
+                    val sharedPreferences =
+                        getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE)
+                    val editor = sharedPreferences.edit()
+                    editor.putString(AppConstants.KEY_BASE_URL, baseUrl)
+                    editor.apply()
+                    EspApplication.BASE_URL = baseUrl
+                }
+            })
+
+        builder.setNegativeButton(R.string.btn_cancel,
+            DialogInterface.OnClickListener { dialog, which -> dialog.dismiss() })
+        builder.show()
     }
 
     private fun showLoginLoading() {
