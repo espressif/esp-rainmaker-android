@@ -16,11 +16,11 @@ package com.espressif.ui.models;
 
 import android.os.Bundle;
 
-import com.espressif.AppConstants;
+import com.espressif.AppConstants.Companion.UpdateEventType;
 
 public class UpdateEvent {
 
-    private AppConstants.UpdateEventType eventType;
+    private UpdateEventType eventType;
     private Bundle data;
 
     public Bundle getData() {
@@ -31,11 +31,11 @@ public class UpdateEvent {
         this.data = data;
     }
 
-    public UpdateEvent(AppConstants.UpdateEventType type) {
+    public UpdateEvent(UpdateEventType type) {
         eventType = type;
     }
 
-    public AppConstants.UpdateEventType getEventType() {
+    public UpdateEventType getEventType() {
         return eventType;
     }
 }

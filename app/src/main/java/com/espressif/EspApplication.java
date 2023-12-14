@@ -27,6 +27,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.espressif.AppConstants.Companion.UpdateEventType;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.db.EspDatabase;
@@ -133,12 +134,12 @@ public class EspApplication extends Application {
                     appState = newState;
                     getNodesFromCloud();
                 }
-                EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_STATE_CHANGE_UPDATE));
+                EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_STATE_CHANGE_UPDATE));
                 break;
 
             case GET_DATA_FAILED:
                 appState = newState;
-                UpdateEvent updateEvent = new UpdateEvent(AppConstants.UpdateEventType.EVENT_STATE_CHANGE_UPDATE);
+                UpdateEvent updateEvent = new UpdateEvent(UpdateEventType.EVENT_STATE_CHANGE_UPDATE);
                 if (extras != null) {
                     updateEvent.setData(extras);
                 }
@@ -153,13 +154,13 @@ public class EspApplication extends Application {
                         | Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(loginActivity);
                 appState = newState;
-                EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_STATE_CHANGE_UPDATE));
+                EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_STATE_CHANGE_UPDATE));
                 break;
 
             case GET_DATA_SUCCESS:
             case NO_INTERNET:
                 appState = newState;
-                EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_STATE_CHANGE_UPDATE));
+                EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_STATE_CHANGE_UPDATE));
                 startLocalDeviceDiscovery();
                 break;
         }
@@ -493,7 +494,7 @@ public class EspApplication extends Application {
                                                 }
                                                 JsonDataParser.setAllParams(EspApplication.this, localNode, paramsJson);
                                                 nodeMap.put(localNode.getNodeId(), localNode);
-                                                EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_LOCAL_DEVICE_UPDATE));
+                                                EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_LOCAL_DEVICE_UPDATE));
                                             }
                                         }
                                     }

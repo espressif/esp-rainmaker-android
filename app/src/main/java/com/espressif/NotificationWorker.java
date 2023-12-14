@@ -1,3 +1,17 @@
+// Copyright 2023 Espressif Systems (Shanghai) PTE LTD
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package com.espressif;
 
 import android.app.Notification;
@@ -18,6 +32,7 @@ import androidx.work.Data;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.espressif.AppConstants.Companion.UpdateEventType;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.db.EspDatabase;
@@ -128,7 +143,7 @@ public class NotificationWorker extends Worker {
                             EspNode node = espApp.nodeMap.get(nodeId);
                             JsonDataParser.setAllParams(espApp, node, payloadJson);
                             // Send event for UI update
-                            EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
+                            EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                         }
                     } else if (AppConstants.EVENT_ALERT.equals(eventType)) {
                         processAlertEvent(title, notificationEvent, jsonEventData);
@@ -233,12 +248,12 @@ public class NotificationWorker extends Worker {
             if (isNotificationAllowed) {
                 sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ONLINE_ID, SplashActivity.class);
             }
-            EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_ONLINE));
+            EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_ONLINE));
         } else {
             if (isNotificationAllowed) {
                 sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_OFFLINE_ID, SplashActivity.class);
             }
-            EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_OFFLINE));
+            EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_OFFLINE));
         }
     }
 
@@ -299,7 +314,7 @@ public class NotificationWorker extends Worker {
                 if (isNotificationAllowed) {
                     sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED, SplashActivity.class);
                 }
-                EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
+                EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
 
             } else {
                 ApiManager.getInstance(espApp).getNodes(new ApiResponseListener() {
@@ -339,7 +354,7 @@ public class NotificationWorker extends Worker {
                         if (TextUtils.isEmpty(msgBuilder.toString())) {
                             msgBuilder.append(espApp.getString(R.string.notify_node_added));
                         }
-                        EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
+                        EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                     }
 
                     @Override
@@ -351,7 +366,7 @@ public class NotificationWorker extends Worker {
                         if (isNotificationAllowed) {
                             sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED, SplashActivity.class);
                         }
-                        EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
+                        EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                     }
 
                     @Override
@@ -363,7 +378,7 @@ public class NotificationWorker extends Worker {
                         if (isNotificationAllowed) {
                             sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_ADDED, SplashActivity.class);
                         }
-                        EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
+                        EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                     }
                 });
             }
@@ -424,7 +439,7 @@ public class NotificationWorker extends Worker {
         if (isNotificationAllowed) {
             sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_NODE_REMOVED, SplashActivity.class);
         }
-        EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
+        EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
     }
 
     // Event type - Node sharing add
@@ -894,7 +909,7 @@ public class NotificationWorker extends Worker {
             sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_ALERT, NotificationsActivity.class);
         }
         // Send event for UI update
-        EventBus.getDefault().post(new UpdateEvent(AppConstants.UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
+        EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
     }
 
     private void sendNotification(String title, String messageBody, String channelId, Class activityClass) {
