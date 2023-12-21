@@ -286,6 +286,12 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
 
+        <activity
+            android:name="com.espressif.matter.ControllerLoginActivity"
+            android:label="Matter Controller Setup"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+
         <receiver android:name="com.espressif.NodeSharingActionReceiver" />
 
         <service

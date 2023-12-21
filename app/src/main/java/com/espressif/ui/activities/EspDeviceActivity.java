@@ -30,6 +30,7 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatButton;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -41,6 +42,8 @@ import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
 import com.espressif.local_control.EspLocalDevice;
+import com.espressif.matter.ControllerClusterHelper;
+import com.espressif.matter.DeviceMatterInfo;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.AttrParamAdapter;
@@ -55,10 +58,12 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Iterator;
+import java.util.List;
 
 public class EspDeviceActivity extends AppCompatActivity {
 
@@ -69,8 +74,10 @@ public class EspDeviceActivity extends AppCompatActivity {
     private static final int UI_UPDATE_INTERVAL = 4500;
 
     private RelativeLayout rlNodeStatus;
+    private RelativeLayout rlMatterController;
     private TextView tvNoParam, tvNodeStatus;
     private ImageView ivSecureLocal;
+    private AppCompatButton btnUpdate;
     private RecyclerView paramRecyclerView;
     private RecyclerView attrRecyclerView;
     private SwipeRefreshLayout swipeRefreshLayout;
@@ -94,7 +101,8 @@ public class EspDeviceActivity extends AppCompatActivity {
     private boolean isUpdateView = true;
     private long lastUpdateRequestTime = 0;
 
-    private boolean isMatterOnly = false;
+    private boolean isMatterOnly = false, isControllerClusterAvailable = false;
+    private String matterNodeId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,12 +121,37 @@ public class EspDeviceActivity extends AppCompatActivity {
         } else {
             nodeId = device.getNodeId();
             Log.e(TAG, "NODE ID : " + nodeId);
+
             isNodeOnline = espApp.nodeMap.get(nodeId).isOnline();
             String nodeType = espApp.nodeMap.get(nodeId).getNewNodeType();
+
             if (!TextUtils.isEmpty(nodeType)) {
                 if (nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
                     isMatterOnly = true;
                     Log.e(TAG, "Pure matter device");
+                }
+            }
+
+            if (espApp.matterRmNodeIdMap.containsKey(nodeId)) {
+                matterNodeId = espApp.matterRmNodeIdMap.get(nodeId);
+
+                if (matterNodeId != null && espApp.availableMatterDevices.contains(matterNodeId)
+                        && espApp.matterDeviceInfoMap.containsKey(matterNodeId)) {
+                    List<DeviceMatterInfo> deviceMatterInfo = espApp.matterDeviceInfoMap.get(matterNodeId);
+
+                    if (deviceMatterInfo != null && !deviceMatterInfo.isEmpty()) {
+                        for (DeviceMatterInfo info : deviceMatterInfo) {
+                            if (info.getEndpoint() == 0 && info.getServerClusters() != null && !info.getServerClusters().isEmpty()) {
+                                List<Object> serverClusters = info.getServerClusters();
+                                for (Object serverCluster : serverClusters) {
+                                    Long id = (Long) serverCluster;
+                                    if (id == AppConstants.CONTROLLER_CLUSTER_ID) {
+                                        isControllerClusterAvailable = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -247,6 +280,7 @@ public class EspDeviceActivity extends AppCompatActivity {
     }
 
     private void goToNodeDetailsActivity() {
+
         Intent intent = new Intent(EspDeviceActivity.this, NodeDetailsActivity.class);
         intent.putExtra(AppConstants.KEY_NODE_ID, nodeId);
         startActivityForResult(intent, NODE_DETAILS_ACTIVITY_REQUEST);
@@ -293,8 +327,10 @@ public class EspDeviceActivity extends AppCompatActivity {
         rlProgress = findViewById(R.id.rl_progress);
 
         rlNodeStatus = findViewById(R.id.rl_node_status);
+        rlMatterController = findViewById(R.id.rl_matter_controller);
         tvNodeStatus = findViewById(R.id.tv_device_status);
         ivSecureLocal = findViewById(R.id.iv_secure_local);
+        btnUpdate = findViewById(R.id.btn_update);
 
         getSupportActionBar().setTitle(device.getUserVisibleName());
 
@@ -323,6 +359,24 @@ public class EspDeviceActivity extends AppCompatActivity {
                 getNodeDetails();
             }
         });
+
+        btnUpdate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                BigInteger id = new BigInteger(matterNodeId, 16);
+                long deviceId = id.longValue();
+                if (espApp.chipClientMap.containsKey(matterNodeId)) {
+                    ControllerClusterHelper espClusterHelper = new ControllerClusterHelper(espApp.chipClientMap.get(matterNodeId), espApp);
+                    espClusterHelper.sendUpdateDeviceListEventAsync(deviceId, AppConstants.ENDPOINT_0, AppConstants.CONTROLLER_CLUSTER_ID_HEX);
+                }
+            }
+        });
+
+        if (isControllerClusterAvailable) {
+            rlMatterController.setVisibility(View.VISIBLE);
+        } else {
+            rlMatterController.setVisibility(View.GONE);
+        }
     }
 
     private void getNodeDetails() {

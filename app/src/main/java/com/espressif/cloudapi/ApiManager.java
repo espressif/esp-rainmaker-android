@@ -182,6 +182,49 @@ public class ApiManager {
         });
     }
 
+    public void controllerLogin(final String userName, String password, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Login for matter controller...");
+        String loginUrl = getLoginEndpointUrl();
+
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_USER_NAME, userName);
+        body.addProperty(AppConstants.KEY_PASSWORD, password);
+
+        apiInterface.login(loginUrl, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Login for matter controller, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        JSONObject jsonObject = new JSONObject(jsonResponse);
+                        String cRefreshToken = jsonObject.getString("refreshtoken");
+                        Bundle data = new Bundle();
+                        data.putString(AppConstants.KEY_REFRESH_TOKEN, cRefreshToken);
+                        listener.onSuccess(data);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to login");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to login"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to login"));
+            }
+        });
+    }
+
     public void getOAuthToken(String code, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get OAuth Token");
@@ -215,6 +258,55 @@ public class ApiManager {
 
                             getTokenAndUserId();
                             listener.onSuccess(null);
+
+                        } else {
+                            String jsonErrResponse = response.errorBody().string();
+                            processError(jsonErrResponse, listener, "Failed to login");
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        listener.onResponseFailure(e);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        listener.onResponseFailure(e);
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<ResponseBody> call, Throwable t) {
+                    t.printStackTrace();
+                    listener.onNetworkFailure(new Exception(t));
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+            listener.onNetworkFailure(e);
+        }
+    }
+
+    public void getOAuthTokenForController(String code, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Get OAuth Token for Matter Controller");
+        String url = BuildConfig.TOKEN_URL;
+
+        try {
+            apiInterface.oauthLogin(url, "application/x-www-form-urlencoded",
+                    "authorization_code", BuildConfig.CLIENT_ID, code,
+                    BuildConfig.REDIRECT_URI).enqueue(new Callback<ResponseBody>() {
+
+                @Override
+                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                    Log.d(TAG, "Get OAuth Token for matter controller, Response code  : " + response.code());
+                    try {
+                        if (response.isSuccessful()) {
+
+                            String jsonResponse = response.body().string();
+                            JSONObject jsonObject = new JSONObject(jsonResponse);
+                            String cRefreshToken = jsonObject.getString(AppConstants.KEY_REFRESH_TOKEN);
+                            Bundle data = new Bundle();
+                            data.putString(AppConstants.KEY_REFRESH_TOKEN, cRefreshToken);
+                            listener.onSuccess(data);
 
                         } else {
                             String jsonErrResponse = response.errorBody().string();
@@ -1633,24 +1725,19 @@ public class ApiManager {
             Response<ResponseBody> response = apiInterface.updateNodeMetadata(url, accessToken, nodeId, body).execute();
             Log.d(TAG, "Update Node Metadata, Response code : " + response.code());
 
-            try {
-                if (response.isSuccessful()) {
+            if (response.isSuccessful()) {
+                if (response.body() != null) {
 
-                    if (response.body() != null) {
-
-                        String jsonResponse = response.body().string();
-                        Log.d(TAG, "onResponse Success : " + jsonResponse);
-                        data.putString(AppConstants.KEY_RESPONSE, jsonResponse);
-                    } else {
-                        Log.e(TAG, "Failed to Update Node Metadata. Response received : null");
-                    }
+                    String jsonResponse = response.body().string();
+                    Log.d(TAG, "onResponse Success : " + jsonResponse);
+                    data.putString(AppConstants.KEY_RESPONSE, jsonResponse);
                 } else {
-                    String jsonErrResponse = response.errorBody().string();
-                    Log.e(TAG, "Failed to Update Node Metadata.");
-                    Log.e(TAG, "onResponse, Error : " + jsonErrResponse);
+                    Log.e(TAG, "Failed to Update Node Metadata. Response received : null");
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+            } else {
+                String jsonErrResponse = response.errorBody().string();
+                Log.e(TAG, "Failed to Update Node Metadata.");
+                Log.e(TAG, "onResponse, Error : " + jsonErrResponse);
             }
         } catch (IOException e) {
             e.printStackTrace();
