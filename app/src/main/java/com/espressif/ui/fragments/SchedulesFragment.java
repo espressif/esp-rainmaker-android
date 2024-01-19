@@ -229,16 +229,18 @@ public class SchedulesFragment extends Fragment {
             for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
 
                 EspNode node = entry.getValue();
-                ArrayList<Service> services = node.getServices();
-
                 if (node != null) {
+                    ArrayList<Service> services = node.getServices();
 
-                    for (int i = 0; i < services.size(); i++) {
+                    if (services != null) {
 
-                        Service s = services.get(i);
-                        if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_SCHEDULE)) {
-                            isScheduleDevicesAvailable = true;
-                            break;
+                        for (int i = 0; i < services.size(); i++) {
+
+                            Service s = services.get(i);
+                            if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_SCHEDULE)) {
+                                isScheduleDevicesAvailable = true;
+                                break;
+                            }
                         }
                     }
                 }

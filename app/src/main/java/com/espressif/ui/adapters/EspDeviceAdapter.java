@@ -35,6 +35,7 @@ import com.espressif.EspApplication;
 import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.local_control.EspLocalDevice;
+import com.espressif.matter.OnOffClusterHelper;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
 import com.espressif.ui.activities.EspDeviceActivity;
@@ -43,6 +44,7 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.google.gson.JsonObject;
 
+import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -74,9 +76,24 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
         final Device device = deviceList.get(position);
         EspApplication espApp = (EspApplication) context.getApplicationContext();
         EspNode node = espApp.nodeMap.get(device.getNodeId());
+        String deviceName = device.getUserVisibleName();
+        boolean isMatterDeviceOnline = false;
+        String nodeId = device.getNodeId();
+        String matterNodeId = "";
+        if (espApp.matterRmNodeIdMap.containsKey(nodeId)) {
+            matterNodeId = espApp.matterRmNodeIdMap.get(nodeId);
+        }
+
+        if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
+            isMatterDeviceOnline = true;
+        }
 
         // set the data in items
-        deviceVh.tvDeviceName.setText(device.getUserVisibleName());
+        if (TextUtils.isEmpty(deviceName)) {
+            deviceName = device.getDeviceName();
+        }
+
+        deviceVh.tvDeviceName.setText(deviceName);
         Utils.setDeviceIcon(deviceVh.ivDevice, device.getDeviceType());
 
         if (!TextUtils.isEmpty(device.getPrimaryParamName())) {
@@ -122,6 +139,9 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
 
                     if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
+                        boolean finalIsMatterDeviceOnline = isMatterDeviceOnline;
+                        String finalMatterNodeId = matterNodeId;
+
                         deviceVh.ivDeviceStatus.setOnClickListener(new View.OnClickListener() {
 
                             @Override
@@ -135,29 +155,37 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
                                     deviceVh.ivDeviceStatus.setImageResource(R.drawable.ic_output_on);
                                 }
 
-                                JsonObject jsonParam = new JsonObject();
-                                JsonObject body = new JsonObject();
+                                if (finalIsMatterDeviceOnline) {
 
-                                jsonParam.addProperty(param.getName(), !status);
-                                body.add(device.getDeviceName(), jsonParam);
+                                    BigInteger id = new BigInteger(finalMatterNodeId, 16);
+                                    long deviceId = id.longValue();
+                                    OnOffClusterHelper espClusterHelper = new OnOffClusterHelper(espApp.chipClientMap.get(finalMatterNodeId));
+                                    espClusterHelper.setOnOffDeviceStateOnOffClusterAsync(deviceId, !status, AppConstants.ENDPOINT_1);
 
-                                networkApiManager.updateParamValue(device.getNodeId(), body, new ApiResponseListener() {
+                                } else {
+                                    JsonObject jsonParam = new JsonObject();
+                                    JsonObject body = new JsonObject();
+                                    jsonParam.addProperty(param.getName(), !status);
+                                    body.add(device.getDeviceName(), jsonParam);
 
-                                    @Override
-                                    public void onSuccess(Bundle data) {
-                                        param.setSwitchStatus(!status);
-                                    }
+                                    networkApiManager.updateParamValue(device.getNodeId(), body, new ApiResponseListener() {
 
-                                    @Override
-                                    public void onResponseFailure(Exception exception) {
-                                        Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
-                                    }
+                                        @Override
+                                        public void onSuccess(Bundle data) {
+                                            param.setSwitchStatus(!status);
+                                        }
 
-                                    @Override
-                                    public void onNetworkFailure(Exception exception) {
-                                        Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
-                                    }
-                                });
+                                        @Override
+                                        public void onResponseFailure(Exception exception) {
+                                            Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
+                                        }
+
+                                        @Override
+                                        public void onNetworkFailure(Exception exception) {
+                                            Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+                                }
                             }
                         });
                     }
@@ -393,8 +421,12 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             deviceVh.llOffline.setVisibility(View.INVISIBLE);
         }
 
-        String nodeId = device.getNodeId();
-        if (espApp.localDeviceMap.containsKey(nodeId)) {
+        if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(matterNodeId)) {
+            deviceVh.llOffline.setVisibility(View.VISIBLE);
+            deviceVh.ivOffline.setVisibility(View.GONE);
+            deviceVh.tvOffline.setText(R.string.status_local);
+            deviceVh.tvOffline.setTextColor(context.getColor(R.color.colorPrimaryDark));
+        } else if (espApp.localDeviceMap.containsKey(nodeId)) {
             deviceVh.llOffline.setVisibility(View.VISIBLE);
 
             EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);

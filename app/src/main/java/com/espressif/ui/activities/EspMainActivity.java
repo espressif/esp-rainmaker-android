@@ -125,7 +125,10 @@ public class EspMainActivity extends AppCompatActivity {
         boolean shouldLoadAutomation = getIntent().getBooleanExtra(AppConstants.KEY_LOAD_AUTOMATION_PAGE, false);
         String reqId = getIntent().getStringExtra(AppConstants.KEY_REQ_ID);
         initViews(shouldLoadAutomation);
-        loadDataFromLocalStorage();
+
+        if (espApp.nodeMap.size() == 0) {
+            loadDataFromLocalStorage();
+        }
 
         if (!TextUtils.isEmpty(reqId)) {
             Log.e(TAG, "Intent string is not empty");

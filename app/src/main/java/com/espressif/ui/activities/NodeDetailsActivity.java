@@ -167,12 +167,14 @@ public class NodeDetailsActivity extends AppCompatActivity {
         ArrayList<Service> services = node.getServices();
         Service tzService = null;
 
-        for (int i = 0; i < services.size(); i++) {
+        if (services != null) {
+            for (int i = 0; i < services.size(); i++) {
 
-            Service s = services.get(i);
-            if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_TIME)) {
-                tzService = s;
-                break;
+                Service s = services.get(i);
+                if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_TIME)) {
+                    tzService = s;
+                    break;
+                }
             }
         }
 
@@ -227,12 +229,14 @@ public class NodeDetailsActivity extends AppCompatActivity {
 
         // System services
         boolean isSystemServiceAvailable = false;
-        for (int i = 0; i < services.size(); i++) {
+        if (services != null) {
+            for (int i = 0; i < services.size(); i++) {
 
-            Service s = services.get(i);
-            if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_SYSTEM)) {
-                isSystemServiceAvailable = true;
-                break;
+                Service s = services.get(i);
+                if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_SYSTEM)) {
+                    isSystemServiceAvailable = true;
+                    break;
+                }
             }
         }
 

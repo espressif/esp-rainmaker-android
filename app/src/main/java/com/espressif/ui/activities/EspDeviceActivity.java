@@ -94,6 +94,8 @@ public class EspDeviceActivity extends AppCompatActivity {
     private boolean isUpdateView = true;
     private long lastUpdateRequestTime = 0;
 
+    private boolean isMatterOnly = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -106,10 +108,20 @@ public class EspDeviceActivity extends AppCompatActivity {
         device = getIntent().getParcelableExtra(AppConstants.KEY_ESP_DEVICE);
 
         if (device == null) {
+            Log.e(TAG, "DEVICE IS NULL");
             finish();
         } else {
             nodeId = device.getNodeId();
+            Log.e(TAG, "NODE ID : " + nodeId);
             isNodeOnline = espApp.nodeMap.get(nodeId).isOnline();
+            String nodeType = espApp.nodeMap.get(nodeId).getNewNodeType();
+            if (!TextUtils.isEmpty(nodeType)) {
+                if (nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
+                    isMatterOnly = true;
+                    Log.e(TAG, "Pure matter device");
+                }
+            }
+
             timeStampOfStatus = espApp.nodeMap.get(nodeId).getTimeStampOfStatus();
             snackbar = Snackbar.make(findViewById(R.id.params_parent_layout), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
             setParamList(device.getParams());
@@ -208,6 +220,10 @@ public class EspDeviceActivity extends AppCompatActivity {
         return isNodeOnline;
     }
 
+    public boolean isMatterOnly() {
+        return isMatterOnly;
+    }
+
     public void setIsUpdateView(boolean isUpdateView) {
         this.isUpdateView = isUpdateView;
     }
@@ -217,6 +233,9 @@ public class EspDeviceActivity extends AppCompatActivity {
     }
 
     public void startUpdateValueTask() {
+        if (isMatterOnly) {
+            return;
+        }
         shouldGetParams = true;
         handler.removeCallbacks(updateValuesTask);
         handler.postDelayed(updateValuesTask, UPDATE_INTERVAL);
@@ -417,16 +436,18 @@ public class EspDeviceActivity extends AppCompatActivity {
         ArrayList<Param> params = new ArrayList<>();
         ArrayList<Param> attributes = new ArrayList<>();
 
-        for (int i = 0; i < paramArrayList.size(); i++) {
+        if (paramArrayList != null) {
+            for (int i = 0; i < paramArrayList.size(); i++) {
 
-            Param param = paramArrayList.get(i);
-            if (param.isDynamicParam()) {
-                params.add(new Param(param));
-            } else {
-                attributes.add(new Param(param));
+                Param param = paramArrayList.get(i);
+                if (param.isDynamicParam()) {
+                    params.add(new Param(param));
+                } else {
+                    attributes.add(new Param(param));
+                }
             }
+            arrangeParamList(params);
         }
-        arrangeParamList(params);
 
         if (paramList == null || attributeList == null) {
             paramList = new ArrayList<>();
@@ -515,11 +536,15 @@ public class EspDeviceActivity extends AppCompatActivity {
 
             ArrayList<Device> devices = espApp.nodeMap.get(nodeId).getDevices();
             isNodeOnline = espApp.nodeMap.get(nodeId).isOnline();
+            String nodeType = espApp.nodeMap.get(nodeId).getNewNodeType();
+            if (!TextUtils.isEmpty(nodeType) && nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
+                isMatterOnly = true;
+            }
             timeStampOfStatus = espApp.nodeMap.get(nodeId).getTimeStampOfStatus();
 
             for (int i = 0; i < devices.size(); i++) {
 
-                if (device.getDeviceName().equals(devices.get(i).getDeviceName())) {
+                if (device.getDeviceName() != null && device.getDeviceName().equals(devices.get(i).getDeviceName())) {
                     updatedDevice = new Device(devices.get(i));
                     deviceFound = true;
                     break;
@@ -531,10 +556,14 @@ public class EspDeviceActivity extends AppCompatActivity {
             return;
         }
 
-        if (!deviceFound) {
-            Log.e(TAG, "Device does not exist in node.");
+        if (!deviceFound && !isMatterOnly) {
+            Log.e(TAG, "Device does not exist in node list.");
             finish();
             return;
+        }
+
+        if (updatedDevice == null) {
+            updatedDevice = device;
         }
 
         setParamList(updatedDevice.getParams());

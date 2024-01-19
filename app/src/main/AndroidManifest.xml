@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">>
 
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -16,6 +17,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
     <!-- Request legacy Bluetooth permissions on older devices. -->
     <uses-permission
@@ -133,8 +135,8 @@
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
             android:label="@string/app_name"
             android:screenOrientation="portrait"
-            android:windowSoftInputMode="adjustPan"
-            android:theme="@style/AppTheme.NoActionBar" />
+            android:theme="@style/AppTheme.NoActionBar"
+            android:windowSoftInputMode="adjustPan" />
         <activity
             android:name="com.espressif.ui.activities.EspDeviceActivity"
             android:label="@string/title_activity_esp_device"
@@ -278,8 +280,49 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
 
+        <activity
+            android:name="com.espressif.matter.GroupSelectionActivity"
+            android:label="@string/title_activity_manage_groups"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+
         <receiver android:name="com.espressif.NodeSharingActionReceiver" />
 
+        <service
+            android:name="com.espressif.matter.AppCommissioningService"
+            android:exported="true" />
+
+        <service
+            android:name="com.google.android.gms.metadata.ModuleDependencies"
+            android:enabled="false"
+            android:exported="false"
+            tools:ignore="MissingClass">
+            <intent-filter>
+                <action android:name="com.google.android.gms.metadata.MODULE_DEPENDENCIES" />
+            </intent-filter>
+
+            <meta-data
+                android:name="home:0:preferred"
+                android:value="" />
+        </service>
+
+        <!-- GPS automatically downloads scanner module when app is installed -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="barcode_ui" />
+
+        <meta-data
+            android:name="com.google.ar.core.min_apk_version"
+            android:value="19"
+            tools:replace="android:value" />
+        <meta-data
+            android:name="com.google.ar.core"
+            android:value="optional" />
+
     </application>
+
+    <!--    <queries>-->
+    <!--        <package android:name="com.google.ar.core" />-->
+    <!--    </queries>-->
 
 </manifest>

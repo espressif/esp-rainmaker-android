@@ -20,13 +20,16 @@ import android.os.Parcelable;
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 import androidx.room.TypeConverters;
 
 import com.espressif.AppConstants;
 import com.espressif.db.StringArrayListConverters;
+import com.espressif.matter.FabricDetails;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 @Entity(tableName = AppConstants.GROUP_TABLE)
 public class Group implements Parcelable {
@@ -43,6 +46,24 @@ public class Group implements Parcelable {
     @TypeConverters(StringArrayListConverters.class)
     private ArrayList<String> nodeList;
 
+    @Ignore
+    private String fabricId;
+
+    @Ignore
+    private boolean isMatter;
+
+    @Ignore
+    private boolean isMutuallyExclusive;
+
+    @Ignore
+    private boolean isPrimary;
+
+    @Ignore
+    private FabricDetails fabricDetails;
+
+    @Ignore
+    private HashMap<String, String> nodeDetails;    // Key - Node id, Value - Matter node id
+
     public Group(String groupName) {
         this.groupName = groupName;
     }
@@ -51,6 +72,12 @@ public class Group implements Parcelable {
         groupId = in.readString();
         groupName = in.readString();
         nodeList = in.createStringArrayList();
+        fabricId = in.readString();
+        isMatter = in.readByte() != 0;
+        isMutuallyExclusive = in.readByte() != 0;
+        isPrimary = in.readByte() != 0;
+        fabricDetails = in.readParcelable(FabricDetails.class.getClassLoader());
+        nodeDetails = (HashMap<String, String>) in.readSerializable();
     }
 
     public static final Creator<Group> CREATOR = new Creator<Group>() {
@@ -89,6 +116,54 @@ public class Group implements Parcelable {
         this.nodeList = nodeList;
     }
 
+    public boolean isMatter() {
+        return isMatter;
+    }
+
+    public void setMatter(boolean matter) {
+        isMatter = matter;
+    }
+
+    public String getFabricId() {
+        return fabricId;
+    }
+
+    public void setFabricId(String fabricId) {
+        this.fabricId = fabricId;
+    }
+
+    public boolean isMutuallyExclusive() {
+        return isMutuallyExclusive;
+    }
+
+    public void setMutuallyExclusive(boolean mutuallyExclusive) {
+        isMutuallyExclusive = mutuallyExclusive;
+    }
+
+    public boolean isPrimary() {
+        return isPrimary;
+    }
+
+    public void setPrimary(boolean primary) {
+        isPrimary = primary;
+    }
+
+    public FabricDetails getFabricDetails() {
+        return fabricDetails;
+    }
+
+    public void setFabricDetails(FabricDetails fabricDetails) {
+        this.fabricDetails = fabricDetails;
+    }
+
+    public HashMap<String, String> getNodeDetails() {
+        return nodeDetails;
+    }
+
+    public void setNodeDetails(HashMap<String, String> nodeDetails) {
+        this.nodeDetails = nodeDetails;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -99,5 +174,11 @@ public class Group implements Parcelable {
         dest.writeString(groupId);
         dest.writeString(groupName);
         dest.writeStringList(nodeList);
+        dest.writeString(fabricId);
+        dest.writeByte((byte) (isMatter ? 1 : 0));
+        dest.writeByte((byte) (isMutuallyExclusive ? 1 : 0));
+        dest.writeByte((byte) (isPrimary ? 1 : 0));
+        dest.writeParcelable(fabricDetails, flags);
+        dest.writeSerializable(nodeDetails);
     }
 }
