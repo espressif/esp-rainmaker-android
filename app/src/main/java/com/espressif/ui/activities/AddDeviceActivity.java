@@ -25,6 +25,7 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
@@ -41,6 +42,7 @@ import androidx.core.app.ActivityCompat;
 import com.budiyev.android.codescanner.CodeScanner;
 import com.budiyev.android.codescanner.CodeScannerView;
 import com.espressif.AppConstants;
+import com.espressif.matter.GroupSelectionActivity;
 import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPDevice;
@@ -468,9 +470,15 @@ public class AddDeviceActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     hideLoading();
-                    String msg = e.getMessage();
-                    Toast.makeText(AddDeviceActivity.this, msg, Toast.LENGTH_LONG).show();
-                    finish();
+
+                    if (BuildConfig.isMatterSupported && !TextUtils.isEmpty(qrCodeData) && qrCodeData.contains("MT:")) {
+                        // Display group selection screen.
+                        goToGroupSelectionActivity(qrCodeData);
+                    } else {
+                        String msg = e.getMessage();
+                        Toast.makeText(AddDeviceActivity.this, msg, Toast.LENGTH_LONG).show();
+                        finish();
+                    }
                 }
             });
         }
@@ -620,6 +628,13 @@ public class AddDeviceActivity extends AppCompatActivity {
         Intent claimingIntent = new Intent(getApplicationContext(), ClaimingActivity.class);
         claimingIntent.putExtra(AppConstants.KEY_SSID, connectedNetwork);
         startActivity(claimingIntent);
+    }
+
+    private void goToGroupSelectionActivity(String qrCodeData) {
+        finish();
+        Intent intent = new Intent(getApplicationContext(), GroupSelectionActivity.class);
+        intent.putExtra(AppConstants.KEY_ON_BOARD_PAYLOAD, qrCodeData);
+        startActivity(intent);
     }
 
     private void askForManualDeviceConnection() {

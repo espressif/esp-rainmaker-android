@@ -113,6 +113,7 @@
     <string name="error_fw_update_rejected">OTA update rejected.</string>
     <string name="error_fw_update_failed">OTA update failed.</string>
     <string name="error_base_url_empty">Cloud Endpoint URL cannot be empty</string>
+    <string name="error_fabric_create">Failed to create fabric</string>
 
     <string name="title_activity_esp_device">Device</string>
 
@@ -146,6 +147,7 @@
     <string name="node_offline">Node Offline</string>
     <string name="status_offline">Offline</string>
     <string name="offline_at">Offline at</string>
+    <string name="status_local">Local</string>
     <string name="no_device_support_this_feature">You don\'t have any device\nthat supports this.</string>
     <string name="local_device_text">Reachable on WLAN</string>
     <string name="max_cnt_reached">Max supported count %d reached</string>

@@ -72,6 +72,7 @@ class AppConstants {
         const val PARAM_TYPE_POWER = "esp.param.power"
         const val PARAM_TYPE_SATURATION = "esp.param.saturation"
         const val PARAM_TYPE_BRIGHTNESS = "esp.param.brightness"
+        const val PARAM_TYPE_HUE = "esp.param.hue"
         const val PARAM_TYPE_TEMPERATURE = "esp.param.temperature"
         const val PARAM_TYPE_TZ = "esp.param.tz"
         const val PARAM_TYPE_TZ_POSIX = "esp.param.tz_posix"
@@ -148,6 +149,7 @@ class AppConstants {
         const val NOTIFICATION_TABLE = "notification_table"
 
         const val MDNS_SERVICE_TYPE = "_esp_local_ctrl._tcp."
+        const val MDNS_MATTER_SERVICE_TYPE = "_matter._tcp."
         const val LOCAL_CONTROL_ENDPOINT = "esp_local_ctrl/control"
         const val LOCAL_SESSION_ENDPOINT = "esp_local_ctrl/session"
 
@@ -262,6 +264,7 @@ class AppConstants {
         const val KEY_CONNECTED = "connected"
         const val KEY_TIMESTAMP = "timestamp"
         const val KEY_DESCRIPTION = "description"
+        const val KEY_PROPERTY_READ = "read"
         const val KEY_PROPERTY_WRITE = "write"
         const val KEY_PROPERTY_TS = "time_series"
         const val KEY_FAILURE_RESPONSE = "failure"
@@ -351,6 +354,7 @@ class AppConstants {
         const val KEY_DEVICE_NAME = "device_name"
         const val KEY_ESP_DEVICE = "esp_device"
         const val KEY_NODE_ID = "node_id"
+        const val KEY_NODE_TYPE = "node_type"
         const val KEY_EMAIL = "email"
         const val KEY_USER_ID = "user_id"
         const val KEY_ID_TOKEN = "id_token"
@@ -382,6 +386,47 @@ class AppConstants {
         const val KEY_OTA_JOB_ID = "ota_job_id"
         const val KEY_OTA_DETAILS = "ota_details"
         const val KEY_OTA_AVAILABLE = "ota_available"
+
+        const val KEY_MUTUALLY_EXCLUSIVE = "mutually_exclusive"
+        const val KEY_IS_MATTER = "is_matter"
+        const val KEY_ROOT_CA = "root_ca"
+        const val KEY_GROUP_CAT_ID_ADMIN = "group_cat_id_admin"
+        const val KEY_GROUP_CAT_ID_OPERATE = "group_cat_id_operate"
+        const val KEY_MATTER_USER_ID = "matter_user_id"
+        const val KEY_USER_CAT_ID = "user_cat_id"
+        const val KEY_FABRIC_ID = "fabric_id"
+        const val KEY_FABRIC_DETAILS = "fabric_details"
+        const val KEY_IPK = "ipk"
+        const val KEY_CSR_TYPE = "csr_type"
+        const val KEY_CSR_REQUESTS = "csr_requests"
+        const val KEY_CSR = "csr"
+        const val KEY_USER_NOC = "user_noc"
+        const val KEY_NODE_RM_MATTER = "rainmaker_matter"
+        const val KEY_CONTROLLER_NODE_ID = "controllerNodeId"
+        const val KEY_DEVICETYPE = "deviceType"
+        const val KEY_DEVICENAME = "deviceName"
+        const val KEY_ENDPOINTS_DATA = "endpointsData"
+        const val KEY_SERVERS_DATA = "serversData"
+        const val KEY_PRODUCT_ID = "productId"
+        const val KEY_VENDOR_ID = "vendorId"
+        const val KEY_IS_RAINMAKER = "isRainmaker"
+        const val KEY_MATTER_NODE_ID = "matter_node_id"
+        const val KEY_ON_BOARD_PAYLOAD = "on_board_payload"
+        const val KEY_CHALLENGE = "challenge"
+        const val KEY_RAINMAKER_NODE_ID = "rainmaker_node_id"
+
+        const val CERT_BEGIN = "-----BEGIN CERTIFICATE REQUEST-----"
+        const val CERT_END = "-----END CERTIFICATE REQUEST-----"
+
+        // Node types
+        const val NODE_TYPE_PURE_MATTER = "pure_matter"
+        const val NODE_TYPE_RM_MATTER = "rainmaker_matter"
+
+        // Endpoints, Cluster Id, Attribute Ids
+        const val ENDPOINT_0 = 0
+        const val ENDPOINT_1 = 1
+
+        const val RM_CLUSTER_ID = 0x131bfc00L
 
         enum class UpdateEventType {
             EVENT_DEVICE_ADDED,

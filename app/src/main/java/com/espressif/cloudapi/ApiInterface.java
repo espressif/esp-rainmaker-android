@@ -20,6 +20,7 @@ import com.google.gson.JsonObject;
 
 import java.util.HashMap;
 
+import io.reactivex.Observable;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
@@ -89,6 +90,13 @@ public interface ApiInterface {
     @GET
     Call<ResponseBody> getNode(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Query(AppConstants.KEY_NODE_ID) String nodeId);
 
+
+    // Update metadata
+    @PUT
+    Call<ResponseBody> updateNodeMetadata(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                          @Query(AppConstants.KEY_NODE_ID) String nodeId,
+                                          @Body JsonObject body);
+
     // Get Node Status
     @GET
     Call<ResponseBody> getNodeStatus(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
@@ -150,7 +158,43 @@ public interface ApiInterface {
     Call<ResponseBody> getUserGroups(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
                                      @Query(AppConstants.KEY_START_ID) String startId,
                                      @Query(AppConstants.KEY_GROUP_ID) String groupId,
+                                     @Query(AppConstants.KEY_FABRIC_DETAILS) boolean isFabricDetails,
                                      @Query(AppConstants.KEY_NODE_LIST) boolean shouldGetNodeList);
+
+    @GET
+    Call<ResponseBody> getFabricDetailsForGroup(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                                @Query(AppConstants.KEY_GROUP_ID) String groupId,
+                                                @Query(AppConstants.KEY_NODE_LIST) boolean shouldGetNodeList,
+                                                @Query(AppConstants.KEY_IS_MATTER) boolean isMatter,
+                                                @Query(AppConstants.KEY_FABRIC_DETAILS) boolean isFabricDetails,
+                                                @Query(AppConstants.KEY_NODE_DETAILS) boolean isNodeDetails);
+
+    @GET
+    Observable<ResponseBody> getAllFabricDetails(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                                 @Query(AppConstants.KEY_GROUP_ID) String groupId,
+                                                 @Query(AppConstants.KEY_NODE_LIST) boolean shouldGetNodeList,
+                                                 @Query(AppConstants.KEY_IS_MATTER) boolean isMatter,
+                                                 @Query(AppConstants.KEY_FABRIC_DETAILS) boolean isFabricDetails,
+                                                 @Query(AppConstants.KEY_NODE_DETAILS) boolean isNodeDetails);
+
+
+    @PUT
+    Call<ResponseBody> getUserNoc(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                  @Body JsonObject requestBody);
+
+    @PUT
+    Observable<ResponseBody> getAllUserNOCs(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                            @Body JsonObject requestBody);
+
+    @PUT
+    Call<ResponseBody> getNodeNoc(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                  @Body JsonObject requestBody);
+
+    @PUT
+    Call<ResponseBody> confirmPureMatterNode(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                             @Query(AppConstants.KEY_GROUP_ID) String groupId,
+                                             @Body JsonObject requestBody);
+
 
     // Feature : Node Sharing
 
@@ -233,8 +277,8 @@ public interface ApiInterface {
     // Update automation
     @PUT
     Call<ResponseBody> updateAutomation(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
-                                   @Query(AppConstants.KEY_AUTOMATION_ID) String automationId,
-                                   @Body JsonObject body);
+                                        @Query(AppConstants.KEY_AUTOMATION_ID) String automationId,
+                                        @Body JsonObject body);
 
     // DELETE
     @DELETE
@@ -254,4 +298,10 @@ public interface ApiInterface {
     @POST
     Call<ResponseBody> pushFwUpdate(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
                                     @Body JsonObject body);
+
+    // Matter APIs
+    @PUT
+    Call<ResponseBody> convertGroupToFabric(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                            @Query(AppConstants.KEY_GROUP_ID) String groupId,
+                                            @Body JsonObject body);
 }

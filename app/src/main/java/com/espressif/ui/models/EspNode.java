@@ -50,6 +50,9 @@ public class EspNode implements Parcelable {
     private String nodeType;
 
     @Ignore
+    private String newNodeType;
+
+    @Ignore
     private boolean isOnline;
 
     @Ignore
@@ -100,6 +103,15 @@ public class EspNode implements Parcelable {
     @Ignore
     private int sceneCurrentCnt;
 
+    @Ignore
+    private boolean isMatterNode;
+
+    @Ignore
+    private String matterNodeId;
+
+    @Ignore
+    private NodeMetadata nodeMetadata;
+
     public EspNode() {
     }
 
@@ -132,6 +144,8 @@ public class EspNode implements Parcelable {
         scheduleCurrentCnt = node.getScheduleCurrentCnt();
         sceneMaxCnt = node.getSceneMaxCnt();
         sceneCurrentCnt = node.getSceneCurrentCnt();
+        matterNodeId = node.getMatterNodeId();
+        nodeMetadata = node.getNodeMetadata();
     }
 
     public String getNodeId() {
@@ -324,6 +338,38 @@ public class EspNode implements Parcelable {
         this.sceneCurrentCnt = sceneCurrentCnt;
     }
 
+    public boolean isMatterNode() {
+        return isMatterNode;
+    }
+
+    public void setMatterNode(boolean matterNode) {
+        isMatterNode = matterNode;
+    }
+
+    public String getNewNodeType() {
+        return newNodeType;
+    }
+
+    public void setNewNodeType(String newNodeType) {
+        this.newNodeType = newNodeType;
+    }
+
+    public String getMatterNodeId() {
+        return matterNodeId;
+    }
+
+    public void setMatterNodeId(String matterNodeId) {
+        this.matterNodeId = matterNodeId;
+    }
+
+    public NodeMetadata getNodeMetadata() {
+        return nodeMetadata;
+    }
+
+    public void setNodeMetadata(NodeMetadata nodeMetadata) {
+        this.nodeMetadata = nodeMetadata;
+    }
+
     protected EspNode(Parcel in) {
 
         nodeId = in.readString();
@@ -349,6 +395,10 @@ public class EspNode implements Parcelable {
         scheduleCurrentCnt = in.readInt();
         sceneMaxCnt = in.readInt();
         sceneCurrentCnt = in.readInt();
+        newNodeType = in.readString();
+        isMatterNode = in.readByte() != 0;
+        matterNodeId = in.readString();
+        nodeMetadata = in.readParcelable(NodeMetadata.class.getClassLoader());
     }
 
     public static final Creator<EspNode> CREATOR = new Creator<EspNode>() {
@@ -394,5 +444,9 @@ public class EspNode implements Parcelable {
         dest.writeInt(scheduleCurrentCnt);
         dest.writeInt(sceneMaxCnt);
         dest.writeInt(sceneCurrentCnt);
+        dest.writeString(newNodeType);
+        dest.writeByte((byte) (isMatterNode ? 1 : 0));
+        dest.writeString(matterNodeId);
+        dest.writeParcelable(nodeMetadata, flags);
     }
 }

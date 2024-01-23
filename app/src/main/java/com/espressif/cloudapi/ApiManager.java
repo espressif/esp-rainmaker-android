@@ -14,12 +14,15 @@
 
 package com.espressif.cloudapi;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
+
+import androidx.annotation.NonNull;
 
 import com.auth0.android.jwt.Claim;
 import com.auth0.android.jwt.DecodeException;
@@ -28,13 +31,16 @@ import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.JsonDataParser;
 import com.espressif.db.EspDatabase;
+import com.espressif.matter.FabricDetails;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.ui.models.Action;
+import com.espressif.ui.models.ApiResponse;
 import com.espressif.ui.models.Automation;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.EspOtaUpdate;
 import com.espressif.ui.models.Group;
+import com.espressif.ui.models.NodeMetadata;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Schedule;
@@ -47,6 +53,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import org.greenrobot.eventbus.EventBus;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -56,8 +64,13 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
+import io.reactivex.Observable;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -548,8 +561,8 @@ public class ApiManager {
                 e.printStackTrace();
             }
             Date expiresAt = jwt.getExpiresAt();
-            Log.e(TAG, "==============>>>>>>>>>>> USER ID : " + userId);
-            Log.e(TAG, "Token expires At : " + expiresAt);
+            Log.d(TAG, "==============>>>>>>>>>>> USER ID : " + userId);
+            Log.d(TAG, "Token expires At : " + expiresAt);
         }
     }
 
@@ -795,11 +808,6 @@ public class ApiManager {
 
                         if (response.body() != null) {
 
-                            if (TextUtils.isEmpty(startId)) {
-                                espDatabase.getNodeDao().deleteAll();
-                                Log.d(TAG, "Delete all nodes from local storage.");
-                            }
-
                             String jsonResponse = response.body().string();
                             Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
@@ -829,7 +837,50 @@ public class ApiManager {
 
                                         // User role
                                         String role = nodeJson.optString(AppConstants.KEY_ROLE);
+                                        String nodeType = nodeJson.optString(AppConstants.KEY_NODE_TYPE);
                                         espNode.setUserRole(role);
+                                        espNode.setNewNodeType(nodeType);
+                                        espNode.setMatterNode(nodeJson.optBoolean(AppConstants.KEY_IS_MATTER));
+
+                                        // Node metadata
+                                        JSONObject metadataJson = nodeJson.optJSONObject(AppConstants.KEY_METADATA);
+                                        if (metadataJson != null) {
+                                            NodeMetadata metadata = new NodeMetadata();
+                                            metadata.setControllerNodeId(metadataJson.optString(AppConstants.KEY_IS_MATTER));
+                                            metadata.setDeviceName(metadataJson.optString(AppConstants.KEY_DEVICENAME));
+                                            metadata.setGroupId(metadataJson.optString(AppConstants.KEY_GROUP_ID));
+                                            metadata.setRainMaker(metadataJson.optBoolean(AppConstants.KEY_IS_RAINMAKER));
+                                            metadata.setServersData(metadataJson.optString(AppConstants.KEY_SERVERS_DATA));
+                                            espNode.setNodeMetadata(metadata);
+                                        }
+
+                                        if (!TextUtils.isEmpty(nodeType) &&
+                                                (nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)
+                                                        || nodeType.equals(AppConstants.NODE_TYPE_RM_MATTER))) {
+
+                                            ArrayList<Device> devices = espNode.getDevices();
+                                            if (devices == null || devices.size() == 0) {
+                                                Device device = new Device(nodeId);
+                                                devices = new ArrayList<>();
+                                                devices.add(device);
+                                                espNode.setDevices(devices);
+                                            }
+                                            Device device = devices.get(0);
+
+                                            if (metadataJson != null) {
+                                                NodeMetadata metadata = espNode.getNodeMetadata();
+                                                String deviceName = metadataJson.optString(AppConstants.KEY_DEVICENAME);
+                                                device.setDeviceName(deviceName);
+                                                device.setDeviceType(String.valueOf(metadataJson.optDouble(AppConstants.KEY_DEVICETYPE)));
+                                                metadata.setDeviceType(String.valueOf(metadataJson.optDouble(AppConstants.KEY_DEVICETYPE)));
+                                                metadata.setProductId(String.valueOf(metadataJson.optString(AppConstants.KEY_PRODUCT_ID)));
+                                                metadata.setVendorId(String.valueOf(metadataJson.optString(AppConstants.KEY_VENDOR_ID)));
+                                                espNode.setNodeMetadata(metadata);
+                                            }
+
+                                            espApp.nodeMap.put(nodeId, espNode);
+                                            Log.d(TAG, "Matter supported node added in Node Map : " + nodeId);
+                                        }
 
                                         // Node Config
                                         JSONObject configJson = nodeJson.optJSONObject(AppConstants.KEY_CONFIG);
@@ -852,7 +903,6 @@ public class ApiManager {
                                         if (paramsJson != null) {
 
                                             espNode.setParamData(paramsJson.toString());
-                                            espDatabase.getNodeDao().insertOrUpdate(espNode);
 
                                             ArrayList<Device> devices = espNode.getDevices();
                                             ArrayList<Service> services = espNode.getServices();
@@ -1269,6 +1319,7 @@ public class ApiManager {
                                                 Log.e(TAG, "Connectivity object is null");
                                             }
                                         }
+                                        espDatabase.getNodeDao().insertOrUpdate(espNode);
                                     }
                                 }
                             }
@@ -1291,6 +1342,8 @@ public class ApiManager {
                                     String key = entry.getKey();
 
                                     if (!nodeIds.contains(key)) {
+                                        EspNode node = entry.getValue();
+                                        espDatabase.getNodeDao().delete(node);
                                         itr.remove();
                                     }
                                 }
@@ -1569,6 +1622,42 @@ public class ApiManager {
             }
         });
     }
+
+    public Bundle updateNodeMetadata(String nodeId, JsonObject body) {
+
+        Log.d(TAG, "Update Node Metadata for id : " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES;
+        Bundle data = new Bundle();
+
+        try {
+            Response<ResponseBody> response = apiInterface.updateNodeMetadata(url, accessToken, nodeId, body).execute();
+            Log.d(TAG, "Update Node Metadata, Response code : " + response.code());
+
+            try {
+                if (response.isSuccessful()) {
+
+                    if (response.body() != null) {
+
+                        String jsonResponse = response.body().string();
+                        Log.d(TAG, "onResponse Success : " + jsonResponse);
+                        data.putString(AppConstants.KEY_RESPONSE, jsonResponse);
+                    } else {
+                        Log.e(TAG, "Failed to Update Node Metadata. Response received : null");
+                    }
+                } else {
+                    String jsonErrResponse = response.errorBody().string();
+                    Log.e(TAG, "Failed to Update Node Metadata.");
+                    Log.e(TAG, "onResponse, Error : " + jsonErrResponse);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return data;
+    }
+
 
     public void getNodeStatus(final String nodeId, final ApiResponseListener listener) {
 
@@ -2422,8 +2511,26 @@ public class ApiManager {
                     if (response.isSuccessful()) {
 
                         String jsonResponse = response.body().string();
-                        listener.onSuccess(null);
+                        JSONObject groupJsonObject = new JSONObject(jsonResponse);
+                        String groupId = groupJsonObject.optString(AppConstants.KEY_GROUP_ID);
 
+                        getUserGroupsFromCloud("", groupId, true, new ApiResponseListener() {
+
+                            @Override
+                            public void onSuccess(@androidx.annotation.Nullable Bundle data) {
+                                listener.onSuccess(null);
+                            }
+
+                            @Override
+                            public void onResponseFailure(@NonNull Exception exception) {
+                                listener.onResponseFailure(exception);
+                            }
+
+                            @Override
+                            public void onNetworkFailure(@NonNull Exception exception) {
+                                listener.onNetworkFailure(exception);
+                            }
+                        });
                     } else {
                         String jsonErrResponse = response.errorBody().string();
                         processError(jsonErrResponse, listener, "Failed to create group");
@@ -2520,15 +2627,17 @@ public class ApiManager {
     public void getUserGroups(final String groupId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get user groups...");
-        getUserGroupsFromCloud("", groupId, listener);
+        getUserGroupsFromCloud("", groupId, false, listener);
     }
 
-    private void getUserGroupsFromCloud(final String startId, final String groupId, final ApiResponseListener listener) {
+    private void getUserGroupsFromCloud(final String startId, final String groupId,
+                                        boolean isFabricDetails, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get user groups from cloud with start id : " + startId);
         String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP;
 
-        apiInterface.getUserGroups(url, accessToken, startId, groupId, true).enqueue(new Callback<ResponseBody>() {
+        apiInterface.getUserGroups(url, accessToken, startId, groupId,
+                isFabricDetails, true).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2559,6 +2668,9 @@ public class ApiManager {
                                     // Node ID
                                     String gId = groupJson.optString(AppConstants.KEY_GROUP_ID);
                                     String groupName = groupJson.optString(AppConstants.KEY_GROUP_NAME);
+                                    String fabricId = groupJson.optString(AppConstants.KEY_FABRIC_ID);
+                                    boolean isMatter = groupJson.optBoolean(AppConstants.KEY_IS_MATTER);
+                                    boolean isMutuallyExclusive = groupJson.optBoolean(AppConstants.KEY_MUTUALLY_EXCLUSIVE);
                                     JSONArray nodesArray = groupJson.optJSONArray(AppConstants.KEY_NODES);
                                     ArrayList<String> nodesOfGroup = new ArrayList<>();
 
@@ -2570,7 +2682,26 @@ public class ApiManager {
 
                                     Group group = new Group(groupName);
                                     group.setGroupId(gId);
+                                    group.setFabricId(fabricId);
+                                    group.setMatter(isMatter);
+                                    group.setMutuallyExclusive(isMutuallyExclusive);
                                     group.setNodeList(nodesOfGroup);
+
+                                    if (groupJson.has(AppConstants.KEY_FABRIC_DETAILS)) {
+                                        JSONObject fabricDetailsJson = groupJson.optJSONObject(AppConstants.KEY_FABRIC_DETAILS);
+
+                                        if (fabricDetailsJson != null) {
+                                            FabricDetails fabricDetails = new FabricDetails(fabricId);
+                                            fabricDetails.setRootCa(fabricDetailsJson.optString(AppConstants.KEY_ROOT_CA));
+                                            fabricDetails.setGroupCatIdAdmin(fabricDetailsJson.optString(AppConstants.KEY_GROUP_CAT_ID_ADMIN));
+                                            fabricDetails.setGroupCatIdOperate(fabricDetailsJson.optString(AppConstants.KEY_GROUP_CAT_ID_OPERATE));
+                                            fabricDetails.setMatterUserId(fabricDetailsJson.optString(AppConstants.KEY_MATTER_USER_ID));
+                                            fabricDetails.setUserCatId(fabricDetailsJson.optString(AppConstants.KEY_USER_CAT_ID));
+                                            fabricDetails.setIpk(fabricDetailsJson.optString(AppConstants.KEY_IPK));
+                                            group.setFabricDetails(fabricDetails);
+                                        }
+                                    }
+
                                     espApp.groupMap.put(gId, group);
                                     espDatabase.getGroupDao().insertOrUpdate(group);
                                 }
@@ -2578,7 +2709,7 @@ public class ApiManager {
                         }
 
                         if (!TextUtils.isEmpty(nextId)) {
-                            getUserGroupsFromCloud(nextId, groupId, listener);
+                            getUserGroupsFromCloud(nextId, groupId, isFabricDetails, listener);
                         } else {
                             listener.onSuccess(null);
                         }
@@ -2598,6 +2729,295 @@ public class ApiManager {
                 listener.onNetworkFailure(new RuntimeException("Failed to get user groups"));
             }
         });
+    }
+
+    @SuppressLint("CheckResult")
+    public void getMatterNodeIds(final HashMap<String, Group> map,
+                                 final ApiResponseListener listener) {
+
+        Log.d(TAG, "Getting Matter node Ids...");
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP;
+        List<Observable<ApiResponse>> requests = new ArrayList<>();
+        final ArrayList<ApiResponse> responses = new ArrayList<>();
+
+        for (Map.Entry<String, Group> entry : map.entrySet()) {
+
+            final String groupId = entry.getKey();
+
+            requests.add(
+                    apiInterface.getAllFabricDetails(url, accessToken,
+                                    groupId, true, true, true, true)
+
+                            .map(new Function<ResponseBody, ApiResponse>() {
+
+                                @Override
+                                public ApiResponse apply(ResponseBody responseBody) throws Exception {
+
+                                    ApiResponse apiResponse = new ApiResponse();
+                                    apiResponse.responseBody = responseBody;
+                                    apiResponse.isSuccessful = true;
+                                    apiResponse.nodeId = groupId;
+                                    setFabricGroupDetails(responseBody.string());
+                                    return apiResponse;
+                                }
+                            })
+                            .onErrorReturn(new Function<Throwable, ApiResponse>() {
+
+                                @Override
+                                public ApiResponse apply(Throwable throwable) throws Exception {
+
+                                    ApiResponse apiResponse = new ApiResponse();
+                                    apiResponse.isSuccessful = false;
+                                    apiResponse.throwable = throwable;
+                                    apiResponse.nodeId = groupId;
+                                    return apiResponse;
+                                }
+                            }));
+        }
+
+        Observable.merge(requests)
+                .take(requests.size())
+                .doFinally(new io.reactivex.functions.Action() {
+
+                    @Override
+                    public void run() throws Exception {
+
+                        Log.d(TAG, "Get matter node id requests completed.");
+                        listener.onSuccess(null);
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .subscribe(new Consumer<ApiResponse>() {
+
+                    @Override
+                    public void accept(ApiResponse apiResponse) throws Exception {
+
+                        Log.d(TAG, "Response : Node id " + apiResponse.nodeId + ", isSuccessful : " + apiResponse.isSuccessful);
+                        responses.add(apiResponse);
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        Log.e(TAG, "Throwable: " + throwable);
+                    }
+                });
+    }
+
+    private void setFabricGroupDetails(String jsonResponse) {
+        try {
+            JSONObject jsonObject = new JSONObject(jsonResponse);
+            JSONArray groupJsonArray = jsonObject.optJSONArray(AppConstants.KEY_GROUPS);
+
+            if (groupJsonArray != null) {
+
+                for (int groupIndex = 0; groupIndex < groupJsonArray.length(); groupIndex++) {
+
+                    JSONObject groupJson = groupJsonArray.optJSONObject(groupIndex);
+
+                    if (groupJson != null) {
+
+                        // Node ID
+                        String groupId = groupJson.optString(AppConstants.KEY_GROUP_ID);
+                        String fabricId = groupJson.optString(AppConstants.KEY_FABRIC_ID);
+                        Group fabricGroup = espApp.groupMap.get(groupId);
+
+                        if (fabricGroup != null) {
+                            fabricGroup.setGroupName(groupJson.optString(AppConstants.KEY_GROUP_NAME));
+                            fabricGroup.setFabricId(fabricId);
+                            fabricGroup.setMatter(groupJson.optBoolean(AppConstants.KEY_IS_MATTER));
+                            fabricGroup.setMutuallyExclusive(groupJson.optBoolean(AppConstants.KEY_MUTUALLY_EXCLUSIVE));
+
+                            JSONArray nodeDetailsArray = groupJson.optJSONArray(AppConstants.KEY_NODE_DETAILS);
+                            HashMap<String, String> nodeDetails = new HashMap<>();
+
+                            if (nodeDetailsArray != null && nodeDetailsArray.length() > 0) {
+                                for (int nodeIndex = 0; nodeIndex < nodeDetailsArray.length(); nodeIndex++) {
+                                    JSONObject nodeDetailJson = nodeDetailsArray.optJSONObject(nodeIndex);
+                                    String nodeId = nodeDetailJson.optString(AppConstants.KEY_NODE_ID);
+                                    String matterNodeId = nodeDetailJson.optString(AppConstants.KEY_MATTER_NODE_ID);
+
+                                    if (!TextUtils.isEmpty(nodeId) && !TextUtils.isEmpty(matterNodeId)) {
+                                        nodeDetails.put(nodeId, matterNodeId);
+                                        espApp.matterRmNodeIdMap.put(nodeId, matterNodeId);
+                                        Log.d(TAG, "Added entry in RM - Matter map : Node id : " + nodeId + " and Matter node id : " + matterNodeId);
+                                    }
+                                }
+                                fabricGroup.setNodeDetails(nodeDetails);
+                            }
+
+                            JSONObject fabricDetailsJson = groupJson.optJSONObject(AppConstants.KEY_FABRIC_DETAILS);
+
+                            if (fabricDetailsJson != null) {
+                                FabricDetails fabricDetails = new FabricDetails(fabricId);
+                                fabricDetails.setRootCa(fabricDetailsJson.optString(AppConstants.KEY_ROOT_CA));
+                                fabricDetails.setGroupCatIdAdmin(fabricDetailsJson.optString(AppConstants.KEY_GROUP_CAT_ID_ADMIN));
+                                fabricDetails.setGroupCatIdOperate(fabricDetailsJson.optString(AppConstants.KEY_GROUP_CAT_ID_OPERATE));
+                                fabricDetails.setMatterUserId(fabricDetailsJson.optString(AppConstants.KEY_MATTER_USER_ID));
+                                fabricDetails.setUserCatId(fabricDetailsJson.optString(AppConstants.KEY_USER_CAT_ID));
+                                fabricDetails.setIpk(fabricDetailsJson.optString(AppConstants.KEY_IPK));
+                                fabricGroup.setFabricDetails(fabricDetails);
+                            }
+                            espApp.groupMap.put(groupId, fabricGroup);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public @Nullable String confirmMatterNode(@NotNull JsonObject body, String groupId) {
+        Log.d(TAG, "Confirming matter node ===========================");
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP;
+        String result = "";
+        try {
+            Response<ResponseBody> response = apiInterface.confirmPureMatterNode(url, accessToken, groupId, body).execute();
+
+            Log.d(TAG, "Confirming matter node, Response Code : " + response.code());
+
+            if (response.isSuccessful()) {
+                String jsonResponse = response.body().string();
+                Log.d(TAG, "Confirming matter node, Response : " + jsonResponse);
+
+                JSONObject jsonObject = new JSONObject(jsonResponse);
+                result = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+            } else {
+                Log.e(TAG, "Failed to confirm matter node");
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+        return result;
+    }
+
+    public void getAllUserNOCs(final HashMap<String, JsonObject> map,
+                               final ApiResponseListener listener) {
+
+        Log.d(TAG, "Getting all user NOCs...");
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP;
+        List<Observable<ApiResponse>> requests = new ArrayList<>();
+        final ArrayList<ApiResponse> responses = new ArrayList<>();
+
+        for (Map.Entry<String, JsonObject> entry : map.entrySet()) {
+
+            final String groupId = entry.getKey();
+            JsonObject jsonBody = entry.getValue();
+
+            requests.add(
+                    apiInterface.getAllUserNOCs(url, accessToken, jsonBody)
+                            .map(new Function<ResponseBody, ApiResponse>() {
+
+                                @Override
+                                public ApiResponse apply(ResponseBody responseBody) throws Exception {
+
+                                    ApiResponse apiResponse = new ApiResponse();
+                                    apiResponse.responseBody = responseBody;
+                                    apiResponse.isSuccessful = true;
+                                    apiResponse.nodeId = groupId;
+
+                                    String jsonResponse = responseBody.string();
+                                    Log.d(TAG, "Get user NOC response : " + jsonResponse);
+                                    JSONObject jsonObject = new JSONObject(jsonResponse);
+                                    JSONArray certs = jsonObject.optJSONArray("certificates");
+
+                                    if (certs != null && certs.length() > 0) {
+                                        JSONObject nodeJson = certs.optJSONObject(0);
+                                        String userNoc = nodeJson.optString(AppConstants.KEY_USER_NOC);
+                                        String matterUserId = nodeJson.optString(AppConstants.KEY_MATTER_USER_ID);
+                                        Group g = espApp.groupMap.get(groupId);
+                                        g.getFabricDetails().setMatterUserId(matterUserId);
+                                        g.getFabricDetails().setUserNoc(userNoc);
+                                        espApp.groupMap.put(groupId, g);
+                                    }
+                                    return apiResponse;
+                                }
+                            })
+                            .onErrorReturn(new Function<Throwable, ApiResponse>() {
+
+                                @Override
+                                public ApiResponse apply(Throwable throwable) throws Exception {
+
+                                    ApiResponse apiResponse = new ApiResponse();
+                                    apiResponse.isSuccessful = false;
+                                    apiResponse.throwable = throwable;
+                                    apiResponse.nodeId = groupId;
+                                    return apiResponse;
+                                }
+                            }));
+        }
+
+        Observable.merge(requests)
+                .take(requests.size())
+                .doFinally(new io.reactivex.functions.Action() {
+
+                    @Override
+                    public void run() throws Exception {
+
+                        Log.d(TAG, "Getting all user NOCs requests completed.");
+                        listener.onSuccess(null);
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .subscribe(new Consumer<ApiResponse>() {
+
+                    @Override
+                    public void accept(ApiResponse apiResponse) throws Exception {
+
+                        Log.d(TAG, "Response : Node id " + apiResponse.nodeId + ", isSuccessful : " + apiResponse.isSuccessful);
+                        responses.add(apiResponse);
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        Log.e(TAG, "Throwable: " + throwable);
+                    }
+                });
+    }
+
+    public Bundle getNodeNoc(JsonObject requestBody) {
+
+        Log.d(TAG, "Get node NOC ..........");
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP;
+        Bundle data = new Bundle();
+
+        Response<ResponseBody> response = null;
+        try {
+            response = apiInterface.getNodeNoc(url, accessToken, requestBody).execute();
+            Log.d(TAG, "Get node NOC, Response Code : " + response.code());
+
+            if (response.isSuccessful()) {
+
+                String jsonResponse = response.body().string();
+                Log.d(TAG, "Get node NOC, Response : " + jsonResponse);
+
+                try {
+                    JSONObject jsonObject = new JSONObject(jsonResponse);
+                    JSONArray certs = jsonObject.optJSONArray("certificates");
+                    String requestId = jsonObject.optString(AppConstants.KEY_REQ_ID);
+
+                    JSONObject nodeJson = certs.optJSONObject(0);
+                    String noc = nodeJson.optString("node_noc");
+                    String matterNodeId = nodeJson.optString(AppConstants.KEY_MATTER_NODE_ID);
+                    data.putString("node_noc", noc);
+                    data.putString(AppConstants.KEY_REQ_ID, requestId);
+                    data.putString(AppConstants.KEY_MATTER_NODE_ID, matterNodeId);
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                Log.e(TAG, "Failed to get node NOC");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return data;
     }
 
     public void getSharingRequests(boolean isPrimaryUser, final ApiResponseListener listener) {
@@ -3683,6 +4103,66 @@ public class ApiManager {
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
                 listener.onNetworkFailure(new RuntimeException("Failed to push OTA update"));
+            }
+        });
+    }
+
+    // Matter APIs
+    public void convertGroupToFabric(String groupId, ApiResponseListener listener) {
+
+        Log.d(TAG, "Convert group to fabric for group : " + groupId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP;
+
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_IS_MATTER, true);
+
+        apiInterface.convertGroupToFabric(url, accessToken, groupId, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Convert group to fabric, Response code  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.d(TAG, "Response : " + jsonResponse);
+                        JSONObject fabricDetailsJson = new JSONObject(jsonResponse);
+                        Group fabricGroup = espApp.groupMap.get(groupId);
+                        Bundle data = new Bundle();
+
+                        if (fabricDetailsJson != null) {
+                            String fabricId = fabricDetailsJson.optString(AppConstants.KEY_FABRIC_ID);
+                            FabricDetails fabricDetails = new FabricDetails(fabricId);
+                            fabricDetails.setRootCa(fabricDetailsJson.optString(AppConstants.KEY_ROOT_CA));
+                            fabricDetails.setGroupCatIdAdmin(fabricDetailsJson.optString(AppConstants.KEY_GROUP_CAT_ID_ADMIN));
+                            fabricDetails.setGroupCatIdOperate(fabricDetailsJson.optString(AppConstants.KEY_GROUP_CAT_ID_OPERATE));
+                            fabricDetails.setMatterUserId(fabricDetailsJson.optString(AppConstants.KEY_MATTER_USER_ID));
+                            fabricDetails.setUserCatId(fabricDetailsJson.optString(AppConstants.KEY_USER_CAT_ID));
+                            fabricDetails.setIpk(fabricDetailsJson.optString(AppConstants.KEY_IPK));
+                            fabricGroup.setFabricDetails(fabricDetails);
+
+                            data.putString(AppConstants.KEY_FABRIC_ID, fabricId);
+                            data.putString(AppConstants.KEY_ROOT_CA, fabricDetails.getRootCa());
+                            data.putString(AppConstants.KEY_IPK, fabricDetails.getIpk());
+                        }
+                        espApp.groupMap.put(groupId, fabricGroup);
+                        listener.onSuccess(data);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to convert group to fabric");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to convert group to fabric"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to convert group to fabric"));
             }
         });
     }

@@ -5,6 +5,9 @@ plugins {
     id 'com.google.firebase.crashlytics'
     id 'kotlin-android'
     id 'org.jetbrains.kotlin.android'
+    id "dagger.hilt.android.plugin"
+    id "org.jetbrains.kotlin.kapt"
+    id "com.google.dagger.hilt.android"
 }
 
 def getGitHash = { ->
@@ -39,6 +42,7 @@ def defaultPrivacyUrl = "https://rainmaker.espressif.com/docs/privacy-policy.htm
 def defaultTermsOfUseUrl = "https://rainmaker.espressif.com/docs/terms-of-use.html"
 
 def defaultUserPool = "2"
+def matterBuild = false
 
 def localProperties = new Properties()
 localProperties.load(new FileInputStream(rootProject.file("local.properties")))
@@ -49,10 +53,10 @@ android {
 
     defaultConfig {
         applicationId "com.espressif.rainmaker"
-        minSdkVersion 23
+        minSdkVersion 27
         targetSdkVersion 33
-        versionCode 96
-        versionName "2.11.4 - ${getGitHash()}"
+        versionCode 102
+        versionName "3.0.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -100,6 +104,7 @@ android {
         buildConfigField "boolean", "isNodeSharingSupported", localProperties.getProperty("isNodeSharingSupported", "true")
         buildConfigField "boolean", "isAutomationSupported", localProperties.getProperty("isAutomationSupported", "true")
         buildConfigField "boolean", "isOtaSupported", localProperties.getProperty("isOtaSupported", "false")
+        buildConfigField "boolean", "isMatterSupported", localProperties.getProperty("isMatterSupported", "false")
 
         //---Enable Continuous Updates---//
         buildConfigField "boolean", "isContinuousUpdateEnable", localProperties.getProperty("isContinuousUpdateEnable", "true")
@@ -163,6 +168,14 @@ android {
         }
     }
 
+    sourceSets {
+        main {
+            if (matterBuild) {
+                jniLibs.srcDirs = ['third_party/connectedhomeip/libs/jniLibs']
+            }
+        }
+    }
+
     namespace 'com.espressif.rainmaker'
 }
 
@@ -182,6 +195,13 @@ protobuf {
 }
 
 dependencies {
+
+    // Native libs
+    implementation fileTree(dir: "third_party/connectedhomeip/libs", include: ["*.jar", "*.so"])
+
+    // Connected Home
+    implementation("com.google.android.gms:play-services-base:18.2.0")
+    implementation("com.google.android.gms:play-services-home:16.0.0")
 
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'androidx.appcompat:appcompat:1.3.1'
@@ -213,11 +233,12 @@ dependencies {
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
     implementation 'info.hoang8f:android-segmented:1.0.6'
     implementation 'pl.droidsonroids.gif:android-gif-drawable:1.2.25'
+    implementation 'androidx.core:core-ktx:1.8.0'
 
     // Room dependencies
-    def room_version = "2.4.3"
+    def room_version = "2.5.2"
     implementation "androidx.room:room-runtime:$room_version"
-    annotationProcessor "androidx.room:room-compiler:$room_version"
+    kapt "androidx.room:room-compiler:$room_version"
 
     def work_version = "2.7.1"
     implementation "androidx.work:work-runtime:$work_version"
@@ -232,4 +253,20 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test:runner:1.5.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-rx2:1.5.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.5.2'
+    implementation 'commons-codec:commons-codec:1.16.0'
+
+    // Hilt
+    // https://dagger.dev/hilt/gradle-setup
+    implementation 'com.google.dagger:hilt-android:2.44.2'
+    implementation 'com.google.ar:core:1.35.0'
+    kapt 'com.google.dagger:hilt-compiler:2.44.2'
+
+    //crypto
+    implementation "org.bouncycastle:bcpkix-jdk15to18:1.72"
+    implementation 'org.bouncycastle:bcprov-jdk15to18:1.72'
 }

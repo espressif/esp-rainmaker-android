@@ -26,6 +26,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.espressif.AppConstants.Companion.UpdateEventType;
 import com.espressif.cloudapi.ApiManager;
@@ -34,6 +35,11 @@ import com.espressif.db.EspDatabase;
 import com.espressif.local_control.EspLocalDevice;
 import com.espressif.local_control.LocalControlApiManager;
 import com.espressif.local_control.mDNSManager;
+import com.espressif.matter.ChipClient;
+import com.espressif.matter.ClustersHelper;
+import com.espressif.matter.DeviceMatterInfo;
+import com.espressif.matter.LevelControlClusterHelper;
+import com.espressif.matter.MatterFabricUtils;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
@@ -53,16 +59,42 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.greenrobot.eventbus.EventBus;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
+import java.math.BigInteger;
+import java.security.KeyPair;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
+import javax.security.auth.x500.X500Principal;
+
+import chip.devicecontroller.ChipClusters;
+import dagger.hilt.android.HiltAndroidApp;
+
+@HiltAndroidApp
 public class EspApplication extends Application {
 
     private static final String TAG = EspApplication.class.getSimpleName();
@@ -77,12 +109,20 @@ public class EspApplication extends Application {
     public HashMap<String, EspLocalDevice> localDeviceMap;
     public HashMap<String, Group> groupMap;
     public HashMap<String, Automation> automations;
+
+    public HashMap<String, String> matterRmNodeIdMap;
+    public HashMap<String, ChipClient> chipClientMap;
+    public HashMap<String, List<DeviceMatterInfo>> matterDeviceInfoMap;
+    public ArrayList<String> availableMatterDevices;
     public EspOtaUpdate otaUpdateInfo;
 
     private SharedPreferences appPreferences;
     private ApiManager apiManager;
     private mDNSManager mdnsManager;
     private String deviceToken;
+    private KeyStore keyStore = null;
+
+    public String mGroupId, mFabricId, mRootCa, mIpk;
 
     public enum AppState {
         NO_USER_LOGIN,
@@ -103,6 +143,10 @@ public class EspApplication extends Application {
         localDeviceMap = new HashMap<>();
         groupMap = new HashMap<>();
         automations = new HashMap<>();
+        matterRmNodeIdMap = new HashMap<>();
+        chipClientMap = new HashMap<>();
+        matterDeviceInfoMap = new HashMap<>();
+        availableMatterDevices = new ArrayList<>();
 
         appPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
         BASE_URL = appPreferences.getString(AppConstants.KEY_BASE_URL, BuildConfig.BASE_URL);
@@ -162,6 +206,10 @@ public class EspApplication extends Application {
                 appState = newState;
                 EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_STATE_CHANGE_UPDATE));
                 startLocalDeviceDiscovery();
+                for (Map.Entry<String, String> entry : matterRmNodeIdMap.entrySet()) {
+                    String matterNodeId = entry.getValue();
+                    initChipController(matterNodeId);
+                }
                 break;
         }
     }
@@ -174,26 +222,38 @@ public class EspApplication extends Application {
             public void onSuccess(Bundle data) {
 
                 if (BuildConfig.isNodeGroupingSupported) {
+                    getGroups();
+                } else {
+                    if (BuildConfig.isMatterSupported) {
+                        getFabricDetails();
+                    } else {
+                        changeAppState(AppState.GET_DATA_SUCCESS, null);
+                    }
+                }
+            }
 
-                    apiManager.getUserGroups(null, new ApiResponseListener() {
+            @Override
+            public void onResponseFailure(Exception exception) {
+                Bundle data = new Bundle();
+                data.putString(AppConstants.KEY_ERROR_MSG, exception.getMessage());
+                changeAppState(EspApplication.AppState.GET_DATA_FAILED, data);
+            }
 
-                        @Override
-                        public void onSuccess(Bundle data) {
-                            changeAppState(AppState.GET_DATA_SUCCESS, null);
-                        }
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                changeAppState(AppState.NO_INTERNET, null);
+            }
+        });
+    }
 
-                        @Override
-                        public void onResponseFailure(Exception exception) {
-                            Bundle data = new Bundle();
-                            data.putString(AppConstants.KEY_ERROR_MSG, exception.getMessage());
-                            changeAppState(EspApplication.AppState.GET_DATA_FAILED, data);
-                        }
+    private void getGroups() {
 
-                        @Override
-                        public void onNetworkFailure(Exception exception) {
-                            changeAppState(AppState.NO_INTERNET, null);
-                        }
-                    });
+        apiManager.getUserGroups(null, new ApiResponseListener() {
+
+            @Override
+            public void onSuccess(Bundle data) {
+                if (BuildConfig.isMatterSupported) {
+                    getFabricDetails();
                 } else {
                     changeAppState(AppState.GET_DATA_SUCCESS, null);
                 }
@@ -211,6 +271,598 @@ public class EspApplication extends Application {
                 changeAppState(AppState.NO_INTERNET, null);
             }
         });
+    }
+
+    private void getFabricDetails() {
+
+        HashMap<String, Group> fabricMap = new HashMap<>();
+        for (Map.Entry<String, Group> entry : groupMap.entrySet()) {
+
+            if (entry.getValue().isMatter()) {
+                fabricMap.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        apiManager.getMatterNodeIds(fabricMap, new ApiResponseListener() {
+
+            @Override
+            public void onSuccess(Bundle data) {
+                getUserNOCs();
+            }
+
+            @Override
+            public void onResponseFailure(Exception exception) {
+                getUserNOCs();
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                getUserNOCs();
+            }
+        });
+    }
+
+    public void createHomeFabric(ApiResponseListener listener) {
+
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_GROUP_NAME, "Home");
+        body.addProperty(AppConstants.KEY_IS_MATTER, true);
+
+        apiManager.createGroup(body, new ApiResponseListener() {
+            @Override
+            public void onSuccess(@Nullable Bundle data) {
+                getUserNOCForHomeGroup(listener);
+            }
+
+            @Override
+            public void onResponseFailure(@NonNull Exception exception) {
+                listener.onResponseFailure(exception);
+            }
+
+            @Override
+            public void onNetworkFailure(@NonNull Exception exception) {
+                listener.onNetworkFailure(exception);
+            }
+        });
+    }
+
+    private void getUserNOCForHomeGroup(ApiResponseListener listener) {
+
+        try {
+            keyStore = KeyStore.getInstance("AndroidKeyStore");
+            keyStore.load(null);
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException |
+                 IOException e) {
+            e.printStackTrace();
+        }
+
+        HashMap<String, Group> fabricMap = new HashMap<>();
+        for (Map.Entry<String, Group> entry : groupMap.entrySet()) {
+
+            if (entry.getValue().isMatter()) {
+                fabricMap.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        HashMap<String, JsonObject> requestMap = new HashMap<>();
+        HashMap<String, KeyPair> keyPairHashMap = new HashMap<>();
+        for (Map.Entry<String, Group> entry : fabricMap.entrySet()) {
+
+            String groupId = entry.getKey();
+            String fabricId = entry.getValue().getFabricId();
+
+            JsonObject body = new JsonObject();
+            body.addProperty(AppConstants.KEY_OPERATION, AppConstants.KEY_OPERATION_ADD);
+            body.addProperty(AppConstants.KEY_CSR_TYPE, "user");
+
+            JsonObject csrJson = new JsonObject();
+            csrJson.addProperty(AppConstants.KEY_GROUP_ID, groupId);
+
+            KeyPair keyPair = MatterFabricUtils.Companion.generateKeypair(fabricId);
+            PKCS10CertificationRequestBuilder p10Builder =
+                    new JcaPKCS10CertificationRequestBuilder(new X500Principal(""), keyPair.getPublic());
+            JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withECDSA");
+            ContentSigner signer = null;
+            String csrContent = null;
+
+            try {
+                signer = csBuilder.build(keyPair.getPrivate());
+            } catch (OperatorCreationException e) {
+                throw new RuntimeException(e);
+            }
+
+            PKCS10CertificationRequest csr = p10Builder.build(signer);
+
+            try {
+                csrContent = Base64.getEncoder().encodeToString(csr.getEncoded());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            String finalCsr = AppConstants.CERT_BEGIN + "\n" + csrContent + "\n" + AppConstants.CERT_END;
+            csrJson.addProperty(AppConstants.KEY_CSR, finalCsr);
+
+            keyPairHashMap.put(fabricId, keyPair);
+
+            JsonArray csrArr = new JsonArray();
+            csrArr.add(csrJson);
+            body.add(AppConstants.KEY_CSR_REQUESTS, csrArr);
+            requestMap.put(groupId, body);
+        }
+
+        apiManager.getAllUserNOCs(requestMap, new ApiResponseListener() {
+            @Override
+            public void onSuccess(Bundle data) {
+
+                for (Map.Entry<String, Group> entry : groupMap.entrySet()) {
+                    if (entry.getValue().isMatter()) {
+                        Group g = entry.getValue();
+                        if (g.getFabricDetails() != null) {
+
+                            String userNoc = g.getFabricDetails().getUserNoc();
+                            String rootCa = g.getFabricDetails().getRootCa();
+                            String fabricId = g.getFabricId();
+                            Certificate[] certificates = new Certificate[2];
+                            certificates[0] = MatterFabricUtils.Companion.decode(userNoc);
+                            certificates[1] = MatterFabricUtils.Companion.decode(rootCa);
+
+                            try {
+                                keyStore.setKeyEntry(fabricId, keyPairHashMap.get(fabricId).getPrivate(), null, certificates);
+                            } catch (KeyStoreException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    }
+                }
+                initChipControllerForHomeGroup();
+                listener.onSuccess(null);
+            }
+
+            @Override
+            public void onResponseFailure(Exception exception) {
+                initChipControllerForHomeGroup();
+                listener.onResponseFailure(exception);
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                initChipControllerForHomeGroup();
+                listener.onNetworkFailure(exception);
+            }
+        });
+    }
+
+    private void getUserNOCs() {
+
+        Log.d(TAG, "Get Use NOCs ...............................");
+
+        try {
+            keyStore = KeyStore.getInstance("AndroidKeyStore");
+            keyStore.load(null);
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException |
+                 IOException e) {
+            e.printStackTrace();
+        }
+
+        HashMap<String, Group> fabricMap = new HashMap<>();
+        for (Map.Entry<String, Group> entry : groupMap.entrySet()) {
+
+            if (entry.getValue().isMatter()) {
+                fabricMap.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        HashMap<String, JsonObject> requestMap = new HashMap<>();
+        HashMap<String, KeyPair> keyPairHashMap = new HashMap<>();
+        for (Map.Entry<String, Group> entry : fabricMap.entrySet()) {
+
+            String groupId = entry.getKey();
+            String fabricId = entry.getValue().getFabricId();
+
+            JsonObject body = new JsonObject();
+            body.addProperty(AppConstants.KEY_OPERATION, AppConstants.KEY_OPERATION_ADD);
+            body.addProperty(AppConstants.KEY_CSR_TYPE, "user");
+
+            JsonObject csrJson = new JsonObject();
+            csrJson.addProperty(AppConstants.KEY_GROUP_ID, groupId);
+
+            // TODO Improvement - avoid every time csr creation if possible
+            KeyPair keyPair = MatterFabricUtils.Companion.generateKeypair(fabricId);
+            PKCS10CertificationRequestBuilder p10Builder =
+                    new JcaPKCS10CertificationRequestBuilder(new X500Principal(""), keyPair.getPublic());
+            JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withECDSA");
+            ContentSigner signer = null;
+            String csrContent = null;
+
+            try {
+                signer = csBuilder.build(keyPair.getPrivate());
+            } catch (OperatorCreationException e) {
+                throw new RuntimeException(e);
+            }
+
+            PKCS10CertificationRequest csr = p10Builder.build(signer);
+
+            try {
+                csrContent = Base64.getEncoder().encodeToString(csr.getEncoded());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            String finalCsr = AppConstants.CERT_BEGIN + "\n" + csrContent + "\n" + AppConstants.CERT_END;
+            csrJson.addProperty(AppConstants.KEY_CSR, finalCsr);
+
+            keyPairHashMap.put(fabricId, keyPair);
+
+            JsonArray csrArr = new JsonArray();
+            csrArr.add(csrJson);
+            body.add(AppConstants.KEY_CSR_REQUESTS, csrArr);
+            requestMap.put(groupId, body);
+        }
+
+        apiManager.getAllUserNOCs(requestMap, new ApiResponseListener() {
+            @Override
+            public void onSuccess(Bundle data) {
+                for (Map.Entry<String, Group> entry : groupMap.entrySet()) {
+                    if (entry.getValue().isMatter()) {
+                        Group g = entry.getValue();
+                        if (g.getFabricDetails() != null) {
+
+                            String userNoc = g.getFabricDetails().getUserNoc();
+                            String rootCa = g.getFabricDetails().getRootCa();
+
+                            String fabricId = g.getFabricId();
+                            Certificate[] certificates = new Certificate[2];
+                            certificates[0] = MatterFabricUtils.Companion.decode(userNoc);
+                            certificates[1] = MatterFabricUtils.Companion.decode(rootCa);
+
+                            try {
+                                keyStore.setKeyEntry(fabricId, keyPairHashMap.get(fabricId).getPrivate(), null, certificates);
+                            } catch (KeyStoreException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    }
+                }
+                changeAppState(AppState.GET_DATA_SUCCESS, null);
+            }
+
+            @Override
+            public void onResponseFailure(Exception exception) {
+                changeAppState(AppState.GET_DATA_SUCCESS, null);
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                changeAppState(AppState.GET_DATA_SUCCESS, null);
+            }
+        });
+    }
+
+    private void initChipController(String matterNodeId) {
+        Log.d(TAG, "Init ChipController for matter node id : " + matterNodeId);
+        if (TextUtils.isEmpty(matterNodeId)) {
+            Log.e(TAG, "======= Init ChipController will not be done. Matter node id is not available");
+            return;
+        }
+
+        for (Map.Entry<String, Group> entry : groupMap.entrySet()) {
+
+            if (entry.getValue().isMatter()) {
+                Group g = entry.getValue();
+                HashMap<String, String> nodeDetails = g.getNodeDetails();
+                if (nodeDetails != null) {
+                    for (Map.Entry<String, String> detail : nodeDetails.entrySet()) {
+
+                        String nodeId = detail.getKey();
+                        String mNodeId = detail.getValue();
+                        String fabricId = "";
+                        String ipk = "";
+                        String rootCa = "";
+
+                        if (!matterNodeId.equals(mNodeId)) {
+                            continue;
+                        }
+
+                        Log.d(TAG, "Node detail, node id : " + nodeId + " and matter node id : " + matterNodeId);
+
+                        if (g.getFabricDetails() != null) {
+                            fabricId = g.getFabricDetails().getFabricId();
+                            rootCa = g.getFabricDetails().getRootCa();
+                            ipk = g.getFabricDetails().getIpk();
+
+                            if (!chipClientMap.containsKey(matterNodeId)) {
+                                if (!TextUtils.isEmpty(fabricId) && !TextUtils.isEmpty(rootCa)
+                                        && !TextUtils.isEmpty(ipk) && !TextUtils.isEmpty(matterNodeId) && !TextUtils.isEmpty(matterNodeId)) {
+                                    ChipClient chipClient = new ChipClient(this, g.getGroupId()
+                                            , fabricId, rootCa, ipk);
+                                    chipClientMap.put(matterNodeId, chipClient);
+                                }
+                            }
+                            fetchDeviceMatterInfo(matterNodeId, nodeId);
+
+                            EspNode node = nodeMap.get(nodeId);
+                            if (node != null) {
+                                String nodeType = node.getNewNodeType();
+                                if (!TextUtils.isEmpty(nodeType) && nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
+                                    addParamsForMatterOnlyDevice(nodeId, matterNodeId, node);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void initChipControllerForHomeGroup() {
+
+        Log.d(TAG, "============================= init ChipController for home group");
+
+        for (Map.Entry<String, Group> entry : groupMap.entrySet()) {
+
+            if (entry.getValue().isMatter()) {
+                Group g = entry.getValue();
+                HashMap<String, String> nodeDetails = g.getNodeDetails();
+                if (nodeDetails != null) {
+                    for (Map.Entry<String, String> detail : nodeDetails.entrySet()) {
+
+                        String nodeId = detail.getKey();
+                        String matterNodeId = detail.getValue();
+                        String fabricId = "";
+                        String ipk = "";
+                        String rootCa = "";
+
+                        if (g.getFabricDetails() != null) {
+                            fabricId = g.getFabricDetails().getFabricId();
+                            rootCa = g.getFabricDetails().getRootCa();
+                            ipk = g.getFabricDetails().getIpk();
+
+                            if (TextUtils.isEmpty(matterNodeId)) {
+                                return;
+                            }
+
+                            if (!chipClientMap.containsKey(matterNodeId)) {
+                                if (!TextUtils.isEmpty(fabricId) && !TextUtils.isEmpty(rootCa)
+                                        && !TextUtils.isEmpty(ipk) && !TextUtils.isEmpty(matterNodeId) && !TextUtils.isEmpty(matterNodeId)) {
+                                    ChipClient chipClient = new ChipClient(this, g.getGroupId()
+                                            , fabricId, rootCa, ipk);
+                                    Log.d(TAG, "In it chip controller for matterNodeId id : " + matterNodeId);
+                                    chipClientMap.put(matterNodeId, chipClient);
+                                }
+                            }
+
+                            EspNode node = nodeMap.get(nodeId);
+                            if (node != null) {
+                                String nodeType = node.getNewNodeType();
+                                if (!TextUtils.isEmpty(nodeType) && nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
+                                    addParamsForMatterOnlyDevice(nodeId, matterNodeId, node);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public void fetchDeviceMatterInfo(String matterNodeId, String nodeId) {
+
+        Log.d(TAG, "Fetching matter node info for matter node id : " + matterNodeId);
+        BigInteger id = new BigInteger(matterNodeId, 16);
+        long deviceId = id.longValue();
+        Log.d(TAG, "Device id : " + deviceId);
+        ClustersHelper clustersHelper = new ClustersHelper(chipClientMap.get(matterNodeId));
+        CompletableFuture<List<DeviceMatterInfo>> result = clustersHelper.fetchDeviceMatterInfoAsync(deviceId);
+
+        try {
+            List<DeviceMatterInfo> matterDeviceInfo = result.get();
+            Log.d(TAG, "Matter device information , Result : " + matterDeviceInfo);
+
+            if (matterDeviceInfo != null && matterDeviceInfo.size() > 0) {
+                for (DeviceMatterInfo info : matterDeviceInfo) {
+                    Log.d(TAG, "Endpoint : " + info.getEndpoint());
+                    Log.d(TAG, "Server Clusters : " + info.getServerClusters());
+                    Log.d(TAG, "Client Clusters : " + info.getClientClusters());
+                    Log.d(TAG, "Types : " + info.getTypes());
+                }
+                matterDeviceInfoMap.put(matterNodeId, matterDeviceInfo);
+                nodeMap.get(nodeId).setOnline(true);
+                availableMatterDevices.add(matterNodeId);
+                EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_ONLINE));
+            } else {
+                matterDeviceInfoMap.remove(matterNodeId);
+                availableMatterDevices.remove(matterNodeId);
+                chipClientMap.remove(matterNodeId);
+                if (nodeMap.containsKey(nodeId)) {
+                    nodeMap.get(nodeId).setOnline(false);
+                }
+                EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_OFFLINE));
+            }
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void addParamsForMatterOnlyDevice(String nodeId, String matterNodeId, EspNode node) {
+
+        BigInteger id = new BigInteger(matterNodeId, 16);
+        long deviceId = id.longValue();
+        Log.d(TAG, "Device id : " + deviceId);
+
+        if (matterDeviceInfoMap.containsKey(matterNodeId)) {
+
+            List<DeviceMatterInfo> matterDeviceInfo = matterDeviceInfoMap.get(matterNodeId);
+
+            for (DeviceMatterInfo info : matterDeviceInfo) {
+                Log.d(TAG, "Endpoint : " + info.getEndpoint());
+                Log.d(TAG, "Server Clusters : " + info.getServerClusters());
+                Log.d(TAG, "Client Clusters : " + info.getClientClusters());
+                Log.d(TAG, "Types : " + info.getTypes());
+
+                if (info.getEndpoint() == AppConstants.ENDPOINT_1) {
+                    String deviceType = "";
+                    List<Object> serverClusters = info.getServerClusters();
+                    List<Object> clientClusters = info.getClientClusters();
+                    ArrayList<Device> devices = node.getDevices();
+
+                    if (devices == null || devices.size() == 0) {
+                        Device device = new Device(nodeId);
+                        devices = new ArrayList<>();
+                        devices.add(device);
+                        node.setDevices(devices);
+                    }
+
+                    ArrayList<String> properties = new ArrayList<>();
+                    properties.add(AppConstants.KEY_PROPERTY_WRITE);
+                    properties.add(AppConstants.KEY_PROPERTY_READ);
+
+                    for (Object cluster : serverClusters) {
+
+                        long clusterId = (long) cluster;
+
+                        if (clusterId == ChipClusters.OnOffCluster.CLUSTER_ID) {
+
+                            Log.d(TAG, "Found On Off Cluster in server clusters");
+                            Device device = devices.get(0);
+                            deviceType = AppConstants.ESP_DEVICE_LIGHT;
+                            device.setDeviceType(deviceType);
+                            ArrayList<Param> params = device.getParams();
+                            if (params == null || params.size() == 0) {
+                                params = new ArrayList<>();
+                            }
+                            boolean isParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_POWER);
+
+                            if (!isParamAvailable) {
+                                // Add on/off param
+                                addToggleParam(params, properties);
+                            }
+                            device.setParams(params);
+
+                        } else if (clusterId == ChipClusters.LevelControlCluster.CLUSTER_ID) {
+
+                            Log.d(TAG, "Found level control Cluster in server clusters");
+                            Device device = devices.get(0);
+                            ArrayList<Param> params = device.getParams();
+                            if (params == null || params.size() == 0) {
+                                params = new ArrayList<>();
+                            }
+                            boolean isParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_BRIGHTNESS);
+                            Param brightnessParam = null;
+                            if (isParamAvailable) {
+                                for (Param p : params) {
+                                    if (p.getParamType().equals(AppConstants.PARAM_TYPE_BRIGHTNESS)) {
+                                        brightnessParam = p;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (!isParamAvailable) {
+                                // Add brightness param
+                                brightnessParam = new Param();
+                                brightnessParam.setDynamicParam(true);
+                                brightnessParam.setDataType("int");
+                                brightnessParam.setUiType(AppConstants.UI_TYPE_SLIDER);
+                                brightnessParam.setParamType(AppConstants.PARAM_TYPE_BRIGHTNESS);
+                                brightnessParam.setName("Brightness");
+                                brightnessParam.setMinBounds(0);
+                                brightnessParam.setMaxBounds(100);
+                                brightnessParam.setProperties(properties);
+                                params.add(brightnessParam);
+                            }
+                            device.setParams(params);
+
+                            LevelControlClusterHelper levelControlCluster = new LevelControlClusterHelper(chipClientMap.get(matterNodeId));
+                            CompletableFuture<Integer> value = levelControlCluster.getCurrentLevelValueAsync(deviceId, AppConstants.ENDPOINT_1);
+                            try {
+                                Log.d(TAG, "Is done : " + value.isDone());
+                                int level = value.get();
+                                Log.d(TAG, "Received Brightness current value : " + level);
+                                brightnessParam.setValue(level);
+                            } catch (ExecutionException e) {
+                                e.printStackTrace();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+
+                        } else if (clusterId == ChipClusters.ColorControlCluster.CLUSTER_ID) {
+
+                            Log.d(TAG, "Found color control Cluster in server clusters");
+                            Device device = devices.get(0);
+                            ArrayList<Param> params = device.getParams();
+                            if (params == null || params.size() == 0) {
+                                params = new ArrayList<>();
+                            }
+                            boolean isSatParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_SATURATION);
+                            boolean isHueParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_HUE);
+
+                            if (!isSatParamAvailable) {
+                                // Add saturation param
+                                Param saturation = new Param();
+                                saturation.setDynamicParam(true);
+                                saturation.setDataType("int");
+                                saturation.setUiType(AppConstants.UI_TYPE_SLIDER);
+                                saturation.setParamType(AppConstants.PARAM_TYPE_SATURATION);
+                                saturation.setName("Saturation");
+                                saturation.setProperties(properties);
+                                saturation.setMinBounds(0);
+                                saturation.setMaxBounds(100);
+                                params.add(saturation);
+                            }
+
+                            if (!isHueParamAvailable) {
+                                // Add hue param
+                                Param hue = new Param();
+                                hue.setDynamicParam(true);
+                                hue.setDataType("int");
+                                hue.setUiType(AppConstants.UI_TYPE_HUE_SLIDER);
+                                hue.setParamType(AppConstants.PARAM_TYPE_HUE);
+                                hue.setName("Hue");
+                                hue.setProperties(properties);
+                                params.add(hue);
+                            }
+                            device.setParams(params);
+                        }
+                    }
+                    nodeMap.put(nodeId, node);
+
+                    if (TextUtils.isEmpty(deviceType)) {
+
+                        for (Object cluster : clientClusters) {
+                            long clusterId = (long) cluster;
+
+                            if (clusterId == ChipClusters.OnOffCluster.CLUSTER_ID) {
+
+                                Log.d(TAG, "Found On Off Cluster in client clusters");
+
+                                if (devices == null || devices.size() == 0) {
+                                    Device device = new Device(nodeId);
+                                    devices = new ArrayList<>();
+                                    devices.add(device);
+                                    node.setDevices(devices);
+                                }
+
+                                Device device = devices.get(0);
+                                deviceType = AppConstants.ESP_DEVICE_SWITCH;
+                                device.setDeviceType(deviceType);
+                                ArrayList<Param> params = device.getParams();
+                                if (params == null || params.size() == 0) {
+                                    params = new ArrayList<>();
+                                }
+                                boolean isParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_POWER);
+
+                                if (!isParamAvailable) {
+                                    // Add on/off param
+                                    addToggleParam(params, properties);
+                                }
+                                device.setParams(params);
+                            }
+                        }
+                        nodeMap.put(nodeId, node);
+                    }
+                }
+            }
+        }
     }
 
     public void refreshData() {
@@ -350,7 +1002,7 @@ public class EspApplication extends Application {
         automations.clear();
     }
 
-    private void startLocalDeviceDiscovery() {
+    public void startLocalDeviceDiscovery() {
         if (BuildConfig.isLocalControlSupported) {
             if (nodeMap.size() > 0) {
                 mdnsManager.discoverServices();
@@ -411,7 +1063,7 @@ public class EspApplication extends Application {
                 }
             }
 
-            Log.e(TAG, "Found node " + nodeId + " on local network.");
+            Log.d(TAG, "Found node " + nodeId + " on local network.");
             if (localDeviceMap.containsKey(nodeId)) {
                 Log.e(TAG, "Local Device session is already available");
                 newDevice = localDeviceMap.get(nodeId);
@@ -584,5 +1236,31 @@ public class EspApplication extends Application {
             return true;
         }
         return false;
+    }
+
+    private boolean isParamAvailableInList(ArrayList<Param> params, String type) {
+        boolean isAvailable = false;
+        if (params.size() > 0) {
+            for (Param p : params) {
+                if (p.getParamType() != null && p.getParamType().equals(type)) {
+                    isAvailable = true;
+                    break;
+                }
+            }
+        }
+        return isAvailable;
+    }
+
+    private void addToggleParam(ArrayList<Param> params, ArrayList<String> properties) {
+        // Add on/off param
+        Param param = new Param();
+        param.setDynamicParam(true);
+        param.setDataType("bool");
+        param.setUiType(AppConstants.UI_TYPE_TOGGLE);
+        param.setParamType(AppConstants.PARAM_TYPE_POWER);
+        param.setName("Power");
+        param.setSwitchStatus(false);
+        param.setProperties(properties);
+        params.add(param);
     }
 }

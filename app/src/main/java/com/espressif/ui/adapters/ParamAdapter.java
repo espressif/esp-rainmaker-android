@@ -46,12 +46,17 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.aar.tapholdupbutton.TapHoldUpButton;
 import com.espressif.AppConstants;
+import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.matter.ColorControlClusterHelper;
+import com.espressif.matter.LevelControlClusterHelper;
+import com.espressif.matter.OnOffClusterHelper;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.EspDeviceActivity;
 import com.espressif.ui.activities.TimeSeriesActivity;
 import com.espressif.ui.models.Device;
+import com.espressif.ui.models.Group;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.widgets.EspDropDown;
 import com.espressif.ui.widgets.PaletteBar;
@@ -61,7 +66,13 @@ import com.warkiz.tickseekbar.OnSeekChangeListener;
 import com.warkiz.tickseekbar.SeekParams;
 import com.warkiz.tickseekbar.TickSeekBar;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import kotlin.Unit;
 
 public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -78,12 +89,21 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private final String deviceName;
     private DeviceParamUpdates deviceParamUpdates;
 
+    private String matterNodeId;
+    private int hueColorValue;
+
     public ParamAdapter(Activity context, Device device, ArrayList<Param> paramList) {
         this.context = context;
         this.params = paramList;
         this.nodeId = device.getNodeId();
         this.deviceName = device.getDeviceName();
         deviceParamUpdates = new DeviceParamUpdates(context, nodeId, deviceName);
+
+        EspApplication espApp = (EspApplication) context.getApplicationContext();
+        if (espApp.matterRmNodeIdMap.containsKey(nodeId)) {
+            matterNodeId = espApp.matterRmNodeIdMap.get(nodeId);
+            Log.d(TAG, "Found Matter Node Id : " + matterNodeId);
+        }
     }
 
     @Override
@@ -340,34 +360,62 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 paramViewHolder.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
                     @Override
                     public void onColorSelected(int colorInt, boolean isMoving) {
-                        ((EspDeviceActivity) context).setIsUpdateView(!isMoving);
-                        if (BuildConfig.isContinuousUpdateEnable) {
-                            deviceParamUpdates.processSliderChange(param.getName(), colorInt);
+
+                        EspApplication espApp = (EspApplication) context.getApplicationContext();
+
+                        boolean isMatterDeviceOnline = false;
+                        if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
+                            isMatterDeviceOnline = true;
+                        }
+
+                        if (isMatterDeviceOnline) {
+                            if (hueColorValue == colorInt) {
+                                Log.d(TAG, "Ignore same hue color value");
+                                return;
+                            }
+                            hueColorValue = colorInt;
+
+                            int hueValue = (int) ((colorInt * 255f) / 360f);
+                            BigInteger id = new BigInteger(matterNodeId, 16);
+                            long deviceId = id.longValue();
+
+                            if (hueValue == 255) {
+                                hueValue = 254;
+                            }
+
+                            ColorControlClusterHelper espClusterHelper = new ColorControlClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                            espClusterHelper.setHueValueAsync(deviceId, AppConstants.ENDPOINT_1, hueValue);
+
                         } else {
-                            if (!isMoving) {
-                                ((EspDeviceActivity) context).stopUpdateValueTask();
-                                JsonObject jsonParam = new JsonObject();
-                                JsonObject body = new JsonObject();
+                            ((EspDeviceActivity) context).setIsUpdateView(!isMoving);
+                            if (BuildConfig.isContinuousUpdateEnable) {
+                                deviceParamUpdates.processSliderChange(param.getName(), colorInt);
+                            } else {
+                                if (!isMoving) {
+                                    ((EspDeviceActivity) context).stopUpdateValueTask();
+                                    JsonObject jsonParam = new JsonObject();
+                                    JsonObject body = new JsonObject();
 
-                                jsonParam.addProperty(param.getName(), colorInt);
-                                body.add(deviceName, jsonParam);
-                                deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
+                                    jsonParam.addProperty(param.getName(), colorInt);
+                                    body.add(deviceName, jsonParam);
+                                    deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
 
-                                    @Override
-                                    public void onSuccess(Bundle data) {
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
-                                    }
+                                        @Override
+                                        public void onSuccess(Bundle data) {
+                                            ((EspDeviceActivity) context).startUpdateValueTask();
+                                        }
 
-                                    @Override
-                                    public void onResponseFailure(Exception exception) {
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
-                                    }
+                                        @Override
+                                        public void onResponseFailure(Exception exception) {
+                                            ((EspDeviceActivity) context).startUpdateValueTask();
+                                        }
 
-                                    @Override
-                                    public void onNetworkFailure(Exception exception) {
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
-                                    }
-                                });
+                                        @Override
+                                        public void onNetworkFailure(Exception exception) {
+                                            ((EspDeviceActivity) context).startUpdateValueTask();
+                                        }
+                                    });
+                                }
                             }
                         }
                     }
@@ -485,6 +533,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         float max = param.getMaxBounds();
         float min = param.getMinBounds();
         String dataType = param.getDataType();
+        EspApplication espApp = (EspApplication) context.getApplicationContext();
 
         if (AppConstants.PARAM_TYPE_CCT.equals(param.getParamType())) {
 
@@ -543,44 +592,92 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                         @Override
                         public void onSeeking(SeekParams seekParams) {
-                            if (seekParams.fromUser) {
-                                ((EspDeviceActivity) context).setIsUpdateView(false);
-                                if (BuildConfig.isContinuousUpdateEnable) {
-                                    deviceParamUpdates.processSliderChange(param.getName(), seekParams.progress);
+
+                            boolean isMatterDeviceOnline = false;
+                            if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
+                                isMatterDeviceOnline = true;
+                            }
+
+                            if (!isMatterDeviceOnline) {
+                                if (seekParams.fromUser) {
+                                    ((EspDeviceActivity) context).setIsUpdateView(false);
+                                    if (BuildConfig.isContinuousUpdateEnable) {
+                                        deviceParamUpdates.processSliderChange(param.getName(), seekParams.progress);
+                                    }
                                 }
                             }
                         }
 
                         @Override
                         public void onStartTrackingTouch(TickSeekBar seekBar) {
-                            ((EspDeviceActivity) context).setIsUpdateView(false);
-                            if (!BuildConfig.isContinuousUpdateEnable) {
-                                ((EspDeviceActivity) context).stopUpdateValueTask();
+
+                            boolean isMatterDeviceOnline = false;
+                            if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
+                                isMatterDeviceOnline = true;
+                            }
+
+                            if (!isMatterDeviceOnline) {
+                                ((EspDeviceActivity) context).setIsUpdateView(false);
+                                if (!BuildConfig.isContinuousUpdateEnable) {
+                                    ((EspDeviceActivity) context).stopUpdateValueTask();
+                                }
                             }
                         }
 
                         @Override
                         public void onStopTrackingTouch(TickSeekBar seekBar) {
 
-                            ((EspDeviceActivity) context).setIsUpdateView(true);
-                            int lastProgressValue = seekBar.getProgress();
+                            boolean isMatterDeviceOnline = false;
+                            String paramType = param.getParamType();
+                            if (AppConstants.PARAM_TYPE_BRIGHTNESS.equals(paramType)
+                                    || AppConstants.PARAM_TYPE_SATURATION.equals(paramType)) {
 
-                            deviceParamUpdates.clearQueueAndSendLastValue(param.getName(), lastProgressValue, new ApiResponseListener() {
-                                @Override
-                                public void onSuccess(Bundle data) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
+                                    isMatterDeviceOnline = true;
+                                }
+                            }
+
+                            if (isMatterDeviceOnline) {
+
+                                int lastProgressValue = seekBar.getProgress();
+                                lastProgressValue = (int) (lastProgressValue * 2.55f);
+
+                                BigInteger id = new BigInteger(matterNodeId, 16);
+                                long deviceId = id.longValue();
+
+                                if (lastProgressValue == 255) {
+                                    lastProgressValue = 254;
                                 }
 
-                                @Override
-                                public void onResponseFailure(Exception exception) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                if (AppConstants.PARAM_TYPE_BRIGHTNESS.equals(paramType)) {
+                                    LevelControlClusterHelper espClusterHelper = new LevelControlClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                                    espClusterHelper.setLevelAsync(deviceId, AppConstants.ENDPOINT_1, lastProgressValue);
+                                } else if (AppConstants.PARAM_TYPE_SATURATION.equals(paramType)) {
+                                    ColorControlClusterHelper espClusterHelper = new ColorControlClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                                    espClusterHelper.setSaturationValueAsync(deviceId, AppConstants.ENDPOINT_1, lastProgressValue);
                                 }
 
-                                @Override
-                                public void onNetworkFailure(Exception exception) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                }
-                            });
+                            } else {
+                                ((EspDeviceActivity) context).setIsUpdateView(true);
+                                int lastProgressValue = seekBar.getProgress();
+
+                                deviceParamUpdates.clearQueueAndSendLastValue(param.getName(), lastProgressValue, new ApiResponseListener() {
+                                    @Override
+                                    public void onSuccess(Bundle data) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+
+                                    @Override
+                                    public void onResponseFailure(Exception exception) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+
+                                    @Override
+                                    public void onNetworkFailure(Exception exception) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+                                });
+                            }
                         }
                     });
                 } else {
@@ -716,39 +813,59 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     @Override
                     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
-                        ((EspDeviceActivity) context).stopUpdateValueTask();
+                        EspApplication espApp = (EspApplication) context.getApplicationContext();
 
-                        if (isChecked) {
-
-                            paramViewHolder.tvSwitchStatus.setText(R.string.text_on);
-
-                        } else {
-                            paramViewHolder.tvSwitchStatus.setText(R.string.text_off);
+                        boolean isMatterDeviceOnline = false;
+                        if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
+                            isMatterDeviceOnline = true;
                         }
 
-                        JsonObject jsonParam = new JsonObject();
-                        JsonObject body = new JsonObject();
+                        if (isMatterDeviceOnline) {
+                            BigInteger id = new BigInteger(matterNodeId, 16);
+                            long deviceId = id.longValue();
+                            OnOffClusterHelper espClusterHelper = new OnOffClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                            espClusterHelper.setOnOffDeviceStateOnOffClusterAsync(deviceId, isChecked, AppConstants.ENDPOINT_1);
 
-                        jsonParam.addProperty(param.getName(), isChecked);
-                        body.add(deviceName, jsonParam);
+                            if (isChecked) {
+                                paramViewHolder.tvSwitchStatus.setText(R.string.text_on);
+                            } else {
+                                paramViewHolder.tvSwitchStatus.setText(R.string.text_off);
+                            }
+                        } else {
+                            ((EspDeviceActivity) context).stopUpdateValueTask();
 
-                        deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
+                            if (isChecked) {
 
-                            @Override
-                            public void onSuccess(Bundle data) {
-                                ((EspDeviceActivity) context).startUpdateValueTask();
+                                paramViewHolder.tvSwitchStatus.setText(R.string.text_on);
+
+                            } else {
+                                paramViewHolder.tvSwitchStatus.setText(R.string.text_off);
                             }
 
-                            @Override
-                            public void onResponseFailure(Exception exception) {
-                                ((EspDeviceActivity) context).startUpdateValueTask();
-                            }
+                            JsonObject jsonParam = new JsonObject();
+                            JsonObject body = new JsonObject();
 
-                            @Override
-                            public void onNetworkFailure(Exception exception) {
-                                ((EspDeviceActivity) context).startUpdateValueTask();
-                            }
-                        });
+                            jsonParam.addProperty(param.getName(), isChecked);
+                            body.add(deviceName, jsonParam);
+
+                            deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
+
+                                @Override
+                                public void onSuccess(Bundle data) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+
+                                @Override
+                                public void onResponseFailure(Exception exception) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+
+                                @Override
+                                public void onNetworkFailure(Exception exception) {
+                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                }
+                            });
+                        }
                     }
                 });
 
