@@ -516,7 +516,7 @@ public class EspApplication extends Application {
                             try {
                                 keyStore.setKeyEntry(fabricId, keyPairHashMap.get(fabricId).getPrivate(), null, certificates);
                             } catch (KeyStoreException e) {
-                                throw new RuntimeException(e);
+                                e.printStackTrace();
                             }
                         }
                     }

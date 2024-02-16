@@ -15,9 +15,12 @@
 package com.espressif.ui.adapters;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,6 +30,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.aar.tapholdupbutton.TapHoldUpButton;
@@ -35,6 +39,7 @@ import com.espressif.EspApplication;
 import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.local_control.EspLocalDevice;
+import com.espressif.matter.ControllerLoginActivity;
 import com.espressif.matter.OnOffClusterHelper;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
@@ -446,9 +451,22 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
 
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(context, EspDeviceActivity.class);
-                intent.putExtra(AppConstants.KEY_ESP_DEVICE, device);
-                context.startActivity(intent);
+
+                String rmNodeId = device.getNodeId();
+                SharedPreferences sharedPreferences = context.getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
+                boolean isMatterController = sharedPreferences.getBoolean(rmNodeId, false);
+                String key = "ctrl_setup_" + rmNodeId;
+                boolean isMatterCtrlSetupDone = sharedPreferences.getBoolean(key, false);
+                Log.d("TAG", "isMatterController : " + isMatterController);
+                Log.d("TAG", "isMatterCtrlSetupDone : " + isMatterCtrlSetupDone);
+
+                if (isMatterController && !isMatterCtrlSetupDone) {
+                    controllerNeedsAccessWarning(rmNodeId);
+                } else {
+                    Intent intent = new Intent(context, EspDeviceActivity.class);
+                    intent.putExtra(AppConstants.KEY_ESP_DEVICE, device);
+                    context.startActivity(intent);
+                }
             }
         });
     }
@@ -461,6 +479,27 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
     public void updateList(ArrayList<Device> updatedDeviceList) {
         deviceList = updatedDeviceList;
         notifyDataSetChanged();
+    }
+
+    private void controllerNeedsAccessWarning(String rmNodeId) {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setCancelable(false);
+        builder.setMessage(R.string.dialog_msg_matter_controller);
+
+        // Set up the buttons
+        builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                Intent intent = new Intent(context, ControllerLoginActivity.class);
+                intent.putExtra(AppConstants.KEY_NODE_ID, rmNodeId);
+                context.startActivity(intent);
+            }
+        });
+
+        builder.show();
     }
 
     static class DeviceViewHolder extends RecyclerView.ViewHolder {

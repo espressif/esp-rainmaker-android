@@ -426,7 +426,18 @@ class AppConstants {
         const val ENDPOINT_0 = 0
         const val ENDPOINT_1 = 1
 
-        const val RM_CLUSTER_ID = 0x131bfc00L
+        const val RM_CLUSTER_ID_HEX = 0x131bfc00L
+        const val CONTROLLER_CLUSTER_ID_HEX = 0x131BFC01L
+
+        const val RM_CLUSTER_ID = 320601088L
+        const val CONTROLLER_CLUSTER_ID = 320601089L
+
+        const val COMMAND_APPEND_REFRESH_TOKEN = 0L
+        const val COMMAND_RESET_REFRESH_TOKEN = 1L
+        const val COMMAND_AUTHORIZE_DEVICE = 2L
+        const val COMMAND_UPDATE_USER_NOC = 3L
+        const val COMMAND_UPDATE_DEVICE_LIST = 4L
+
 
         enum class UpdateEventType {
             EVENT_DEVICE_ADDED,
@@ -436,7 +447,8 @@ class AppConstants {
             EVENT_ADD_DEVICE_TIME_OUT,
             EVENT_DEVICE_STATUS_UPDATE,
             EVENT_STATE_CHANGE_UPDATE,
-            EVENT_LOCAL_DEVICE_UPDATE
+            EVENT_LOCAL_DEVICE_UPDATE,
+            EVENT_CTRL_CONFIG_DONE
         }
     }
 }

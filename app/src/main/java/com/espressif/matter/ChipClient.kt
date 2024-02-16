@@ -433,6 +433,7 @@ class ChipClient constructor(
                                 val deviceMatterInfo =
                                     clustersHelper.fetchDeviceMatterInfo(deviceNodeId)
                                 var isRmClusterAvailable = false
+                                var isControllerClusterAvailable = false
                                 val metadataJson = JsonObject()
                                 val body = JsonObject()
 
@@ -479,12 +480,16 @@ class ChipClient constructor(
                                             if (info.endpoint == 0) {
                                                 for (serverCluster in info.serverClusters) {
                                                     var clusterId: Long = serverCluster as Long
-                                                    if (clusterId == 320601088L) {
+                                                    if (clusterId == AppConstants.RM_CLUSTER_ID) {
                                                         isRmClusterAvailable = true
                                                         metadataJson.addProperty(
                                                             "isRainmaker",
                                                             true
                                                         )
+                                                    }
+
+                                                    if (clusterId == AppConstants.CONTROLLER_CLUSTER_ID) {
+                                                        isControllerClusterAvailable = true
                                                     }
                                                 }
                                             }
@@ -512,7 +517,7 @@ class ChipClient constructor(
                                     val rmNodeIdAttributePath =
                                         ChipAttributePath.newInstance(
                                             0x0L,
-                                            AppConstants.RM_CLUSTER_ID,
+                                            AppConstants.RM_CLUSTER_ID_HEX,
                                             0x1L
                                         )
                                     val rmNodeIdData =
@@ -528,7 +533,7 @@ class ChipClient constructor(
                                         val attributePath3 =
                                             ChipAttributePath.newInstance(
                                                 0x0L,
-                                                AppConstants.RM_CLUSTER_ID,
+                                                AppConstants.RM_CLUSTER_ID_HEX,
                                                 0x3L
                                             )
                                         val matterNodeIdData =
@@ -547,7 +552,7 @@ class ChipClient constructor(
                                     val challengeAttributePath =
                                         ChipAttributePath.newInstance(
                                             0x0L,
-                                            AppConstants.RM_CLUSTER_ID,
+                                            AppConstants.RM_CLUSTER_ID_HEX,
                                             0x2L
                                         )
                                     val challengeData: AttributeState? =
@@ -560,6 +565,21 @@ class ChipClient constructor(
 
                                     body.addProperty(AppConstants.KEY_RAINMAKER_NODE_ID, rmNodeId)
                                     body.addProperty(AppConstants.KEY_CHALLENGE, challenge)
+
+                                    if (isControllerClusterAvailable) {
+
+                                        Log.d(TAG, "Controller cluster available")
+                                        val sharedPreferences =
+                                            context.getSharedPreferences(
+                                                AppConstants.ESP_PREFERENCES,
+                                                Context.MODE_PRIVATE
+                                            )
+                                        val editor = sharedPreferences.edit()
+                                        editor.putBoolean(rmNodeId, true)
+                                        val key = "ctrl_setup_$rmNodeId"
+                                        editor.putBoolean(key, false)
+                                        editor.apply()
+                                    }
                                 } else {
                                     // Nothing to do
                                 }
@@ -573,8 +593,9 @@ class ChipClient constructor(
                                 Log.d(TAG, "Confirming matter node : $description")
 
                                 Log.d(TAG, "Metadata Json : ${metadataJson.toString()}")
-                                ApiManager.getInstance(context)
+                                var bundle: Bundle = ApiManager.getInstance(context)
                                     .updateNodeMetadata(rmNodeId, metadataJson)
+                                Log.d(TAG, "Metadata updated, response : ${bundle.getString(AppConstants.KEY_RESPONSE, "")}")
 
                                 continuation.resume(Unit)
                             }
@@ -825,6 +846,8 @@ class ChipClient constructor(
             val invokeCallback: InvokeCallback =
                 object : InvokeCallback {
                     override fun onError(e: java.lang.Exception?) {
+
+                        e?.printStackTrace()
                         continuation.resumeWithException(
                             IllegalStateException(
                                 "invoke failed",

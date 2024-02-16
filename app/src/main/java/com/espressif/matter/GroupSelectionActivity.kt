@@ -222,7 +222,7 @@ class GroupSelectionActivity : AppCompatActivity() {
         Matter.getCommissioningClient(this)
             .commissionDevice(commissionDeviceRequest)
             .addOnSuccessListener { result ->
-                Log.d(TAG, "ShareDevice: Success getting the IntentSender: result [${result}]")
+                Log.d(TAG, "CommissionDevice: Success getting the IntentSender: result [${result}]")
                 commissionDeviceLauncher.launch(IntentSenderRequest.Builder(result).build())
                 // Communication with fragment is via livedata
 //                        _commissionDeviceIntentSender.postValue(result)
