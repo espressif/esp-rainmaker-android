@@ -53,7 +53,7 @@ public class FwUpdateActivity extends AppCompatActivity {
     private MaterialCardView btnCheckUpdate;
     private TextView txtUpdateBtn;
 
-    private TextView tvUpdateStatus, tvAdditionalInfo;
+    private TextView tvUpdateStatus, tvAdditionalInfo, tvDescription;
     private ImageView ivUpdateProgress;
     private GifImageView gifDownloading;
 
@@ -114,6 +114,7 @@ public class FwUpdateActivity extends AppCompatActivity {
 
         tvUpdateStatus = findViewById(R.id.tv_update_status);
         tvAdditionalInfo = findViewById(R.id.tv_additional_info);
+        tvDescription = findViewById(R.id.tv_description);
         ivUpdateProgress = findViewById(R.id.iv_update);
         gifDownloading = findViewById(R.id.iv_gif_update);
 
@@ -351,6 +352,13 @@ public class FwUpdateActivity extends AppCompatActivity {
             }
         } else {
             Log.e(TAG, "OTA update status is not available.");
+        }
+
+        if (isUpdateAvailable && !TextUtils.isEmpty(otaUpdate.getOtaStatusDescription())) {
+            tvDescription.setVisibility(View.VISIBLE);
+            tvDescription.setText(otaUpdate.getOtaStatusDescription());
+        } else {
+            tvDescription.setVisibility(View.INVISIBLE);
         }
     }
 
