@@ -55,8 +55,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 27
         targetSdkVersion 33
-        versionCode 106
-        versionName "3.1.2 - ${getGitHash()}"
+        versionCode 108
+        versionName "3.2.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -200,8 +200,9 @@ dependencies {
     implementation fileTree(dir: "third_party/connectedhomeip/libs", include: ["*.jar", "*.so"])
 
     // Connected Home
-    implementation("com.google.android.gms:play-services-base:18.2.0")
-    implementation("com.google.android.gms:play-services-home:16.0.0")
+    implementation "com.google.android.gms:play-services-base:18.2.0"
+    implementation "com.google.android.gms:play-services-home:16.0.0"
+    implementation 'com.google.android.gms:play-services-threadnetwork:16.0.0'
 
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'androidx.appcompat:appcompat:1.3.1'

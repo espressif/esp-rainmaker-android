@@ -482,10 +482,6 @@ class ChipClient constructor(
                                                     var clusterId: Long = serverCluster as Long
                                                     if (clusterId == AppConstants.RM_CLUSTER_ID) {
                                                         isRmClusterAvailable = true
-                                                        metadataJson.addProperty(
-                                                            "isRainmaker",
-                                                            true
-                                                        )
                                                     }
 
                                                     if (clusterId == AppConstants.CONTROLLER_CLUSTER_ID) {
@@ -495,6 +491,11 @@ class ChipClient constructor(
                                             }
                                         }
 
+                                        metadataJson.addProperty(
+                                            AppConstants.KEY_IS_RAINMAKER,
+                                            isRmClusterAvailable
+                                        )
+                                        metadataJson.addProperty(AppConstants.KEY_GROUP_ID, groupId)
                                         metadataJson.add("endpointsData", endpointsArray)
 
                                         if (serversDataJson.size() > 0) {

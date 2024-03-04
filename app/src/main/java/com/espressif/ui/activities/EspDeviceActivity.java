@@ -44,6 +44,7 @@ import com.espressif.cloudapi.CloudException;
 import com.espressif.local_control.EspLocalDevice;
 import com.espressif.matter.ControllerClusterHelper;
 import com.espressif.matter.DeviceMatterInfo;
+import com.espressif.matter.ThreadBRActivity;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.AttrParamAdapter;
@@ -74,7 +75,8 @@ public class EspDeviceActivity extends AppCompatActivity {
     private static final int UI_UPDATE_INTERVAL = 4500;
 
     private RelativeLayout rlNodeStatus;
-    private RelativeLayout rlMatterController;
+    private RelativeLayout rlMatterController, rlTbr;
+    private TextView tvTbrSetup;
     private TextView tvNoParam, tvNodeStatus;
     private ImageView ivSecureLocal;
     private AppCompatButton btnUpdate;
@@ -101,7 +103,7 @@ public class EspDeviceActivity extends AppCompatActivity {
     private boolean isUpdateView = true;
     private long lastUpdateRequestTime = 0;
 
-    private boolean isMatterOnly = false, isControllerClusterAvailable = false;
+    private boolean isMatterOnly = false, isControllerClusterAvailable = false, isTbrClusterAvailable = false;
     private String matterNodeId;
 
     @Override
@@ -147,6 +149,8 @@ public class EspDeviceActivity extends AppCompatActivity {
                                     Long id = (Long) serverCluster;
                                     if (id == AppConstants.CONTROLLER_CLUSTER_ID) {
                                         isControllerClusterAvailable = true;
+                                    } else if (id == AppConstants.THREAD_BR_CLUSTER_ID) {
+                                        isTbrClusterAvailable = true;
                                     }
                                 }
                             }
@@ -328,9 +332,11 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         rlNodeStatus = findViewById(R.id.rl_node_status);
         rlMatterController = findViewById(R.id.rl_matter_controller);
+        rlTbr = findViewById(R.id.rl_thread_br);
         tvNodeStatus = findViewById(R.id.tv_device_status);
         ivSecureLocal = findViewById(R.id.iv_secure_local);
         btnUpdate = findViewById(R.id.btn_update);
+        tvTbrSetup = findViewById(R.id.tv_tbr_setup);
 
         getSupportActionBar().setTitle(device.getUserVisibleName());
 
@@ -372,10 +378,25 @@ public class EspDeviceActivity extends AppCompatActivity {
             }
         });
 
+        tvTbrSetup.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(EspDeviceActivity.this, ThreadBRActivity.class);
+                intent.putExtra(AppConstants.KEY_NODE_ID, nodeId);
+                startActivity(intent);
+            }
+        });
+
         if (isControllerClusterAvailable) {
             rlMatterController.setVisibility(View.VISIBLE);
         } else {
             rlMatterController.setVisibility(View.GONE);
+        }
+
+        if (isTbrClusterAvailable) {
+            rlTbr.setVisibility(View.VISIBLE);
+        } else {
+            rlTbr.setVisibility(View.GONE);
         }
     }
 
