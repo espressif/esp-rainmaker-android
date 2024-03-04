@@ -584,19 +584,16 @@ class ChipClient constructor(
                                     // Nothing to do
                                 }
 
+                                Log.d(TAG, "Metadata Json : ${metadataJson.toString()}")
                                 body.addProperty(AppConstants.KEY_REQ_ID, requestId)
                                 body.addProperty(AppConstants.KEY_STATUS, "success")
+                                body.add(AppConstants.KEY_METADATA, metadataJson)
 
                                 var description: String? =
                                     ApiManager.getInstance(context)
                                         .confirmMatterNode(body, groupId)
                                 Log.d(TAG, "Confirming matter node : $description")
-
-                                Log.d(TAG, "Metadata Json : ${metadataJson.toString()}")
-                                var bundle: Bundle = ApiManager.getInstance(context)
-                                    .updateNodeMetadata(rmNodeId, metadataJson)
-                                Log.d(TAG, "Metadata updated, response : ${bundle.getString(AppConstants.KEY_RESPONSE, "")}")
-
+                                
                                 continuation.resume(Unit)
                             }
                         }
