@@ -16,10 +16,12 @@ package com.espressif.local_control;
 
 import android.util.Log;
 
+import com.espressif.AppConstants;
 import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.provisioning.security.Security;
 import com.espressif.provisioning.security.Security0;
 import com.espressif.provisioning.security.Security1;
+import com.espressif.provisioning.security.Security2;
 
 import java.util.HashMap;
 
@@ -63,7 +65,10 @@ public class EspLocalDevice {
 
             final String url = "http://" + getIpAddr() + ":" + getPort();
             Security security = null;
-            if (securityType == 1) {
+            if (securityType == 2) {
+                security = new Security2(AppConstants.DEFAULT_SEC2_USER_NAME, pop);
+                Log.d(TAG, "Created security 2 with pop : " + pop);
+            } else if (securityType == 1) {
                 security = new Security1(pop);
                 Log.d(TAG, "Created security 1 with pop : " + pop);
             } else if (securityType == 0) {
