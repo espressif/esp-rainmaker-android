@@ -40,6 +40,7 @@
     <string name="progress_check_update">Checking for update...</string>
     <string name="progress_check_fw_update_status">Checking firmware update status...</string>
     <string name="progress_push_fw_update">Pushing OTA update...</string>
+    <string name="progress_tbr_config">Configuring TBR in progress...</string>
 
     <!--Error Messages-->
     <string name="error_title">Error!</string>
@@ -242,6 +243,7 @@
     <string name="btn_change_actions">Change Actions</string>
     <string name="btn_check_update">Check firmware update</string>
     <string name="btn_check_again">Check Again</string>
+    <string name="btn_configuring">Configuring&#8230;</string>
 
     <!--Screen titles-->
     <string name="title_activity_devices">Devices</string>
@@ -281,6 +283,7 @@
     <string name="title_activity_delete_user">Delete Account</string>
     <string name="title_activity_amazon_alexa">Amazon Alexa</string>
     <string name="title_activity_fw_update">Firmware Update</string>
+    <string name="title_activity_tbr">Thread border router</string>
 
     <!--Dialog texts-->
     <string name="dialog_title_login_failed">Sign-in failed</string>
@@ -438,6 +441,7 @@
     <string name="fw_update_success">Firmware update is successful.</string>
     <string name="fw_update_check">Click below to check for firmware update.</string>
     <string name="dialog_msg_matter_controller">Matter Controller needs access to your RainMaker account to fetch all nodes under the account. Proceed?</string>
+    <string name="tbr_setup_done">Thread border router setup is done.</string>
 
     <string name="linked_with_alexa">Already linked with Amazon Alexa</string>
     <string name="alexa_link_str">You can now control your Smart Home Devices via Alexa enabled speakers using Voice commands.</string>

@@ -96,6 +96,29 @@
 
         </RelativeLayout>
 
+        <RelativeLayout
+            android:id="@+id/rl_thread_br"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/rl_matter_controller"
+            android:layout_centerHorizontal="true"
+            android:layout_margin="@dimen/margin_16"
+            android:background="@color/color_background"
+            android:padding="@dimen/margin_8">
+
+            <TextView
+                android:id="@+id/tv_tbr_setup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="8dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:text="Setup Thread Border Router"
+                android:textColor="@color/colorPrimary"
+                android:textSize="16sp" />
+
+        </RelativeLayout>
+
     </RelativeLayout>
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -123,6 +146,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_centerInParent="true"
+                    android:alpha="0.5"
                     android:text="@string/device_no_param"
                     android:textColor="@color/colorPrimaryDark"
                     android:textSize="18sp"

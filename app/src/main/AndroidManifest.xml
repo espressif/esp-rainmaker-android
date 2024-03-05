@@ -292,6 +292,12 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
 
+        <activity
+            android:name="com.espressif.matter.ThreadBRActivity"
+            android:label="Thread border router"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+
         <receiver android:name="com.espressif.NodeSharingActionReceiver" />
 
         <service
