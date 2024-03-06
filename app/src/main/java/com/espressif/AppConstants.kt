@@ -421,6 +421,7 @@ class AppConstants {
         // Node types
         const val NODE_TYPE_PURE_MATTER = "pure_matter"
         const val NODE_TYPE_RM_MATTER = "rainmaker_matter"
+        const val NODE_TYPE_RM = "rainmaker"
 
         // Endpoints, Cluster Id, Attribute Ids
         const val ENDPOINT_0 = 0
@@ -450,7 +451,8 @@ class AppConstants {
             EVENT_DEVICE_STATUS_UPDATE,
             EVENT_STATE_CHANGE_UPDATE,
             EVENT_LOCAL_DEVICE_UPDATE,
-            EVENT_CTRL_CONFIG_DONE
+            EVENT_CTRL_CONFIG_DONE,
+            EVENT_MATTER_DEVICE_CONNECTIVITY
         }
     }
 }

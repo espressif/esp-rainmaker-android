@@ -36,6 +36,7 @@ import com.espressif.local_control.EspLocalDevice;
 import com.espressif.local_control.LocalControlApiManager;
 import com.espressif.local_control.mDNSManager;
 import com.espressif.matter.ChipClient;
+import com.espressif.matter.ChipClientHelper;
 import com.espressif.matter.ClustersHelper;
 import com.espressif.matter.DeviceMatterInfo;
 import com.espressif.matter.LevelControlClusterHelper;
@@ -208,7 +209,8 @@ public class EspApplication extends Application {
                 startLocalDeviceDiscovery();
                 for (Map.Entry<String, String> entry : matterRmNodeIdMap.entrySet()) {
                     String matterNodeId = entry.getValue();
-                    initChipController(matterNodeId);
+                    ChipClientHelper clientHelper = new ChipClientHelper(this);
+                    clientHelper.initChipClientInBackground(matterNodeId);
                 }
                 break;
         }
@@ -666,15 +668,11 @@ public class EspApplication extends Application {
                 matterDeviceInfoMap.put(matterNodeId, matterDeviceInfo);
                 nodeMap.get(nodeId).setOnline(true);
                 availableMatterDevices.add(matterNodeId);
-                EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_ONLINE));
             } else {
                 matterDeviceInfoMap.remove(matterNodeId);
                 availableMatterDevices.remove(matterNodeId);
                 chipClientMap.remove(matterNodeId);
-                if (nodeMap.containsKey(nodeId)) {
-                    nodeMap.get(nodeId).setOnline(false);
-                }
-                EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_OFFLINE));
+                nodeMap.get(nodeId).setOnline(false);
             }
         } catch (ExecutionException e) {
             e.printStackTrace();
@@ -683,7 +681,7 @@ public class EspApplication extends Application {
         }
     }
 
-    private void addParamsForMatterOnlyDevice(String nodeId, String matterNodeId, EspNode node) {
+    public void addParamsForMatterOnlyDevice(String nodeId, String matterNodeId, EspNode node) {
 
         BigInteger id = new BigInteger(matterNodeId, 16);
         long deviceId = id.longValue();
