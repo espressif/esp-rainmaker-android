@@ -449,6 +449,13 @@ class ChipClient constructor(
                                             Log.d(TAG, "Client Clusters : ${info.clientClusters}")
                                             Log.d(TAG, "Types : ${info.types}")
 
+                                            if (info.types != null && info.types.isNotEmpty()) {
+                                                metadataJson.addProperty(
+                                                    "deviceType",
+                                                    info.types.get(0).toInt()
+                                                )
+                                            }
+
                                             endpointsArray.add(info.endpoint)
 
                                             if (info.serverClusters != null && info.serverClusters.isNotEmpty()) {

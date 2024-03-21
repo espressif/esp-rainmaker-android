@@ -435,7 +435,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             deviceVh.llOffline.setVisibility(View.VISIBLE);
 
             EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
-            if (localDevice.getSecurityType() == 1) {
+            if (localDevice.getSecurityType() == 1 || localDevice.getSecurityType() == 2) {
                 deviceVh.ivSecureLocal.setVisibility(View.VISIBLE);
                 deviceVh.ivOffline.setVisibility(View.INVISIBLE);
             } else {
