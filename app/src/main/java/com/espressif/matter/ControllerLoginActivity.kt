@@ -126,6 +126,7 @@ class ControllerLoginActivity : AppCompatActivity() {
         Log.d("TAG", "Update Event Received : " + event.eventType)
         if (event.eventType.equals(AppConstants.Companion.UpdateEventType.EVENT_CTRL_CONFIG_DONE)) {
             hideLoading()
+            finish()
         }
     }
 

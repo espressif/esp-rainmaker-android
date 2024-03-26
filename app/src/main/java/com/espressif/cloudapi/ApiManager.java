@@ -100,6 +100,7 @@ public class ApiManager {
     private static ArrayList<String> scheduleIds = new ArrayList<>();
     private static ArrayList<String> sceneIds = new ArrayList<>();
     private static ArrayList<String> automationIds = new ArrayList<>();
+    private static ArrayList<String> groupIds = new ArrayList<>();
 
     private static ApiManager apiManager;
 
@@ -965,11 +966,10 @@ public class ApiManager {
                                                 device.setDeviceName(deviceName);
                                                 device.setDeviceType(String.valueOf(metadataJson.optDouble(AppConstants.KEY_DEVICETYPE)));
                                                 metadata.setDeviceType(String.valueOf(metadataJson.optDouble(AppConstants.KEY_DEVICETYPE)));
-                                                metadata.setProductId(String.valueOf(metadataJson.optString(AppConstants.KEY_PRODUCT_ID)));
-                                                metadata.setVendorId(String.valueOf(metadataJson.optString(AppConstants.KEY_VENDOR_ID)));
+                                                metadata.setProductId(metadataJson.optString(AppConstants.KEY_PRODUCT_ID));
+                                                metadata.setVendorId(metadataJson.optString(AppConstants.KEY_VENDOR_ID));
                                                 espNode.setNodeMetadata(metadata);
                                             }
-
                                             espApp.nodeMap.put(nodeId, espNode);
                                             Log.d(TAG, "Matter supported node added in Node Map : " + nodeId);
                                         }
@@ -2714,6 +2714,7 @@ public class ApiManager {
     public void getUserGroups(final String groupId, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get user groups...");
+        groupIds.clear();
         getUserGroupsFromCloud("", groupId, false, listener);
     }
 
@@ -2740,10 +2741,6 @@ public class ApiManager {
                         String nextId = jsonObject.optString(AppConstants.KEY_NEXT_ID);
                         Log.d(TAG, "Start next id : " + nextId);
 
-                        if (TextUtils.isEmpty(groupId)) {
-                            espDatabase.getGroupDao().deleteAll();
-                        }
-
                         if (groupJsonArray != null) {
 
                             for (int groupIndex = 0; groupIndex < groupJsonArray.length(); groupIndex++) {
@@ -2760,6 +2757,7 @@ public class ApiManager {
                                     boolean isMutuallyExclusive = groupJson.optBoolean(AppConstants.KEY_MUTUALLY_EXCLUSIVE);
                                     JSONArray nodesArray = groupJson.optJSONArray(AppConstants.KEY_NODES);
                                     ArrayList<String> nodesOfGroup = new ArrayList<>();
+                                    groupIds.add(gId);
 
                                     if (nodesArray != null) {
                                         for (int nodeIndex = 0; nodeIndex < nodesArray.length(); nodeIndex++) {
@@ -2798,6 +2796,20 @@ public class ApiManager {
                         if (!TextUtils.isEmpty(nextId)) {
                             getUserGroupsFromCloud(nextId, groupId, isFabricDetails, listener);
                         } else {
+                            Iterator<Map.Entry<String, Group>> itr = espApp.groupMap.entrySet().iterator();
+
+                            // iterate and remove items simultaneously
+                            while (itr.hasNext()) {
+
+                                Map.Entry<String, Group> entry = itr.next();
+                                String key = entry.getKey();
+
+                                if (!groupIds.contains(key)) {
+                                    Group group = entry.getValue();
+                                    espDatabase.getGroupDao().delete(group);
+                                    itr.remove();
+                                }
+                            }
                             listener.onSuccess(null);
                         }
                     } else {

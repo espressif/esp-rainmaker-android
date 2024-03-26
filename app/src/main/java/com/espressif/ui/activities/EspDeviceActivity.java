@@ -43,6 +43,7 @@ import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
 import com.espressif.local_control.EspLocalDevice;
 import com.espressif.matter.ControllerClusterHelper;
+import com.espressif.matter.ControllerLoginActivity;
 import com.espressif.matter.DeviceMatterInfo;
 import com.espressif.matter.ThreadBRActivity;
 import com.espressif.rainmaker.BuildConfig;
@@ -75,8 +76,8 @@ public class EspDeviceActivity extends AppCompatActivity {
     private static final int UI_UPDATE_INTERVAL = 4500;
 
     private RelativeLayout rlNodeStatus;
-    private RelativeLayout rlMatterController, rlTbr;
-    private TextView tvTbrSetup;
+    private RelativeLayout rlControllerLogin, rlMatterController, rlTbr;
+    private TextView tvTbrSetup, tvControllerLogin;
     private TextView tvNoParam, tvNodeStatus;
     private ImageView ivSecureLocal;
     private AppCompatButton btnUpdate;
@@ -332,11 +333,13 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         rlNodeStatus = findViewById(R.id.rl_node_status);
         rlMatterController = findViewById(R.id.rl_matter_controller);
+        rlControllerLogin = findViewById(R.id.rl_controller_login);
         rlTbr = findViewById(R.id.rl_thread_br);
         tvNodeStatus = findViewById(R.id.tv_device_status);
         ivSecureLocal = findViewById(R.id.iv_secure_local);
         btnUpdate = findViewById(R.id.btn_update);
         tvTbrSetup = findViewById(R.id.tv_tbr_setup);
+        tvControllerLogin = findViewById(R.id.tv_controller_login);
 
         getSupportActionBar().setTitle(device.getUserVisibleName());
 
@@ -378,6 +381,15 @@ public class EspDeviceActivity extends AppCompatActivity {
             }
         });
 
+        tvControllerLogin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(EspDeviceActivity.this, ControllerLoginActivity.class);
+                intent.putExtra(AppConstants.KEY_NODE_ID, nodeId);
+                startActivity(intent);
+            }
+        });
+
         tvTbrSetup.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -388,8 +400,10 @@ public class EspDeviceActivity extends AppCompatActivity {
         });
 
         if (isControllerClusterAvailable) {
+            rlControllerLogin.setVisibility(View.VISIBLE);
             rlMatterController.setVisibility(View.VISIBLE);
         } else {
+            rlControllerLogin.setVisibility(View.GONE);
             rlMatterController.setVisibility(View.GONE);
         }
 
@@ -652,7 +666,7 @@ public class EspDeviceActivity extends AppCompatActivity {
                 if (espApp.localDeviceMap.containsKey(nodeId)) {
 
                     EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
-                    if (localDevice.getSecurityType() == 1) {
+                    if (localDevice.getSecurityType() == 1 || localDevice.getSecurityType() == 2) {
                         ivSecureLocal.setVisibility(View.VISIBLE);
                     } else {
                         ivSecureLocal.setVisibility(View.GONE);
@@ -697,7 +711,7 @@ public class EspDeviceActivity extends AppCompatActivity {
 
                 rlNodeStatus.setVisibility(View.VISIBLE);
                 EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
-                if (localDevice.getSecurityType() == 1) {
+                if (localDevice.getSecurityType() == 1 || localDevice.getSecurityType() == 2) {
                     ivSecureLocal.setVisibility(View.VISIBLE);
                 } else {
                     ivSecureLocal.setVisibility(View.GONE);

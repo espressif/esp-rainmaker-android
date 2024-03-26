@@ -52,10 +52,33 @@
         </RelativeLayout>
 
         <RelativeLayout
-            android:id="@+id/rl_matter_controller"
+            android:id="@+id/rl_controller_login"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@id/rl_node_status"
+            android:layout_centerHorizontal="true"
+            android:layout_margin="@dimen/margin_16"
+            android:background="@color/color_background"
+            android:padding="@dimen/margin_8">
+
+            <TextView
+                android:id="@+id/tv_controller_login"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="8dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:text="Controller Login"
+                android:textColor="@color/colorPrimary"
+                android:textSize="16sp" />
+
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/rl_matter_controller"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/rl_controller_login"
             android:layout_centerHorizontal="true"
             android:layout_margin="@dimen/margin_16"
             android:background="@color/color_background"

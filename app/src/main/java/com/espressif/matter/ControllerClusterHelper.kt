@@ -190,9 +190,9 @@ class ControllerClusterHelper constructor(
 
         val devicePtr = chipClient.awaitGetConnectedDevicePointer(nodeId)
         val invoke1 = chipClient.invoke(devicePtr, invokeElement1)
-        Log.d(TAG, "resetRefreshToken, result 1 : $invoke1")
+        Log.d(TAG, "appendRefreshToken, result 1 : $invoke1")
         val invoke2 = chipClient.invoke(devicePtr, invokeElement2)
-        Log.d(TAG, "resetRefreshToken, result 2 : $invoke2")
+        Log.d(TAG, "appendRefreshToken, result 2 : $invoke2")
     }
 
     fun appendRefreshTokenAsync(

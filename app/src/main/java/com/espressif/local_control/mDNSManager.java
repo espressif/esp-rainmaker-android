@@ -127,8 +127,10 @@ public class mDNSManager {
                     // If the resolver is free, resolve the service to get all the details
                     if (resolveListenerBusy.compareAndSet(false, true)) {
 
-                        mNsdManager.resolveService(serviceInfo, resolveListener);
-
+                        if (mNsdManager != null) {
+                            mNsdManager.resolveService(serviceInfo, resolveListener);
+                        }
+                        
                     } else {
 
                         // Resolver was busy. Add the service to the list of pending services
