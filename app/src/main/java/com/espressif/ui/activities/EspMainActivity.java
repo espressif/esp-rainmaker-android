@@ -268,6 +268,7 @@ public class EspMainActivity extends AppCompatActivity {
                 break;
 
             case EVENT_LOCAL_DEVICE_UPDATE:
+            case EVENT_MATTER_DEVICE_CONNECTIVITY:
                 updateUi();
                 break;
         }

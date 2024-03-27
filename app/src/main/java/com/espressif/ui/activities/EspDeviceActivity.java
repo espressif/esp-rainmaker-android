@@ -104,8 +104,8 @@ public class EspDeviceActivity extends AppCompatActivity {
     private boolean isUpdateView = true;
     private long lastUpdateRequestTime = 0;
 
-    private boolean isMatterOnly = false, isControllerClusterAvailable = false, isTbrClusterAvailable = false;
-    private String matterNodeId;
+    private boolean isControllerClusterAvailable = false, isTbrClusterAvailable = false;
+    private String nodeType, matterNodeId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,23 +123,27 @@ public class EspDeviceActivity extends AppCompatActivity {
             finish();
         } else {
             nodeId = device.getNodeId();
-            Log.e(TAG, "NODE ID : " + nodeId);
+            Log.d(TAG, "NODE ID : " + nodeId);
 
             isNodeOnline = espApp.nodeMap.get(nodeId).isOnline();
-            String nodeType = espApp.nodeMap.get(nodeId).getNewNodeType();
+            nodeType = espApp.nodeMap.get(nodeId).getNewNodeType();
+            timeStampOfStatus = espApp.nodeMap.get(nodeId).getTimeStampOfStatus();
+            snackbar = Snackbar.make(findViewById(R.id.params_parent_layout), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
 
-            if (!TextUtils.isEmpty(nodeType)) {
-                if (nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
-                    isMatterOnly = true;
-                    Log.e(TAG, "Pure matter device");
-                }
+            if (TextUtils.isEmpty(nodeType)) {
+                nodeType = AppConstants.NODE_TYPE_RM;
             }
 
-            if (espApp.matterRmNodeIdMap.containsKey(nodeId)) {
-                matterNodeId = espApp.matterRmNodeIdMap.get(nodeId);
+            if (nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)
+                    || nodeType.equals(AppConstants.NODE_TYPE_RM_MATTER)) {
 
-                if (matterNodeId != null && espApp.availableMatterDevices.contains(matterNodeId)
+                if (espApp.matterRmNodeIdMap.containsKey(nodeId)) {
+                    matterNodeId = espApp.matterRmNodeIdMap.get(nodeId);
+                }
+
+                if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(matterNodeId)
                         && espApp.matterDeviceInfoMap.containsKey(matterNodeId)) {
+
                     List<DeviceMatterInfo> deviceMatterInfo = espApp.matterDeviceInfoMap.get(matterNodeId);
 
                     if (deviceMatterInfo != null && !deviceMatterInfo.isEmpty()) {
@@ -157,11 +161,12 @@ public class EspDeviceActivity extends AppCompatActivity {
                             }
                         }
                     }
+                } else {
+                    Log.e(TAG, "Matter device info not available");
                 }
+            } else {
+                Log.d(TAG, "RainMaker device type");
             }
-
-            timeStampOfStatus = espApp.nodeMap.get(nodeId).getTimeStampOfStatus();
-            snackbar = Snackbar.make(findViewById(R.id.params_parent_layout), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
             setParamList(device.getParams());
             initViews();
             updateUi();
@@ -245,6 +250,10 @@ public class EspDeviceActivity extends AppCompatActivity {
                     updateUi();
                 }
                 break;
+
+            case EVENT_MATTER_DEVICE_CONNECTIVITY:
+                updateUi();
+                break;
         }
     }
 
@@ -258,10 +267,6 @@ public class EspDeviceActivity extends AppCompatActivity {
         return isNodeOnline;
     }
 
-    public boolean isMatterOnly() {
-        return isMatterOnly;
-    }
-
     public void setIsUpdateView(boolean isUpdateView) {
         this.isUpdateView = isUpdateView;
     }
@@ -271,7 +276,7 @@ public class EspDeviceActivity extends AppCompatActivity {
     }
 
     public void startUpdateValueTask() {
-        if (isMatterOnly) {
+        if (!TextUtils.isEmpty(nodeType) && nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
             return;
         }
         shouldGetParams = true;
@@ -625,10 +630,6 @@ public class EspDeviceActivity extends AppCompatActivity {
 
             ArrayList<Device> devices = espApp.nodeMap.get(nodeId).getDevices();
             isNodeOnline = espApp.nodeMap.get(nodeId).isOnline();
-            String nodeType = espApp.nodeMap.get(nodeId).getNewNodeType();
-            if (!TextUtils.isEmpty(nodeType) && nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
-                isMatterOnly = true;
-            }
             timeStampOfStatus = espApp.nodeMap.get(nodeId).getTimeStampOfStatus();
 
             for (int i = 0; i < devices.size(); i++) {
@@ -643,6 +644,11 @@ public class EspDeviceActivity extends AppCompatActivity {
             Log.e(TAG, "Node does not exist in list. It may be deleted.");
             finish();
             return;
+        }
+
+        boolean isMatterOnly = false;
+        if (!TextUtils.isEmpty(nodeType) && nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
+            isMatterOnly = true;
         }
 
         if (!deviceFound && !isMatterOnly) {
@@ -672,6 +678,12 @@ public class EspDeviceActivity extends AppCompatActivity {
                         ivSecureLocal.setVisibility(View.GONE);
                     }
                     tvNodeStatus.setText(R.string.local_device_text);
+
+                } else if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(matterNodeId)
+                        && espApp.matterDeviceInfoMap.containsKey(matterNodeId)) {
+
+                    rlNodeStatus.setVisibility(View.VISIBLE);
+                    tvNodeStatus.setText(R.string.status_local);
 
                 } else {
                     ivSecureLocal.setVisibility(View.GONE);
@@ -706,6 +718,15 @@ public class EspDeviceActivity extends AppCompatActivity {
             }
 
         } else {
+
+            if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(matterNodeId)
+                    && espApp.matterDeviceInfoMap.containsKey(matterNodeId)) {
+
+                rlNodeStatus.setVisibility(View.VISIBLE);
+                tvNodeStatus.setText(R.string.status_local);
+            } else {
+                rlNodeStatus.setVisibility(View.INVISIBLE);
+            }
 
             if (espApp.localDeviceMap.containsKey(nodeId)) {
 

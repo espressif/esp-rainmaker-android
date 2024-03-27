@@ -89,10 +89,10 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             matterNodeId = espApp.matterRmNodeIdMap.get(nodeId);
         }
 
-        if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
+        if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(matterNodeId)) {
             isMatterDeviceOnline = true;
         }
-
+        
         // set the data in items
         if (TextUtils.isEmpty(deviceName)) {
             deviceName = device.getDeviceName();
@@ -370,7 +370,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             deviceVh.tvStringValue.setVisibility(View.GONE);
         }
 
-        if (node != null && !node.isOnline()) {
+        if (node != null && !node.isOnline() && !isMatterDeviceOnline) {
 
             deviceVh.itemView.setAlpha(0.8f);
             deviceVh.ivDeviceStatus.setImageResource(R.drawable.ic_output_disable);
@@ -427,11 +427,14 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
         }
 
         if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(matterNodeId)) {
+
             deviceVh.llOffline.setVisibility(View.VISIBLE);
             deviceVh.ivOffline.setVisibility(View.GONE);
             deviceVh.tvOffline.setText(R.string.status_local);
             deviceVh.tvOffline.setTextColor(context.getColor(R.color.colorPrimaryDark));
+
         } else if (espApp.localDeviceMap.containsKey(nodeId)) {
+
             deviceVh.llOffline.setVisibility(View.VISIBLE);
 
             EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
