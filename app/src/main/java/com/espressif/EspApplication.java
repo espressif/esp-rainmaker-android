@@ -44,6 +44,7 @@ import com.espressif.matter.MatterFabricUtils;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.Utils;
 import com.espressif.ui.activities.ConsentActivity;
 import com.espressif.ui.models.Automation;
 import com.espressif.ui.models.Device;
@@ -157,7 +158,7 @@ public class EspApplication extends Application {
             mdnsManager = mDNSManager.getInstance(getApplicationContext(), AppConstants.MDNS_SERVICE_TYPE, listener);
         }
 
-        if (isPlayServicesAvailable()) {
+        if (Utils.isPlayServicesAvailable(getApplicationContext())) {
             FirebaseMessaging.getInstance().setAutoInitEnabled(false);
             setupNotificationChannels();
         }
@@ -879,7 +880,7 @@ public class EspApplication extends Application {
 
     public void registerDeviceToken() {
 
-        if (!isPlayServicesAvailable()) {
+        if (!Utils.isPlayServicesAvailable(getApplicationContext())) {
             Log.e(TAG, "Google Play Services not available.");
             return;
         }
@@ -952,7 +953,7 @@ public class EspApplication extends Application {
     }
 
     private void unregisterDeviceToken() {
-        if (isPlayServicesAvailable()) {
+        if (Utils.isPlayServicesAvailable(getApplicationContext())) {
             // Delete endpoint API
             apiManager.unregisterDeviceToken(deviceToken, new ApiResponseListener() {
                 @Override
@@ -982,7 +983,7 @@ public class EspApplication extends Application {
         wifiNetworkEditor.clear();
         wifiNetworkEditor.apply();
 
-        if (isPlayServicesAvailable()) {
+        if (Utils.isPlayServicesAvailable(getApplicationContext())) {
             FirebaseMessaging.getInstance().deleteToken();
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.cancelAll();
@@ -1023,12 +1024,17 @@ public class EspApplication extends Application {
      *
      * @return Copy of all devices array for the user.
      */
-    public ArrayList<Device> getAllDevices() {
+    public ArrayList<Device> getEventDevices() {
         ArrayList<Device> devices = new ArrayList<>();
         for (Map.Entry<String, EspNode> entry : nodeMap.entrySet()) {
 
             EspNode node = entry.getValue();
             if (node != null) {
+                // Automation disabled for matter devices
+                String nodeType = node.getNewNodeType();
+                if (!TextUtils.isEmpty(nodeType) && nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
+                    continue;
+                }
                 ArrayList<Device> espDevices = node.getDevices();
                 Iterator<Device> iterator = espDevices.iterator();
                 while (iterator.hasNext()) {
@@ -1226,19 +1232,6 @@ public class EspApplication extends Application {
         localDeviceMap.remove(nodeId);
     }
 
-    /**
-     * Check the device to make sure it has the Google Play Services APK.
-     *
-     * @return Returns true if Google Api is available.
-     */
-    private boolean isPlayServicesAvailable() {
-        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
-        int resultCode = apiAvailability.isGooglePlayServicesAvailable(this);
-        if (resultCode == ConnectionResult.SUCCESS) {
-            return true;
-        }
-        return false;
-    }
 
     private boolean isParamAvailableInList(ArrayList<Param> params, String type) {
         boolean isAvailable = false;

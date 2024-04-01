@@ -504,7 +504,7 @@ public class AutomationDetailActivity extends AppCompatActivity {
         Intent intent = new Intent(this, EventDeviceActivity.class);
         intent.putExtra(AppConstants.KEY_AUTOMATION, automation);
         intent.putExtra(AppConstants.KEY_OPERATION, AppConstants.KEY_OPERATION_EDIT);
-        ArrayList<Device> devices = espApp.getAllDevices();
+        ArrayList<Device> devices = espApp.getEventDevices();
         intent.putParcelableArrayListExtra(AppConstants.KEY_DEVICES, devices);
         startActivityForResult(intent, REQ_CODE_EVENT_DEVICE);
     }
@@ -514,7 +514,7 @@ public class AutomationDetailActivity extends AppCompatActivity {
         Intent intent = new Intent(this, AutomationActionsActivity.class);
         intent.putExtra(AppConstants.KEY_AUTOMATION, automation);
         intent.putExtra(AppConstants.KEY_OPERATION, AppConstants.KEY_OPERATION_EDIT);
-        ArrayList<Device> devices = espApp.getAllDevices();
+        ArrayList<Device> devices = espApp.getEventDevices();
 
         Iterator deviceIterator = devices.iterator();
         while (deviceIterator.hasNext()) {

@@ -111,7 +111,7 @@ public class EventDeviceActivity extends AppCompatActivity implements EventSelec
     private void gotoActionsScreen() {
         Intent intent = new Intent(this, AutomationActionsActivity.class);
         EspApplication espApp = (EspApplication) getApplicationContext();
-        ArrayList<Device> devices = espApp.getAllDevices();
+        ArrayList<Device> devices = espApp.getEventDevices();
         Iterator deviceIterator = devices.iterator();
         while (deviceIterator.hasNext()) {
 

@@ -98,6 +98,7 @@
     <string name="error_group_update">Failed to update group</string>
     <string name="error_group_remove">Failed to remove group</string>
     <string name="error_get_sharing_request">Failed to get sharing requests</string>
+    <string name="error_notification">Failed to get notifications</string>
     <string name="error_add_member">Failed to add a member</string>
     <string name="error_remove_member">Failed to delete member</string>
     <string name="error_remove_sharing_req">Failed to remove sharing request</string>
@@ -244,6 +245,7 @@
     <string name="btn_check_update">Check firmware update</string>
     <string name="btn_check_again">Check Again</string>
     <string name="btn_configuring">Configuring&#8230;</string>
+    <string name="btn_reset_to_defaults">Reset</string>
 
     <!--Screen titles-->
     <string name="title_activity_devices">Devices</string>
@@ -317,6 +319,8 @@
     <string name="dialog_title_error">Error!!</string>
     <string name="dialog_msg_proceed_confirmation">Do you want to proceed?</string>
     <string name="dialog_msg_device_offline">Device is offline. Please connect your device to network and try again.</string>
+    <string name="dialog_msg_play_services_required">Google Play Services need to be installed on your phone to add matter supported device.</string>
+    <string name="dialog_title_play_services_required">Alert!</string>
 
     <!--Node Details-->
     <string name="node_id">Node Id</string>

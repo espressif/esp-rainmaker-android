@@ -346,7 +346,7 @@ public class AutomationFragment extends Fragment {
 
         Intent intent = new Intent(getActivity(), EventDeviceActivity.class);
         intent.putExtra(AppConstants.KEY_AUTOMATION, automation);
-        ArrayList<Device> devices = espApp.getAllDevices();
+        ArrayList<Device> devices = espApp.getEventDevices();
         intent.putParcelableArrayListExtra(AppConstants.KEY_DEVICES, devices);
         startActivity(intent);
     }

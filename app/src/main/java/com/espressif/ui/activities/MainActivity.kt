@@ -32,6 +32,7 @@ import com.espressif.EspApplication
 import com.espressif.cloudapi.ApiManager
 import com.espressif.cloudapi.ApiResponseListener
 import com.espressif.cloudapi.CloudException
+import com.espressif.rainmaker.BuildConfig
 import com.espressif.rainmaker.R
 import com.espressif.rainmaker.databinding.ActivityMainBinding
 import com.espressif.ui.Utils
@@ -148,25 +149,31 @@ class MainActivity : AppCompatActivity() {
                 clickCount = 1
                 startTimeOfClick = currentTIme
             }
-            1 -> if (currentTIme - startTimeOfClick < CLICK_TIME_DURATION) {
-                clickCount++
-            } else {
-                clickCount = 1
-                startTimeOfClick = currentTIme
+
+            in 1..3 -> {
+                if (currentTIme - startTimeOfClick < CLICK_TIME_DURATION) {
+                    clickCount++
+                } else {
+                    clickCount = 1
+                    startTimeOfClick = currentTIme
+                }
             }
-            2 -> if (currentTIme - startTimeOfClick < CLICK_TIME_DURATION) {
-                clickCount = 0
-                askForBaseUrl()
-            } else {
-                clickCount = 1
-                startTimeOfClick = currentTIme
+
+            4 -> {
+                if (currentTIme - startTimeOfClick < CLICK_TIME_DURATION) {
+                    clickCount = 0
+                    askForBaseUrl()
+                } else {
+                    clickCount = 1
+                    startTimeOfClick = currentTIme
+                }
             }
         }
     }
 
     private fun askForBaseUrl() {
         val builder: AlertDialog.Builder = AlertDialog.Builder(this)
-        builder.setCancelable(true)
+        builder.setCancelable(false)
         builder.setTitle(R.string.base_url_title)
         val layoutInflaterAndroid = LayoutInflater.from(this)
         val view: View = layoutInflaterAndroid.inflate(R.layout.dialog_base_url, null)
@@ -178,26 +185,47 @@ class MainActivity : AppCompatActivity() {
         // Set up the buttons
         builder.setPositiveButton(R.string.btn_update,
             DialogInterface.OnClickListener { dialog, which ->
-                var baseUrl = etPrefix.text.toString()
-                if (baseUrl != null) {
-                    baseUrl = baseUrl.trim()
-                }
-
+                var baseUrl = etPrefix.text.toString().trim()
                 if (TextUtils.isEmpty(baseUrl)) {
                     Toast.makeText(this, R.string.error_base_url_empty, Toast.LENGTH_LONG).show()
                 } else {
-                    val sharedPreferences =
-                        getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE)
-                    val editor = sharedPreferences.edit()
-                    editor.putString(AppConstants.KEY_BASE_URL, baseUrl)
-                    editor.apply()
-                    EspApplication.BASE_URL = baseUrl
+                    updateBaseUrl(baseUrl.trim())
+                    dialog.dismiss()
                 }
             })
 
-        builder.setNegativeButton(R.string.btn_cancel,
+        builder.setNegativeButton(R.string.btn_reset_to_defaults,
+            DialogInterface.OnClickListener { dialog, which ->
+                val defaultBaseUrl = BuildConfig.BASE_URL
+                updateBaseUrl(defaultBaseUrl)
+                etPrefix.setText(defaultBaseUrl)
+            })
+
+        builder.setNeutralButton(R.string.btn_cancel,
             DialogInterface.OnClickListener { dialog, which -> dialog.dismiss() })
-        builder.show()
+
+        val dialog = builder.create()
+        dialog.show()
+
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setOnClickListener {
+            val defaultBaseUrl = BuildConfig.BASE_URL
+            updateBaseUrl(defaultBaseUrl)
+            etPrefix.setText(defaultBaseUrl)
+        }
+    }
+
+    private fun updateBaseUrl(baseUrl: String) {
+        var formattedBaseUrl = baseUrl
+        if (!formattedBaseUrl.startsWith("http://") && !formattedBaseUrl.startsWith("https://")) {
+            formattedBaseUrl = "https://$formattedBaseUrl"
+        }
+        Log.d(TAG, "Formatted Base URL: $formattedBaseUrl")
+        val sharedPreferences =
+            getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        editor.putString(AppConstants.KEY_BASE_URL, formattedBaseUrl)
+        editor.apply()
+        EspApplication.BASE_URL = formattedBaseUrl
     }
 
     private fun showLoginLoading() {

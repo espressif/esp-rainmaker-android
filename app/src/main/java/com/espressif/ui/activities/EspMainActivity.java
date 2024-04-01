@@ -817,7 +817,7 @@ public class EspMainActivity extends AppCompatActivity {
 
         Intent intent = new Intent(this, EventDeviceActivity.class);
         intent.putExtra(AppConstants.KEY_AUTOMATION, automation);
-        ArrayList<Device> devices = espApp.getAllDevices();
+        ArrayList<Device> devices = espApp.getEventDevices();
         intent.putParcelableArrayListExtra(AppConstants.KEY_DEVICES, devices);
         startActivity(intent);
     }

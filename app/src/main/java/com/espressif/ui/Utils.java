@@ -34,6 +34,8 @@ import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Schedule;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.gson.JsonObject;
 
 import org.json.JSONArray;
@@ -266,6 +268,9 @@ public class Utils {
     }
 
     public static ArrayList<Param> getWritableParams(ArrayList<Param> allParams) {
+        if (allParams == null) {
+            return new ArrayList<>();
+        }
         Iterator itr = allParams.iterator();
         while (itr.hasNext()) {
             Param p = (Param) itr.next();
@@ -418,6 +423,20 @@ public class Utils {
             return BuildConfig.continuosUpdateInterval;
         }
         return AppConstants.MID_THROTTLE_DELAY;
+    }
+
+    /**
+     * Check the device to make sure it has the Google Play Services APK.
+     *
+     * @return Returns true if Google Api is available.
+     */
+    public static boolean isPlayServicesAvailable(Context appContext) {
+        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
+        int resultCode = apiAvailability.isGooglePlayServicesAvailable(appContext);
+        if (resultCode == ConnectionResult.SUCCESS) {
+            return true;
+        }
+        return false;
     }
 
     public static void setDeviceIcon(ImageView ivDevice, String deviceType) {
