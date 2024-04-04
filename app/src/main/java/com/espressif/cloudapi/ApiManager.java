@@ -4245,6 +4245,7 @@ public class ApiManager {
                             data.putString(AppConstants.KEY_FABRIC_ID, fabricId);
                             data.putString(AppConstants.KEY_ROOT_CA, fabricDetails.getRootCa());
                             data.putString(AppConstants.KEY_IPK, fabricDetails.getIpk());
+                            data.putString(AppConstants.KEY_GROUP_CAT_ID_OPERATE, fabricDetails.getGroupCatIdOperate());
                         }
                         espApp.groupMap.put(groupId, fabricGroup);
                         listener.onSuccess(data);

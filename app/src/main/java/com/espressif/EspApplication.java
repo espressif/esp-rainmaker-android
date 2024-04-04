@@ -123,7 +123,7 @@ public class EspApplication extends Application {
     private String deviceToken;
     private KeyStore keyStore = null;
 
-    public String mGroupId, mFabricId, mRootCa, mIpk;
+    public String mGroupId, mFabricId, mRootCa, mIpk, groupCatIdOperate;
 
     public enum AppState {
         NO_USER_LOGIN,
@@ -558,6 +558,7 @@ public class EspApplication extends Application {
                         String fabricId = "";
                         String ipk = "";
                         String rootCa = "";
+                        String catIdOp = "";
 
                         if (!matterNodeId.equals(mNodeId)) {
                             continue;
@@ -569,12 +570,13 @@ public class EspApplication extends Application {
                             fabricId = g.getFabricDetails().getFabricId();
                             rootCa = g.getFabricDetails().getRootCa();
                             ipk = g.getFabricDetails().getIpk();
+                            catIdOp = g.getFabricDetails().getGroupCatIdOperate();
 
                             if (!chipClientMap.containsKey(matterNodeId)) {
                                 if (!TextUtils.isEmpty(fabricId) && !TextUtils.isEmpty(rootCa)
                                         && !TextUtils.isEmpty(ipk) && !TextUtils.isEmpty(matterNodeId) && !TextUtils.isEmpty(matterNodeId)) {
                                     ChipClient chipClient = new ChipClient(this, g.getGroupId()
-                                            , fabricId, rootCa, ipk);
+                                            , fabricId, rootCa, ipk, catIdOp);
                                     chipClientMap.put(matterNodeId, chipClient);
                                 }
                             }
@@ -611,11 +613,13 @@ public class EspApplication extends Application {
                         String fabricId = "";
                         String ipk = "";
                         String rootCa = "";
+                        String catIdOp = "";
 
                         if (g.getFabricDetails() != null) {
                             fabricId = g.getFabricDetails().getFabricId();
                             rootCa = g.getFabricDetails().getRootCa();
                             ipk = g.getFabricDetails().getIpk();
+                            catIdOp = g.getFabricDetails().getGroupCatIdOperate();
 
                             if (TextUtils.isEmpty(matterNodeId)) {
                                 return;
@@ -625,7 +629,7 @@ public class EspApplication extends Application {
                                 if (!TextUtils.isEmpty(fabricId) && !TextUtils.isEmpty(rootCa)
                                         && !TextUtils.isEmpty(ipk) && !TextUtils.isEmpty(matterNodeId) && !TextUtils.isEmpty(matterNodeId)) {
                                     ChipClient chipClient = new ChipClient(this, g.getGroupId()
-                                            , fabricId, rootCa, ipk);
+                                            , fabricId, rootCa, ipk, catIdOp);
                                     Log.d(TAG, "In it chip controller for matterNodeId id : " + matterNodeId);
                                     chipClientMap.put(matterNodeId, chipClient);
                                 }

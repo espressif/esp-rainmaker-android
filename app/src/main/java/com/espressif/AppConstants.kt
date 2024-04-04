@@ -441,6 +441,10 @@ class AppConstants {
         const val COMMAND_UPDATE_USER_NOC = 3L
         const val COMMAND_UPDATE_DEVICE_LIST = 4L
 
+        const val CAT_ID_PREFIX = "FFFFFFFD"
+
+        const val PRIVILEGE_ADMIN = 5
+        const val PRIVILEGE_OPERATE = 3
 
         enum class UpdateEventType {
             EVENT_DEVICE_ADDED,
