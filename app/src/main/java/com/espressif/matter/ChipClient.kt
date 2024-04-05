@@ -27,6 +27,7 @@ import chip.tlv.AnonymousTag
 import chip.tlv.TlvWriter
 import com.espressif.AppConstants
 import com.espressif.cloudapi.ApiManager
+import com.espressif.ui.Utils
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -55,7 +56,8 @@ class ChipClient constructor(
     private val groupId: String,
     private val fabricId: String,
     private val rootCa: String,
-    private val ipk: String
+    private val ipk: String,
+    private val groupCatIdOperate: String
 ) {
 
     companion object {
@@ -600,8 +602,54 @@ class ChipClient constructor(
                                 var description: String? =
                                     ApiManager.getInstance(context)
                                         .confirmMatterNode(body, groupId)
-                                Log.d(TAG, "Confirming matter node : $description")
-                                
+                                Log.d(TAG, "Confirming matter node, response : $description")
+
+                                var aclClusterHelper = AccessControlClusterHelper(this@ChipClient)
+                                var aclAttr: MutableList<ChipStructs.AccessControlClusterAccessControlEntryStruct>? =
+                                    null
+
+                                Log.d(TAG, "Reading ACL Attributes")
+                                aclAttr = aclClusterHelper.readAclAttributeAsync(
+                                    deviceNodeId,
+                                    AppConstants.ENDPOINT_0
+                                ).get()
+                                Log.d(TAG, "ACL attributes : $aclAttr")
+
+                                var entries: java.util.ArrayList<ChipStructs.AccessControlClusterAccessControlEntryStruct> =
+                                    java.util.ArrayList<ChipStructs.AccessControlClusterAccessControlEntryStruct>()
+
+                                val it = aclAttr?.listIterator()
+                                var fabricIndex = 0
+                                var authMode = 0
+                                if (it != null) {
+                                    for (entry in it) {
+                                        entries.add(entry)
+                                        if (entry.privilege == AppConstants.PRIVILEGE_ADMIN) {
+                                            fabricIndex = entry.fabricIndex
+                                            authMode = entry.authMode
+                                        }
+                                    }
+                                }
+
+                                var subjects: ArrayList<Any> = ArrayList<Any>()
+                                subjects.add(Utils.getCatId(groupCatIdOperate))
+
+                                var entry =
+                                    ChipStructs.AccessControlClusterAccessControlEntryStruct(
+                                        AppConstants.PRIVILEGE_OPERATE,
+                                        authMode, subjects,
+                                        null,
+                                        fabricIndex
+                                    )
+
+                                entries.add(entry)
+
+                                aclClusterHelper.writeAclAttributeAsync(
+                                    deviceNodeId,
+                                    AppConstants.ENDPOINT_0,
+                                    entries
+                                ).get()
+
                                 continuation.resume(Unit)
                             }
                         }

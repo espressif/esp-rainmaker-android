@@ -55,8 +55,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 27
         targetSdkVersion 33
-        versionCode 111
-        versionName "3.2.1 - ${getGitHash()}"
+        versionCode 112
+        versionName "3.2.2 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""

@@ -40,6 +40,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Iterator;
@@ -499,5 +501,11 @@ public class Utils {
                     break;
             }
         }
+    }
+
+    public static Object getCatId(String catIdOperate) {
+        catIdOperate = AppConstants.CAT_ID_PREFIX + catIdOperate;
+        BigDecimal catId = new BigDecimal(new BigInteger(catIdOperate, 16));
+        return catId.longValue();
     }
 }
