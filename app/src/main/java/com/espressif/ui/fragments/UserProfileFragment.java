@@ -111,7 +111,7 @@ public class UserProfileFragment extends Fragment {
         if (BuildConfig.isNodeSharingSupported) {
             userInfoList.add(getString(R.string.title_activity_sharing_requests));
         }
-
+        userInfoList.add(getString(R.string.title_activity_group_sharing_requests));
         userInfoList.add(getString(R.string.voice_services));
         userInfoList.add(getString(R.string.title_activity_about));
         userInfoAdapter = new UserProfileAdapter(getActivity(), userInfoList, 0);

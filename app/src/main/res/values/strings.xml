@@ -41,6 +41,10 @@
     <string name="progress_check_fw_update_status">Checking firmware update status...</string>
     <string name="progress_push_fw_update">Pushing OTA update...</string>
     <string name="progress_tbr_config">Configuring TBR in progress...</string>
+    <string name="progress_group_sharing_request">Sending Request...</string>
+    <string name="progress_fetching_group_sharing_request">Fetching Request...</string>
+    <string name="progress_canceling_group_sharing_request">Canceling Group Share Request...</string>
+    <string name="progress_revoking_group_share_access">Revoking Group Share Access...</string>
 
     <!--Error Messages-->
     <string name="error_title">Error!</string>
@@ -155,6 +159,7 @@
     <string name="max_cnt_reached">Max supported count %d reached</string>
     <string name="invalid">Invalid</string>
     <string name="status_remote">Remote</string>
+    <string name="no_group_share_requests">No Sharing Request</string>
 
     <!--Tab titles-->
     <string name="tab_login">SIGN IN</string>
@@ -247,6 +252,11 @@
     <string name="btn_check_again">Check Again</string>
     <string name="btn_configuring">Configuring&#8230;</string>
     <string name="btn_reset_to_defaults">Reset</string>
+    <string name="btn_send_request">Send Request</string>
+    <string name="btn_remove_group">Remove Group</string>
+    <string name="btn_leave_group">Leave Group</string>
+    <string name="btn_share">Share</string>
+    <string name="btn_group_info">Group Info</string>
 
     <!--Screen titles-->
     <string name="title_activity_devices">Devices</string>
@@ -287,6 +297,8 @@
     <string name="title_activity_amazon_alexa">Amazon Alexa</string>
     <string name="title_activity_fw_update">Firmware Update</string>
     <string name="title_activity_tbr">Thread border router</string>
+    <string name="title_activity_group_sharing_requests">Group Sharing</string>
+    <string name="title_activity_group_detail">Group Details</string>
 
     <!--Dialog texts-->
     <string name="dialog_title_login_failed">Sign-in failed</string>
@@ -322,6 +334,12 @@
     <string name="dialog_msg_device_offline">Device is offline. Please connect your device to network and try again.</string>
     <string name="dialog_msg_play_services_required">Google Play Services need to be installed on your phone to add matter supported device.</string>
     <string name="dialog_title_play_services_required">Alert!</string>
+    <string name="dialog_msg_confirmation_remove_group">Are you sure to remove this group ? \nIt will result in revoking access of all other users with whom this group is shared with.</string>
+    <string name="dialog_title_leave_group">Leave</string>
+    <string name="dialog_msg_confirmation_leave_group">Are you sure to leave this group and remove your access for the group ?</string>
+    <string name="dialog_title_revoke_group_access">Revoke</string>
+    <string name="dialog_msg_confirmation_revoke_group_access">Do you want to revoke group sharing access?</string>
+    <string name="dialog_msg_confirmation_cancel_group_request">Do you want to cancel group sharing request?</string>
 
     <!--Node Details-->
     <string name="node_id">Node Id</string>
@@ -335,6 +353,7 @@
     <string name="system_services">System Services</string>
     <string name="add_member">Add Member</string>
     <string name="node_fw_update">Firmware update</string>
+    <string name="from_group"> (from group)</string>
 
     <!-- Instruction Strings -->
     <string name="pop_instruction">Enter your proof of possession PIN for</string>
@@ -424,6 +443,7 @@
     <string name="node">node</string>
     <string name="expires_in">Expires in</string>
     <string name="expire_days">days</string>
+    <string name="expires_today">Expires today</string>
     <string name="select_timezone">Select Timezone</string>
     <string name="select_network">Select Network</string>
     <string name="email">Email</string>
@@ -447,6 +467,12 @@
     <string name="fw_update_check">Click below to check for firmware update.</string>
     <string name="dialog_msg_matter_controller">Matter Controller needs access to your RainMaker account to fetch all nodes under the account. Proceed?</string>
     <string name="tbr_setup_done">Thread border router setup is done.</string>
+    <string name="was_shared_by">was shared by</string>
+    <string name="group">Group</string>
+    <string name="group_request_shared_with">Shared with</string>
+    <string name="checkbox_grant_full_access_primary">Grant full access</string>
+    <string name="matter_fabric_yes">Yes</string>
+    <string name="matter_fabric_no">No</string>
 
     <string name="linked_with_alexa">Already linked with Amazon Alexa</string>
     <string name="alexa_link_str">You can now control your Smart Home Devices via Alexa enabled speakers using Voice commands.</string>
@@ -492,6 +518,7 @@
     <string name="channel_node_sharing">Node Sharing</string>
     <string name="channel_node_alert">Alert Messages</string>
     <string name="channel_node_automation_trigger">Automation Triggers</string>
+    <string name="channel_node_group_sharing">Group Sharing</string>
 
     <string name="notify_node_added">New device(s) are added. Tap to view.</string>
     <string name="notify_node_removed">Some device(s) are removed. Tap to view.</string>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">>
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -254,6 +254,11 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
+            android:name="com.espressif.ui.activities.GroupShareActivity"
+            android:label="@string/title_activity_group_sharing_requests"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
             android:name="com.espressif.ui.activities.TimeSeriesActivity"
             android:label="@string/title_activity_about"
             android:screenOrientation="portrait"
@@ -298,7 +303,14 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
 
+        <activity android:name="com.espressif.ui.activities.GroupInfoActivity"
+            android:label="@string/title_activity_group_detail"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar"/>
+
         <receiver android:name="com.espressif.NodeSharingActionReceiver" />
+
+        <receiver android:name="com.espressif.GroupSharingActionReceiver" />
 
         <service
             android:name="com.espressif.matter.AppCommissioningService"

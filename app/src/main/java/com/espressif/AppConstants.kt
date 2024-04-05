@@ -142,6 +142,7 @@ class AppConstants {
         const val CHANNEL_ALERT = "notify_alert_id"
         const val CHANNEL_NODE_SHARING = "notify_node_sharing_id"
         const val CHANNEL_NODE_AUTOMATION_TRIGGER = "notify_node_automation_trigger"
+        const val CHANNEL_GROUP_SHARING = "notify_group_sharing_id"
 
         // Notification button actions
         const val ACTION_ACCEPT = "com.espressif.rainmaker.ACTION_ACCEPT"
@@ -156,6 +157,9 @@ class AppConstants {
         const val EVENT_NODE_PARAM_MODIFIED = "rmaker.event.node_params_changed"
         const val EVENT_ALERT = "rmaker.event.alert"
         const val EVENT_NODE_AUTOMATION_TRIGGER = "rmaker.event.node_automation_trigger"
+        const val EVENT_GROUP_SHARING_ADD = "rmaker.event.user_node_group_sharing_add"
+        const val EVENT_GROUP_SHARE_ADDED = "rmaker.event.user_node_group_added"
+        const val EVENT_GROUP_SHARE_REMOVED = "rmaker.event.user_node_group_removed"
 
         /* App related constants */
 
@@ -217,6 +221,9 @@ class AppConstants {
         const val URL_USER_NODE_AUTOMATION = "/user/node_automation"
         const val URL_NODE_OTA_UPDATE = "/user/nodes/ota_update"
         const val URL_NODE_OTA_STATUS = "/user/nodes/ota_status"
+
+        const val URL_USER_NODE_GROUP_SHARING = "/user/node_group/sharing"
+        const val URL_USER_NODE_GROUP_SHARING_REQUESTS = "/user/node_group/sharing/requests"
 
         // Alexa account linking constants
         const val ALEXA_API_ENDPOINTS_URL = "https://api.amazonalexa.com/v1/alexaApiEndpoint"
@@ -305,6 +312,8 @@ class AppConstants {
         const val KEY_GROUP = "group"
         const val KEY_NODE_IDS = "node_ids"
         const val KEY_NODE_SHARING = "node_sharing"
+        const val KEY_GROUP_SHARING = "group_sharing"
+        const val KEY_SOURCES = "sources"
         const val KEY_USERS = "users"
         const val KEY_PRIMARY_USER = "primary_user"
         const val KEY_START_REQ_ID = "start_request_id"
@@ -351,6 +360,10 @@ class AppConstants {
         const val KEY_SYSTEM = "System"
         const val KEY_MATTER_CONTROLLER = "Matter-Controller"
         const val KEY_REACHABLE = "reachable"
+        const val KEY_SHARED_FROM = "shared_from"
+        const val KEY_SHARED_TO = "shared_to"
+        const val KEY_SELF_REMOVAL = "self_removal"
+        const val KEY_NODE = "NODE"
 
         const val KEY_OPERATION = "operation"
         const val KEY_OPERATION_ADD = "add"
@@ -406,6 +419,9 @@ class AppConstants {
         const val KEY_OTA_JOB_ID = "ota_job_id"
         const val KEY_OTA_DETAILS = "ota_details"
         const val KEY_OTA_AVAILABLE = "ota_available"
+
+        const val KEY_GROUP_NAMES = "group_names"
+        const val KEY_GROUP_IDS = "group_ids"
 
         const val KEY_MUTUALLY_EXCLUSIVE = "mutually_exclusive"
         const val KEY_IS_MATTER = "is_matter"

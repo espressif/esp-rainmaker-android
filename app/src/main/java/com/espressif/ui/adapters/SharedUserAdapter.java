@@ -131,9 +131,10 @@ public class SharedUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
             case VIEW_TYPE_SECONDARY_MEMBER:
                 final MemberViewHolder memberViewHolder = (MemberViewHolder) holder;
+                String email = users.get(position);
 
                 if (node.getUserRole().equals(AppConstants.KEY_USER_ROLE_PRIMARY)) {
-                    memberViewHolder.tvMemberEmail.setText(users.get(position));
+                    memberViewHolder.tvMemberEmail.setText(email);
                     memberViewHolder.ivRemoveMember.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -142,7 +143,11 @@ public class SharedUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                     });
                 } else {
                     memberViewHolder.ivRemoveMember.setVisibility(View.GONE);
-                    memberViewHolder.tvMemberEmail.setText(users.get(position));
+                    if (node.getSharedGroupIds() != null && !node.getSharedGroupIds().isEmpty()) {
+                        email += " " + holder.itemView.getContext().getString(R.string.from_group);
+                    }
+                    memberViewHolder.tvMemberEmail.setText(email);
+
                 }
                 break;
 

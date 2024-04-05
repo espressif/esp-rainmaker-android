@@ -38,6 +38,7 @@ import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.db.EspDatabase;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.activities.GroupShareActivity;
 import com.espressif.ui.activities.NotificationsActivity;
 import com.espressif.ui.activities.SplashActivity;
 import com.espressif.ui.models.Device;
@@ -148,6 +149,12 @@ public class NotificationWorker extends Worker {
                         }
                     } else if (AppConstants.EVENT_ALERT.equals(eventType)) {
                         processAlertEvent(title, notificationEvent, jsonEventData);
+                    } else if (AppConstants.EVENT_GROUP_SHARING_ADD.equals(eventType)) {
+                        processGroupSharingAddEvent(title, notificationEvent, jsonEventData);
+                    } else if (AppConstants.EVENT_GROUP_SHARE_ADDED.equals(eventType)) {
+                        processGroupShareAddedEvent(title, notificationEvent, jsonEventData);
+                    } else if (AppConstants.EVENT_GROUP_SHARE_REMOVED.equals(eventType)) {
+                        processGroupShareRemovedEvent(title, notificationEvent, jsonEventData);
                     } else {
                         notificationEvent.setEventDescription(body);
                         EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
@@ -1061,5 +1068,185 @@ public class NotificationWorker extends Worker {
     private boolean shouldSendNotification() {
         return (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && notificationManager.areNotificationsEnabled())
                 || (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU);
+    }
+
+    // Event type - Group Share
+    private void processGroupSharingAddEvent(String title, NotificationEvent notificationEvent, JSONObject jsonEventData) {
+        espApp = (EspApplication) getApplicationContext();
+        String eventType = jsonEventData.optString(AppConstants.KEY_EVENT_TYPE);
+        String sharedFrom = jsonEventData.optString(AppConstants.KEY_SHARED_FROM);
+        String requestId = jsonEventData.optString(AppConstants.KEY_REQ_ID);
+        boolean accept = jsonEventData.optBoolean(AppConstants.KEY_REQ_ACCEPT);
+        String sharedTo = jsonEventData.optString(AppConstants.KEY_SHARED_TO);
+
+        JSONArray groupsJsonArray = jsonEventData.optJSONArray(AppConstants.KEY_GROUPS);
+        String groupName = "";
+
+        if (groupsJsonArray != null && groupsJsonArray.length() > 0) {
+            JSONObject groupJson = groupsJsonArray.optJSONObject(0);
+            groupName = groupJson.optString(AppConstants.KEY_GROUP_NAME);
+        }
+
+        StringBuilder msgBuilder = new StringBuilder();
+
+        if (!TextUtils.isEmpty(sharedFrom) && !TextUtils.isEmpty(groupName) && !accept) {
+
+            msgBuilder.append(sharedFrom);
+            msgBuilder.append(" is trying to share group ");
+            msgBuilder.append(groupName);
+            msgBuilder.append(" with you.");
+            msgBuilder.append(" ");
+            msgBuilder.append("Tap to accept or decline.");
+
+            sendGroupSharingRequestNotification(title, msgBuilder.toString(), requestId);
+
+        } else if (accept) {
+
+            msgBuilder.append(sharedTo);
+            msgBuilder.append(" has accepted your request for group ");
+            msgBuilder.append(groupName);
+            msgBuilder.append(".");
+
+            sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_GROUP_SHARING, SplashActivity.class);
+
+        } else {
+
+            msgBuilder.append(sharedTo);
+            msgBuilder.append(" has denied your request for group ");
+            msgBuilder.append(groupName);
+            msgBuilder.append(".");
+
+            sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_GROUP_SHARING, SplashActivity.class);
+        }
+    }
+
+    private void sendGroupSharingRequestNotification(String title, String contentText, String requestId) {
+        Log.d(TAG, "Display group sharing notification with request id : " + requestId + "title, sendGroupSharingRequestNotification : " + title);
+
+        Intent activityIntent = new Intent(espApp, GroupShareActivity.class);
+        activityIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent contentIntent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            contentIntent = PendingIntent.getActivity(espApp,
+                    0 /* Request code */,
+                    activityIntent,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_ONE_SHOT);
+        } else {
+            contentIntent = PendingIntent.getActivity(espApp,
+                    0 /* Request code */,
+                    activityIntent,
+                    PendingIntent.FLAG_ONE_SHOT);
+        }
+        int id = notificationId++;
+        Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(espApp, AppConstants.CHANNEL_GROUP_SHARING)
+                .setSmallIcon(R.drawable.ic_notify_rainmaker)
+                .setColor(espApp.getColor(R.color.color_esp_logo))
+                .setContentTitle(title)
+                .setContentText(contentText)
+                .setStyle(new NotificationCompat.BigTextStyle()
+                        .bigText(contentText))
+                .setAutoCancel(true)
+                .setSound(defaultSoundUri)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(contentIntent);
+
+        Intent acceptIntent = new Intent(espApp, GroupSharingActionReceiver.class);
+        acceptIntent.setAction(AppConstants.ACTION_ACCEPT);
+        acceptIntent.putExtra(AppConstants.KEY_REQ_ID, requestId);
+        acceptIntent.putExtra(AppConstants.KEY_ID, id);
+        PendingIntent acceptPendingIntent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            acceptPendingIntent = PendingIntent.getBroadcast(espApp,
+                    notificationId++ /* Request code */,
+                    acceptIntent,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_ONE_SHOT);
+        } else {
+            acceptPendingIntent = PendingIntent.getBroadcast(espApp,
+                    notificationId++ /* Request code */,
+                    acceptIntent,
+                    PendingIntent.FLAG_ONE_SHOT);
+        }
+
+        notificationBuilder.addAction(R.drawable.ic_notify_accept, espApp.getString(R.string.btn_accept), acceptPendingIntent);
+
+        Intent declineIntent = new Intent(espApp, GroupSharingActionReceiver.class);
+        declineIntent.setAction(AppConstants.ACTION_DECLINE);
+        declineIntent.putExtra(AppConstants.KEY_REQ_ID, requestId);
+        declineIntent.putExtra(AppConstants.KEY_ID, id);
+        PendingIntent declinePendingIntent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            declinePendingIntent = PendingIntent.getBroadcast(espApp,
+                    notificationId++ /* Request code */,
+                    declineIntent,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_ONE_SHOT);
+        } else {
+            declinePendingIntent = PendingIntent.getBroadcast(espApp,
+                    notificationId++ /* Request code */,
+                    declineIntent,
+                    PendingIntent.FLAG_ONE_SHOT);
+        }
+
+        notificationBuilder.addAction(R.drawable.ic_notify_decline, espApp.getString(R.string.btn_deny), declinePendingIntent);
+
+        notificationManager.notify(id, notificationBuilder.build());
+
+    }
+
+    private void processGroupShareAddedEvent(String title, NotificationEvent notificationEvent, JSONObject jsonEventData) {
+        espApp = (EspApplication) getApplicationContext();
+
+        JSONArray groupsJsonArray = jsonEventData.optJSONArray(AppConstants.KEY_GROUPS);
+        String groupName = "";
+
+        if (groupsJsonArray != null && groupsJsonArray.length() > 0) {
+            JSONObject groupJson = groupsJsonArray.optJSONObject(0);
+            groupName = groupJson.optString(AppConstants.KEY_GROUP_NAME);
+        }
+
+        String requestId = jsonEventData.optString(AppConstants.KEY_REQ_ID);
+        StringBuilder msgBuilder = new StringBuilder();
+        if (!TextUtils.isEmpty(groupName)) {
+            msgBuilder.append("Group ");
+            msgBuilder.append(groupName);
+            msgBuilder.append(" was added.");
+
+        } else {
+            Log.e(TAG, "Group name is empty");
+        }
+        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_GROUP_SHARING, SplashActivity.class);
+    }
+
+    private void processGroupShareRemovedEvent(String title, NotificationEvent notificationEvent, JSONObject jsonEventData) {
+        espApp = (EspApplication) getApplicationContext();
+
+        JSONArray groupsJsonArray = jsonEventData.optJSONArray(AppConstants.KEY_GROUPS);
+        String sharedFrom = jsonEventData.optString(AppConstants.KEY_SHARED_FROM);
+        boolean selfRemoval = jsonEventData.optBoolean(AppConstants.KEY_SELF_REMOVAL, false);
+
+        StringBuilder msgBuilder = new StringBuilder();
+
+        if (groupsJsonArray != null) {
+            for (int i = 0; i < groupsJsonArray.length(); i++) {
+                JSONObject groupJson = groupsJsonArray.optJSONObject(i);
+                String groupName = groupJson.optString(AppConstants.KEY_GROUP_NAME);
+
+                if (selfRemoval) {
+                    msgBuilder.append("You have left the group ");
+                    msgBuilder.append(groupName);
+                    msgBuilder.append(".");
+                } else {
+                    if (!TextUtils.isEmpty(sharedFrom)) {
+                        msgBuilder.append(sharedFrom);
+                        msgBuilder.append(" has removed ");
+                        msgBuilder.append(groupName);
+                        msgBuilder.append(" group access from you.");
+                        msgBuilder.append("\n");
+                    }
+                }
+            }
+        }
+        sendNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_GROUP_SHARING, SplashActivity.class);
     }
 }

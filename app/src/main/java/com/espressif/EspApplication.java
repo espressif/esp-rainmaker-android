@@ -1213,6 +1213,9 @@ public class EspApplication extends Application {
             NotificationChannel automationChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_AUTOMATION_TRIGGER,
                     getString(R.string.channel_node_automation_trigger), NotificationManager.IMPORTANCE_HIGH);
 
+            NotificationChannel groupSharingChannel = new NotificationChannel(AppConstants.CHANNEL_GROUP_SHARING,
+                    getString(R.string.channel_node_group_sharing), NotificationManager.IMPORTANCE_HIGH);
+
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(nodeConnectedChannel);
             notificationManager.createNotificationChannel(nodeDisconnectedChannel);
@@ -1221,6 +1224,7 @@ public class EspApplication extends Application {
             notificationManager.createNotificationChannel(nodeSharingChannel);
             notificationManager.createNotificationChannel(alertChannel);
             notificationManager.createNotificationChannel(automationChannel);
+            notificationManager.createNotificationChannel(groupSharingChannel);
         }
     }
 
