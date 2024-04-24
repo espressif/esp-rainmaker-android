@@ -17,14 +17,17 @@ package com.espressif.matter
 import android.os.Bundle
 import android.text.TextUtils
 import android.util.Log
+import chip.devicecontroller.ChipClusters
 import com.espressif.AppConstants
 import com.espressif.AppConstants.Companion.UpdateEventType
 import com.espressif.EspApplication
 import com.espressif.ui.models.EspNode
+import com.espressif.ui.models.Param
 import com.espressif.ui.models.UpdateEvent
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
 import org.greenrobot.eventbus.EventBus
+import java.math.BigInteger
 
 class ChipClientHelper constructor(private val espApp: EspApplication) {
 
@@ -68,9 +71,8 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                             groupCatIdOperate = g.fabricDetails.groupCatIdOperate
                             if (!espApp.chipClientMap.containsKey(matterNodeId)) {
                                 if (!TextUtils.isEmpty(fabricId) && !TextUtils.isEmpty(rootCa)
-                                    && !TextUtils.isEmpty(ipk) && !TextUtils.isEmpty(matterNodeId) && !TextUtils.isEmpty(
-                                        matterNodeId
-                                    )
+                                    && !TextUtils.isEmpty(ipk) && !TextUtils.isEmpty(matterNodeId)
+                                    && !TextUtils.isEmpty(matterNodeId)
                                 ) {
                                     val chipClient = ChipClient(
                                         espApp, g.groupId, fabricId, rootCa, ipk, groupCatIdOperate
@@ -81,10 +83,11 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                             espApp.fetchDeviceMatterInfo(matterNodeId, nodeId)
                             val node: EspNode? = espApp.nodeMap.get(nodeId)
                             if (node != null) {
-                                val nodeType = node.newNodeType
-                                if (!TextUtils.isEmpty(nodeType) && nodeType == AppConstants.NODE_TYPE_PURE_MATTER) {
-                                    espApp.addParamsForMatterOnlyDevice(nodeId, matterNodeId, node)
-                                }
+                                getCurrentValues(nodeId, matterNodeId, node)
+//                                val nodeType = node.newNodeType
+//                                if (!TextUtils.isEmpty(nodeType) && nodeType == AppConstants.NODE_TYPE_PURE_MATTER) {
+//                                    espApp.addParamsForMatterOnlyDevice(nodeId, matterNodeId, node)
+//                                }
                             }
                             Log.d(TAG, "Init and fetch cluster info done for the device")
                         }
@@ -101,4 +104,108 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
 
     fun initChipClientInBackground(matterNodeId: String) =
         GlobalScope.future { initChipClient(matterNodeId) }
+
+    fun getCurrentValues(nodeId: String?, matterNodeId: String?, node: EspNode) {
+
+        val id = BigInteger(matterNodeId, 16)
+        val deviceId = id.toLong()
+        Log.d(TAG, "Device id : $deviceId")
+
+        if (espApp.matterDeviceInfoMap.containsKey(matterNodeId)) {
+            var matterDeviceInfo = espApp.matterDeviceInfoMap.get(matterNodeId)
+
+            if (matterDeviceInfo != null && matterDeviceInfo.size > 0) {
+
+                for (clusterInfo in matterDeviceInfo) {
+
+                    var params: ArrayList<Param> = node.devices[0].params
+
+                    if (clusterInfo.endpoint == AppConstants.ENDPOINT_1 &&
+                        clusterInfo.serverClusters != null
+                    ) {
+
+                        if (clusterInfo.serverClusters.contains(ChipClusters.OnOffCluster.CLUSTER_ID)) {
+
+                            val espClusterHelper =
+                                OnOffClusterHelper(espApp.chipClientMap[matterNodeId]!!)
+                            val onOffStatus: Boolean? =
+                                espClusterHelper.getDeviceStateOnOffClusterAsync(
+                                    deviceId,
+                                    AppConstants.ENDPOINT_1
+                                ).get()
+
+                            Log.d(TAG, "On off cluster value : : $onOffStatus")
+
+                            for (param in params) {
+                                if (param.paramType.equals(AppConstants.PARAM_TYPE_POWER)) {
+                                    if (onOffStatus != null) {
+                                        param.switchStatus = onOffStatus
+                                    }
+                                }
+                            }
+                        }
+
+                        if (clusterInfo.serverClusters.contains(ChipClusters.LevelControlCluster.CLUSTER_ID)) {
+
+                            val espClusterHelper =
+                                LevelControlClusterHelper(espApp.chipClientMap[matterNodeId]!!)
+                            var brightnessValue: Int? =
+                                espClusterHelper.getCurrentLevelValueAsync(
+                                    deviceId,
+                                    AppConstants.ENDPOINT_1
+                                ).get()
+
+                            Log.d(TAG, "Level control cluster value : $brightnessValue")
+
+                            for (param in params) {
+                                if (param.paramType.equals(AppConstants.PARAM_TYPE_BRIGHTNESS)) {
+                                    if (brightnessValue != null) {
+                                        var temp = ((brightnessValue * 100f) / 255f)
+                                        brightnessValue = temp.toInt()
+                                        param.value = brightnessValue.toDouble()
+                                    }
+                                }
+                            }
+                        }
+
+                        if (clusterInfo.serverClusters.contains(ChipClusters.ColorControlCluster.CLUSTER_ID)) {
+
+                            val espClusterHelper =
+                                ColorControlClusterHelper(espApp.chipClientMap[matterNodeId]!!)
+                            var hueValue: Int? =
+                                espClusterHelper.getCurrentHueValueAsync(
+                                    deviceId,
+                                    AppConstants.ENDPOINT_1
+                                ).get()
+
+                            var saturationValue: Int? =
+                                espClusterHelper.getCurrentSaturationValueAsync(
+                                    deviceId,
+                                    AppConstants.ENDPOINT_1
+                                ).get()
+
+                            Log.d(TAG, "Color control cluster  hueValue : $hueValue")
+                            Log.d(TAG, "Color control cluster saturationValue : $saturationValue")
+
+                            for (param in params) {
+                                if (param.paramType.equals(AppConstants.PARAM_TYPE_HUE)) {
+                                    if (hueValue != null) {
+                                        var temp = ((hueValue * 360f) / 255f)
+                                        hueValue = temp.toInt()
+                                        param.value = hueValue.toDouble()
+                                    }
+                                } else if (param.paramType.equals(AppConstants.PARAM_TYPE_SATURATION)) {
+                                    if (saturationValue != null) {
+                                        var temp = ((saturationValue * 100f) / 255f)
+                                        saturationValue = temp.toInt()
+                                        param.value = saturationValue.toDouble()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

@@ -166,7 +166,8 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
                                     long deviceId = id.longValue();
                                     OnOffClusterHelper espClusterHelper = new OnOffClusterHelper(espApp.chipClientMap.get(finalMatterNodeId));
                                     espClusterHelper.setOnOffDeviceStateOnOffClusterAsync(deviceId, !status, AppConstants.ENDPOINT_1);
-
+                                    param.setSwitchStatus(!status);
+                                    
                                 } else {
                                     JsonObject jsonParam = new JsonObject();
                                     JsonObject body = new JsonObject();

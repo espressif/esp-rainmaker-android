@@ -59,6 +59,14 @@ class AppConstants {
         const val ESP_DEVICE_SECURITY_PANEL = "esp.device.security-panel"
         const val ESP_DEVICE_OTHER = "esp.device.other"
 
+        const val MATTER_DEVICE_LIGHT_BULB = 269
+        const val MATTER_DEVICE_SWITCH = 259
+        const val MATTER_DEVICE_CONTACT_SENSOR = 21
+        const val MATTER_DEVICE_OUTLET = 266
+        const val MATTER_DEVICE_BULB_RGB = 268
+        const val MATTER_DEVICE_THERMOSTAT = 769
+        const val MATTER_DEVICE_TEMP_SENSOR = 770
+
         // Service Types
         const val SERVICE_TYPE_SCHEDULE = "esp.service.schedule"
         const val SERVICE_TYPE_SCENES = "esp.service.scenes"
@@ -81,6 +89,12 @@ class AppConstants {
         const val PARAM_TYPE_REBOOT = "esp.param.reboot"
         const val PARAM_TYPE_FACTORY_RESET = "esp.param.factory-reset"
         const val PARAM_TYPE_WIFI_RESET = "esp.param.wifi-reset"
+
+        // Param names
+        const val PARAM_POWER = "Power"
+        const val PARAM_BRIGHTNESS = "Brightness"
+        const val PARAM_HUE = "Hue"
+        const val PARAM_SATURATION = "Saturation"
 
         // Transport types
         const val TRANSPORT_SOFTAP = "softap"
@@ -407,6 +421,7 @@ class AppConstants {
         const val KEY_DEVICENAME = "deviceName"
         const val KEY_ENDPOINTS_DATA = "endpointsData"
         const val KEY_SERVERS_DATA = "serversData"
+        const val KEY_CLIENTS_DATA = "clientsData"
         const val KEY_PRODUCT_ID = "productId"
         const val KEY_VENDOR_ID = "vendorId"
         const val KEY_IS_RAINMAKER = "isRainmaker"

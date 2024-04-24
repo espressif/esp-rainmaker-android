@@ -18,6 +18,7 @@ import android.util.Log
 import chip.devicecontroller.ChipClusters
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
+import java.util.concurrent.CompletableFuture
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -135,6 +136,13 @@ class OnOffClusterHelper constructor(private val chipClient: ChipClient) {
     }
 
     // To call fetchDeviceMatterInfo function from Java
+
+    fun getDeviceStateOnOffClusterAsync(
+        deviceId: Long,
+        endpoint: Int
+    ): CompletableFuture<Boolean?> =
+        GlobalScope.future { getDeviceStateOnOffCluster(deviceId, endpoint) }
+
     fun setOnOffDeviceStateOnOffClusterAsync(
         deviceId: Long,
         isOn: Boolean,
