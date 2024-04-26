@@ -216,7 +216,7 @@ public class NotificationsActivity extends AppCompatActivity {
                 if (exception instanceof CloudException) {
                     Toast.makeText(NotificationsActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(NotificationsActivity.this, R.string.error_get_sharing_request, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NotificationsActivity.this, R.string.error_notification, Toast.LENGTH_SHORT).show();
                 }
             }
         });

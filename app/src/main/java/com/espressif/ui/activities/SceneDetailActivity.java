@@ -112,6 +112,12 @@ public class SceneDetailActivity extends AppCompatActivity {
 
             if (node != null) {
 
+                // Scene disabled for matter devices
+                String nodeType = node.getNewNodeType();
+                if (!TextUtils.isEmpty(nodeType) && nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
+                    continue;
+                }
+
                 for (int i = 0; i < services.size(); i++) {
 
                     Service s = services.get(i);

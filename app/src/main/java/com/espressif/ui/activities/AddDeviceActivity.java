@@ -19,12 +19,14 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -83,6 +85,7 @@ public class AddDeviceActivity extends AppCompatActivity {
     private ESPDevice espDevice;
     private ESPProvisionManager provisionManager;
     private boolean isQrCodeDataReceived = false;
+    private boolean buttonClicked = false;
     private String connectedNetwork;
 
     @Override
@@ -161,6 +164,10 @@ public class AddDeviceActivity extends AppCompatActivity {
                 layoutPermissionErr.setVisibility(View.VISIBLE);
                 tvPermissionErr.setText(R.string.error_camera_permission);
                 ivPermissionErr.setImageResource(R.drawable.ic_no_camera_permission);
+                if (buttonClicked) {
+                    // Call navigateToAppSettings only when the button is clicked
+                    navigateToAppSettings();
+                }
             } else {
                 layoutQrCode.setVisibility(View.VISIBLE);
                 layoutPermissionErr.setVisibility(View.GONE);
@@ -189,6 +196,13 @@ public class AddDeviceActivity extends AppCompatActivity {
                 scanQrCode();
             }
         }
+    }
+
+    private void navigateToAppSettings() {
+        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        Uri uri = Uri.fromParts("package", getPackageName(), null);
+        intent.setData(uri);
+        startActivity(intent);
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -253,6 +267,7 @@ public class AddDeviceActivity extends AppCompatActivity {
 
         @Override
         public void onClick(View v) {
+            buttonClicked = true;
             if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
 
                 ActivityCompat.requestPermissions(AddDeviceActivity.this, new
@@ -473,7 +488,23 @@ public class AddDeviceActivity extends AppCompatActivity {
 
                     if (BuildConfig.isMatterSupported && !TextUtils.isEmpty(qrCodeData) && qrCodeData.contains("MT:")) {
                         // Display group selection screen.
-                        goToGroupSelectionActivity(qrCodeData);
+                        if (Utils.isPlayServicesAvailable(getApplicationContext())) {
+                            goToGroupSelectionActivity(qrCodeData);
+                        } else {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(AddDeviceActivity.this);
+                            builder.setMessage(R.string.dialog_msg_play_services_required);
+                            builder.setTitle(R.string.dialog_title_play_services_required);
+                            builder.setCancelable(false);
+                            builder.setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                    finish();
+                                }
+                            });
+                            AlertDialog dialog = builder.create();
+                            dialog.show();
+                        }
                     } else {
                         String msg = e.getMessage();
                         Toast.makeText(AddDeviceActivity.this, msg, Toast.LENGTH_LONG).show();
@@ -581,32 +612,65 @@ public class AddDeviceActivity extends AppCompatActivity {
         builder.show();
     }
 
+    private void showLocationPermissionAlertDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setCancelable(false);
+        builder.setMessage(R.string.error_location_permission);
+
+        builder.setPositiveButton(R.string.action_settings, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                navigateToAppSettings();
+            }
+        });
+
+        builder.setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        AlertDialog alertDialog = builder.create();
+        if (!isFinishing()) {
+            alertDialog.show();
+        }
+    }
+
     private void goToBLEProvisionLanding(int secType) {
 
-        finish();
-        Intent intent = new Intent(getApplicationContext(), BLEProvisionLanding.class);
-        intent.putExtra(AppConstants.KEY_SECURITY_TYPE, secType);
+        if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            finish();
+            Intent intent = new Intent(getApplicationContext(), BLEProvisionLanding.class);
+            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, secType);
 
-        if (espDevice != null) {
-            intent.putExtra(AppConstants.KEY_DEVICE_NAME, espDevice.getDeviceName());
-            intent.putExtra(AppConstants.KEY_PROOF_OF_POSSESSION, espDevice.getProofOfPossession());
-            intent.putExtra(AppConstants.KEY_SSID, connectedNetwork);
+            if (espDevice != null) {
+                intent.putExtra(AppConstants.KEY_DEVICE_NAME, espDevice.getDeviceName());
+                intent.putExtra(AppConstants.KEY_PROOF_OF_POSSESSION, espDevice.getProofOfPossession());
+                intent.putExtra(AppConstants.KEY_SSID, connectedNetwork);
+            }
+            startActivity(intent);
+        } else {
+            showLocationPermissionAlertDialog();
         }
-        startActivity(intent);
     }
 
     private void goToWiFiProvisionLanding(int secType) {
 
-        finish();
-        Intent intent = new Intent(getApplicationContext(), ProvisionLanding.class);
-        intent.putExtra(AppConstants.KEY_SECURITY_TYPE, secType);
+        if (ActivityCompat.checkSelfPermission(AddDeviceActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            finish();
+            Intent intent = new Intent(getApplicationContext(), ProvisionLanding.class);
+            intent.putExtra(AppConstants.KEY_SECURITY_TYPE, secType);
 
-        if (espDevice != null) {
-            intent.putExtra(AppConstants.KEY_DEVICE_NAME, espDevice.getDeviceName());
-            intent.putExtra(AppConstants.KEY_PROOF_OF_POSSESSION, espDevice.getProofOfPossession());
-            intent.putExtra(AppConstants.KEY_SSID, connectedNetwork);
+            if (espDevice != null) {
+                intent.putExtra(AppConstants.KEY_DEVICE_NAME, espDevice.getDeviceName());
+                intent.putExtra(AppConstants.KEY_PROOF_OF_POSSESSION, espDevice.getProofOfPossession());
+                intent.putExtra(AppConstants.KEY_SSID, connectedNetwork);
+            }
+            startActivity(intent);
+        } else {
+            showLocationPermissionAlertDialog();
         }
-        startActivity(intent);
     }
 
     private void goToWiFiScanActivity() {
