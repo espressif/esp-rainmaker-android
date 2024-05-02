@@ -28,11 +28,13 @@ import com.auth0.android.jwt.Claim;
 import com.auth0.android.jwt.DecodeException;
 import com.auth0.android.jwt.JWT;
 import com.espressif.AppConstants;
+import com.espressif.AppConstants.Companion.UpdateEventType;
 import com.espressif.EspApplication;
 import com.espressif.JsonDataParser;
 import com.espressif.db.EspDatabase;
 import com.espressif.matter.FabricDetails;
 import com.espressif.rainmaker.BuildConfig;
+import com.espressif.ui.Utils;
 import com.espressif.ui.models.Action;
 import com.espressif.ui.models.ApiResponse;
 import com.espressif.ui.models.Automation;
@@ -40,6 +42,7 @@ import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.EspOtaUpdate;
 import com.espressif.ui.models.Group;
+import com.espressif.ui.models.MatterDeviceInfo;
 import com.espressif.ui.models.NodeMetadata;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Scene;
@@ -48,9 +51,10 @@ import com.espressif.ui.models.Service;
 import com.espressif.ui.models.SharingRequest;
 import com.espressif.ui.models.TsData;
 import com.espressif.ui.models.UpdateEvent;
-import com.espressif.AppConstants.Companion.UpdateEventType;
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 
 import org.greenrobot.eventbus.EventBus;
 import org.jetbrains.annotations.NotNull;
@@ -67,6 +71,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import chip.devicecontroller.ChipClusters;
 import io.reactivex.Observable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
@@ -939,7 +944,6 @@ public class ApiManager {
                                         JSONObject metadataJson = nodeJson.optJSONObject(AppConstants.KEY_METADATA);
                                         if (metadataJson != null) {
                                             NodeMetadata metadata = new NodeMetadata();
-                                            metadata.setControllerNodeId(metadataJson.optString(AppConstants.KEY_IS_MATTER));
                                             metadata.setDeviceName(metadataJson.optString(AppConstants.KEY_DEVICENAME));
                                             metadata.setGroupId(metadataJson.optString(AppConstants.KEY_GROUP_ID));
                                             metadata.setRainMaker(metadataJson.optBoolean(AppConstants.KEY_IS_RAINMAKER));
@@ -961,14 +965,141 @@ public class ApiManager {
                                             Device device = devices.get(0);
 
                                             if (metadataJson != null) {
+
                                                 NodeMetadata metadata = espNode.getNodeMetadata();
                                                 String deviceName = metadataJson.optString(AppConstants.KEY_DEVICENAME);
                                                 device.setDeviceName(deviceName);
-                                                device.setDeviceType(String.valueOf(metadataJson.optDouble(AppConstants.KEY_DEVICETYPE)));
-                                                metadata.setDeviceType(String.valueOf(metadataJson.optDouble(AppConstants.KEY_DEVICETYPE)));
+                                                int type = (int) metadataJson.optDouble(AppConstants.KEY_DEVICETYPE);
+                                                String matterDeviceType = Utils.getEspDeviceTypeForMatterDevice(type);
+                                                device.setDeviceType(matterDeviceType);
+                                                metadata.setDeviceType(matterDeviceType);
                                                 metadata.setProductId(metadataJson.optString(AppConstants.KEY_PRODUCT_ID));
                                                 metadata.setVendorId(metadataJson.optString(AppConstants.KEY_VENDOR_ID));
                                                 espNode.setNodeMetadata(metadata);
+
+                                                MatterDeviceInfo matterDeviceInfo = new MatterDeviceInfo();
+                                                matterDeviceInfo.setDeviceType(String.valueOf(metadataJson.optDouble(AppConstants.KEY_DEVICETYPE)));
+                                                JSONObject serverClustersJson = metadataJson.optJSONObject(AppConstants.KEY_SERVERS_DATA);
+                                                JSONObject clientClustersJson = metadataJson.optJSONObject(AppConstants.KEY_CLIENTS_DATA);
+
+                                                if (serverClustersJson != null) {
+
+                                                    Iterator<String> serverClustersIt = serverClustersJson.keys();
+                                                    HashMap<String, ArrayList<Integer>> serverClusters = new HashMap<>();
+
+                                                    while (serverClustersIt.hasNext()) {
+
+                                                        String endpointId = serverClustersIt.next();
+                                                        JSONArray clusterArrayJson = serverClustersJson.optJSONArray(endpointId);
+                                                        ArrayList<Integer> serverClusterIds = new Gson().fromJson(clusterArrayJson.toString(), new TypeToken<List<Integer>>() {
+                                                        }.getType());
+                                                        serverClusters.put(endpointId, serverClusterIds);
+                                                    }
+                                                    matterDeviceInfo.setServerClusters(serverClusters);
+                                                }
+
+                                                if (clientClustersJson != null) {
+
+                                                    Iterator<String> clientClustersIt = clientClustersJson.keys();
+                                                    HashMap<String, ArrayList<Integer>> clientClusters = new HashMap<>();
+
+                                                    while (clientClustersIt.hasNext()) {
+
+                                                        String endpointId = clientClustersIt.next();
+                                                        JSONArray clusterArrayJson = serverClustersJson.optJSONArray(endpointId);
+                                                        ArrayList<Integer> clientClusterIds = new Gson().fromJson(clusterArrayJson.toString(), new TypeToken<List<Integer>>() {
+                                                        }.getType());
+                                                        clientClusters.put(endpointId, clientClusterIds);
+                                                    }
+                                                    matterDeviceInfo.setClientClusters(clientClusters);
+                                                }
+                                                device.setMatterDeviceInfo(matterDeviceInfo);
+
+                                                if (nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
+
+                                                    if (matterDeviceInfo.getServerClusters().containsKey(String.valueOf(AppConstants.ENDPOINT_1))) {
+
+                                                        ArrayList<String> properties = new ArrayList<>();
+                                                        properties.add(AppConstants.KEY_PROPERTY_WRITE);
+                                                        properties.add(AppConstants.KEY_PROPERTY_READ);
+
+                                                        ArrayList<Integer> clusters = matterDeviceInfo.getServerClusters().get(String.valueOf(AppConstants.ENDPOINT_1));
+                                                        ArrayList<Param> params = device.getParams();
+                                                        if (params == null || params.size() == 0) {
+                                                            params = new ArrayList<>();
+                                                        }
+
+                                                        for (Integer cluster : clusters) {
+
+                                                            long clusterId = (long) cluster;
+
+                                                            if (clusterId == ChipClusters.OnOffCluster.CLUSTER_ID) {
+
+                                                                boolean isParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_POWER);
+
+                                                                if (!isParamAvailable) {
+                                                                    // Add on/off param
+                                                                    addToggleParam(params, properties);
+                                                                    device.setPrimaryParamName(AppConstants.PARAM_POWER);
+                                                                }
+                                                                device.setParams(params);
+
+                                                            } else if (clusterId == ChipClusters.LevelControlCluster.CLUSTER_ID) {
+
+                                                                boolean isParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_BRIGHTNESS);
+                                                                Param brightnessParam = null;
+
+                                                                if (!isParamAvailable) {
+                                                                    // Add brightness param
+                                                                    brightnessParam = new Param();
+                                                                    brightnessParam.setDynamicParam(true);
+                                                                    brightnessParam.setDataType("int");
+                                                                    brightnessParam.setUiType(AppConstants.UI_TYPE_SLIDER);
+                                                                    brightnessParam.setParamType(AppConstants.PARAM_TYPE_BRIGHTNESS);
+                                                                    brightnessParam.setName(AppConstants.PARAM_BRIGHTNESS);
+                                                                    brightnessParam.setMinBounds(0);
+                                                                    brightnessParam.setMaxBounds(100);
+                                                                    brightnessParam.setValue(0);
+                                                                    brightnessParam.setProperties(properties);
+                                                                    params.add(brightnessParam);
+                                                                }
+                                                                device.setParams(params);
+
+                                                            } else if (clusterId == ChipClusters.ColorControlCluster.CLUSTER_ID) {
+
+                                                                boolean isSatParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_SATURATION);
+                                                                boolean isHueParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_HUE);
+
+                                                                if (!isSatParamAvailable) {
+                                                                    // Add saturation param
+                                                                    Param saturation = new Param();
+                                                                    saturation.setDynamicParam(true);
+                                                                    saturation.setDataType("int");
+                                                                    saturation.setUiType(AppConstants.UI_TYPE_SLIDER);
+                                                                    saturation.setParamType(AppConstants.PARAM_TYPE_SATURATION);
+                                                                    saturation.setName(AppConstants.PARAM_SATURATION);
+                                                                    saturation.setProperties(properties);
+                                                                    saturation.setMinBounds(0);
+                                                                    saturation.setMaxBounds(100);
+                                                                    params.add(saturation);
+                                                                }
+
+                                                                if (!isHueParamAvailable) {
+                                                                    // Add hue param
+                                                                    Param hue = new Param();
+                                                                    hue.setDynamicParam(true);
+                                                                    hue.setDataType("int");
+                                                                    hue.setUiType(AppConstants.UI_TYPE_HUE_SLIDER);
+                                                                    hue.setParamType(AppConstants.PARAM_TYPE_HUE);
+                                                                    hue.setName(AppConstants.PARAM_HUE);
+                                                                    hue.setProperties(properties);
+                                                                    params.add(hue);
+                                                                }
+                                                                device.setParams(params);
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
                                             espApp.nodeMap.put(nodeId, espNode);
                                             Log.d(TAG, "Matter supported node added in Node Map : " + nodeId);
@@ -1394,7 +1525,17 @@ public class ApiManager {
                                         // Node Status
                                         JSONObject statusJson = nodeJson.optJSONObject(AppConstants.KEY_STATUS);
 
-                                        if (statusJson != null && !espApp.localDeviceMap.containsKey(nodeId)) {
+                                        String matterNodeId = "";
+                                        boolean isMatterDeviceOnline = false;
+                                        if (espApp.matterRmNodeIdMap.containsKey(nodeId)) {
+                                            matterNodeId = espApp.matterRmNodeIdMap.get(nodeId);
+                                        }
+
+                                        if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(matterNodeId)) {
+                                            isMatterDeviceOnline = true;
+                                        }
+
+                                        if (statusJson != null && !espApp.localDeviceMap.containsKey(nodeId) && !isMatterDeviceOnline) {
 
                                             JSONObject connectivityObject = statusJson.optJSONObject(AppConstants.KEY_CONNECTIVITY);
 
@@ -1494,6 +1635,32 @@ public class ApiManager {
                 listener.onNetworkFailure(new Exception(t));
             }
         });
+    }
+
+    private boolean isParamAvailableInList(ArrayList<Param> params, String type) {
+        boolean isAvailable = false;
+        if (params.size() > 0) {
+            for (Param p : params) {
+                if (p.getParamType() != null && p.getParamType().equals(type)) {
+                    isAvailable = true;
+                    break;
+                }
+            }
+        }
+        return isAvailable;
+    }
+
+    private void addToggleParam(ArrayList<Param> params, ArrayList<String> properties) {
+        // Add on/off param
+        Param param = new Param();
+        param.setDynamicParam(true);
+        param.setDataType("bool");
+        param.setUiType(AppConstants.UI_TYPE_TOGGLE);
+        param.setParamType(AppConstants.PARAM_TYPE_POWER);
+        param.setName(AppConstants.PARAM_POWER);
+        param.setSwitchStatus(false);
+        param.setProperties(properties);
+        params.add(param);
     }
 
     /**
@@ -1665,8 +1832,17 @@ public class ApiManager {
 
                                         // Node Status
                                         JSONObject statusJson = nodeJson.optJSONObject(AppConstants.KEY_STATUS);
+                                        String matterNodeId = "";
+                                        boolean isMatterDeviceOnline = false;
+                                        if (espApp.matterRmNodeIdMap.containsKey(nodeId)) {
+                                            matterNodeId = espApp.matterRmNodeIdMap.get(nodeId);
+                                        }
 
-                                        if (statusJson != null) {
+                                        if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(matterNodeId)) {
+                                            isMatterDeviceOnline = true;
+                                        }
+
+                                        if (statusJson != null && !isMatterDeviceOnline) {
 
                                             JSONObject connectivityObject = statusJson.optJSONObject(AppConstants.KEY_CONNECTIVITY);
 

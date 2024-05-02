@@ -209,9 +209,14 @@ public class EspApplication extends Application {
                 EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_STATE_CHANGE_UPDATE));
                 startLocalDeviceDiscovery();
                 for (Map.Entry<String, String> entry : matterRmNodeIdMap.entrySet()) {
+                    String nodeId = entry.getKey();
                     String matterNodeId = entry.getValue();
                     ChipClientHelper clientHelper = new ChipClientHelper(this);
-                    clientHelper.initChipClientInBackground(matterNodeId);
+                    if (!chipClientMap.containsKey(matterNodeId)) {
+                        clientHelper.initChipClientInBackground(matterNodeId);
+                    } else {
+                        clientHelper.getCurrentValues(nodeId, matterNodeId, nodeMap.get(nodeId));
+                    }
                 }
                 break;
         }
@@ -539,64 +544,6 @@ public class EspApplication extends Application {
         });
     }
 
-    private void initChipController(String matterNodeId) {
-        Log.d(TAG, "Init ChipController for matter node id : " + matterNodeId);
-        if (TextUtils.isEmpty(matterNodeId)) {
-            Log.e(TAG, "======= Init ChipController will not be done. Matter node id is not available");
-            return;
-        }
-
-        for (Map.Entry<String, Group> entry : groupMap.entrySet()) {
-
-            if (entry.getValue().isMatter()) {
-                Group g = entry.getValue();
-                HashMap<String, String> nodeDetails = g.getNodeDetails();
-                if (nodeDetails != null) {
-                    for (Map.Entry<String, String> detail : nodeDetails.entrySet()) {
-
-                        String nodeId = detail.getKey();
-                        String mNodeId = detail.getValue();
-                        String fabricId = "";
-                        String ipk = "";
-                        String rootCa = "";
-                        String catIdOp = "";
-
-                        if (!matterNodeId.equals(mNodeId)) {
-                            continue;
-                        }
-
-                        Log.d(TAG, "Node detail, node id : " + nodeId + " and matter node id : " + matterNodeId);
-
-                        if (g.getFabricDetails() != null) {
-                            fabricId = g.getFabricDetails().getFabricId();
-                            rootCa = g.getFabricDetails().getRootCa();
-                            ipk = g.getFabricDetails().getIpk();
-                            catIdOp = g.getFabricDetails().getGroupCatIdOperate();
-
-                            if (!chipClientMap.containsKey(matterNodeId)) {
-                                if (!TextUtils.isEmpty(fabricId) && !TextUtils.isEmpty(rootCa)
-                                        && !TextUtils.isEmpty(ipk) && !TextUtils.isEmpty(matterNodeId) && !TextUtils.isEmpty(matterNodeId)) {
-                                    ChipClient chipClient = new ChipClient(this, g.getGroupId()
-                                            , fabricId, rootCa, ipk, catIdOp);
-                                    chipClientMap.put(matterNodeId, chipClient);
-                                }
-                            }
-                            fetchDeviceMatterInfo(matterNodeId, nodeId);
-
-                            EspNode node = nodeMap.get(nodeId);
-                            if (node != null) {
-                                String nodeType = node.getNewNodeType();
-                                if (!TextUtils.isEmpty(nodeType) && nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
-                                    addParamsForMatterOnlyDevice(nodeId, matterNodeId, node);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     private void initChipControllerForHomeGroup() {
 
         Log.d(TAG, "============================= init ChipController for home group");
@@ -767,7 +714,7 @@ public class EspApplication extends Application {
                                 brightnessParam.setDataType("int");
                                 brightnessParam.setUiType(AppConstants.UI_TYPE_SLIDER);
                                 brightnessParam.setParamType(AppConstants.PARAM_TYPE_BRIGHTNESS);
-                                brightnessParam.setName("Brightness");
+                                brightnessParam.setName(AppConstants.PARAM_BRIGHTNESS);
                                 brightnessParam.setMinBounds(0);
                                 brightnessParam.setMaxBounds(100);
                                 brightnessParam.setProperties(properties);
@@ -806,7 +753,7 @@ public class EspApplication extends Application {
                                 saturation.setDataType("int");
                                 saturation.setUiType(AppConstants.UI_TYPE_SLIDER);
                                 saturation.setParamType(AppConstants.PARAM_TYPE_SATURATION);
-                                saturation.setName("Saturation");
+                                saturation.setName(AppConstants.PARAM_SATURATION);
                                 saturation.setProperties(properties);
                                 saturation.setMinBounds(0);
                                 saturation.setMaxBounds(100);
@@ -820,7 +767,7 @@ public class EspApplication extends Application {
                                 hue.setDataType("int");
                                 hue.setUiType(AppConstants.UI_TYPE_HUE_SLIDER);
                                 hue.setParamType(AppConstants.PARAM_TYPE_HUE);
-                                hue.setName("Hue");
+                                hue.setName(AppConstants.PARAM_HUE);
                                 hue.setProperties(properties);
                                 params.add(hue);
                             }
@@ -1253,7 +1200,7 @@ public class EspApplication extends Application {
         param.setDataType("bool");
         param.setUiType(AppConstants.UI_TYPE_TOGGLE);
         param.setParamType(AppConstants.PARAM_TYPE_POWER);
-        param.setName("Power");
+        param.setName(AppConstants.PARAM_POWER);
         param.setSwitchStatus(false);
         param.setProperties(properties);
         params.add(param);
