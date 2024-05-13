@@ -20,38 +20,39 @@ import android.view.View;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.rainmaker.R;
+import com.espressif.rainmaker.databinding.ActivityAccountBinding;
 import com.espressif.ui.adapters.AccountAdapter;
-import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.ArrayList;
 
 public class AccountActivity extends AppCompatActivity {
 
-    private RecyclerView rvAccountSettings;
     private AccountAdapter accountAdapter;
 
     private ArrayList<String> accountItemList = new ArrayList<>();
 
+    private ActivityAccountBinding binding;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_account);
+        binding = ActivityAccountBinding.inflate(getLayoutInflater());
+        View view = binding.getRoot();
+        setContentView(view);
         initViews();
     }
 
     private void initViews() {
 
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        setSupportActionBar(binding.toolbarLayout.toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
-        toolbar.setTitle(R.string.title_activity_account_settings);
-        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+        getSupportActionBar().setTitle(R.string.title_activity_account_settings);
+        binding.toolbarLayout.toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        binding.toolbarLayout.toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();
@@ -66,10 +67,8 @@ public class AccountActivity extends AppCompatActivity {
         }
 
         accountItemList.add(getString(R.string.title_activity_delete_user));
-
-        rvAccountSettings = findViewById(R.id.rv_account_settings);
-        rvAccountSettings.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvAccountSettings.setLayoutManager(new LinearLayoutManager(this));
         accountAdapter = new AccountAdapter(this, accountItemList);
-        rvAccountSettings.setAdapter(accountAdapter);
+        binding.rvAccountSettings.setAdapter(accountAdapter);
     }
 }

@@ -54,6 +54,7 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Service;
+import com.espressif.utils.NodeUtils;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.Gson;
@@ -108,7 +109,6 @@ public class SceneDetailActivity extends AppCompatActivity {
 
             String key = entry.getKey();
             EspNode node = entry.getValue();
-            ArrayList<Service> services = node.getServices();
 
             if (node != null) {
 
@@ -118,17 +118,10 @@ public class SceneDetailActivity extends AppCompatActivity {
                     continue;
                 }
 
-                for (int i = 0; i < services.size(); i++) {
-
-                    Service s = services.get(i);
-                    if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_SCENES)) {
-
-                        ArrayList<Device> espDevices = node.getDevices();
-                        Iterator<Device> iterator = espDevices.iterator();
-
-                        while (iterator.hasNext()) {
-                            devices.add(new Device(iterator.next()));
-                        }
+                Service sceneService = NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_SCENES);
+                if (sceneService != null) {
+                    for (Device espDevice : node.getDevices()) {
+                        devices.add(new Device(espDevice));
                     }
                 }
             }
@@ -574,25 +567,12 @@ public class SceneDetailActivity extends AppCompatActivity {
 
         for (int i = 0; i < nodeIdList.size(); i++) {
 
-            final String nodeId = nodeIdList.get(i);
+            String serviceName = getSceneServiceNameForNode(nodeIdList.get(i));
 
-            EspNode espNode = espApp.nodeMap.get(nodeId);
-            ArrayList<Service> services = espNode.getServices();
-            String serviceName = "";
-            for (Service service : services) {
-                if (AppConstants.SERVICE_TYPE_SCENES.equals(service.getType())) {
-                    serviceName = service.getName();
-                    break;
-                }
-            }
-
-            if (TextUtils.isEmpty(serviceName)) {
-                serviceName = AppConstants.KEY_SCENES;
-            }
             JsonObject serviceJson = new JsonObject();
             serviceJson.add(serviceName, scenesJson);
 
-            sceneJsonBodyMap.put(nodeId, serviceJson);
+            sceneJsonBodyMap.put(nodeIdList.get(i), serviceJson);
         }
 
         updateSceneRequest(sceneJsonBodyMap, new ApiResponseListener() {
@@ -717,19 +697,8 @@ public class SceneDetailActivity extends AppCompatActivity {
                 JsonObject scenesJson = new JsonObject();
                 scenesJson.add(AppConstants.KEY_SCENES, scArr);
 
-                EspNode espNode = espApp.nodeMap.get(nodeId);
-                ArrayList<Service> services = espNode.getServices();
-                String serviceName = "";
-                for (Service service : services) {
-                    if (AppConstants.SERVICE_TYPE_SCENES.equals(service.getType())) {
-                        serviceName = service.getName();
-                        break;
-                    }
-                }
+                String serviceName = getSceneServiceNameForNode(nodeId);
 
-                if (TextUtils.isEmpty(serviceName)) {
-                    serviceName = AppConstants.KEY_SCENES;
-                }
                 JsonObject serviceJson = new JsonObject();
                 serviceJson.add(serviceName, scenesJson);
 
@@ -750,25 +719,12 @@ public class SceneDetailActivity extends AppCompatActivity {
 
             for (int i = 0; i < removedNodeIds.size(); i++) {
 
-                final String nodeId = removedNodeIds.get(i);
+                String serviceName = getSceneServiceNameForNode(removedNodeIds.get(i));
 
-                EspNode espNode = espApp.nodeMap.get(nodeId);
-                ArrayList<Service> services = espNode.getServices();
-                String serviceName = "";
-                for (Service service : services) {
-                    if (AppConstants.SERVICE_TYPE_SCENES.equals(service.getType())) {
-                        serviceName = service.getName();
-                        break;
-                    }
-                }
-
-                if (TextUtils.isEmpty(serviceName)) {
-                    serviceName = AppConstants.KEY_SCENES;
-                }
                 JsonObject serviceJson = new JsonObject();
                 serviceJson.add(serviceName, scenesJson);
 
-                sceneJsonBodyMap.put(nodeId, serviceJson);
+                sceneJsonBodyMap.put(removedNodeIds.get(i), serviceJson);
             }
         }
 
@@ -900,6 +856,19 @@ public class SceneDetailActivity extends AppCompatActivity {
             }
         }
         return isExist;
+    }
+
+    private String getSceneServiceNameForNode(String nodeId) {
+        String serviceName = AppConstants.KEY_SCENES;
+
+        // Get service name
+        if (espApp.nodeMap.get(nodeId) != null) {
+            Service service = NodeUtils.Companion.getService(espApp.nodeMap.get(nodeId), AppConstants.SERVICE_TYPE_SCENES);
+            if (service != null && !TextUtils.isEmpty(service.getName())) {
+                serviceName = service.getName();
+            }
+        }
+        return serviceName;
     }
 
     private void gotoActionsScreen() {

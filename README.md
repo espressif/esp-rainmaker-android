@@ -197,6 +197,8 @@ The project is built around a shared belief that smart home devices should be se
 - Commission matter only and matter+rainmaker devices to custom fabric.
 - Control matter & matter+rainmaker devices locally using Matter clusters.
 - Control matter+rainmaker devices remotely using the Rainmaker cloud.
+- Control matter-only devices remotely via controller.
+- Commission matter device using thread networks. 
 
 ### Build app for Matter fabric
 

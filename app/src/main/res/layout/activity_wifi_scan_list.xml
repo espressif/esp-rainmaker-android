@@ -5,7 +5,9 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
-    <include layout="@layout/toolbar" />
+    <include
+        android:id="@+id/toolbar_layout"
+        layout="@layout/toolbar" />
 
     <RelativeLayout
         android:id="@+id/rl_wifi_scan"

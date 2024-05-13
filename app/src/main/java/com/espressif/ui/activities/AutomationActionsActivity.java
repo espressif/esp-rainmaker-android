@@ -22,14 +22,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import com.espressif.AppConstants;
@@ -38,12 +35,12 @@ import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.R;
+import com.espressif.rainmaker.databinding.ActivityActionsBinding;
 import com.espressif.ui.Utils;
 import com.espressif.ui.adapters.AutomationActionAdapter;
 import com.espressif.ui.models.Action;
 import com.espressif.ui.models.Automation;
 import com.espressif.ui.models.Device;
-import com.google.android.material.appbar.MaterialToolbar;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -58,14 +55,16 @@ public class AutomationActionsActivity extends AppCompatActivity {
     private ArrayList<Device> devices;
     private AutomationActionAdapter adapter;
     private EspApplication espApp;
-    private RelativeLayout rlProgress, rlActionSelection;
-    private TextView tvEventText;
     private String operation;
+
+    private ActivityActionsBinding binding;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_actions);
+        binding = ActivityActionsBinding.inflate(getLayoutInflater());
+        View view = binding.getRoot();
+        setContentView(view);
 
         devices = new ArrayList<>();
         espApp = (EspApplication) getApplicationContext();
@@ -177,25 +176,19 @@ public class AutomationActionsActivity extends AppCompatActivity {
 
     private void initViews() {
 
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        setSupportActionBar(binding.toolbarLayout.toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
         getSupportActionBar().setTitle(R.string.title_activity_actions);
-        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
-
+        binding.toolbarLayout.toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        binding.toolbarLayout.toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();
             }
         });
 
-        rlActionSelection = findViewById(R.id.layout_action_devices);
-        rlProgress = findViewById(R.id.layout_progress);
-        tvEventText = findViewById(R.id.tv_event_text);
-        RecyclerView recyclerView = findViewById(R.id.rv_device);
-        ((SimpleItemAnimator) recyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
+        ((SimpleItemAnimator) binding.layoutActionDevices.rvDevice.getItemAnimator()).setSupportsChangeAnimations(false);
 
         StringBuilder eventString = new StringBuilder();
         eventString.append(getString(R.string.event));
@@ -203,11 +196,11 @@ public class AutomationActionsActivity extends AppCompatActivity {
         eventString.append(automation.getEventDevice().getUserVisibleName());
         eventString.append(": ");
         eventString.append(Utils.getEventParamString(automation.getEventDevice().getParams(), automation.getCondition()));
-        tvEventText.setText(eventString.toString());
+        binding.layoutActionDevices.tvEventText.setText(eventString.toString());
         adapter = new AutomationActionAdapter(this, devices);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(adapter);
-        recyclerView.setHasFixedSize(true);
+        binding.layoutActionDevices.rvDevice.setLayoutManager(new LinearLayoutManager(this));
+        binding.layoutActionDevices.rvDevice.setAdapter(adapter);
+        binding.layoutActionDevices.rvDevice.setHasFixedSize(true);
     }
 
     private void saveAutomation() {
@@ -292,17 +285,16 @@ public class AutomationActionsActivity extends AppCompatActivity {
     }
 
     private void showLoading(String msg) {
-        rlActionSelection.setAlpha(0.3f);
-        rlProgress.setVisibility(View.VISIBLE);
-        TextView progressText = rlProgress.findViewById(R.id.tv_loading);
-        progressText.setText(msg);
+        binding.layoutActionDevices.layoutActions.setAlpha(0.3f);
+        binding.layoutProgress.setVisibility(View.VISIBLE);
+        binding.tvLoading.setText(msg);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
     }
 
     private void hideLoading() {
-        rlActionSelection.setAlpha(1);
-        rlProgress.setVisibility(View.GONE);
+        binding.layoutActionDevices.layoutActions.setAlpha(1);
+        binding.layoutProgress.setVisibility(View.GONE);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
     }
 }

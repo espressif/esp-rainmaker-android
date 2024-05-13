@@ -37,9 +37,9 @@ import com.espressif.ui.Utils;
 import com.espressif.ui.activities.SceneDetailActivity;
 import com.espressif.ui.fragments.ScenesFragment;
 import com.espressif.ui.models.Action;
-import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Service;
+import com.espressif.utils.NodeUtils;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -147,20 +147,16 @@ public class SceneAdapter extends RecyclerView.Adapter<SceneAdapter.SceneViewHol
                     if (!nodeIdList.contains(nodeId)) {
 
                         nodeIdList.add(nodeId);
+                        String serviceName = AppConstants.KEY_SCENES;
 
-                        EspNode espNode = espApp.nodeMap.get(nodeId);
-                        ArrayList<Service> services = espNode.getServices();
-                        String serviceName = "";
-                        for (Service service : services) {
-                            if (AppConstants.SERVICE_TYPE_SCENES.equals(service.getType())) {
+                        // Get service name
+                        if (espApp.nodeMap.get(nodeId) != null) {
+                            Service service = NodeUtils.Companion.getService(espApp.nodeMap.get(nodeId), AppConstants.SERVICE_TYPE_SCENES);
+                            if (service != null && !TextUtils.isEmpty(service.getName())) {
                                 serviceName = service.getName();
-                                break;
                             }
                         }
 
-                        if (TextUtils.isEmpty(serviceName)) {
-                            serviceName = AppConstants.KEY_SCENES;
-                        }
                         JsonObject body = new JsonObject();
                         body.add(serviceName, finalBody);
                         nodeIdJsonBodyMap.put(nodeId, body);

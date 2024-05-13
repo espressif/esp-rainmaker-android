@@ -19,23 +19,25 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
-import android.widget.RelativeLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.espressif.rainmaker.databinding.ActivityVoiceServicesBinding;
 import com.google.android.material.appbar.MaterialToolbar;
 
 public class VoiceServicesActivity extends AppCompatActivity {
 
-    private RelativeLayout rlAlexa, rlGva;
+    private ActivityVoiceServicesBinding binding;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_voice_services);
+        binding = ActivityVoiceServicesBinding.inflate(getLayoutInflater());
+        View view = binding.getRoot();
+        setContentView(view);
         initViews();
     }
 
@@ -54,10 +56,8 @@ public class VoiceServicesActivity extends AppCompatActivity {
             }
         });
 
-        rlAlexa = findViewById(R.id.rl_alexa);
-        rlGva = findViewById(R.id.rl_gva);
-        rlAlexa.setOnClickListener(alexaClickListener);
-        rlGva.setOnClickListener(gvaClickListener);
+        binding.rlAlexa.setOnClickListener(alexaClickListener);
+        binding.rlGva.setOnClickListener(gvaClickListener);
     }
 
     private View.OnClickListener alexaClickListener = new View.OnClickListener() {

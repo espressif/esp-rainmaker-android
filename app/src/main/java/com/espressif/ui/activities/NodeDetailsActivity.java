@@ -15,7 +15,6 @@
 package com.espressif.ui.activities;
 
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Menu;
@@ -45,6 +44,7 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Service;
 import com.espressif.ui.models.SharingRequest;
+import com.espressif.utils.NodeUtils;
 import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.ArrayList;
@@ -164,29 +164,17 @@ public class NodeDetailsActivity extends AppCompatActivity {
         nodeInfoValueList.add(getString(R.string.btn_check_update));
 
         // Display time zone of device.
-        ArrayList<Service> services = node.getServices();
-        Service tzService = null;
-
-        if (services != null) {
-            for (int i = 0; i < services.size(); i++) {
-
-                Service s = services.get(i);
-                if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_TIME)) {
-                    tzService = s;
-                    break;
-                }
-            }
-        }
+        Service tzService = NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_TIME);
 
         if (tzService != null) {
             nodeInfoList.add(getString(R.string.node_timezone));
-            nodeInfoValueList.add(getString(R.string.node_timezone));// TODO
+            nodeInfoValueList.add(getString(R.string.node_timezone));
         }
 
         // Attributes
         ArrayList<Param> attributes = node.getAttributes();
 
-        if (attributes != null && attributes.size() > 0) {
+        if (attributes != null && !attributes.isEmpty()) {
             for (int i = 0; i < attributes.size(); i++) {
                 Param param = attributes.get(i);
                 nodeInfoList.add(param.getName());
@@ -228,19 +216,8 @@ public class NodeDetailsActivity extends AppCompatActivity {
         }
 
         // System services
-        boolean isSystemServiceAvailable = false;
-        if (services != null) {
-            for (int i = 0; i < services.size(); i++) {
-
-                Service s = services.get(i);
-                if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_SYSTEM)) {
-                    isSystemServiceAvailable = true;
-                    break;
-                }
-            }
-        }
-
-        if (isSystemServiceAvailable) {
+        Service systemService = NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_SYSTEM);
+        if (systemService != null) {
             nodeInfoList.add(getString(R.string.system_services));
             nodeInfoValueList.add(getString(R.string.system_services));
         }

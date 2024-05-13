@@ -56,6 +56,7 @@ import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
 import com.espressif.ui.models.UpdateEvent;
+import com.espressif.utils.NodeUtils;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -1057,24 +1058,14 @@ public class EspApplication extends Application {
             final LocalControlApiManager localControlApiManager = new LocalControlApiManager(getApplicationContext());
             final String nodeId = newDevice.getNodeId();
             EspNode node = nodeMap.get(nodeId);
-            Service localService = null;
-
             if (node == null) {
                 Log.e(TAG, "Node is not available with id : " + nodeId);
                 return;
-            } else {
-                ArrayList<Service> services = node.getServices();
-
-                for (int i = 0; i < services.size(); i++) {
-                    Service s = services.get(i);
-                    if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_LOCAL_CONTROL)) {
-                        localService = s;
-                        break;
-                    }
-                }
             }
 
             Log.d(TAG, "Found node " + nodeId + " on local network.");
+            Service localService = NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_LOCAL_CONTROL);
+
             if (localDeviceMap.containsKey(nodeId)) {
                 Log.e(TAG, "Local Device session is already available");
                 newDevice = localDeviceMap.get(nodeId);

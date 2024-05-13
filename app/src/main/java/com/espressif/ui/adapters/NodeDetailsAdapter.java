@@ -49,6 +49,7 @@ import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Service;
 import com.espressif.ui.models.SharingRequest;
 import com.espressif.ui.widgets.EspDropDown;
+import com.espressif.utils.NodeUtils;
 import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
@@ -192,14 +193,7 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
             DividerItemDecoration itemDecor = new DividerItemDecoration(context, DividerItemDecoration.VERTICAL);
             nodeDetailVh.rvSharedUsers.addItemDecoration(itemDecor);
 
-            ArrayList<Service> services = node.getServices();
-            Service systemService = null;
-            for (Service service : services) {
-                if (service.getType().equals(AppConstants.SERVICE_TYPE_SYSTEM)) {
-                    systemService = service;
-                }
-            }
-
+            Service systemService = NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_SYSTEM);
             if (systemService != null) {
                 SystemServiceAdapter adapter = new SystemServiceAdapter(context, node, systemService);
                 nodeDetailVh.rvSharedUsers.setAdapter(adapter);
@@ -217,18 +211,9 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
             nodeDetailVh.dropDownTimezone.setEnabled(false);
             nodeDetailVh.dropDownTimezone.setOnItemSelectedListener(null);
 
-            ArrayList<Service> services = node.getServices();
-            Service tzService = null;
+            Service tzService = NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_TIME);
             String tzValue = null, tzPosixValue = null;
             String tzParamName = null;
-
-            for (int i = 0; i < services.size(); i++) {
-                Service s = services.get(i);
-                if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_TIME)) {
-                    tzService = s;
-                    break;
-                }
-            }
 
             if (tzService != null) {
                 ArrayList<Param> tzParams = tzService.getParams();

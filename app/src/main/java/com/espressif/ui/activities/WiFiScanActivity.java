@@ -38,7 +38,6 @@ import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.EditText;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -46,7 +45,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.LinearLayoutCompat;
 import androidx.core.app.ActivityCompat;
 
 import com.espressif.AppConstants;
@@ -57,14 +55,10 @@ import com.espressif.provisioning.WiFiAccessPoint;
 import com.espressif.provisioning.listeners.WiFiScanListener;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.espressif.rainmaker.databinding.ActivityWifiScanListBinding;
 import com.espressif.ui.adapters.WiFiListAdapter;
-import com.espressif.ui.widgets.EspDropDown;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
-import com.google.android.material.checkbox.MaterialCheckBox;
-import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
-import com.google.android.material.textview.MaterialTextView;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -79,16 +73,9 @@ public class WiFiScanActivity extends AppCompatActivity {
 
     private static final int REQUEST_ACCESS_FINE_LOCATION = 1;
 
+    private ActivityWifiScanListBinding binding;
+
     private MaterialCardView btnNext, btnRescan;
-    private TextView txtNextBtn;
-    private TextView txtRescanBtn;
-    private EspDropDown spinnerNetworks;
-    private MaterialTextView tvOtherNetwork;
-    private TextInputEditText etPassword;
-    private MaterialCheckBox cbSavePwd;
-    private RelativeLayout rlProgress, rlWiFiScan;
-    private LinearLayoutCompat llSavePassword;
-    private TextInputLayout layoutPassword;
 
     private ESPProvisionManager provisionManager;
     private String ssid, password;
@@ -105,7 +92,9 @@ public class WiFiScanActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_wifi_scan_list);
+        binding = ActivityWifiScanListBinding.inflate(getLayoutInflater());
+        View view = binding.getRoot();
+        setContentView(view);
 
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         shouldSavePassword = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE)
@@ -158,13 +147,12 @@ public class WiFiScanActivity extends AppCompatActivity {
 
     private void initViews() {
 
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        setSupportActionBar(binding.toolbarLayout.toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
-        toolbar.setTitle(R.string.title_activity_wifi_scan_list);
-        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+        binding.toolbarLayout.toolbar.setTitle(R.string.title_activity_wifi_scan_list);
+        binding.toolbarLayout.toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        binding.toolbarLayout.toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 ESPProvisionManager provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
@@ -173,64 +161,53 @@ public class WiFiScanActivity extends AppCompatActivity {
             }
         });
 
-        spinnerNetworks = findViewById(R.id.spinner_networks);
-        etPassword = findViewById(R.id.et_password);
-        tvOtherNetwork = findViewById(R.id.tv_add_network);
-        cbSavePwd = findViewById(R.id.cb_save_pwd);
-        cbSavePwd.setChecked(shouldSavePassword);
+        binding.cbSavePwd.setChecked(shouldSavePassword);
 
         WiFiAccessPoint dummyAP = new WiFiAccessPoint();
         dummyAP.setWifiName(getString(R.string.select_network));
         wifiAPList.add(dummyAP);
         wiFiListAdapter = new WiFiListAdapter(this, wifiAPList);
-        spinnerNetworks.setAdapter(wiFiListAdapter);
+        binding.spinnerNetworks.setAdapter(wiFiListAdapter);
 
         btnNext = findViewById(R.id.btn_start);
-        txtNextBtn = btnNext.findViewById(R.id.text_btn);
-        txtNextBtn.setText(R.string.btn_start);
+        binding.btnStart.textBtn.setText(R.string.btn_start);
         btnNext.findViewById(R.id.iv_arrow).setVisibility(View.GONE);
 
         btnRescan = findViewById(R.id.btn_rescan);
         btnRescan.setStrokeColor(getColor(android.R.color.transparent));
-        txtRescanBtn = btnRescan.findViewById(R.id.text_btn);
-        txtRescanBtn.setText(R.string.btn_scan_again);
-
-        rlWiFiScan = findViewById(R.id.rl_wifi_scan);
-        rlProgress = findViewById(R.id.rl_progress);
-        llSavePassword = findViewById(R.id.layout_save_password);
-        layoutPassword = findViewById(R.id.layout_password);
+        binding.btnRescan.textBtn.setText(R.string.btn_scan_again);
 
         btnNext.setOnClickListener(startBtnClickListener);
         btnRescan.setOnClickListener(scanAgainClickListener);
-        tvOtherNetwork.setOnClickListener(otherNetworkClickListener);
+        binding.tvAddNetwork.setOnClickListener(otherNetworkClickListener);
 
-        spinnerNetworks.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        binding.spinnerNetworks.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 selectedWiFi = wifiAPList.get(position);
                 ssid = selectedWiFi.getWifiName();
-                etPassword.setText("");
+                binding.etPassword.setText("");
 
                 if (ssid.equals(getString(R.string.select_network))) {
                     btnNext.setVisibility(View.INVISIBLE);
-                    layoutPassword.setVisibility(View.INVISIBLE);
-                    llSavePassword.setVisibility(View.INVISIBLE);
+                    binding.layoutPassword.setVisibility(View.INVISIBLE);
+                    binding.layoutSavePassword.setVisibility(View.INVISIBLE);
                 } else {
                     btnNext.setVisibility(View.VISIBLE);
                     if (selectedWiFi.getSecurity() == ESPConstants.WIFI_OPEN) {
-                        layoutPassword.setVisibility(View.INVISIBLE);
-                        llSavePassword.setVisibility(View.INVISIBLE);
+                        binding.layoutPassword.setVisibility(View.INVISIBLE);
+                        binding.layoutSavePassword.setVisibility(View.INVISIBLE);
                     } else {
-                        layoutPassword.setVisibility(View.VISIBLE);
-                        llSavePassword.setVisibility(View.VISIBLE);
+                        binding.layoutPassword.setVisibility(View.VISIBLE);
+                        binding.layoutSavePassword.setVisibility(View.VISIBLE);
 
                         if (shouldSavePassword) {
                             if (sharedPreferences.contains(ssid)) {
                                 String password = sharedPreferences.getString(ssid, "");
-                                etPassword.setText(password);
-                                etPassword.setSelection(etPassword.getText().length());
+                                binding.etPassword.setText(password);
+                                binding.etPassword.setSelection(binding.etPassword.getText().length());
                             } else {
-                                etPassword.setText("");
+                                binding.etPassword.setText("");
                             }
                         }
                     }
@@ -242,7 +219,7 @@ public class WiFiScanActivity extends AppCompatActivity {
             }
         });
 
-        etPassword.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+        binding.etPassword.setOnEditorActionListener(new TextView.OnEditorActionListener() {
 
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
@@ -290,15 +267,15 @@ public class WiFiScanActivity extends AppCompatActivity {
 
     private void startBtnClick() {
 
-        String password = etPassword.getText().toString();
+        String password = binding.etPassword.getText().toString();
 
         // Store save password setting in main preferences file.
         SharedPreferences.Editor mainPrefEditor = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE).edit();
-        mainPrefEditor.putBoolean(AppConstants.KEY_SHOULD_SAVE_PWD, cbSavePwd.isChecked());
+        mainPrefEditor.putBoolean(AppConstants.KEY_SHOULD_SAVE_PWD, binding.cbSavePwd.isChecked());
         mainPrefEditor.apply();
 
         SharedPreferences.Editor networksPrefEditor = sharedPreferences.edit();
-        if (cbSavePwd.isChecked()) {
+        if (binding.cbSavePwd.isChecked()) {
             networksPrefEditor.putString(ssid, password);
         } else {
             networksPrefEditor.remove(ssid);
@@ -445,7 +422,7 @@ public class WiFiScanActivity extends AppCompatActivity {
 
                     for (int i = 0; i < wifiAPList.size(); i++) {
                         if (ssid.equals(wifiAPList.get(i).getWifiName())) {
-                            spinnerNetworks.setSelection(i);
+                            binding.spinnerNetworks.setSelection(i);
                         }
                     }
                 }
@@ -453,8 +430,8 @@ public class WiFiScanActivity extends AppCompatActivity {
 
                 if (shouldSavePassword && sharedPreferences.contains(ssid)) {
                     String password = sharedPreferences.getString(ssid, "");
-                    etPassword.setText(password);
-                    etPassword.setSelection(etPassword.getText().length());
+                    binding.etPassword.setText(password);
+                    binding.etPassword.setSelection(binding.etPassword.getText().length());
                 }
                 updateProgressAndScanBtn(false);
             }
@@ -537,9 +514,9 @@ public class WiFiScanActivity extends AppCompatActivity {
 
         btnRescan.setEnabled(!isScanning);
         if (isScanning) {
-            txtRescanBtn.setText(R.string.progress_scan_networks);
+            binding.btnRescan.textBtn.setText(R.string.progress_scan_networks);
         } else {
-            txtRescanBtn.setText(R.string.btn_scan_again);
+            binding.btnRescan.textBtn.setText(R.string.btn_scan_again);
         }
     }
 
@@ -563,15 +540,15 @@ public class WiFiScanActivity extends AppCompatActivity {
     }
 
     private void showLoading() {
-        rlWiFiScan.setAlpha(0.3f);
-        rlProgress.setVisibility(View.VISIBLE);
+        binding.rlWifiScan.setAlpha(0.3f);
+        binding.rlProgress.setVisibility(View.VISIBLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
     }
 
     private void hideLoading() {
-        rlWiFiScan.setAlpha(1);
-        rlProgress.setVisibility(View.GONE);
+        binding.rlWifiScan.setAlpha(1);
+        binding.rlProgress.setVisibility(View.GONE);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
     }
 }

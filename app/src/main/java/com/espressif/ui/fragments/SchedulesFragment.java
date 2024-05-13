@@ -45,6 +45,7 @@ import com.espressif.ui.adapters.ScheduleAdapter;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
+import com.espressif.utils.NodeUtils;
 import com.google.android.material.card.MaterialCardView;
 
 import java.util.ArrayList;
@@ -225,28 +226,16 @@ public class SchedulesFragment extends Fragment {
 
         } else {
 
-            boolean isScheduleDevicesAvailable = false;
+            Service scheduleService = null;
             for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
 
-                EspNode node = entry.getValue();
-                if (node != null) {
-                    ArrayList<Service> services = node.getServices();
-
-                    if (services != null) {
-
-                        for (int i = 0; i < services.size(); i++) {
-
-                            Service s = services.get(i);
-                            if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_SCHEDULE)) {
-                                isScheduleDevicesAvailable = true;
-                                break;
-                            }
-                        }
-                    }
+                if (entry.getValue() != null) {
+                    scheduleService = NodeUtils.Companion.getService(entry.getValue(), AppConstants.SERVICE_TYPE_SCHEDULE);
+                    break;
                 }
             }
 
-            if (isScheduleDevicesAvailable) {
+            if (scheduleService != null) {
                 tvNoSchedule.setText(R.string.no_schedules);
                 btnAddSchedule.setVisibility(View.VISIBLE);
             } else {

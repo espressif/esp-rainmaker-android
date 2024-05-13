@@ -24,6 +24,7 @@ import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
+import com.espressif.utils.ParamUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -513,27 +514,7 @@ public class JsonDataParser {
 
                                     ArrayList<Param> actionParams = new ArrayList<>();
                                     if (params != null) {
-
-                                        Iterator<Param> iterator = params.iterator();
-                                        while (iterator.hasNext()) {
-                                            Param p = iterator.next();
-                                            actionParams.add(new Param(p));
-                                        }
-
-                                        Iterator itr = actionParams.iterator();
-
-                                        while (itr.hasNext()) {
-
-                                            Param p = (Param) itr.next();
-
-                                            if (!p.isDynamicParam()) {
-                                                itr.remove();
-                                            } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-                                                itr.remove();
-                                            } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
-                                                itr.remove();
-                                            }
-                                        }
+                                        actionParams = ParamUtils.Companion.filterActionParams(params);
                                     }
                                     actionDevice.setParams(actionParams);
 
@@ -665,27 +646,7 @@ public class JsonDataParser {
 
                                     ArrayList<Param> actionParams = new ArrayList<>();
                                     if (params != null) {
-
-                                        Iterator<Param> iterator = params.iterator();
-                                        while (iterator.hasNext()) {
-                                            Param p = iterator.next();
-                                            actionParams.add(new Param(p));
-                                        }
-
-                                        Iterator itr = actionParams.iterator();
-
-                                        while (itr.hasNext()) {
-
-                                            Param p = (Param) itr.next();
-
-                                            if (!p.isDynamicParam()) {
-                                                itr.remove();
-                                            } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-                                                itr.remove();
-                                            } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
-                                                itr.remove();
-                                            }
-                                        }
+                                        actionParams = ParamUtils.Companion.filterActionParams(params);
                                     }
                                     actionDevice.setParams(actionParams);
 
@@ -867,49 +828,53 @@ public class JsonDataParser {
 
                                                     for (Param p : params) {
 
-                                                        if (AppConstants.PARAM_TYPE_POWER.equals(p.getParamType())) {
-                                                            // On off cluster
-                                                            JSONObject onOffCluster = clusters.optJSONObject(ESPControllerAPIKeys.CLUSTER_ID_ON_OFF);
+                                                        switch (p.getParamType()) {
 
-                                                            if (onOffCluster != null) {
-                                                                String value = onOffCluster.optString(ESPControllerAPIKeys.ATTRIBUTE_ID_ON_OFF);
-                                                                boolean isPowerOn = false;
-                                                                if (!TextUtils.isEmpty(value) && value.equals("1")) {
-                                                                    isPowerOn = true;
+                                                            case AppConstants.PARAM_TYPE_POWER:
+                                                                // On off cluster
+                                                                JSONObject onOffCluster = clusters.optJSONObject(ESPControllerAPIKeys.CLUSTER_ID_ON_OFF);
+
+                                                                if (onOffCluster != null) {
+                                                                    String value = onOffCluster.optString(ESPControllerAPIKeys.ATTRIBUTE_ID_ON_OFF);
+                                                                    boolean isPowerOn = false;
+                                                                    if (!TextUtils.isEmpty(value) && value.equals("1")) {
+                                                                        isPowerOn = true;
+                                                                    }
+                                                                    p.setSwitchStatus(isPowerOn);
                                                                 }
-                                                                p.setSwitchStatus(isPowerOn);
-                                                            }
-                                                        } else if (AppConstants.PARAM_TYPE_BRIGHTNESS.equals(p.getParamType())) {
-                                                            // Level cluster
-                                                            JSONObject levelCluster = clusters.optJSONObject(ESPControllerAPIKeys.CLUSTER_ID_LEVEL_CONTROL);
+                                                                break;
 
-                                                            if (levelCluster != null) {
-                                                                String value = levelCluster.optString(ESPControllerAPIKeys.ATTRIBUTE_ID_BRIGHTNESS_LEVEL);
-                                                                if (!TextUtils.isEmpty(value)) {
-                                                                    int brightness = Integer.valueOf(value);
-                                                                    p.setValue(brightness);
+                                                            case AppConstants.PARAM_TYPE_BRIGHTNESS:
+                                                                // Level cluster
+                                                                JSONObject levelCluster = clusters.optJSONObject(ESPControllerAPIKeys.CLUSTER_ID_LEVEL_CONTROL);
+
+                                                                if (levelCluster != null) {
+                                                                    String value = levelCluster.optString(ESPControllerAPIKeys.ATTRIBUTE_ID_BRIGHTNESS_LEVEL);
+                                                                    if (!TextUtils.isEmpty(value)) {
+                                                                        int brightness = Integer.valueOf(value);
+                                                                        p.setValue(brightness);
+                                                                    }
                                                                 }
-                                                            }
-                                                        } else if (AppConstants.PARAM_TYPE_HUE.equals(p.getParamType())
-                                                                || AppConstants.PARAM_TYPE_SATURATION.equals(p.getParamType())) {
+                                                                break;
 
-                                                            // Color cluster
-                                                            JSONObject colorCluster = clusters.optJSONObject(ESPControllerAPIKeys.CLUSTER_ID_COLOR_CONTROL);
+                                                            case AppConstants.PARAM_TYPE_HUE:
+                                                            case AppConstants.PARAM_TYPE_SATURATION:
+                                                                // Color cluster
+                                                                JSONObject colorCluster = clusters.optJSONObject(ESPControllerAPIKeys.CLUSTER_ID_COLOR_CONTROL);
 
-                                                            if (colorCluster != null) {
-                                                                String hueValue = colorCluster.optString(ESPControllerAPIKeys.ATTRIBUTE_ID_CURRENT_HUE);
-                                                                String saturationValue = colorCluster.optString(ESPControllerAPIKeys.ATTRIBUTE_ID_CURRENT_SATURATION);
+                                                                if (colorCluster != null) {
+                                                                    String hueValue = colorCluster.optString(ESPControllerAPIKeys.ATTRIBUTE_ID_CURRENT_HUE);
+                                                                    String saturationValue = colorCluster.optString(ESPControllerAPIKeys.ATTRIBUTE_ID_CURRENT_SATURATION);
 
-                                                                if (!TextUtils.isEmpty(hueValue)) {
-                                                                    int hue = Integer.valueOf(hueValue);
-                                                                    p.setValue(hue);
+                                                                    if (!TextUtils.isEmpty(hueValue)) {
+                                                                        p.setValue(Integer.valueOf(hueValue));
+                                                                    }
+
+                                                                    if (!TextUtils.isEmpty(saturationValue)) {
+                                                                        p.setValue(Integer.valueOf(saturationValue));
+                                                                    }
                                                                 }
-
-                                                                if (!TextUtils.isEmpty(saturationValue)) {
-                                                                    int saturation = Integer.valueOf(saturationValue);
-                                                                    p.setValue(saturation);
-                                                                }
-                                                            }
+                                                                break;
                                                         }
                                                     }
                                                 }

@@ -5,9 +5,13 @@
     android:background="@color/color_background"
     android:fitsSystemWindows="true">
 
-    <include layout="@layout/toolbar" />
+    <include
+        android:id="@+id/toolbar_layout"
+        layout="@layout/toolbar" />
 
-    <include layout="@layout/content_automation_detail" />
+    <include
+        android:id="@+id/layout_automation_detail"
+        layout="@layout/content_automation_detail" />
 
     <RelativeLayout
         android:id="@+id/rl_progress_automation"
