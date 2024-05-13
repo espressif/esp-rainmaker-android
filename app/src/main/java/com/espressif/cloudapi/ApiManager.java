@@ -683,7 +683,6 @@ public class ApiManager {
         String loginUrl = getLoginEndpointUrl();
 
         JsonObject body = new JsonObject();
-        body.addProperty(AppConstants.KEY_USER_NAME, userName);
         body.addProperty("refreshtoken", refreshToken);
 
         try {
@@ -730,7 +729,6 @@ public class ApiManager {
         String loginUrl = getLoginEndpointUrl();
 
         HashMap<String, String> body = new HashMap<>();
-        body.put("user_name", userId);
         body.put("refreshtoken", refreshToken);
 
         try {
