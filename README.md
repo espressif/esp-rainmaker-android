@@ -135,6 +135,23 @@ Device automation can be enabled/disabled by setting true/false value of `isAuto
 Device automation is optional but enabled by default.
 Add `isAutomationSupported=false` in `local.properties` file to disable this feature.
 
+### Push Notifications
+
+ESPRainMaker app supports remote notifications in order to notify app in realtime for any updates.
+
+User will receive push notifications for below events :
+
+- A new node is added to the user.
+- Existing node is removed from the user account.
+- Node is shared to secondary user.
+- Node sharing request is accepted/declined by secondary user.
+- Node gets connected to cloud.
+- Node losses cloud connection.
+- Alerts triggered from the node.
+
+User can also enable / disable specific type of notification by enabling / disabling specific channel from notification settings available in app info.
+User will also receive silent notification for any device param changes. It will update the app with latest param value when app is in foreground.
+
 ### Time Series
 
 - Time series allows a user to see historical values of parameters plotted as a bar or line chart.
@@ -158,7 +175,7 @@ Note : System service feature requires support in firmware. It will be available
 - Push firmware update to nodes remotely when user provide approval using the app.
 
 OTA update is optional and disabled by default. It can be enabled/disabled by setting true/false value of `isOtaSupported` field in `local.properties`.
-Add `isOtaSupported=false` in `local.properties` file to enable this feature.
+Add `isOtaSupported=true` in `local.properties` file to enable this feature.
 
 ### Alexa App to App Linking
 
@@ -167,6 +184,27 @@ This account linking flow enables users to link their Alexa user identity with t
 - Initiate skill enablement and account linking from within the app.
 - Link their account without entering Alexa account credentials if already logged into Alexa app. They will have to login to Rainmaker once, when trying to link accounts.
 - Link their account from your RainMaker using [Login with Amazon (LWA)](https://developer.amazon.com/docs/login-with-amazon/documentation-overview.html), when the Alexa app isn't installed on their device.
+
+## Matter support
+
+### What is Matter?
+
+Matter is a unifying standard that provides reliable, secure connectivity across smart home devices. It is being developed by Matter Working Group within the Connectivity Standards Alliance (CSA) as a new, royalty-free connectivity standard to increase compatibility among smart home products, with security as a fundamental design tenet.
+The project is built around a shared belief that smart home devices should be secure, reliable, and seamless to use. By building upon Internet Protocol (IP), the project aims to enable communication across smart home devices, mobile apps, and cloud services and to define a specific set of IP-based networking technologies for device certification.
+
+### Capabilities
+
+- Commission matter only and matter+rainmaker devices to custom fabric.
+- Control matter & matter+rainmaker devices locally using Matter clusters.
+- Control matter+rainmaker devices remotely using the Rainmaker cloud.
+
+### Build app for Matter fabric
+
+Matter support is optional and disabled by default.
+To build app with Matter support do the following :
+
+- Add `isMatterSupported=true` in `local.properties` file.
+- Enable `matterBuild` variable to `true` in `app/build.gradle` to add matter libs in app.
 
 ## Additional Settings:
 
@@ -202,7 +240,7 @@ Description of each key can be found below.
 
 ## Supports
 
-- Supports Android 6.0 (API level 23) and above.  
+- Supports Android 8.1 (API level 27) and above.  
 
 ## License
 
