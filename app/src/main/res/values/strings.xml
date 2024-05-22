@@ -154,6 +154,7 @@
     <string name="local_device_text">Reachable on WLAN</string>
     <string name="max_cnt_reached">Max supported count %d reached</string>
     <string name="invalid">Invalid</string>
+    <string name="status_remote">Remote</string>
 
     <!--Tab titles-->
     <string name="tab_login">SIGN IN</string>

@@ -83,6 +83,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -116,6 +117,7 @@ public class EspApplication extends Application {
     public HashMap<String, ChipClient> chipClientMap;
     public HashMap<String, List<DeviceMatterInfo>> matterDeviceInfoMap;
     public ArrayList<String> availableMatterDevices;
+    public HashMap<String, HashMap<String, String>> controllerDevices;
     public EspOtaUpdate otaUpdateInfo;
 
     private SharedPreferences appPreferences;
@@ -149,6 +151,7 @@ public class EspApplication extends Application {
         chipClientMap = new HashMap<>();
         matterDeviceInfoMap = new HashMap<>();
         availableMatterDevices = new ArrayList<>();
+        controllerDevices = new HashMap<>();
 
         appPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
         BASE_URL = appPreferences.getString(AppConstants.KEY_BASE_URL, BuildConfig.BASE_URL);
@@ -215,7 +218,11 @@ public class EspApplication extends Application {
                     if (!chipClientMap.containsKey(matterNodeId)) {
                         clientHelper.initChipClientInBackground(matterNodeId);
                     } else {
-                        clientHelper.getCurrentValues(nodeId, matterNodeId, nodeMap.get(nodeId));
+                        try {
+                            clientHelper.getCurrentValues(nodeId, matterNodeId, nodeMap.get(nodeId));
+                        } catch (ExecutionException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
                 break;
@@ -529,6 +536,7 @@ public class EspApplication extends Application {
                         }
                     }
                 }
+                setRemoteDeviceStatus();
                 changeAppState(AppState.GET_DATA_SUCCESS, null);
             }
 
@@ -542,6 +550,49 @@ public class EspApplication extends Application {
                 changeAppState(AppState.GET_DATA_SUCCESS, null);
             }
         });
+    }
+
+    private void setRemoteDeviceStatus() {
+
+        for (Map.Entry<String, HashMap<String, String>> entry : controllerDevices.entrySet()) {
+
+            String controllerNodeId = entry.getKey();
+            HashMap<String, String> matterOnlyDevices = entry.getValue();
+
+            for (Map.Entry<String, String> controllerDevice : matterOnlyDevices.entrySet()) {
+                String matterDeviceId = controllerDevice.getKey();
+                String jsonStr = controllerDevice.getValue();
+
+                if (jsonStr != null) {
+                    try {
+                        JSONObject deviceJson = new JSONObject(jsonStr);
+                        boolean enabled = deviceJson.optBoolean(AppConstants.KEY_ENABLED);
+                        boolean reachable = deviceJson.optBoolean(AppConstants.KEY_REACHABLE);
+
+                        if (enabled && reachable) {
+
+                            if (matterRmNodeIdMap.containsValue(matterDeviceId)) {
+                                for (Map.Entry<String, String> matterDevice : matterRmNodeIdMap.entrySet()) {
+                                    if (matterDeviceId.equals(matterDevice.getValue())) {
+                                        String rmNodeId = matterDevice.getKey();
+                                        if (nodeMap.containsKey(rmNodeId)) {
+                                            int nodeStatus = nodeMap.get(rmNodeId).getNodeStatus();
+                                            if (nodeStatus != AppConstants.NODE_STATUS_MATTER_LOCAL && nodeStatus != AppConstants.NODE_STATUS_LOCAL) {
+                                                Log.d(TAG, "Set Node status to remotely controllable for node id : " + rmNodeId);
+                                                nodeMap.get(rmNodeId).setNodeStatus(AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
+        }
     }
 
     private void initChipControllerForHomeGroup() {
@@ -619,12 +670,17 @@ public class EspApplication extends Application {
                 }
                 matterDeviceInfoMap.put(matterNodeId, matterDeviceInfo);
                 nodeMap.get(nodeId).setOnline(true);
+                nodeMap.get(nodeId).setNodeStatus(AppConstants.NODE_STATUS_MATTER_LOCAL);
                 availableMatterDevices.add(matterNodeId);
             } else {
                 matterDeviceInfoMap.remove(matterNodeId);
                 availableMatterDevices.remove(matterNodeId);
                 chipClientMap.remove(matterNodeId);
                 nodeMap.get(nodeId).setOnline(false);
+                if (!Arrays.asList(AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE, AppConstants.NODE_STATUS_LOCAL,
+                        AppConstants.NODE_STATUS_ONLINE).contains(nodeMap.get(nodeId).getNodeStatus())) {
+                    nodeMap.get(nodeId).setNodeStatus(AppConstants.NODE_STATUS_OFFLINE);
+                }
             }
         } catch (ExecutionException e) {
             e.printStackTrace();
@@ -1088,6 +1144,7 @@ public class EspApplication extends Application {
                                                 localNode.setIpAddress(localDevice.getIpAddr());
                                                 localNode.setPort(localDevice.getPort());
                                                 localNode.setOnline(true);
+                                                localNode.setNodeStatus(AppConstants.NODE_STATUS_LOCAL);
                                                 localDeviceMap.put(localNode.getNodeId(), localDevice);
                                             }
 

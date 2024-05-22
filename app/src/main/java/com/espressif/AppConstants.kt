@@ -73,6 +73,7 @@ class AppConstants {
         const val SERVICE_TYPE_TIME = "esp.service.time"
         const val SERVICE_TYPE_LOCAL_CONTROL = "esp.service.local_control"
         const val SERVICE_TYPE_SYSTEM = "esp.service.system"
+        const val SERVICE_TYPE_MATTER_CONTROLLER = "esp.service.matter-controller"
 
         // Param Types
         const val PARAM_TYPE_NAME = "esp.param.name"
@@ -89,6 +90,9 @@ class AppConstants {
         const val PARAM_TYPE_REBOOT = "esp.param.reboot"
         const val PARAM_TYPE_FACTORY_RESET = "esp.param.factory-reset"
         const val PARAM_TYPE_WIFI_RESET = "esp.param.wifi-reset"
+        const val PARAM_TYPE_MATTER_DEVICES = "esp.param.matter-devices"
+        const val PARAM_TYPE_MATTER_CTRL_DATA_VERSION =
+            "esp.param.matter-controller-data-version"
 
         // Param names
         const val PARAM_POWER = "Power"
@@ -345,6 +349,8 @@ class AppConstants {
         const val KEY_AUTOMATION = "automation"
         const val KEY_LOAD_AUTOMATION_PAGE = "load_automation"
         const val KEY_SYSTEM = "System"
+        const val KEY_MATTER_CONTROLLER = "Matter-Controller"
+        const val KEY_REACHABLE = "reachable"
 
         const val KEY_OPERATION = "operation"
         const val KEY_OPERATION_ADD = "add"
@@ -460,6 +466,12 @@ class AppConstants {
 
         const val PRIVILEGE_ADMIN = 5
         const val PRIVILEGE_OPERATE = 3
+
+        const val NODE_STATUS_OFFLINE = 1;
+        const val NODE_STATUS_ONLINE = 2;
+        const val NODE_STATUS_LOCAL = 3;
+        const val NODE_STATUS_MATTER_LOCAL = 4;
+        const val NODE_STATUS_REMOTELY_CONTROLLABLE = 5;
 
         enum class UpdateEventType {
             EVENT_DEVICE_ADDED,

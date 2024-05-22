@@ -63,9 +63,12 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class EspDeviceActivity extends AppCompatActivity {
 
@@ -95,7 +98,6 @@ public class EspDeviceActivity extends AppCompatActivity {
     private ArrayList<Param> attributeList;
     private Handler handler;
     private ContentLoadingProgressBar progressBar;
-    private boolean isNodeOnline;
     private long timeStampOfStatus;
     private boolean isNetworkAvailable = true;
     private boolean shouldGetParams = true;
@@ -106,6 +108,7 @@ public class EspDeviceActivity extends AppCompatActivity {
 
     private boolean isControllerClusterAvailable = false, isTbrClusterAvailable = false;
     private String nodeType, matterNodeId;
+    private int nodeStatus;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,8 +128,8 @@ public class EspDeviceActivity extends AppCompatActivity {
             nodeId = device.getNodeId();
             Log.d(TAG, "NODE ID : " + nodeId);
 
-            isNodeOnline = espApp.nodeMap.get(nodeId).isOnline();
             nodeType = espApp.nodeMap.get(nodeId).getNewNodeType();
+            nodeStatus = espApp.nodeMap.get(nodeId).getNodeStatus();
             timeStampOfStatus = espApp.nodeMap.get(nodeId).getTimeStampOfStatus();
             snackbar = Snackbar.make(findViewById(R.id.params_parent_layout), R.string.msg_no_internet, Snackbar.LENGTH_INDEFINITE);
 
@@ -264,6 +267,13 @@ public class EspDeviceActivity extends AppCompatActivity {
     }
 
     public boolean isNodeOnline() {
+        boolean isNodeOnline = false;
+
+        if (Arrays.asList(AppConstants.NODE_STATUS_ONLINE, AppConstants.NODE_STATUS_LOCAL,
+                        AppConstants.NODE_STATUS_MATTER_LOCAL, AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE)
+                .contains(nodeStatus)) {
+            isNodeOnline = true;
+        }
         return isNodeOnline;
     }
 
@@ -276,7 +286,8 @@ public class EspDeviceActivity extends AppCompatActivity {
     }
 
     public void startUpdateValueTask() {
-        if (!TextUtils.isEmpty(nodeType) && nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
+        if (!TextUtils.isEmpty(nodeType) && nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)
+                && nodeStatus != AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE) {
             return;
         }
         shouldGetParams = true;
@@ -475,7 +486,34 @@ public class EspDeviceActivity extends AppCompatActivity {
 
     private void getValues() {
 
-        networkApiManager.getParamsValues(nodeId, new ApiResponseListener() {
+        if (nodeStatus == AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE) {
+
+            if (!TextUtils.isEmpty(nodeType) && nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
+
+                String controllerNodeId = "";
+
+                for (Map.Entry<String, HashMap<String, String>> entry : espApp.controllerDevices.entrySet()) {
+
+                    HashMap<String, String> controllerDevices = entry.getValue();
+
+                    if (controllerDevices.containsKey(matterNodeId)) {
+                        controllerNodeId = entry.getKey();
+                        break;
+                    }
+                }
+
+                if (!TextUtils.isEmpty(controllerNodeId)) {
+                    getParamValuesForDevice(controllerNodeId);
+                }
+            }
+        } else {
+            getParamValuesForDevice(nodeId);
+        }
+    }
+
+    private void getParamValuesForDevice(String rmNodeId) {
+
+        networkApiManager.getParamsValues(rmNodeId, new ApiResponseListener() {
 
             @Override
             public void onSuccess(Bundle data) {
@@ -629,8 +667,8 @@ public class EspDeviceActivity extends AppCompatActivity {
         if (espApp.nodeMap.containsKey(nodeId)) {
 
             ArrayList<Device> devices = espApp.nodeMap.get(nodeId).getDevices();
-            isNodeOnline = espApp.nodeMap.get(nodeId).isOnline();
             timeStampOfStatus = espApp.nodeMap.get(nodeId).getTimeStampOfStatus();
+            nodeStatus = espApp.nodeMap.get(nodeId).getNodeStatus();
 
             for (int i = 0; i < devices.size(); i++) {
 
@@ -663,29 +701,55 @@ public class EspDeviceActivity extends AppCompatActivity {
 
         setParamList(updatedDevice.getParams());
 
-        if (!isNodeOnline) {
+        switch (nodeStatus) {
+            case AppConstants.NODE_STATUS_MATTER_LOCAL:
 
-            if (espApp.getAppState().equals(EspApplication.AppState.GET_DATA_SUCCESS)) {
+                if (espApp.getAppState().equals(EspApplication.AppState.GET_DATA_SUCCESS)) {
+                    if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(matterNodeId)
+                            && espApp.matterDeviceInfoMap.containsKey(matterNodeId)) {
 
-                rlNodeStatus.setVisibility(View.VISIBLE);
-
-                if (espApp.localDeviceMap.containsKey(nodeId)) {
-
-                    EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
-                    if (localDevice.getSecurityType() == 1 || localDevice.getSecurityType() == 2) {
-                        ivSecureLocal.setVisibility(View.VISIBLE);
-                    } else {
-                        ivSecureLocal.setVisibility(View.GONE);
+                        rlNodeStatus.setVisibility(View.VISIBLE);
+                        tvNodeStatus.setText(R.string.status_local);
                     }
-                    tvNodeStatus.setText(R.string.local_device_text);
+                } else {
+                    rlNodeStatus.setVisibility(View.INVISIBLE);
+                }
+                break;
 
-                } else if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(matterNodeId)
-                        && espApp.matterDeviceInfoMap.containsKey(matterNodeId)) {
+            case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE:
+
+                if (espApp.getAppState().equals(EspApplication.AppState.GET_DATA_SUCCESS)) {
+                    rlNodeStatus.setVisibility(View.VISIBLE);
+                    tvNodeStatus.setText(R.string.status_remote);
+                } else {
+                    rlNodeStatus.setVisibility(View.INVISIBLE);
+                }
+                break;
+
+            case AppConstants.NODE_STATUS_LOCAL:
+
+                EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
+
+                if (espApp.getAppState().equals(EspApplication.AppState.GET_DATA_SUCCESS)) {
 
                     rlNodeStatus.setVisibility(View.VISIBLE);
-                    tvNodeStatus.setText(R.string.status_local);
 
+                    if (espApp.localDeviceMap.containsKey(nodeId)) {
+
+                        if (localDevice.getSecurityType() == 1 || localDevice.getSecurityType() == 2) {
+                            ivSecureLocal.setVisibility(View.VISIBLE);
+                        } else {
+                            ivSecureLocal.setVisibility(View.GONE);
+                        }
+                        tvNodeStatus.setText(R.string.local_device_text);
+                    }
                 } else {
+                    rlNodeStatus.setVisibility(View.INVISIBLE);
+                }
+                break;
+
+            case AppConstants.NODE_STATUS_OFFLINE:
+                if (espApp.getAppState().equals(EspApplication.AppState.GET_DATA_SUCCESS)) {
                     ivSecureLocal.setVisibility(View.GONE);
                     String offlineText = getString(R.string.status_offline);
                     tvNodeStatus.setText(offlineText);
@@ -712,35 +776,15 @@ public class EspDeviceActivity extends AppCompatActivity {
                         }
                         tvNodeStatus.setText(offlineText);
                     }
-                }
-            } else {
-                rlNodeStatus.setVisibility(View.INVISIBLE);
-            }
-
-        } else {
-
-            if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(matterNodeId)
-                    && espApp.matterDeviceInfoMap.containsKey(matterNodeId)) {
-
-                rlNodeStatus.setVisibility(View.VISIBLE);
-                tvNodeStatus.setText(R.string.status_local);
-            } else {
-                rlNodeStatus.setVisibility(View.INVISIBLE);
-            }
-
-            if (espApp.localDeviceMap.containsKey(nodeId)) {
-
-                rlNodeStatus.setVisibility(View.VISIBLE);
-                EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
-                if (localDevice.getSecurityType() == 1 || localDevice.getSecurityType() == 2) {
-                    ivSecureLocal.setVisibility(View.VISIBLE);
                 } else {
-                    ivSecureLocal.setVisibility(View.GONE);
+                    rlNodeStatus.setVisibility(View.INVISIBLE);
                 }
-                tvNodeStatus.setText(R.string.local_device_text);
-            } else {
+                break;
+
+            case AppConstants.NODE_STATUS_ONLINE:
+            default:
                 rlNodeStatus.setVisibility(View.INVISIBLE);
-            }
+                break;
         }
 
         paramAdapter.updateParamList(paramList);

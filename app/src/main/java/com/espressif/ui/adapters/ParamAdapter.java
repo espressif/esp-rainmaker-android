@@ -38,6 +38,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.widget.ContentLoadingProgressBar;
@@ -46,20 +47,24 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.aar.tapholdupbutton.TapHoldUpButton;
 import com.espressif.AppConstants;
+import com.espressif.ESPControllerAPIKeys;
 import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.matter.ColorControlClusterHelper;
 import com.espressif.matter.LevelControlClusterHelper;
 import com.espressif.matter.OnOffClusterHelper;
+import com.espressif.matter.RemoteControlApiHelper;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.EspDeviceActivity;
 import com.espressif.ui.activities.TimeSeriesActivity;
 import com.espressif.ui.models.Device;
-import com.espressif.ui.models.Group;
+import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
+import com.espressif.ui.models.Service;
 import com.espressif.ui.widgets.EspDropDown;
 import com.espressif.ui.widgets.PaletteBar;
+import com.espressif.utils.NodeUtils;
 import com.google.gson.JsonObject;
 import com.larswerkman.holocolorpicker.ColorPicker;
 import com.warkiz.tickseekbar.OnSeekChangeListener;
@@ -70,9 +75,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-
-import kotlin.Unit;
 
 public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -91,6 +93,8 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     private String matterNodeId;
     private int hueColorValue;
+    private EspApplication espApp;
+    private int nodeStatus = AppConstants.NODE_STATUS_OFFLINE;
 
     public ParamAdapter(Activity context, Device device, ArrayList<Param> paramList) {
         this.context = context;
@@ -99,7 +103,8 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         this.deviceName = device.getDeviceName();
         deviceParamUpdates = new DeviceParamUpdates(context, nodeId, deviceName);
 
-        EspApplication espApp = (EspApplication) context.getApplicationContext();
+        espApp = (EspApplication) context.getApplicationContext();
+        nodeStatus = espApp.nodeMap.get(nodeId).getNodeStatus();
         if (espApp.matterRmNodeIdMap.containsKey(nodeId)) {
             matterNodeId = espApp.matterRmNodeIdMap.get(nodeId);
             Log.d(TAG, "Found Matter Node Id : " + matterNodeId);
@@ -593,90 +598,155 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                         @Override
                         public void onSeeking(SeekParams seekParams) {
 
-                            boolean isMatterDeviceOnline = false;
-                            if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
-                                isMatterDeviceOnline = true;
-                            }
+                            switch (nodeStatus) {
 
-                            if (!isMatterDeviceOnline) {
-                                if (seekParams.fromUser) {
-                                    ((EspDeviceActivity) context).setIsUpdateView(false);
-                                    if (BuildConfig.isContinuousUpdateEnable) {
-                                        deviceParamUpdates.processSliderChange(param.getName(), seekParams.progress);
+                                case AppConstants.NODE_STATUS_LOCAL:
+                                case AppConstants.NODE_STATUS_ONLINE:
+
+                                    if (seekParams.fromUser) {
+                                        ((EspDeviceActivity) context).setIsUpdateView(false);
+                                        if (BuildConfig.isContinuousUpdateEnable) {
+                                            deviceParamUpdates.processSliderChange(param.getName(), seekParams.progress);
+                                        }
                                     }
-                                }
+                                    break;
+
+                                case AppConstants.NODE_STATUS_OFFLINE:
+                                case AppConstants.NODE_STATUS_MATTER_LOCAL:
+                                case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE:
+                                default:
+                                    break;
                             }
                         }
 
                         @Override
                         public void onStartTrackingTouch(TickSeekBar seekBar) {
 
-                            boolean isMatterDeviceOnline = false;
-                            if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
-                                isMatterDeviceOnline = true;
-                            }
+                            switch (nodeStatus) {
 
-                            if (!isMatterDeviceOnline) {
-                                ((EspDeviceActivity) context).setIsUpdateView(false);
-                                if (!BuildConfig.isContinuousUpdateEnable) {
-                                    ((EspDeviceActivity) context).stopUpdateValueTask();
-                                }
+                                case AppConstants.NODE_STATUS_LOCAL:
+                                case AppConstants.NODE_STATUS_ONLINE:
+
+                                    ((EspDeviceActivity) context).setIsUpdateView(false);
+                                    if (!BuildConfig.isContinuousUpdateEnable) {
+                                        ((EspDeviceActivity) context).stopUpdateValueTask();
+                                    }
+                                    break;
+
+                                case AppConstants.NODE_STATUS_OFFLINE:
+                                case AppConstants.NODE_STATUS_MATTER_LOCAL:
+                                case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE:
+                                default:
+                                    break;
                             }
                         }
 
                         @Override
                         public void onStopTrackingTouch(TickSeekBar seekBar) {
 
-                            boolean isMatterDeviceOnline = false;
                             String paramType = param.getParamType();
-                            if (AppConstants.PARAM_TYPE_BRIGHTNESS.equals(paramType)
-                                    || AppConstants.PARAM_TYPE_SATURATION.equals(paramType)) {
+                            int lastProgressValue = seekBar.getProgress();
 
-                                if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
-                                    isMatterDeviceOnline = true;
-                                }
-                            }
+                            switch (nodeStatus) {
 
-                            if (isMatterDeviceOnline) {
+                                case AppConstants.NODE_STATUS_MATTER_LOCAL: {
+                                    lastProgressValue = (int) (lastProgressValue * 2.55f);
+                                    BigInteger id = new BigInteger(matterNodeId, 16);
+                                    long deviceId = id.longValue();
 
-                                int lastProgressValue = seekBar.getProgress();
-                                lastProgressValue = (int) (lastProgressValue * 2.55f);
-
-                                BigInteger id = new BigInteger(matterNodeId, 16);
-                                long deviceId = id.longValue();
-
-                                if (lastProgressValue == 255) {
-                                    lastProgressValue = 254;
-                                }
-
-                                if (AppConstants.PARAM_TYPE_BRIGHTNESS.equals(paramType)) {
-                                    LevelControlClusterHelper espClusterHelper = new LevelControlClusterHelper(espApp.chipClientMap.get(matterNodeId));
-                                    espClusterHelper.setLevelAsync(deviceId, AppConstants.ENDPOINT_1, lastProgressValue);
-                                } else if (AppConstants.PARAM_TYPE_SATURATION.equals(paramType)) {
-                                    ColorControlClusterHelper espClusterHelper = new ColorControlClusterHelper(espApp.chipClientMap.get(matterNodeId));
-                                    espClusterHelper.setSaturationValueAsync(deviceId, AppConstants.ENDPOINT_1, lastProgressValue);
-                                }
-
-                            } else {
-                                ((EspDeviceActivity) context).setIsUpdateView(true);
-                                int lastProgressValue = seekBar.getProgress();
-
-                                deviceParamUpdates.clearQueueAndSendLastValue(param.getName(), lastProgressValue, new ApiResponseListener() {
-                                    @Override
-                                    public void onSuccess(Bundle data) {
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    if (lastProgressValue == 255) {
+                                        lastProgressValue = 254;
                                     }
 
-                                    @Override
-                                    public void onResponseFailure(Exception exception) {
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    if (AppConstants.PARAM_TYPE_BRIGHTNESS.equals(paramType)
+                                            || AppConstants.PARAM_TYPE_SATURATION.equals(paramType)) {
+
+                                        if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
+                                            if (AppConstants.PARAM_TYPE_BRIGHTNESS.equals(paramType)) {
+                                                LevelControlClusterHelper espClusterHelper = new LevelControlClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                                                espClusterHelper.setLevelAsync(deviceId, AppConstants.ENDPOINT_1, lastProgressValue);
+                                            } else if (AppConstants.PARAM_TYPE_SATURATION.equals(paramType)) {
+                                                ColorControlClusterHelper espClusterHelper = new ColorControlClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                                                espClusterHelper.setSaturationValueAsync(deviceId, AppConstants.ENDPOINT_1, lastProgressValue);
+                                            }
+                                        }
+                                    }
+                                }
+                                break;
+
+                                case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE: {
+
+                                    lastProgressValue = (int) (lastProgressValue * 2.55f);
+                                    if (lastProgressValue == 255) {
+                                        lastProgressValue = 254;
                                     }
 
-                                    @Override
-                                    public void onNetworkFailure(Exception exception) {
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    RemoteControlApiHelper apiHelper = new RemoteControlApiHelper(espApp);
+
+                                    for (Map.Entry<String, HashMap<String, String>> entry : espApp.controllerDevices.entrySet()) {
+
+                                        HashMap<String, String> controllerDevices = entry.getValue();
+
+                                        if (controllerDevices.containsKey(matterNodeId)) {
+
+                                            EspNode controllerNode = espApp.nodeMap.get(entry.getKey());
+                                            Service controllerService = NodeUtils.Companion.getService(controllerNode, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER);
+
+                                            if (controllerService != null) {
+
+                                                for (Param deviceParam : controllerService.getParams()) {
+
+                                                    if (AppConstants.PARAM_TYPE_MATTER_DEVICES.equals(deviceParam.getParamType())) {
+
+                                                        apiHelper.callBrightnessAPI(entry.getKey(), matterNodeId, deviceParam.getName(),
+                                                                controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1, lastProgressValue, new ApiResponseListener() {
+                                                                    @Override
+                                                                    public void onSuccess(@Nullable Bundle data) {
+                                                                    }
+
+                                                                    @Override
+                                                                    public void onResponseFailure(@NonNull Exception exception) {
+                                                                    }
+
+                                                                    @Override
+                                                                    public void onNetworkFailure(@NonNull Exception exception) {
+                                                                    }
+                                                                });
+
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            break;
+                                        }
                                     }
-                                });
+                                }
+                                break;
+
+                                case AppConstants.NODE_STATUS_LOCAL:
+                                case AppConstants.NODE_STATUS_ONLINE:
+                                    ((EspDeviceActivity) context).setIsUpdateView(true);
+
+                                    deviceParamUpdates.clearQueueAndSendLastValue(param.getName(), lastProgressValue, new ApiResponseListener() {
+                                        @Override
+                                        public void onSuccess(Bundle data) {
+                                            ((EspDeviceActivity) context).startUpdateValueTask();
+                                        }
+
+                                        @Override
+                                        public void onResponseFailure(Exception exception) {
+                                            ((EspDeviceActivity) context).startUpdateValueTask();
+                                        }
+
+                                        @Override
+                                        public void onNetworkFailure(Exception exception) {
+                                            ((EspDeviceActivity) context).startUpdateValueTask();
+                                        }
+                                    });
+
+                                case AppConstants.NODE_STATUS_OFFLINE:
+                                default:
+                                    break;
                             }
                         }
                     });
@@ -813,58 +883,115 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     @Override
                     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
-                        EspApplication espApp = (EspApplication) context.getApplicationContext();
+                        switch (nodeStatus) {
+                            case AppConstants.NODE_STATUS_MATTER_LOCAL:
+                                if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
+                                    BigInteger id = new BigInteger(matterNodeId, 16);
+                                    long deviceId = id.longValue();
+                                    OnOffClusterHelper espClusterHelper = new OnOffClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                                    espClusterHelper.setOnOffDeviceStateOnOffClusterAsync(deviceId, isChecked, AppConstants.ENDPOINT_1);
+                                    param.setSwitchStatus(!isChecked);
+                                    if (isChecked) {
+                                        paramViewHolder.tvSwitchStatus.setText(R.string.text_on);
+                                    } else {
+                                        paramViewHolder.tvSwitchStatus.setText(R.string.text_off);
+                                    }
+                                }
+                                break;
 
-                        boolean isMatterDeviceOnline = false;
-                        if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
-                            isMatterDeviceOnline = true;
-                        }
+                            case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE:
+                                RemoteControlApiHelper apiHelper = new RemoteControlApiHelper(espApp);
 
-                        if (isMatterDeviceOnline) {
-                            BigInteger id = new BigInteger(matterNodeId, 16);
-                            long deviceId = id.longValue();
-                            OnOffClusterHelper espClusterHelper = new OnOffClusterHelper(espApp.chipClientMap.get(matterNodeId));
-                            espClusterHelper.setOnOffDeviceStateOnOffClusterAsync(deviceId, isChecked, AppConstants.ENDPOINT_1);
+                                for (Map.Entry<String, HashMap<String, String>> entry : espApp.controllerDevices.entrySet()) {
 
-                            if (isChecked) {
-                                paramViewHolder.tvSwitchStatus.setText(R.string.text_on);
-                            } else {
-                                paramViewHolder.tvSwitchStatus.setText(R.string.text_off);
-                            }
-                        } else {
-                            ((EspDeviceActivity) context).stopUpdateValueTask();
+                                    HashMap<String, String> controllerDevices = entry.getValue();
 
-                            if (isChecked) {
+                                    if (controllerDevices.containsKey(matterNodeId)) {
 
-                                paramViewHolder.tvSwitchStatus.setText(R.string.text_on);
+                                        EspNode espNode = espApp.nodeMap.get(entry.getKey());
+                                        Service controllerService = NodeUtils.Companion.getService(espNode, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER);
 
-                            } else {
-                                paramViewHolder.tvSwitchStatus.setText(R.string.text_off);
-                            }
+                                        if (controllerService != null) {
+                                            for (Param deviceParam : controllerService.getParams()) {
+                                                if (AppConstants.PARAM_TYPE_MATTER_DEVICES.equals(deviceParam.getParamType())) {
 
-                            JsonObject jsonParam = new JsonObject();
-                            JsonObject body = new JsonObject();
+                                                    if (isChecked) {
+                                                        apiHelper.callOnAPI(entry.getKey(), matterNodeId, deviceParam.getName(), controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1, new ApiResponseListener() {
+                                                            @Override
+                                                            public void onSuccess(@Nullable Bundle data) {
+                                                            }
 
-                            jsonParam.addProperty(param.getName(), isChecked);
-                            body.add(deviceName, jsonParam);
+                                                            @Override
+                                                            public void onResponseFailure(@NonNull Exception exception) {
+                                                            }
 
-                            deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
+                                                            @Override
+                                                            public void onNetworkFailure(@NonNull Exception exception) {
+                                                            }
+                                                        });
+                                                    } else {
+                                                        apiHelper.callOffAPI(entry.getKey(), matterNodeId, deviceParam.getName(), controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1, new ApiResponseListener() {
+                                                            @Override
+                                                            public void onSuccess(@Nullable Bundle data) {
+                                                            }
 
-                                @Override
-                                public void onSuccess(Bundle data) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
+                                                            @Override
+                                                            public void onResponseFailure(@NonNull Exception exception) {
+                                                            }
+
+                                                            @Override
+                                                            public void onNetworkFailure(@NonNull Exception exception) {
+                                                            }
+                                                        });
+                                                    }
+
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        break;
+                                    }
+                                }
+                                break;
+
+                            case AppConstants.NODE_STATUS_LOCAL:
+                            case AppConstants.NODE_STATUS_ONLINE:
+                                ((EspDeviceActivity) context).stopUpdateValueTask();
+
+                                if (isChecked) {
+                                    paramViewHolder.tvSwitchStatus.setText(R.string.text_on);
+                                } else {
+                                    paramViewHolder.tvSwitchStatus.setText(R.string.text_off);
                                 }
 
-                                @Override
-                                public void onResponseFailure(Exception exception) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                }
+                                JsonObject jsonParam = new JsonObject();
+                                JsonObject body = new JsonObject();
 
-                                @Override
-                                public void onNetworkFailure(Exception exception) {
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                }
-                            });
+                                jsonParam.addProperty(param.getName(), isChecked);
+                                body.add(deviceName, jsonParam);
+
+                                deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
+
+                                    @Override
+                                    public void onSuccess(Bundle data) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+
+                                    @Override
+                                    public void onResponseFailure(Exception exception) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+
+                                    @Override
+                                    public void onNetworkFailure(Exception exception) {
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+                                });
+                                break;
+
+                            case AppConstants.NODE_STATUS_OFFLINE:
+                            default:
+                                break;
                         }
                     }
                 });
