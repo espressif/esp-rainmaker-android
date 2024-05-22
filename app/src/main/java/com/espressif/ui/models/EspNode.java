@@ -112,6 +112,12 @@ public class EspNode implements Parcelable {
     @Ignore
     private NodeMetadata nodeMetadata;
 
+    @Ignore
+    private boolean isController;
+
+    @Ignore
+    private int nodeStatus = AppConstants.NODE_STATUS_OFFLINE;
+
     public EspNode() {
     }
 
@@ -146,6 +152,8 @@ public class EspNode implements Parcelable {
         sceneCurrentCnt = node.getSceneCurrentCnt();
         matterNodeId = node.getMatterNodeId();
         nodeMetadata = node.getNodeMetadata();
+        isController = node.isController();
+        nodeStatus = node.getNodeStatus();
     }
 
     public String getNodeId() {
@@ -370,6 +378,22 @@ public class EspNode implements Parcelable {
         this.nodeMetadata = nodeMetadata;
     }
 
+    public boolean isController() {
+        return isController;
+    }
+
+    public void setController(boolean controller) {
+        isController = controller;
+    }
+
+    public int getNodeStatus() {
+        return nodeStatus;
+    }
+
+    public void setNodeStatus(int nodeStatus) {
+        this.nodeStatus = nodeStatus;
+    }
+
     protected EspNode(Parcel in) {
 
         nodeId = in.readString();
@@ -399,6 +423,8 @@ public class EspNode implements Parcelable {
         isMatterNode = in.readByte() != 0;
         matterNodeId = in.readString();
         nodeMetadata = in.readParcelable(NodeMetadata.class.getClassLoader());
+        isController = in.readByte() != 0;
+        nodeStatus = in.readInt();
     }
 
     public static final Creator<EspNode> CREATOR = new Creator<EspNode>() {
@@ -448,5 +474,7 @@ public class EspNode implements Parcelable {
         dest.writeByte((byte) (isMatterNode ? 1 : 0));
         dest.writeString(matterNodeId);
         dest.writeParcelable(nodeMetadata, flags);
+        dest.writeByte((byte) (isController ? 1 : 0));
+        dest.writeInt(nodeStatus);
     }
 }

@@ -32,6 +32,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 public class JsonDataParser {
 
@@ -379,6 +380,7 @@ public class JsonDataParser {
         JSONObject timeJson = paramsJson.optJSONObject(AppConstants.KEY_TIME);
         JSONObject localControlJson = paramsJson.optJSONObject(AppConstants.KEY_LOCAL_CONTROL);
         JSONObject systemServiceJson = paramsJson.optJSONObject(AppConstants.KEY_SYSTEM);
+        JSONObject controllerServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CONTROLLER);
         int scheduleCnt = 0, sceneCnt = 0;
 
         if (devices != null) {
@@ -780,6 +782,145 @@ public class JsonDataParser {
                                 }
                             }
                         }
+                    }
+                } else if (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && controllerServiceJson != null) {
+
+                    // Matter controller service
+                    ArrayList<Param> controllerParams = service.getParams();
+                    if (controllerParams != null) {
+
+                        for (Param controllerParam : controllerParams) {
+
+                            String type = controllerParam.getParamType();
+
+                            if (!TextUtils.isEmpty(type) && AppConstants.PARAM_TYPE_MATTER_CTRL_DATA_VERSION.equals(type)) {
+
+                                controllerParam.setLabelValue(controllerServiceJson.optString(controllerParam.getName()));
+
+                            } else if (!TextUtils.isEmpty(type) && AppConstants.PARAM_TYPE_MATTER_DEVICES.equals(type)) {
+
+                                JSONObject matterDevicesJson = controllerServiceJson.optJSONObject(controllerParam.getName());
+                                Iterator<String> keys = matterDevicesJson.keys();
+                                HashMap<String, String> matterDevices = new HashMap<>();
+
+                                while (keys.hasNext()) {
+                                    String matterDeviceId = keys.next();
+                                    JSONObject matterDeviceJson = matterDevicesJson.optJSONObject(matterDeviceId);
+
+                                    if (matterDeviceId != null && matterDeviceJson != null) {
+                                        String value = matterDeviceJson.toString();
+                                        matterDevices.put(matterDeviceId, value);
+                                    }
+                                }
+                                setRemoteDeviceParamValues(espAppContext, nodeId);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static void setRemoteDeviceParamValues(EspApplication espApp, String controllerNodeId) {
+
+        if (espApp.controllerDevices.containsKey(controllerNodeId)) {
+
+            HashMap<String, String> matterOnlyDevices = espApp.controllerDevices.get(controllerNodeId);
+
+            for (Map.Entry<String, String> controllerDevice : matterOnlyDevices.entrySet()) {
+                String matterDeviceId = controllerDevice.getKey();
+                String jsonStr = controllerDevice.getValue();
+
+                if (jsonStr != null) {
+                    try {
+                        JSONObject deviceJson = new JSONObject(jsonStr);
+                        boolean enabled = deviceJson.optBoolean(AppConstants.KEY_ENABLED);
+                        boolean reachable = deviceJson.optBoolean(AppConstants.KEY_REACHABLE);
+
+                        if (espApp.matterRmNodeIdMap.containsValue(matterDeviceId)) {
+                            for (Map.Entry<String, String> matterDevice : espApp.matterRmNodeIdMap.entrySet()) {
+                                if (matterDeviceId.equals(matterDevice.getValue())) {
+                                    String rmNodeId = matterDevice.getKey();
+                                    if (espApp.nodeMap.containsKey(rmNodeId)) {
+
+                                        EspNode remoteNode = espApp.nodeMap.get(rmNodeId);
+
+                                        int nodeStatus = remoteNode.getNodeStatus();
+                                        if (nodeStatus != AppConstants.NODE_STATUS_MATTER_LOCAL && nodeStatus != AppConstants.NODE_STATUS_LOCAL) {
+
+                                            if (enabled && reachable) {
+                                                Log.d(TAG, "Set Node status to remotely controllable for node id : " + rmNodeId);
+                                                remoteNode.setNodeStatus(AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE);
+                                            }
+                                        }
+
+                                        JSONObject endpoints = deviceJson.optJSONObject(ESPControllerAPIKeys.KEY_ENDPOINTS);
+                                        if (endpoints != null) {
+
+                                            JSONObject endpoint_1 = endpoints.optJSONObject(ESPControllerAPIKeys.ENDPOINT_ID_1);
+                                            if (endpoint_1 != null) {
+
+                                                JSONObject clusters = endpoint_1.optJSONObject(ESPControllerAPIKeys.KEY_CLUSTERS);
+                                                if (clusters != null) {
+
+                                                    ArrayList<Param> params = remoteNode.getDevices().get(0).getParams();
+
+                                                    for (Param p : params) {
+
+                                                        if (AppConstants.PARAM_TYPE_POWER.equals(p.getParamType())) {
+                                                            // On off cluster
+                                                            JSONObject onOffCluster = clusters.optJSONObject(ESPControllerAPIKeys.CLUSTER_ID_ON_OFF);
+
+                                                            if (onOffCluster != null) {
+                                                                String value = onOffCluster.optString(ESPControllerAPIKeys.ATTRIBUTE_ID_ON_OFF);
+                                                                boolean isPowerOn = false;
+                                                                if (!TextUtils.isEmpty(value) && value.equals("1")) {
+                                                                    isPowerOn = true;
+                                                                }
+                                                                p.setSwitchStatus(isPowerOn);
+                                                            }
+                                                        } else if (AppConstants.PARAM_TYPE_BRIGHTNESS.equals(p.getParamType())) {
+                                                            // Level cluster
+                                                            JSONObject levelCluster = clusters.optJSONObject(ESPControllerAPIKeys.CLUSTER_ID_LEVEL_CONTROL);
+
+                                                            if (levelCluster != null) {
+                                                                String value = levelCluster.optString(ESPControllerAPIKeys.ATTRIBUTE_ID_BRIGHTNESS_LEVEL);
+                                                                if (!TextUtils.isEmpty(value)) {
+                                                                    int brightness = Integer.valueOf(value);
+                                                                    p.setValue(brightness);
+                                                                }
+                                                            }
+                                                        } else if (AppConstants.PARAM_TYPE_HUE.equals(p.getParamType())
+                                                                || AppConstants.PARAM_TYPE_SATURATION.equals(p.getParamType())) {
+
+                                                            // Color cluster
+                                                            JSONObject colorCluster = clusters.optJSONObject(ESPControllerAPIKeys.CLUSTER_ID_COLOR_CONTROL);
+
+                                                            if (colorCluster != null) {
+                                                                String hueValue = colorCluster.optString(ESPControllerAPIKeys.ATTRIBUTE_ID_CURRENT_HUE);
+                                                                String saturationValue = colorCluster.optString(ESPControllerAPIKeys.ATTRIBUTE_ID_CURRENT_SATURATION);
+
+                                                                if (!TextUtils.isEmpty(hueValue)) {
+                                                                    int hue = Integer.valueOf(hueValue);
+                                                                    p.setValue(hue);
+                                                                }
+
+                                                                if (!TextUtils.isEmpty(saturationValue)) {
+                                                                    int saturation = Integer.valueOf(saturationValue);
+                                                                    p.setValue(saturation);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
                 }
             }

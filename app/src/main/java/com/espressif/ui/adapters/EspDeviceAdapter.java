@@ -30,29 +30,36 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.aar.tapholdupbutton.TapHoldUpButton;
 import com.espressif.AppConstants;
+import com.espressif.ESPControllerAPIKeys;
 import com.espressif.EspApplication;
 import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.local_control.EspLocalDevice;
 import com.espressif.matter.ControllerLoginActivity;
 import com.espressif.matter.OnOffClusterHelper;
+import com.espressif.matter.RemoteControlApiHelper;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
 import com.espressif.ui.activities.EspDeviceActivity;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
+import com.espressif.ui.models.Service;
+import com.espressif.utils.NodeUtils;
 import com.google.gson.JsonObject;
 
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
 
 public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.DeviceViewHolder> {
 
@@ -82,17 +89,13 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
         EspApplication espApp = (EspApplication) context.getApplicationContext();
         EspNode node = espApp.nodeMap.get(device.getNodeId());
         String deviceName = device.getUserVisibleName();
-        boolean isMatterDeviceOnline = false;
         String nodeId = device.getNodeId();
         String matterNodeId = "";
+        int nodeStatus = espApp.nodeMap.get(device.getNodeId()).getNodeStatus();
         if (espApp.matterRmNodeIdMap.containsKey(nodeId)) {
             matterNodeId = espApp.matterRmNodeIdMap.get(nodeId);
         }
 
-        if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(matterNodeId)) {
-            isMatterDeviceOnline = true;
-        }
-        
         // set the data in items
         if (TextUtils.isEmpty(deviceName)) {
             deviceName = device.getDeviceName();
@@ -144,7 +147,6 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
 
                     if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
-                        boolean finalIsMatterDeviceOnline = isMatterDeviceOnline;
                         String finalMatterNodeId = matterNodeId;
 
                         deviceVh.ivDeviceStatus.setOnClickListener(new View.OnClickListener() {
@@ -160,37 +162,98 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
                                     deviceVh.ivDeviceStatus.setImageResource(R.drawable.ic_output_on);
                                 }
 
-                                if (finalIsMatterDeviceOnline) {
+                                switch (nodeStatus) {
+                                    case AppConstants.NODE_STATUS_MATTER_LOCAL:
+                                        BigInteger id = new BigInteger(finalMatterNodeId, 16);
+                                        long deviceId = id.longValue();
+                                        OnOffClusterHelper espClusterHelper = new OnOffClusterHelper(espApp.chipClientMap.get(finalMatterNodeId));
+                                        espClusterHelper.setOnOffDeviceStateOnOffClusterAsync(deviceId, !status, AppConstants.ENDPOINT_1);
+                                        param.setSwitchStatus(!status);
+                                        break;
 
-                                    BigInteger id = new BigInteger(finalMatterNodeId, 16);
-                                    long deviceId = id.longValue();
-                                    OnOffClusterHelper espClusterHelper = new OnOffClusterHelper(espApp.chipClientMap.get(finalMatterNodeId));
-                                    espClusterHelper.setOnOffDeviceStateOnOffClusterAsync(deviceId, !status, AppConstants.ENDPOINT_1);
-                                    param.setSwitchStatus(!status);
-                                    
-                                } else {
-                                    JsonObject jsonParam = new JsonObject();
-                                    JsonObject body = new JsonObject();
-                                    jsonParam.addProperty(param.getName(), !status);
-                                    body.add(device.getDeviceName(), jsonParam);
+                                    case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE:
+                                        RemoteControlApiHelper apiHelper = new RemoteControlApiHelper(espApp);
 
-                                    networkApiManager.updateParamValue(device.getNodeId(), body, new ApiResponseListener() {
+                                        for (Map.Entry<String, HashMap<String, String>> entry : espApp.controllerDevices.entrySet()) {
 
-                                        @Override
-                                        public void onSuccess(Bundle data) {
-                                            param.setSwitchStatus(!status);
+                                            HashMap<String, String> controllerDevices = entry.getValue();
+
+                                            if (controllerDevices.containsKey(finalMatterNodeId)) {
+
+                                                EspNode espNode = espApp.nodeMap.get(entry.getKey());
+                                                Service controllerService = NodeUtils.Companion.getService(espNode, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER);
+
+                                                if (controllerService != null) {
+                                                    for (Param deviceParam : controllerService.getParams()) {
+                                                        if (AppConstants.PARAM_TYPE_MATTER_DEVICES.equals(deviceParam.getParamType())) {
+
+                                                            if (status) {
+                                                                apiHelper.callOffAPI(entry.getKey(), finalMatterNodeId, deviceParam.getName(), controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1, new ApiResponseListener() {
+                                                                    @Override
+                                                                    public void onSuccess(@Nullable Bundle data) {
+                                                                        param.setSwitchStatus(!status);
+                                                                    }
+
+                                                                    @Override
+                                                                    public void onResponseFailure(@NonNull Exception exception) {
+                                                                        Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
+                                                                    }
+
+                                                                    @Override
+                                                                    public void onNetworkFailure(@NonNull Exception exception) {
+                                                                        Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
+                                                                    }
+                                                                });
+                                                            } else {
+                                                                apiHelper.callOnAPI(entry.getKey(), finalMatterNodeId, deviceParam.getName(), controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1, new ApiResponseListener() {
+                                                                    @Override
+                                                                    public void onSuccess(@Nullable Bundle data) {
+                                                                        param.setSwitchStatus(!status);
+                                                                    }
+
+                                                                    @Override
+                                                                    public void onResponseFailure(@NonNull Exception exception) {
+                                                                        Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
+                                                                    }
+
+                                                                    @Override
+                                                                    public void onNetworkFailure(@NonNull Exception exception) {
+                                                                        Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
+                                                                    }
+                                                                });
+                                                            }
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                                break;
+                                            }
                                         }
+                                        break;
 
-                                        @Override
-                                        public void onResponseFailure(Exception exception) {
-                                            Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
-                                        }
+                                    default:
+                                        JsonObject jsonParam = new JsonObject();
+                                        JsonObject body = new JsonObject();
+                                        jsonParam.addProperty(param.getName(), !status);
+                                        body.add(device.getDeviceName(), jsonParam);
 
-                                        @Override
-                                        public void onNetworkFailure(Exception exception) {
-                                            Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
-                                        }
-                                    });
+                                        networkApiManager.updateParamValue(device.getNodeId(), body, new ApiResponseListener() {
+
+                                            @Override
+                                            public void onSuccess(Bundle data) {
+                                                param.setSwitchStatus(!status);
+                                            }
+
+                                            @Override
+                                            public void onResponseFailure(Exception exception) {
+                                                Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
+                                            }
+
+                                            @Override
+                                            public void onNetworkFailure(Exception exception) {
+                                                Toast.makeText(context, R.string.error_param_update, Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
                                 }
                             }
                         });
@@ -371,7 +434,8 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             deviceVh.tvStringValue.setVisibility(View.GONE);
         }
 
-        if (node != null && !node.isOnline() && !isMatterDeviceOnline) {
+        if (node != null && !node.isOnline() && nodeStatus != AppConstants.NODE_STATUS_MATTER_LOCAL
+                && nodeStatus != AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE) {
 
             deviceVh.itemView.setAlpha(0.8f);
             deviceVh.ivDeviceStatus.setImageResource(R.drawable.ic_output_disable);
@@ -427,27 +491,40 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             deviceVh.llOffline.setVisibility(View.INVISIBLE);
         }
 
-        if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(matterNodeId)) {
+        switch (nodeStatus) {
+            case AppConstants.NODE_STATUS_MATTER_LOCAL:
+                if (!TextUtils.isEmpty(matterNodeId)) {
+                    deviceVh.llOffline.setVisibility(View.VISIBLE);
+                    deviceVh.ivOffline.setVisibility(View.GONE);
+                    deviceVh.tvOffline.setText(R.string.status_local);
+                    deviceVh.tvOffline.setTextColor(context.getColor(R.color.colorPrimaryDark));
+                }
+                break;
 
-            deviceVh.llOffline.setVisibility(View.VISIBLE);
-            deviceVh.ivOffline.setVisibility(View.GONE);
-            deviceVh.tvOffline.setText(R.string.status_local);
-            deviceVh.tvOffline.setTextColor(context.getColor(R.color.colorPrimaryDark));
+            case AppConstants.NODE_STATUS_LOCAL:
+                deviceVh.llOffline.setVisibility(View.VISIBLE);
 
-        } else if (espApp.localDeviceMap.containsKey(nodeId)) {
+                EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
+                if (localDevice.getSecurityType() == 1 || localDevice.getSecurityType() == 2) {
+                    deviceVh.ivSecureLocal.setVisibility(View.VISIBLE);
+                    deviceVh.ivOffline.setVisibility(View.INVISIBLE);
+                } else {
+                    deviceVh.ivSecureLocal.setVisibility(View.INVISIBLE);
+                    deviceVh.ivOffline.setVisibility(View.GONE);
+                }
+                deviceVh.tvOffline.setText(R.string.local_device_text);
+                deviceVh.tvOffline.setTextColor(context.getColor(R.color.colorPrimaryDark));
+                break;
 
-            deviceVh.llOffline.setVisibility(View.VISIBLE);
-
-            EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
-            if (localDevice.getSecurityType() == 1 || localDevice.getSecurityType() == 2) {
-                deviceVh.ivSecureLocal.setVisibility(View.VISIBLE);
-                deviceVh.ivOffline.setVisibility(View.INVISIBLE);
-            } else {
-                deviceVh.ivSecureLocal.setVisibility(View.INVISIBLE);
+            case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE:
+                deviceVh.llOffline.setVisibility(View.VISIBLE);
                 deviceVh.ivOffline.setVisibility(View.GONE);
-            }
-            deviceVh.tvOffline.setText(R.string.local_device_text);
-            deviceVh.tvOffline.setTextColor(context.getColor(R.color.colorPrimaryDark));
+                deviceVh.tvOffline.setText(R.string.status_remote);
+                deviceVh.tvOffline.setTextColor(context.getColor(R.color.colorPrimaryDark));
+                break;
+
+            default:
+                break;
         }
 
         // implement setOnClickListener event on item view.

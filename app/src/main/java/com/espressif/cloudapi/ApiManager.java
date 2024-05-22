@@ -65,6 +65,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -1116,7 +1117,6 @@ public class ApiManager {
                                                 Log.d(TAG, "Ignore config values for local node :" + nodeId);
                                             }
 
-                                            espNode.setOnline(true);
                                             espNode.setConfigData(configJson.toString());
                                             espApp.nodeMap.put(nodeId, espNode);
                                         }
@@ -1133,6 +1133,7 @@ public class ApiManager {
                                             JSONObject sceneJson = paramsJson.optJSONObject(AppConstants.KEY_SCENES);
                                             JSONObject timeJson = paramsJson.optJSONObject(AppConstants.KEY_TIME);
                                             JSONObject localControlJson = paramsJson.optJSONObject(AppConstants.KEY_LOCAL_CONTROL);
+                                            JSONObject controllerJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CONTROLLER);
 
                                             // If node is available on local network then ignore param values received from cloud.
                                             if (!espApp.localDeviceMap.containsKey(nodeId) && devices != null) {
@@ -1520,38 +1521,58 @@ public class ApiManager {
                                             } else {
                                                 Log.e(TAG, "Local control JSON is not available");
                                             }
+
+                                            // Matter controller
+                                            if (controllerJson != null && services != null) {
+
+                                                for (Service service : services) {
+
+                                                    if (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType())) {
+
+                                                        ArrayList<Param> controllerParams = service.getParams();
+
+                                                        if (controllerParams != null) {
+
+                                                            for (Param controllerParam : controllerParams) {
+
+                                                                String type = controllerParam.getParamType();
+
+                                                                if (!TextUtils.isEmpty(type) && AppConstants.PARAM_TYPE_MATTER_CTRL_DATA_VERSION.equals(type)) {
+
+                                                                    controllerParam.setLabelValue(timeJson.optString(controllerParam.getName()));
+
+                                                                } else if (!TextUtils.isEmpty(type) && AppConstants.PARAM_TYPE_MATTER_DEVICES.equals(type)) {
+
+                                                                    JSONObject matterDevicesJson = controllerJson.getJSONObject(controllerParam.getName());
+                                                                    Iterator<String> keys = matterDevicesJson.keys();
+                                                                    HashMap<String, String> matterDevices = new HashMap<>();
+
+                                                                    while (keys.hasNext()) {
+                                                                        String matterDeviceId = keys.next();
+                                                                        JSONObject matterDeviceJson = matterDevicesJson.optJSONObject(matterDeviceId);
+
+                                                                        if (matterDeviceId != null && matterDeviceJson != null) {
+                                                                            String value = matterDeviceJson.toString();
+                                                                            matterDevices.put(matterDeviceId, value);
+                                                                        }
+                                                                    }
+
+                                                                    if (!matterDevices.isEmpty()) {
+                                                                        espApp.controllerDevices.put(nodeId, matterDevices);
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                Log.e(TAG, "Matter controller JSON is not available");
+                                            }
                                         }
 
                                         // Node Status
                                         JSONObject statusJson = nodeJson.optJSONObject(AppConstants.KEY_STATUS);
-
-                                        String matterNodeId = "";
-                                        boolean isMatterDeviceOnline = false;
-                                        if (espApp.matterRmNodeIdMap.containsKey(nodeId)) {
-                                            matterNodeId = espApp.matterRmNodeIdMap.get(nodeId);
-                                        }
-
-                                        if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(matterNodeId)) {
-                                            isMatterDeviceOnline = true;
-                                        }
-
-                                        if (statusJson != null && !espApp.localDeviceMap.containsKey(nodeId) && !isMatterDeviceOnline) {
-
-                                            JSONObject connectivityObject = statusJson.optJSONObject(AppConstants.KEY_CONNECTIVITY);
-
-                                            if (connectivityObject != null) {
-
-                                                boolean nodeStatus = connectivityObject.optBoolean(AppConstants.KEY_CONNECTED);
-                                                long timestamp = connectivityObject.optLong(AppConstants.KEY_TIMESTAMP);
-                                                espNode.setTimeStampOfStatus(timestamp);
-
-                                                if (espNode.isOnline() != nodeStatus) {
-                                                    espNode.setOnline(nodeStatus);
-                                                }
-                                            } else {
-                                                Log.e(TAG, "Connectivity object is null");
-                                            }
-                                        }
+                                        setDeviceConnectivity(nodeId, espNode, statusJson);
                                         espDatabase.getNodeDao().insertOrUpdate(espNode);
                                     }
                                 }
@@ -1635,6 +1656,60 @@ public class ApiManager {
                 listener.onNetworkFailure(new Exception(t));
             }
         });
+    }
+
+    private void setDeviceConnectivity(String nodeId, EspNode espNode, JSONObject statusJson) {
+
+        String matterNodeId = "";
+        if (espApp.matterRmNodeIdMap.containsKey(nodeId)) {
+            matterNodeId = espApp.matterRmNodeIdMap.get(nodeId);
+        }
+
+        if (!TextUtils.isEmpty(matterNodeId) && espNode.getNodeStatus() != AppConstants.NODE_STATUS_MATTER_LOCAL) {
+
+            for (Map.Entry<String, HashMap<String, String>> entry : espApp.controllerDevices.entrySet()) {
+
+                String key = entry.getKey();
+                HashMap<String, String> controllerDevices = entry.getValue();
+
+                if (controllerDevices.containsKey(matterNodeId)) {
+                    String jsonStr = controllerDevices.get(matterNodeId);
+                    if (jsonStr != null) {
+                        try {
+                            JSONObject deviceJson = new JSONObject(jsonStr);
+                            boolean enabled = deviceJson.optBoolean(AppConstants.KEY_ENABLED);
+                            boolean reachable = deviceJson.optBoolean(AppConstants.KEY_REACHABLE);
+
+                            if (enabled && reachable) {
+                                espNode.setNodeStatus(AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE);
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (statusJson != null && !Arrays.asList(AppConstants.NODE_STATUS_LOCAL, AppConstants.NODE_STATUS_MATTER_LOCAL,
+                AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE).contains(espNode.getNodeStatus())) {
+
+            JSONObject connectivityObject = statusJson.optJSONObject(AppConstants.KEY_CONNECTIVITY);
+
+            if (connectivityObject != null) {
+
+                boolean nodeStatus = connectivityObject.optBoolean(AppConstants.KEY_CONNECTED);
+                long timestamp = connectivityObject.optLong(AppConstants.KEY_TIMESTAMP);
+                espNode.setTimeStampOfStatus(timestamp);
+
+                if (espNode.isOnline() != nodeStatus) {
+                    espNode.setOnline(nodeStatus);
+                }
+            } else {
+                Log.e(TAG, "Connectivity object is null");
+            }
+        }
     }
 
     private boolean isParamAvailableInList(ArrayList<Param> params, String type) {
@@ -1729,25 +1804,8 @@ public class ApiManager {
 
                                     // Node Status
                                     JSONObject statusJson = nodeJson.optJSONObject(AppConstants.KEY_STATUS);
-
-                                    if (statusJson != null) {
-
-                                        JSONObject connectivityObject = statusJson.optJSONObject(AppConstants.KEY_CONNECTIVITY);
-
-                                        if (connectivityObject != null) {
-
-                                            boolean nodeStatus = connectivityObject.optBoolean(AppConstants.KEY_CONNECTED);
-                                            long timestamp = connectivityObject.optLong(AppConstants.KEY_TIMESTAMP);
-                                            espNode.setTimeStampOfStatus(timestamp);
-
-                                            if (espNode.isOnline() != nodeStatus) {
-                                                espNode.setOnline(nodeStatus);
-                                                EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
-                                            }
-                                        } else {
-                                            Log.e(TAG, "Connectivity object is null");
-                                        }
-                                    }
+                                    setDeviceConnectivity(nodeId, espNode, statusJson);
+                                    EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                                 }
                             }
                         }
@@ -3110,6 +3168,7 @@ public class ApiManager {
                                     JSONObject nodeDetailJson = nodeDetailsArray.optJSONObject(nodeIndex);
                                     String nodeId = nodeDetailJson.optString(AppConstants.KEY_NODE_ID);
                                     String matterNodeId = nodeDetailJson.optString(AppConstants.KEY_MATTER_NODE_ID);
+                                    matterNodeId = matterNodeId.toLowerCase();
 
                                     if (!TextUtils.isEmpty(nodeId) && !TextUtils.isEmpty(matterNodeId)) {
                                         nodeDetails.put(nodeId, matterNodeId);
