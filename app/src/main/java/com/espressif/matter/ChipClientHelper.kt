@@ -28,6 +28,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
 import org.greenrobot.eventbus.EventBus
 import java.math.BigInteger
+import java.util.concurrent.ExecutionException
 
 class ChipClientHelper constructor(private val espApp: EspApplication) {
 
@@ -48,63 +49,73 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
             return;
         }
 
-        for ((_, g) in espApp.groupMap.entries) {
-            if (g.isMatter) {
-                val nodeDetails = g.nodeDetails
-                if (nodeDetails != null) {
-                    for ((nodeId, mNodeId) in nodeDetails.entries) {
-                        var fabricId = ""
-                        var ipk = ""
-                        var rootCa = ""
-                        var groupCatIdOperate = ""
-                        if (matterNodeId != mNodeId) {
-                            continue
-                        }
-                        Log.d(
-                            TAG,
-                            "Node detail, node id : $nodeId and matter node id : $matterNodeId"
-                        )
-                        if (g.fabricDetails != null) {
-                            fabricId = g.fabricDetails.fabricId
-                            rootCa = g.fabricDetails.rootCa
-                            ipk = g.fabricDetails.ipk
-                            groupCatIdOperate = g.fabricDetails.groupCatIdOperate
-                            if (!espApp.chipClientMap.containsKey(matterNodeId)) {
-                                if (!TextUtils.isEmpty(fabricId) && !TextUtils.isEmpty(rootCa)
-                                    && !TextUtils.isEmpty(ipk) && !TextUtils.isEmpty(matterNodeId)
-                                    && !TextUtils.isEmpty(matterNodeId)
-                                ) {
-                                    val chipClient = ChipClient(
-                                        espApp, g.groupId, fabricId, rootCa, ipk, groupCatIdOperate
-                                    )
-                                    espApp.chipClientMap.put(matterNodeId, chipClient)
+        try {
+
+            for ((_, g) in espApp.groupMap.entries) {
+                if (g.isMatter) {
+                    val nodeDetails = g.nodeDetails
+                    if (nodeDetails != null) {
+                        for ((nodeId, mNodeId) in nodeDetails.entries) {
+                            var fabricId = ""
+                            var ipk = ""
+                            var rootCa = ""
+                            var groupCatIdOperate = ""
+                            if (matterNodeId != mNodeId) {
+                                continue
+                            }
+                            Log.d(
+                                TAG,
+                                "Node detail, node id : $nodeId and matter node id : $matterNodeId"
+                            )
+                            if (g.fabricDetails != null) {
+                                fabricId = g.fabricDetails.fabricId
+                                rootCa = g.fabricDetails.rootCa
+                                ipk = g.fabricDetails.ipk
+                                groupCatIdOperate = g.fabricDetails.groupCatIdOperate
+                                if (!espApp.chipClientMap.containsKey(matterNodeId)) {
+                                    if (!TextUtils.isEmpty(fabricId) && !TextUtils.isEmpty(rootCa)
+                                        && !TextUtils.isEmpty(ipk) && !TextUtils.isEmpty(
+                                            matterNodeId
+                                        )
+                                        && !TextUtils.isEmpty(matterNodeId)
+                                    ) {
+                                        val chipClient = ChipClient(
+                                            espApp,
+                                            g.groupId,
+                                            fabricId,
+                                            rootCa,
+                                            ipk,
+                                            groupCatIdOperate
+                                        )
+                                        espApp.chipClientMap.put(matterNodeId, chipClient)
+                                    }
                                 }
+                                espApp.fetchDeviceMatterInfo(matterNodeId, nodeId)
+                                val node: EspNode? = espApp.nodeMap.get(nodeId)
+                                if (node != null) {
+                                    getCurrentValues(nodeId, matterNodeId, node)
+                                }
+                                Log.d(TAG, "Init and fetch cluster info done for the device")
                             }
-                            espApp.fetchDeviceMatterInfo(matterNodeId, nodeId)
-                            val node: EspNode? = espApp.nodeMap.get(nodeId)
-                            if (node != null) {
-                                getCurrentValues(nodeId, matterNodeId, node)
-//                                val nodeType = node.newNodeType
-//                                if (!TextUtils.isEmpty(nodeType) && nodeType == AppConstants.NODE_TYPE_PURE_MATTER) {
-//                                    espApp.addParamsForMatterOnlyDevice(nodeId, matterNodeId, node)
-//                                }
-                            }
-                            Log.d(TAG, "Init and fetch cluster info done for the device")
                         }
                     }
                 }
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            var updateEvent = UpdateEvent(UpdateEventType.EVENT_MATTER_DEVICE_CONNECTIVITY)
+            var data = Bundle()
+            data.putString(AppConstants.KEY_MATTER_NODE_ID, matterNodeId)
+            updateEvent.data = data
+            EventBus.getDefault().post(updateEvent)
         }
-        var updateEvent = UpdateEvent(UpdateEventType.EVENT_MATTER_DEVICE_CONNECTIVITY)
-        var data = Bundle()
-        data.putString(AppConstants.KEY_MATTER_NODE_ID, matterNodeId)
-        updateEvent.data = data
-        EventBus.getDefault().post(updateEvent)
     }
 
     fun initChipClientInBackground(matterNodeId: String) =
         GlobalScope.future { initChipClient(matterNodeId) }
 
+    @Throws(ExecutionException::class)
     fun getCurrentValues(nodeId: String?, matterNodeId: String?, node: EspNode) {
 
         val id = BigInteger(matterNodeId, 16)
