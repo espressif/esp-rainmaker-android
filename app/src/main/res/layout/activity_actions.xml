@@ -5,7 +5,9 @@
     android:background="@color/color_background"
     android:fitsSystemWindows="true">
 
-    <include layout="@layout/toolbar" />
+    <include
+        android:id="@+id/toolbar_layout"
+        layout="@layout/toolbar" />
 
     <include
         android:id="@+id/layout_action_devices"

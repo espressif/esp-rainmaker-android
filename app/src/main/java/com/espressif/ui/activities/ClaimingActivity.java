@@ -23,7 +23,6 @@ import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.RotateAnimation;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -38,7 +37,7 @@ import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.rainmaker.R;
-import com.google.android.material.appbar.MaterialToolbar;
+import com.espressif.rainmaker.databinding.ActivityClaimingBinding;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -60,9 +59,6 @@ public class ClaimingActivity extends AppCompatActivity {
     private MaterialCardView btnOk;
     private TextView txtOkBtn;
 
-    private TextView tvClaimProgress, tvClaimError, tvClaimFailure, tvPleaseWait;
-    private ImageView ivClaimingProgress;
-
     private int dataCount = 0;
     private String certificateData = "";
     private StringBuilder csrData = new StringBuilder();
@@ -73,10 +69,14 @@ public class ClaimingActivity extends AppCompatActivity {
     private ApiManager apiManager;
     private ESPProvisionManager provisionManager;
 
+    private ActivityClaimingBinding binding;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_claiming);
+        binding = ActivityClaimingBinding.inflate(getLayoutInflater());
+        View view = binding.getRoot();
+        setContentView(view);
 
         hasTriedAgain = false;
         handler = new Handler();
@@ -136,14 +136,12 @@ public class ClaimingActivity extends AppCompatActivity {
 
     private void initViews() {
 
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        setSupportActionBar(binding.toolbarLayout.toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
-        toolbar.setTitle(R.string.title_activity_claiming);
-        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
-
+        getSupportActionBar().setTitle(R.string.title_activity_claiming);
+        binding.toolbarLayout.toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        binding.toolbarLayout.toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
@@ -169,12 +167,6 @@ public class ClaimingActivity extends AppCompatActivity {
                 }
             }
         });
-
-        tvClaimProgress = findViewById(R.id.tv_claiming_progress);
-        tvClaimError = findViewById(R.id.tv_claiming_error);
-        tvClaimFailure = findViewById(R.id.tv_claiming_failure);
-        ivClaimingProgress = findViewById(R.id.iv_claiming);
-        tvPleaseWait = findViewById(R.id.tv_please_wait);
 
         btnOk = findViewById(R.id.btn_ok);
         txtOkBtn = findViewById(R.id.text_btn);
@@ -219,8 +211,8 @@ public class ClaimingActivity extends AppCompatActivity {
                         @Override
                         public void run() {
 
-                            tvClaimProgress.setText(R.string.error_claiming_progress);
-                            tvClaimError.setText(R.string.error_claiming_start);
+                            binding.layoutClaiming.tvClaimingProgress.setText(R.string.error_claiming_progress);
+                            binding.layoutClaiming.tvClaimingError.setText(R.string.error_claiming_start);
                             displayError();
                         }
                     });
@@ -249,8 +241,8 @@ public class ClaimingActivity extends AppCompatActivity {
                     @Override
                     public void run() {
 
-                        tvClaimProgress.setText(R.string.error_claiming_progress);
-                        tvClaimError.setText(R.string.error_claiming_start);
+                        binding.layoutClaiming.tvClaimingProgress.setText(R.string.error_claiming_progress);
+                        binding.layoutClaiming.tvClaimingError.setText(R.string.error_claiming_start);
                         displayError();
                     }
                 });
@@ -266,8 +258,8 @@ public class ClaimingActivity extends AppCompatActivity {
                     @Override
                     public void run() {
 
-                        tvClaimProgress.setText(R.string.error_claiming_progress);
-                        tvClaimError.setText(R.string.error_claiming_start);
+                        binding.layoutClaiming.tvClaimingProgress.setText(R.string.error_claiming_progress);
+                        binding.layoutClaiming.tvClaimingError.setText(R.string.error_claiming_start);
                         displayError();
                     }
                 });
@@ -311,8 +303,8 @@ public class ClaimingActivity extends AppCompatActivity {
                     @Override
                     public void run() {
 
-                        tvClaimProgress.setText(R.string.error_claiming_progress);
-                        tvClaimError.setText(R.string.error_claiming_init);
+                        binding.layoutClaiming.tvClaimingProgress.setText(R.string.error_claiming_progress);
+                        binding.layoutClaiming.tvClaimingError.setText(R.string.error_claiming_init);
                         displayError();
                     }
                 });
@@ -354,8 +346,8 @@ public class ClaimingActivity extends AppCompatActivity {
                     @Override
                     public void run() {
 
-                        tvClaimProgress.setText(R.string.error_claiming_progress);
-                        tvClaimError.setText(R.string.error_claiming_init);
+                        binding.layoutClaiming.tvClaimingProgress.setText(R.string.error_claiming_progress);
+                        binding.layoutClaiming.tvClaimingError.setText(R.string.error_claiming_init);
                         displayError();
                     }
                 });
@@ -369,8 +361,8 @@ public class ClaimingActivity extends AppCompatActivity {
                 @Override
                 public void run() {
 
-                    tvClaimProgress.setText(R.string.error_claiming_progress);
-                    tvClaimError.setText(R.string.error_claiming_init);
+                    binding.layoutClaiming.tvClaimingProgress.setText(R.string.error_claiming_progress);
+                    binding.layoutClaiming.tvClaimingError.setText(R.string.error_claiming_init);
                     displayError();
                 }
             });
@@ -410,8 +402,8 @@ public class ClaimingActivity extends AppCompatActivity {
                     @Override
                     public void run() {
 
-                        tvClaimProgress.setText(R.string.error_claiming_progress);
-                        tvClaimError.setText(R.string.error_claiming_init);
+                        binding.layoutClaiming.tvClaimingProgress.setText(R.string.error_claiming_progress);
+                        binding.layoutClaiming.tvClaimingError.setText(R.string.error_claiming_init);
                         displayError();
                     }
                 });
@@ -489,8 +481,8 @@ public class ClaimingActivity extends AppCompatActivity {
                     @Override
                     public void run() {
 
-                        tvClaimProgress.setText(R.string.error_claiming_progress);
-                        tvClaimError.setText(R.string.error_claiming_verify);
+                        binding.layoutClaiming.tvClaimingProgress.setText(R.string.error_claiming_progress);
+                        binding.layoutClaiming.tvClaimingError.setText(R.string.error_claiming_verify);
                         displayError();
                     }
                 });
@@ -531,7 +523,7 @@ public class ClaimingActivity extends AppCompatActivity {
                     @Override
                     public void run() {
 
-                        tvClaimProgress.setText(R.string.error_claiming_progress);
+                        binding.layoutClaiming.tvClaimingProgress.setText(R.string.error_claiming_progress);
                         displayError();
                     }
                 });
@@ -571,8 +563,8 @@ public class ClaimingActivity extends AppCompatActivity {
                     public void run() {
 
                         sendClaimAbortRequest();
-                        tvClaimProgress.setText(R.string.error_claiming_progress);
-                        tvClaimError.setText(errMsg);
+                        binding.layoutClaiming.tvClaimingProgress.setText(R.string.error_claiming_progress);
+                        binding.layoutClaiming.tvClaimingError.setText(errMsg);
                         displayError();
                     }
                 });
@@ -591,8 +583,8 @@ public class ClaimingActivity extends AppCompatActivity {
                     public void run() {
 
                         sendClaimAbortRequest();
-                        tvClaimProgress.setText(R.string.error_claiming_progress);
-                        tvClaimError.setText(errMsg);
+                        binding.layoutClaiming.tvClaimingProgress.setText(R.string.error_claiming_progress);
+                        binding.layoutClaiming.tvClaimingError.setText(errMsg);
                         displayError();
                     }
                 });
@@ -632,8 +624,8 @@ public class ClaimingActivity extends AppCompatActivity {
                     public void run() {
 
                         sendClaimAbortRequest();
-                        tvClaimProgress.setText(R.string.error_claiming_progress);
-                        tvClaimError.setText(errMsg);
+                        binding.layoutClaiming.tvClaimingProgress.setText(R.string.error_claiming_progress);
+                        binding.layoutClaiming.tvClaimingError.setText(errMsg);
                         displayError();
                     }
                 });
@@ -652,8 +644,8 @@ public class ClaimingActivity extends AppCompatActivity {
                     public void run() {
 
                         sendClaimAbortRequest();
-                        tvClaimProgress.setText(R.string.error_claiming_progress);
-                        tvClaimError.setText(errMsg);
+                        binding.layoutClaiming.tvClaimingProgress.setText(R.string.error_claiming_progress);
+                        binding.layoutClaiming.tvClaimingError.setText(errMsg);
                         displayError();
                     }
                 });
@@ -683,33 +675,33 @@ public class ClaimingActivity extends AppCompatActivity {
         rotate.setDuration(3000);
         rotate.setRepeatCount(Animation.INFINITE);
         rotate.setInterpolator(new LinearInterpolator());
-        ivClaimingProgress.startAnimation(rotate);
-        tvClaimProgress.setText(R.string.progress_claiming);
-        tvClaimError.setText(R.string.process_take_time);
+        binding.layoutClaiming.ivClaiming.startAnimation(rotate);
+        binding.layoutClaiming.tvClaimingProgress.setText(R.string.progress_claiming);
+        binding.layoutClaiming.tvClaimingError.setText(R.string.process_take_time);
     }
 
     private void stopClaimingProgress() {
-        ivClaimingProgress.clearAnimation();
+        binding.layoutClaiming.ivClaiming.clearAnimation();
     }
 
     private void displayError() {
 
         Log.e(TAG, "Claiming error occurred");
         stopClaimingProgress();
-        tvPleaseWait.setVisibility(View.GONE);
+        binding.layoutClaiming.tvPleaseWait.setVisibility(View.GONE);
         btnOk.setVisibility(View.VISIBLE);
-        tvClaimError.setVisibility(View.VISIBLE);
-        tvClaimFailure.setVisibility(View.VISIBLE);
+        binding.layoutClaiming.tvClaimingError.setVisibility(View.VISIBLE);
+        binding.layoutClaiming.tvClaimingFailure.setVisibility(View.VISIBLE);
     }
 
     private void hideError() {
 
         Log.e(TAG, "Claiming error occurred");
         stopClaimingProgress();
-        tvPleaseWait.setVisibility(View.VISIBLE);
+        binding.layoutClaiming.tvPleaseWait.setVisibility(View.VISIBLE);
         btnOk.setVisibility(View.GONE);
-        tvClaimError.setVisibility(View.INVISIBLE);
-        tvClaimFailure.setVisibility(View.INVISIBLE);
+        binding.layoutClaiming.tvClaimingError.setVisibility(View.INVISIBLE);
+        binding.layoutClaiming.tvClaimingFailure.setVisibility(View.INVISIBLE);
     }
 
     private Runnable timeoutTask = new Runnable() {

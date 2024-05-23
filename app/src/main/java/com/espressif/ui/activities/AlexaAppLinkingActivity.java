@@ -27,15 +27,11 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.lifecycle.Observer;
 import androidx.work.Data;
 import androidx.work.OneTimeWorkRequest;
@@ -48,19 +44,12 @@ import com.espressif.cloudapi.AlexaApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
-import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.card.MaterialCardView;
+import com.espressif.rainmaker.databinding.ActivityAlexaAppLinkingBinding;
 
 public class AlexaAppLinkingActivity extends AppCompatActivity {
 
     private static final String TAG = "AlexaAppLinking";
     private static final long REQUIRED_MINIMUM_VERSION_CODE = 866607211;
-
-    private MaterialCardView btnAppLink;
-    private TextView txtAppLinkBtn;
-    private RelativeLayout rlLinkingProgress;
-    private CoordinatorLayout rlAlexaAppLink;
-    private ConstraintLayout layoutLink, layoutUnlink;
 
     private static String alexaCode = "", alexaAuthCode = "";
     private AlexaApiManager apiManager;
@@ -81,10 +70,14 @@ public class AlexaAppLinkingActivity extends AppCompatActivity {
         DISABLING_SKILL
     }
 
+    private ActivityAlexaAppLinkingBinding binding;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_alexa_app_linking);
+        binding = ActivityAlexaAppLinkingBinding.inflate(getLayoutInflater());
+        View view = binding.getRoot();
+        setContentView(view);
 
         apiManager = AlexaApiManager.getInstance(getApplicationContext());
         sharedPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
@@ -351,13 +344,13 @@ public class AlexaAppLinkingActivity extends AppCompatActivity {
 
     private void updateUi() {
         if (isLinked) {
-            layoutLink.setVisibility(View.GONE);
-            layoutUnlink.setVisibility(View.VISIBLE);
-            txtAppLinkBtn.setText(R.string.btn_unlink_alexa);
+            binding.layoutAlexaAppLinking.layoutAlexaLink.setVisibility(View.GONE);
+            binding.layoutAlexaAppLinking.layoutAlexaUnlink.setVisibility(View.VISIBLE);
+            binding.layoutAlexaAppLinking.btnAlexaAppLink.textBtn.setText(R.string.btn_unlink_alexa);
         } else {
-            layoutLink.setVisibility(View.VISIBLE);
-            layoutUnlink.setVisibility(View.GONE);
-            txtAppLinkBtn.setText(R.string.btn_link_alexa);
+            binding.layoutAlexaAppLinking.layoutAlexaLink.setVisibility(View.VISIBLE);
+            binding.layoutAlexaAppLinking.layoutAlexaUnlink.setVisibility(View.GONE);
+            binding.layoutAlexaAppLinking.btnAlexaAppLink.textBtn.setText(R.string.btn_link_alexa);
         }
     }
 
@@ -422,30 +415,21 @@ public class AlexaAppLinkingActivity extends AppCompatActivity {
 
     private void initViews() {
 
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        setSupportActionBar(binding.toolbarLayout.toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
-        toolbar.setTitle(R.string.title_activity_amazon_alexa);
-        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+        getSupportActionBar().setTitle(R.string.title_activity_amazon_alexa);
+        binding.toolbarLayout.toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        binding.toolbarLayout.toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();
             }
         });
 
-        btnAppLink = findViewById(R.id.btn_alexa_app_link);
-        txtAppLinkBtn = findViewById(R.id.text_btn);
-        btnAppLink.findViewById(R.id.iv_arrow).setVisibility(View.GONE);
-        txtAppLinkBtn.setText(R.string.btn_link_alexa);
-        btnAppLink.setOnClickListener(btnAppLinkClickListener);
-
-        layoutLink = findViewById(R.id.layout_alexa_link);
-        layoutUnlink = findViewById(R.id.layout_alexa_unlink);
-
-        rlAlexaAppLink = findViewById(R.id.rl_amazon_alexa);
-        rlLinkingProgress = findViewById(R.id.rl_progress_app_linking);
+        binding.layoutAlexaAppLinking.btnAlexaAppLink.ivArrow.setVisibility(View.GONE);
+        binding.layoutAlexaAppLinking.btnAlexaAppLink.textBtn.setText(R.string.btn_link_alexa);
+        binding.layoutAlexaAppLinking.btnAlexaAppLink.layoutBtn.setOnClickListener(btnAppLinkClickListener);
     }
 
     private void confirmUnlink() {
@@ -510,18 +494,16 @@ public class AlexaAppLinkingActivity extends AppCompatActivity {
     }
 
     private void showLoading(String msg) {
-        rlAlexaAppLink.setAlpha(0.3f);
-        rlLinkingProgress.setVisibility(View.VISIBLE);
-        TextView progressText = findViewById(R.id.tv_loading_app_linking);
-//        progressText.setText(msg);
-        progressText.setVisibility(View.GONE);
+        binding.layoutAlexaAppLinking.rlAmazonAlexa.setAlpha(0.3f);
+        binding.rlProgressAppLinking.setVisibility(View.VISIBLE);
+        binding.tvLoadingAppLinking.setVisibility(View.GONE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
     }
 
     private void hideLoading() {
-        rlAlexaAppLink.setAlpha(1);
-        rlLinkingProgress.setVisibility(View.GONE);
+        binding.layoutAlexaAppLinking.rlAmazonAlexa.setAlpha(1);
+        binding.rlProgressAppLinking.setVisibility(View.GONE);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
     }
 }

@@ -51,6 +51,7 @@ import com.espressif.ui.models.Service;
 import com.espressif.ui.models.SharingRequest;
 import com.espressif.ui.models.TsData;
 import com.espressif.ui.models.UpdateEvent;
+import com.espressif.utils.ParamUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -683,7 +684,6 @@ public class ApiManager {
         String loginUrl = getLoginEndpointUrl();
 
         JsonObject body = new JsonObject();
-        body.addProperty(AppConstants.KEY_USER_NAME, userName);
         body.addProperty("refreshtoken", refreshToken);
 
         try {
@@ -730,7 +730,6 @@ public class ApiManager {
         String loginUrl = getLoginEndpointUrl();
 
         HashMap<String, String> body = new HashMap<>();
-        body.put("user_name", userId);
         body.put("refreshtoken", refreshToken);
 
         try {
@@ -1265,27 +1264,7 @@ public class ApiManager {
 
                                                                         ArrayList<Param> actionParams = new ArrayList<>();
                                                                         if (params != null) {
-
-                                                                            Iterator<Param> iterator = params.iterator();
-                                                                            while (iterator.hasNext()) {
-                                                                                Param p = iterator.next();
-                                                                                actionParams.add(new Param(p));
-                                                                            }
-
-                                                                            Iterator itr = actionParams.iterator();
-
-                                                                            while (itr.hasNext()) {
-
-                                                                                Param p = (Param) itr.next();
-
-                                                                                if (!p.isDynamicParam()) {
-                                                                                    itr.remove();
-                                                                                } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-                                                                                    itr.remove();
-                                                                                } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
-                                                                                    itr.remove();
-                                                                                }
-                                                                            }
+                                                                            actionParams = ParamUtils.Companion.filterActionParams(params);
                                                                         }
                                                                         actionDevice.setParams(actionParams);
 
@@ -1413,27 +1392,7 @@ public class ApiManager {
 
                                                                         ArrayList<Param> actionParams = new ArrayList<>();
                                                                         if (params != null) {
-
-                                                                            Iterator<Param> iterator = params.iterator();
-                                                                            while (iterator.hasNext()) {
-                                                                                Param p = iterator.next();
-                                                                                actionParams.add(new Param(p));
-                                                                            }
-
-                                                                            Iterator itr = actionParams.iterator();
-
-                                                                            while (itr.hasNext()) {
-
-                                                                                Param p = (Param) itr.next();
-
-                                                                                if (!p.isDynamicParam()) {
-                                                                                    itr.remove();
-                                                                                } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-                                                                                    itr.remove();
-                                                                                } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
-                                                                                    itr.remove();
-                                                                                }
-                                                                            }
+                                                                            actionParams = ParamUtils.Companion.filterActionParams(params);
                                                                         }
                                                                         actionDevice.setParams(actionParams);
 
@@ -2321,27 +2280,7 @@ public class ApiManager {
 
                                                             ArrayList<Param> actionParams = new ArrayList<>();
                                                             if (params != null) {
-
-                                                                Iterator<Param> iterator = params.iterator();
-                                                                while (iterator.hasNext()) {
-                                                                    Param p = iterator.next();
-                                                                    actionParams.add(new Param(p));
-                                                                }
-
-                                                                Iterator itr = actionParams.iterator();
-
-                                                                while (itr.hasNext()) {
-
-                                                                    Param p = (Param) itr.next();
-
-                                                                    if (!p.isDynamicParam()) {
-                                                                        itr.remove();
-                                                                    } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-                                                                        itr.remove();
-                                                                    } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
-                                                                        itr.remove();
-                                                                    }
-                                                                }
+                                                                actionParams = ParamUtils.Companion.filterActionParams(params);
                                                             }
                                                             actionDevice.setParams(actionParams);
 
@@ -2470,27 +2409,7 @@ public class ApiManager {
 
                                                             ArrayList<Param> actionParams = new ArrayList<>();
                                                             if (params != null) {
-
-                                                                Iterator<Param> iterator = params.iterator();
-                                                                while (iterator.hasNext()) {
-                                                                    Param p = iterator.next();
-                                                                    actionParams.add(new Param(p));
-                                                                }
-
-                                                                Iterator itr = actionParams.iterator();
-
-                                                                while (itr.hasNext()) {
-
-                                                                    Param p = (Param) itr.next();
-
-                                                                    if (!p.isDynamicParam()) {
-                                                                        itr.remove();
-                                                                    } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-                                                                        itr.remove();
-                                                                    } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
-                                                                        itr.remove();
-                                                                    }
-                                                                }
+                                                                actionParams = ParamUtils.Companion.filterActionParams(params);
                                                             }
                                                             actionDevice.setParams(actionParams);
 
@@ -4034,27 +3953,7 @@ public class ApiManager {
 
                                                         ArrayList<Param> actionParams = new ArrayList<>();
                                                         if (params != null) {
-
-                                                            Iterator<Param> iterator = params.iterator();
-                                                            while (iterator.hasNext()) {
-                                                                Param p = iterator.next();
-                                                                actionParams.add(new Param(p));
-                                                            }
-
-                                                            Iterator itr = actionParams.iterator();
-
-                                                            while (itr.hasNext()) {
-
-                                                                Param p = (Param) itr.next();
-
-                                                                if (!p.isDynamicParam()) {
-                                                                    itr.remove();
-                                                                } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-                                                                    itr.remove();
-                                                                } else if (!p.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
-                                                                    itr.remove();
-                                                                }
-                                                            }
+                                                            actionParams = ParamUtils.Companion.filterActionParams(params);
                                                         }
                                                         actionDevice.setParams(actionParams);
 
@@ -4129,25 +4028,7 @@ public class ApiManager {
 
                                                         ArrayList<Param> actionParams = new ArrayList<>();
                                                         if (params != null) {
-
-                                                            Iterator<Param> iterator = params.iterator();
-                                                            while (iterator.hasNext()) {
-                                                                Param p = iterator.next();
-                                                                actionParams.add(new Param(p));
-                                                            }
-
-                                                            Iterator itr = actionParams.iterator();
-
-                                                            while (itr.hasNext()) {
-
-                                                                Param p = (Param) itr.next();
-
-                                                                if (!p.isDynamicParam()) {
-                                                                    itr.remove();
-                                                                } else if (p.getParamType() != null && p.getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-                                                                    itr.remove();
-                                                                }
-                                                            }
+                                                            actionParams = ParamUtils.Companion.filterActionParams(params);
                                                         }
                                                         eventDevice.setParams(actionParams);
 

@@ -45,6 +45,7 @@ import com.espressif.ui.adapters.SceneAdapter;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Service;
+import com.espressif.utils.NodeUtils;
 import com.google.android.material.card.MaterialCardView;
 
 import java.util.ArrayList;
@@ -216,28 +217,16 @@ public class ScenesFragment extends Fragment {
 
         } else {
 
-            boolean isSceneDevicesAvailable = false;
+            Service sceneService = null;
             for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
 
-                EspNode node = entry.getValue();
-                if (node != null) {
-
-                    ArrayList<Service> services = node.getServices();
-
-                    if (services != null) {
-                        for (int i = 0; i < services.size(); i++) {
-
-                            Service s = services.get(i);
-                            if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_SCENES)) {
-                                isSceneDevicesAvailable = true;
-                                break;
-                            }
-                        }
-                    }
+                if (entry.getValue() != null) {
+                    sceneService = NodeUtils.Companion.getService(entry.getValue(), AppConstants.SERVICE_TYPE_SCENES);
+                    break;
                 }
             }
 
-            if (isSceneDevicesAvailable) {
+            if (sceneService != null) {
                 tvNoScene.setText(R.string.no_scenes);
                 btnAddScene.setVisibility(View.VISIBLE);
             } else {

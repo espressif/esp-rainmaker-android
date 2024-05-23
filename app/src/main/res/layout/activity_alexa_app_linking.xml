@@ -6,9 +6,13 @@
     android:background="@color/color_background"
     android:fitsSystemWindows="true">
 
-    <include layout="@layout/toolbar" />
+    <include
+        android:id="@+id/toolbar_layout"
+        layout="@layout/toolbar" />
 
-    <include layout="@layout/content_alexa_app_linking" />
+    <include
+        android:id="@+id/layout_alexa_app_linking"
+        layout="@layout/content_alexa_app_linking" />
 
     <RelativeLayout
         android:id="@+id/rl_progress_app_linking"

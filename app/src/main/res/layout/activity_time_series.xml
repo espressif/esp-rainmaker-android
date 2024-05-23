@@ -5,7 +5,9 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
-    <include layout="@layout/toolbar" />
+    <include
+        android:id="@+id/toolbar_layout"
+        layout="@layout/toolbar" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -241,74 +243,6 @@
             </LinearLayout>
 
         </RelativeLayout>
-
-        <!--        <View-->
-        <!--            android:id="@+id/divider1"-->
-        <!--            android:layout_width="match_parent"-->
-        <!--            android:layout_height="1dp"-->
-        <!--            android:alpha="0.3"-->
-        <!--            android:background="@color/colorPrimaryDark"-->
-        <!--            app:layout_constraintBottom_toTopOf="@id/chart_layout" />-->
-
-        <!--        <View-->
-        <!--            android:id="@+id/divider2"-->
-        <!--            android:layout_width="match_parent"-->
-        <!--            android:layout_height="1dp"-->
-        <!--            android:alpha="0.3"-->
-        <!--            android:background="@color/colorPrimaryDark"-->
-        <!--            app:layout_constraintTop_toBottomOf="@id/chart_layout" />-->
-
-        <!--        <RelativeLayout-->
-        <!--            android:id="@+id/rl_result"-->
-        <!--            android:layout_width="match_parent"-->
-        <!--            android:layout_height="wrap_content"-->
-        <!--            android:background="@android:color/white"-->
-        <!--            android:padding="@dimen/margin_8"-->
-        <!--            android:visibility="gone"-->
-        <!--            app:layout_constraintEnd_toEndOf="parent"-->
-        <!--            app:layout_constraintStart_toStartOf="parent"-->
-        <!--            app:layout_constraintTop_toBottomOf="@id/divider2">-->
-
-        <!--            <TextView-->
-        <!--                android:id="@+id/tv_result_value"-->
-        <!--                android:layout_width="wrap_content"-->
-        <!--                android:layout_height="wrap_content"-->
-        <!--                android:layout_centerVertical="true"-->
-        <!--                android:layout_toRightOf="@id/tv_result_value"-->
-        <!--                android:paddingStart="@dimen/margin_18"-->
-        <!--                android:textColor="@color/colorPrimaryDark"-->
-        <!--                android:textSize="25sp"-->
-        <!--                android:textStyle="bold"-->
-        <!--                android:visibility="invisible" />-->
-
-        <!--            <LinearLayout-->
-        <!--                android:layout_width="wrap_content"-->
-        <!--                android:layout_height="wrap_content"-->
-        <!--                android:layout_centerVertical="true"-->
-        <!--                android:layout_marginStart="@dimen/margin_18"-->
-        <!--                android:layout_toRightOf="@id/tv_result_value"-->
-        <!--                android:orientation="vertical">-->
-
-        <!--                <TextView-->
-        <!--                    android:id="@+id/tv_param_name"-->
-        <!--                    android:layout_width="wrap_content"-->
-        <!--                    android:layout_height="wrap_content"-->
-        <!--                    android:textColor="@color/colorPrimaryDark"-->
-        <!--                    android:textSize="19sp"-->
-        <!--                    android:textStyle="bold"-->
-        <!--                    android:visibility="invisible" />-->
-
-        <!--                <TextView-->
-        <!--                    android:id="@+id/tv_result_str"-->
-        <!--                    android:layout_width="wrap_content"-->
-        <!--                    android:layout_height="wrap_content"-->
-        <!--                    android:textColor="@color/color_dark_gray"-->
-        <!--                    android:textSize="16sp"-->
-        <!--                    android:visibility="invisible" />-->
-
-        <!--            </LinearLayout>-->
-
-        <!--        </RelativeLayout>-->
 
         <info.hoang8f.android.segmented.SegmentedGroup xmlns:segmentedgroup="http://schemas.android.com/apk/res-auto"
             android:id="@+id/sg_aggregate_type"

@@ -21,22 +21,18 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.RadioGroup;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.widget.ContentLoadingProgressBar;
 
 import com.espressif.AppConstants;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
+import com.espressif.rainmaker.databinding.ActivityTimeSeriesBinding;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.TsData;
 import com.espressif.ui.widgets.EspMarkerView;
-import com.github.mikephil.charting.charts.BarChart;
-import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.BarData;
@@ -49,7 +45,6 @@ import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.interfaces.datasets.IDataSet;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
-import com.google.android.material.appbar.MaterialToolbar;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -58,8 +53,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
-
-import info.hoang8f.android.segmented.SegmentedGroup;
 
 public class TimeSeriesActivity extends AppCompatActivity {
 
@@ -92,14 +85,6 @@ public class TimeSeriesActivity extends AppCompatActivity {
     private String weekStart = null;
     private String timeZone;
 
-    private BarChart barChart;
-    private LineChart lineChart;
-    private TextView tvNoTsData;
-    private ContentLoadingProgressBar progressBar;
-    private SegmentedGroup sgChartInterval, sgAgrType, sgChartType;
-    private ImageView btnPrev, btnNext;
-    private TextView tvDate;
-
     private ApiManager apiManager;
     private String nodeId, deviceName, paramName;
     private Param param;
@@ -113,10 +98,14 @@ public class TimeSeriesActivity extends AppCompatActivity {
     private ArrayList<Entry> lineEntries = new ArrayList<>();
     private ArrayList<String> xAxisLabel = new ArrayList<>();
 
+    private ActivityTimeSeriesBinding binding;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_time_series);
+        binding = ActivityTimeSeriesBinding.inflate(getLayoutInflater());
+        View view = binding.getRoot();
+        setContentView(view);
 
         apiManager = ApiManager.getInstance(getApplicationContext());
         Intent intent = getIntent();
@@ -152,7 +141,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
         myStartTime = startTime;
         myEndTime = endTime;
         String today = new SimpleDateFormat("MMM dd, yyyy").format(new Date(myStartTime * 1000));
-        tvDate.setText(today);
+        binding.tvDate.setText(today);
         updateDate();
 
         if (isDataTypeSupported()) {
@@ -182,40 +171,27 @@ public class TimeSeriesActivity extends AppCompatActivity {
 
     private void initViews() {
 
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        setSupportActionBar(binding.toolbarLayout.toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
         getSupportActionBar().setTitle(param.getName());
-        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+        binding.toolbarLayout.toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        binding.toolbarLayout.toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();
             }
         });
 
-        barChart = findViewById(R.id.bar_chart);
-        lineChart = findViewById(R.id.line_chart);
-        tvNoTsData = findViewById(R.id.tv_no_data);
-        progressBar = findViewById(R.id.progress_indicator);
+        binding.sgChartInterval.setOnCheckedChangeListener(sgChartIntervalChangeListener);
+        binding.sgAggregateType.setOnCheckedChangeListener(sgAggregateTypeChangeListener);
+        binding.sgChartType.setOnCheckedChangeListener(sgChartTypeChangeListener);
+        binding.ivPrev.setOnClickListener(prevBtnClickListener);
+        binding.ivNext.setOnClickListener(nextBtnClickListener);
 
-        sgChartInterval = findViewById(R.id.sg_chart_interval);
-        sgAgrType = findViewById(R.id.sg_aggregate_type);
-        sgChartType = findViewById(R.id.sg_chart_type);
-        tvDate = findViewById(R.id.tv_date);
-        btnPrev = findViewById(R.id.iv_prev);
-        btnNext = findViewById(R.id.iv_next);
-
-        sgChartInterval.setOnCheckedChangeListener(sgChartIntervalChangeListener);
-        sgAgrType.setOnCheckedChangeListener(sgAggregateTypeChangeListener);
-        sgChartType.setOnCheckedChangeListener(sgChartTypeChangeListener);
-        btnPrev.setOnClickListener(prevBtnClickListener);
-        btnNext.setOnClickListener(nextBtnClickListener);
-
-        barChart.setVisibility(View.INVISIBLE);
-        lineChart.setVisibility(View.INVISIBLE);
-        btnNext.setVisibility(View.GONE);
+        binding.barChart.setVisibility(View.INVISIBLE);
+        binding.lineChart.setVisibility(View.INVISIBLE);
+        binding.ivNext.setVisibility(View.GONE);
     }
 
     private RadioGroup.OnCheckedChangeListener sgChartIntervalChangeListener = new RadioGroup.OnCheckedChangeListener() {
@@ -461,10 +437,10 @@ public class TimeSeriesActivity extends AppCompatActivity {
         }
 
         if (!isSupported) {
-            barChart.setVisibility(View.INVISIBLE);
-            lineChart.setVisibility(View.INVISIBLE);
-            tvNoTsData.setVisibility(View.VISIBLE);
-            tvNoTsData.setText(R.string.ts_not_supported);
+            binding.barChart.setVisibility(View.INVISIBLE);
+            binding.lineChart.setVisibility(View.INVISIBLE);
+            binding.tvNoData.setVisibility(View.VISIBLE);
+            binding.tvNoData.setText(R.string.ts_not_supported);
             hideLoading();
             return;
         }
@@ -927,10 +903,10 @@ public class TimeSeriesActivity extends AppCompatActivity {
         if ((aggregateType.equals(AGGREGATE_TYPE_RAW) || aggregateType.equals(AGGREGATE_TYPE_LATEST))
                 && chartInterval == INTERVAL_1Y) {
 
-            barChart.setVisibility(View.INVISIBLE);
-            lineChart.setVisibility(View.INVISIBLE);
-            tvNoTsData.setVisibility(View.VISIBLE);
-            tvNoTsData.setText(R.string.ts_not_supported);
+            binding.barChart.setVisibility(View.INVISIBLE);
+            binding.lineChart.setVisibility(View.INVISIBLE);
+            binding.tvNoData.setVisibility(View.VISIBLE);
+            binding.tvNoData.setText(R.string.ts_not_supported);
             hideLoading();
             return;
         }
@@ -938,22 +914,22 @@ public class TimeSeriesActivity extends AppCompatActivity {
         if (tsData != null && tsData.size() > 0) {
 
             if (chartType == TYPE_BAR_CHART) {
-                barChart.setVisibility(View.VISIBLE);
-                lineChart.setVisibility(View.INVISIBLE);
+                binding.barChart.setVisibility(View.VISIBLE);
+                binding.lineChart.setVisibility(View.INVISIBLE);
             } else {
-                barChart.setVisibility(View.INVISIBLE);
-                lineChart.setVisibility(View.VISIBLE);
+                binding.barChart.setVisibility(View.INVISIBLE);
+                binding.lineChart.setVisibility(View.VISIBLE);
             }
-            tvNoTsData.setVisibility(View.GONE);
+            binding.tvNoData.setVisibility(View.GONE);
 
             // clear old markers
-            barChart.highlightValue(null);
-            lineChart.highlightValue(null);
+            binding.barChart.highlightValue(null);
+            binding.lineChart.highlightValue(null);
 
             EspMarkerView mv = new EspMarkerView(this, R.layout.layout_marker);
             // set the marker to the chart
-            barChart.setMarker(mv);
-            lineChart.setMarker(mv);
+            binding.barChart.setMarker(mv);
+            binding.lineChart.setMarker(mv);
 
             if (chartType == TYPE_BAR_CHART) {
                 displayBarChart();
@@ -963,19 +939,19 @@ public class TimeSeriesActivity extends AppCompatActivity {
 
         } else {
             Log.e(TAG, "No TS Data to available to plot.");
-            barChart.setVisibility(View.INVISIBLE);
-            lineChart.setVisibility(View.INVISIBLE);
-            tvNoTsData.setVisibility(View.VISIBLE);
-            tvNoTsData.setText(R.string.no_chart_data);
+            binding.barChart.setVisibility(View.INVISIBLE);
+            binding.lineChart.setVisibility(View.INVISIBLE);
+            binding.tvNoData.setVisibility(View.VISIBLE);
+            binding.tvNoData.setText(R.string.no_chart_data);
             hideLoading();
         }
     }
 
     private void displayNetworkError() {
-        barChart.setVisibility(View.INVISIBLE);
-        lineChart.setVisibility(View.INVISIBLE);
-        tvNoTsData.setVisibility(View.VISIBLE);
-        tvNoTsData.setText(R.string.no_internet_connection);
+        binding.barChart.setVisibility(View.INVISIBLE);
+        binding.lineChart.setVisibility(View.INVISIBLE);
+        binding.tvNoData.setVisibility(View.VISIBLE);
+        binding.tvNoData.setText(R.string.no_internet_connection);
         hideLoading();
     }
 
@@ -983,13 +959,13 @@ public class TimeSeriesActivity extends AppCompatActivity {
 
         Log.e(TAG, "Display BarChart, Total entries , : " + barEntries.size());
 
-        XAxis xAxis = barChart.getXAxis();
+        XAxis xAxis = binding.barChart.getXAxis();
         configureXAxis(xAxis);
 
-        YAxis rightAxis = barChart.getAxisLeft();
+        YAxis rightAxis = binding.barChart.getAxisLeft();
         configureRightYAxis(rightAxis);
 
-        YAxis leftAxis = barChart.getAxisRight();
+        YAxis leftAxis = binding.barChart.getAxisRight();
         configureLeftYAxis(leftAxis);
 
         if (barEntries.size() > 0) {
@@ -1015,13 +991,13 @@ public class TimeSeriesActivity extends AppCompatActivity {
 
         Log.d(TAG, "Display LineChart Total entries : " + lineEntries.size());
 
-        XAxis xAxis = lineChart.getXAxis();
+        XAxis xAxis = binding.lineChart.getXAxis();
         configureXAxis(xAxis);
 
-        YAxis rightAxis = lineChart.getAxisLeft();
+        YAxis rightAxis = binding.lineChart.getAxisLeft();
         configureRightYAxis(rightAxis);
 
-        YAxis leftAxis = lineChart.getAxisRight();
+        YAxis leftAxis = binding.lineChart.getAxisRight();
         configureLeftYAxis(leftAxis);
 
         if (lineEntries.size() > 0) {
@@ -1179,36 +1155,36 @@ public class TimeSeriesActivity extends AppCompatActivity {
     private void setBarChart(BarDataSet barDataSet) {
 
         BarData data = new BarData(barDataSet);
-        barChart.setData(data);
-        barChart.getLegend().setEnabled(false);
-        barChart.setDrawBarShadow(false);
-        barChart.getDescription().setEnabled(false);
+        binding.barChart.setData(data);
+        binding.barChart.getLegend().setEnabled(false);
+        binding.barChart.setDrawBarShadow(false);
+        binding.barChart.getDescription().setEnabled(false);
 
         if (aggregateType.equals(AGGREGATE_TYPE_RAW)) {
-            barChart.setScaleXEnabled(true);
-            barChart.setScaleYEnabled(false);
-            barChart.setPinchZoom(true);
+            binding.barChart.setScaleXEnabled(true);
+            binding.barChart.setScaleYEnabled(false);
+            binding.barChart.setPinchZoom(true);
         } else {
-            barChart.setScaleEnabled(false);
-            barChart.setPinchZoom(false);
+            binding.barChart.setScaleEnabled(false);
+            binding.barChart.setPinchZoom(false);
         }
 
-        barChart.setExtraBottomOffset(10f);
-        barChart.fitScreen();
+        binding.barChart.setExtraBottomOffset(10f);
+        binding.barChart.fitScreen();
 
-        barChart.getAxisRight().setDrawLabels(false);
-        barChart.setDoubleTapToZoomEnabled(false);
-        barChart.setDrawValueAboveBar(true);
-        barChart.setDrawGridBackground(false);
+        binding.barChart.getAxisRight().setDrawLabels(false);
+        binding.barChart.setDoubleTapToZoomEnabled(false);
+        binding.barChart.setDrawValueAboveBar(true);
+        binding.barChart.setDrawGridBackground(false);
 
-        barChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
+        binding.barChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
             @Override
             public void onValueSelected(Entry e, Highlight h) {
 
-                Highlight highlight[] = new Highlight[barChart.getData().getDataSets().size()];
-                for (int j = 0; j < barChart.getData().getDataSets().size(); j++) {
+                Highlight highlight[] = new Highlight[binding.barChart.getData().getDataSets().size()];
+                for (int j = 0; j < binding.barChart.getData().getDataSets().size(); j++) {
 
-                    IDataSet iDataSet = barChart.getData().getDataSets().get(j);
+                    IDataSet iDataSet = binding.barChart.getData().getDataSets().get(j);
 
                     for (int i = 0; i < ((BarDataSet) iDataSet).getValues().size(); i++) {
                         if (((BarDataSet) iDataSet).getValues().get(i).getX() == e.getX()) {
@@ -1216,7 +1192,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
                         }
                     }
                 }
-                barChart.highlightValues(highlight);
+                binding.barChart.highlightValues(highlight);
             }
 
             @Override
@@ -1237,43 +1213,43 @@ public class TimeSeriesActivity extends AppCompatActivity {
 //            }
 //        });
 
-        barChart.invalidate();
+        binding.barChart.invalidate();
     }
 
     private void setLineChart(LineDataSet lineDataSet) {
 
         LineData data = new LineData(lineDataSet);
-        lineChart.setData(data);
-        lineChart.setScaleEnabled(true);
-        lineChart.getLegend().setEnabled(false);
-        lineChart.getDescription().setEnabled(false);
+        binding.lineChart.setData(data);
+        binding.lineChart.setScaleEnabled(true);
+        binding.lineChart.getLegend().setEnabled(false);
+        binding.lineChart.getDescription().setEnabled(false);
 //        barChart.setDrawBarShadow(false);
 
         if (aggregateType.equals(AGGREGATE_TYPE_RAW)) {
-            lineChart.setScaleXEnabled(true);
-            lineChart.setScaleYEnabled(false);
-            lineChart.setPinchZoom(true);
+            binding.lineChart.setScaleXEnabled(true);
+            binding.lineChart.setScaleYEnabled(false);
+            binding.lineChart.setPinchZoom(true);
         } else {
-            lineChart.setScaleEnabled(false);
-            lineChart.setPinchZoom(false);
+            binding.lineChart.setScaleEnabled(false);
+            binding.lineChart.setPinchZoom(false);
         }
 
-        lineChart.getAxisRight().setDrawLabels(false);
-        lineChart.setDoubleTapToZoomEnabled(false);
-        barChart.setDrawValueAboveBar(true);
-        lineChart.setDrawGridBackground(false);
+        binding.lineChart.getAxisRight().setDrawLabels(false);
+        binding.lineChart.setDoubleTapToZoomEnabled(false);
+        binding.barChart.setDrawValueAboveBar(true);
+        binding.lineChart.setDrawGridBackground(false);
 
-        lineChart.setExtraBottomOffset(10f);
-        lineChart.fitScreen();
+        binding.lineChart.setExtraBottomOffset(10f);
+        binding.lineChart.fitScreen();
 
-        lineChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
+        binding.lineChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
             @Override
             public void onValueSelected(Entry e, Highlight h) {
 
-                Highlight highlight[] = new Highlight[lineChart.getData().getDataSets().size()];
-                for (int j = 0; j < lineChart.getData().getDataSets().size(); j++) {
+                Highlight highlight[] = new Highlight[binding.lineChart.getData().getDataSets().size()];
+                for (int j = 0; j < binding.lineChart.getData().getDataSets().size(); j++) {
 
-                    IDataSet iDataSet = lineChart.getData().getDataSets().get(j);
+                    IDataSet iDataSet = binding.lineChart.getData().getDataSets().get(j);
 
                     for (int i = 0; i < ((LineDataSet) iDataSet).getValues().size(); i++) {
                         if (((LineDataSet) iDataSet).getValues().get(i).getX() == e.getX()) {
@@ -1282,7 +1258,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
                     }
                 }
 
-                lineChart.highlightValues(highlight);
+                binding.lineChart.highlightValues(highlight);
             }
 
             @Override
@@ -1290,7 +1266,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
 
             }
         });
-        lineChart.invalidate();
+        binding.lineChart.invalidate();
     }
 
     private void updateDate() {
@@ -1316,7 +1292,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
                 dateStr = startDateStr + " - " + endDateStr;
                 break;
         }
-        tvDate.setText(dateStr);
+        binding.tvDate.setText(dateStr);
     }
 
     private void changeChartType(int newType) {
@@ -1324,13 +1300,13 @@ public class TimeSeriesActivity extends AppCompatActivity {
         switch (newType) {
 
             case TYPE_BAR_CHART:
-                barChart.setVisibility(View.VISIBLE);
-                lineChart.setVisibility(View.GONE);
+                binding.barChart.setVisibility(View.VISIBLE);
+                binding.lineChart.setVisibility(View.GONE);
                 break;
 
             case TYPE_LINE_CHART:
-                barChart.setVisibility(View.GONE);
-                lineChart.setVisibility(View.VISIBLE);
+                binding.barChart.setVisibility(View.GONE);
+                binding.lineChart.setVisibility(View.VISIBLE);
                 break;
         }
         chartType = newType;
@@ -1344,9 +1320,9 @@ public class TimeSeriesActivity extends AppCompatActivity {
         Date endDate = new Date(myEndTime * 1000);
 
         if (isSameDay(endDate, currentDate)) {
-            btnNext.setVisibility(View.GONE);
+            binding.ivNext.setVisibility(View.GONE);
         } else {
-            btnNext.setVisibility(View.VISIBLE);
+            binding.ivNext.setVisibility(View.VISIBLE);
         }
     }
 
@@ -1367,40 +1343,40 @@ public class TimeSeriesActivity extends AppCompatActivity {
     }
 
     private void displayDataTypeNotSupported() {
-        barChart.setVisibility(View.INVISIBLE);
-        lineChart.setVisibility(View.INVISIBLE);
-        tvNoTsData.setVisibility(View.VISIBLE);
-        tvNoTsData.setText(R.string.ts_data_type_not_supported);
+        binding.barChart.setVisibility(View.INVISIBLE);
+        binding.lineChart.setVisibility(View.INVISIBLE);
+        binding.tvNoData.setVisibility(View.VISIBLE);
+        binding.tvNoData.setText(R.string.ts_data_type_not_supported);
         hideLoading();
     }
 
     private void showLoading() {
-        progressBar.setVisibility(View.VISIBLE);
-        for (int i = 0; i < sgChartInterval.getChildCount(); i++) {
-            sgChartInterval.getChildAt(i).setEnabled(false);
+        binding.progressIndicator.setVisibility(View.VISIBLE);
+        for (int i = 0; i < binding.sgChartInterval.getChildCount(); i++) {
+            binding.sgChartInterval.getChildAt(i).setEnabled(false);
         }
-        for (int i = 0; i < sgAgrType.getChildCount(); i++) {
-            sgAgrType.getChildAt(i).setEnabled(false);
+        for (int i = 0; i < binding.sgAggregateType.getChildCount(); i++) {
+            binding.sgAggregateType.getChildAt(i).setEnabled(false);
         }
-        for (int i = 0; i < sgChartType.getChildCount(); i++) {
-            sgChartType.getChildAt(i).setEnabled(false);
+        for (int i = 0; i < binding.sgChartType.getChildCount(); i++) {
+            binding.sgChartType.getChildAt(i).setEnabled(false);
         }
-        btnPrev.setEnabled(false);
-        btnNext.setEnabled(false);
+        binding.ivPrev.setEnabled(false);
+        binding.ivNext.setEnabled(false);
     }
 
     private void hideLoading() {
-        progressBar.setVisibility(View.GONE);
-        for (int i = 0; i < sgChartInterval.getChildCount(); i++) {
-            sgChartInterval.getChildAt(i).setEnabled(true);
+        binding.progressIndicator.setVisibility(View.GONE);
+        for (int i = 0; i < binding.sgChartInterval.getChildCount(); i++) {
+            binding.sgChartInterval.getChildAt(i).setEnabled(true);
         }
-        for (int i = 0; i < sgAgrType.getChildCount(); i++) {
-            sgAgrType.getChildAt(i).setEnabled(true);
+        for (int i = 0; i < binding.sgAggregateType.getChildCount(); i++) {
+            binding.sgAggregateType.getChildAt(i).setEnabled(true);
         }
-        for (int i = 0; i < sgChartType.getChildCount(); i++) {
-            sgChartType.getChildAt(i).setEnabled(true);
+        for (int i = 0; i < binding.sgChartType.getChildCount(); i++) {
+            binding.sgChartType.getChildAt(i).setEnabled(true);
         }
-        btnPrev.setEnabled(true);
-        btnNext.setEnabled(true);
+        binding.ivPrev.setEnabled(true);
+        binding.ivNext.setEnabled(true);
     }
 }

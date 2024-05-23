@@ -6,8 +6,12 @@
     android:layout_height="match_parent"
     tools:context="com.espressif.ui.activities.ClaimingActivity">
 
-    <include layout="@layout/toolbar" />
+    <include
+        android:id="@+id/toolbar_layout"
+        layout="@layout/toolbar" />
 
-    <include layout="@layout/content_claiming" />
+    <include
+        android:id="@+id/layout_claiming"
+        layout="@layout/content_claiming" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

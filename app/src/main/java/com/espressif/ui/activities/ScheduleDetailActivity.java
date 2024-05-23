@@ -55,6 +55,7 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
+import com.espressif.utils.NodeUtils;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.Gson;
@@ -114,7 +115,6 @@ public class ScheduleDetailActivity extends AppCompatActivity {
 
             String key = entry.getKey();
             EspNode node = entry.getValue();
-            ArrayList<Service> services = node.getServices();
 
             if (node != null) {
 
@@ -124,17 +124,10 @@ public class ScheduleDetailActivity extends AppCompatActivity {
                     continue;
                 }
 
-                for (int i = 0; i < services.size(); i++) {
-
-                    Service s = services.get(i);
-                    if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_SCHEDULE)) {
-
-                        ArrayList<Device> espDevices = node.getDevices();
-                        Iterator<Device> iterator = espDevices.iterator();
-
-                        while (iterator.hasNext()) {
-                            devices.add(new Device(iterator.next()));
-                        }
+                Service scheduleService = NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_SCHEDULE);
+                if (scheduleService != null) {
+                    for (Device espDevice : node.getDevices()) {
+                        devices.add(new Device(espDevice));
                     }
                 }
             }
@@ -563,24 +556,13 @@ public class ScheduleDetailActivity extends AppCompatActivity {
         schedulesJson.add(AppConstants.KEY_SCHEDULES, scheduleArr);
 
         for (int i = 0; i < nodeIdList.size(); i++) {
-            String nodeId = nodeIdList.get(i);
-            EspNode espNode = espApp.nodeMap.get(nodeId);
-            ArrayList<Service> services = espNode.getServices();
-            String serviceName = "";
-            for (Service service : services) {
-                if (AppConstants.SERVICE_TYPE_SCHEDULE.equals(service.getType())) {
-                    serviceName = service.getName();
-                    break;
-                }
-            }
 
-            if (TextUtils.isEmpty(serviceName)) {
-                serviceName = AppConstants.KEY_SCHEDULE;
-            }
+            String serviceName = getScheduleServiceNameForNode(nodeIdList.get(i));
+
             JsonObject serviceJson = new JsonObject();
             serviceJson.add(serviceName, schedulesJson);
 
-            schJsonBodyMap.put(nodeId, serviceJson);
+            schJsonBodyMap.put(nodeIdList.get(i), serviceJson);
         }
 
         updateScheduleRequest(schJsonBodyMap, new ApiResponseListener() {
@@ -624,6 +606,19 @@ public class ScheduleDetailActivity extends AppCompatActivity {
                 hideRemoveScheduleLoading();
             }
         });
+    }
+
+    private String getScheduleServiceNameForNode(String nodeId) {
+        String serviceName = AppConstants.KEY_SCHEDULE;
+
+        // Get service name
+        if (espApp.nodeMap.get(nodeId) != null) {
+            Service service = NodeUtils.Companion.getService(espApp.nodeMap.get(nodeId), AppConstants.SERVICE_TYPE_SCHEDULE);
+            if (service != null && !TextUtils.isEmpty(service.getName())) {
+                serviceName = service.getName();
+            }
+        }
+        return serviceName;
     }
 
     private void gotoActionsScreen() {
@@ -864,19 +859,8 @@ public class ScheduleDetailActivity extends AppCompatActivity {
                 JsonObject schedulesJson = new JsonObject();
                 schedulesJson.add(AppConstants.KEY_SCHEDULES, schArr);
 
-                EspNode espNode = espApp.nodeMap.get(nodeId);
-                ArrayList<Service> services = espNode.getServices();
-                String serviceName = "";
-                for (Service service : services) {
-                    if (AppConstants.SERVICE_TYPE_SCHEDULE.equals(service.getType())) {
-                        serviceName = service.getName();
-                        break;
-                    }
-                }
+                String serviceName = getScheduleServiceNameForNode(nodeId);
 
-                if (TextUtils.isEmpty(serviceName)) {
-                    serviceName = AppConstants.KEY_SCHEDULE;
-                }
                 JsonObject serviceJson = new JsonObject();
                 serviceJson.add(serviceName, schedulesJson);
 
@@ -897,24 +881,12 @@ public class ScheduleDetailActivity extends AppCompatActivity {
 
             for (int i = 0; i < removedNodeIds.size(); i++) {
 
-                final String nodeId = removedNodeIds.get(i);
-                EspNode espNode = espApp.nodeMap.get(nodeId);
-                ArrayList<Service> services = espNode.getServices();
-                String serviceName = "";
-                for (Service service : services) {
-                    if (AppConstants.SERVICE_TYPE_SCHEDULE.equals(service.getType())) {
-                        serviceName = service.getName();
-                        break;
-                    }
-                }
+                String serviceName = getScheduleServiceNameForNode(removedNodeIds.get(i));
 
-                if (TextUtils.isEmpty(serviceName)) {
-                    serviceName = AppConstants.KEY_SCHEDULE;
-                }
                 JsonObject serviceJson = new JsonObject();
                 serviceJson.add(serviceName, schedulesJson);
 
-                schJsonBodyMap.put(nodeId, serviceJson);
+                schJsonBodyMap.put(removedNodeIds.get(i), serviceJson);
             }
         }
 
@@ -961,24 +933,10 @@ public class ScheduleDetailActivity extends AppCompatActivity {
                         finalBody.add(AppConstants.KEY_SCHEDULES, schArr);
 
                         for (Map.Entry<String, String> entry : actionMap.entrySet()) {
-
-                            String nodeId = entry.getKey();
-                            EspNode espNode = espApp.nodeMap.get(nodeId);
-                            ArrayList<Service> services = espNode.getServices();
-                            String serviceName = "";
-                            for (Service s : services) {
-                                if (AppConstants.SERVICE_TYPE_SCHEDULE.equals(s.getType())) {
-                                    serviceName = s.getName();
-                                    break;
-                                }
-                            }
-                            if (TextUtils.isEmpty(serviceName)) {
-                                serviceName = AppConstants.KEY_SCHEDULE;
-                            }
-
+                            String serviceName = getScheduleServiceNameForNode(entry.getKey());
                             JsonObject body = new JsonObject();
                             body.add(serviceName, finalBody);
-                            schJsonBodyMap.put(nodeId, body);
+                            schJsonBodyMap.put(entry.getKey(), body);
                         }
 
                         if (schJsonBodyMap.size() > 0) {

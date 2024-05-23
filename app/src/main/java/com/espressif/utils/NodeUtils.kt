@@ -24,9 +24,11 @@ class NodeUtils {
 
         fun getService(node: EspNode, serviceType: String): Service? {
 
-            for (service in node.services) {
-                if (!TextUtils.isEmpty(service.type) && service.type.equals(serviceType)) {
-                    return service
+            if (node?.services != null) {
+                for (service in node.services) {
+                    if (!TextUtils.isEmpty(service.type) && service.type.equals(serviceType)) {
+                        return service
+                    }
                 }
             }
             return null

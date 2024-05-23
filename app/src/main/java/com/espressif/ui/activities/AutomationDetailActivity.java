@@ -31,7 +31,6 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -40,7 +39,6 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
@@ -48,13 +46,13 @@ import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.R;
+import com.espressif.rainmaker.databinding.ActivityAutomationDetailBinding;
 import com.espressif.ui.Utils;
 import com.espressif.ui.adapters.AutomationActionListAdapter;
 import com.espressif.ui.models.Action;
 import com.espressif.ui.models.Automation;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
-import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -70,21 +68,14 @@ public class AutomationDetailActivity extends AppCompatActivity {
     public static final int REQ_CODE_ACTIONS = 11;
     private String operation = AppConstants.KEY_OPERATION_ADD;
 
-    private RelativeLayout rlAutomationName;
-    private TextView tvAutomationName;
-
     private TextView tvEventDeviceName, tvEventParamName;
     private ImageView ivEventDevice;
-
-    private RecyclerView rvActions;
-    private TextView btnChangeEvent, btnChangeActions;
 
     private MaterialCardView btnRemoveAutomation;
     private TextView txtRemoveAutomationBtn;
     private ImageView removeAutomationImage;
     private ContentLoadingProgressBar progressBar;
 
-    private RelativeLayout rlAutomationProgress, rlAutomationDetails;
     private MenuItem menuSave;
 //    private TextView tvActionDevices;
 
@@ -96,10 +87,14 @@ public class AutomationDetailActivity extends AppCompatActivity {
     private String automationName = "";
     private ArrayList<Action> actions;
 
+    private ActivityAutomationDetailBinding binding;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_automation_detail);
+        binding = ActivityAutomationDetailBinding.inflate(getLayoutInflater());
+        View view = binding.getRoot();
+        setContentView(view);
 
         espApp = (EspApplication) getApplicationContext();
         apiManager = ApiManager.getInstance(this);
@@ -168,32 +163,21 @@ public class AutomationDetailActivity extends AppCompatActivity {
 
     private void initViews() {
 
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        setSupportActionBar(binding.toolbarLayout.toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
-        getSupportActionBar().setTitle(R.string.title_activity_scene_details);
-        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+        getSupportActionBar().setTitle(R.string.title_activity_automation_details);
+        binding.toolbarLayout.toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        binding.toolbarLayout.toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();
             }
         });
 
-        rlAutomationDetails = findViewById(R.id.rl_automation_detail);
-        rlAutomationProgress = findViewById(R.id.rl_progress_automation);
-
-        rlAutomationName = findViewById(R.id.rl_automation_name);
-        tvAutomationName = findViewById(R.id.tv_automation_name);
-
         tvEventDeviceName = findViewById(R.id.tv_device_name);
         tvEventParamName = findViewById(R.id.tv_param_names);
         ivEventDevice = findViewById(R.id.iv_device);
-
-        rvActions = findViewById(R.id.rv_action_list);
-        btnChangeEvent = findViewById(R.id.tv_change_event);
-        btnChangeActions = findViewById(R.id.tv_change_actions);
 
         btnRemoveAutomation = findViewById(R.id.btn_remove_automation);
         txtRemoveAutomationBtn = findViewById(R.id.text_btn);
@@ -212,18 +196,18 @@ public class AutomationDetailActivity extends AppCompatActivity {
         }
 
         if (TextUtils.isEmpty(automationName)) {
-            tvAutomationName.setText(R.string.not_set);
+            binding.layoutAutomationDetail.tvAutomationName.setText(R.string.not_set);
         } else {
-            tvAutomationName.setText(automationName);
+            binding.layoutAutomationDetail.tvAutomationName.setText(automationName);
         }
 
-        rvActions.setLayoutManager(new LinearLayoutManager(this));
+        binding.layoutAutomationDetail.rvActionList.setLayoutManager(new LinearLayoutManager(this));
         actionAdapter = new AutomationActionListAdapter(this, actions);
-        rvActions.setAdapter(actionAdapter);
+        binding.layoutAutomationDetail.rvActionList.setAdapter(actionAdapter);
 
-        rlAutomationName.setOnClickListener(automationNameClickListener);
-        btnChangeEvent.setOnClickListener(eventClickListener);
-        btnChangeActions.setOnClickListener(actionsClickListener);
+        binding.layoutAutomationDetail.rlAutomationName.setOnClickListener(automationNameClickListener);
+        binding.layoutAutomationDetail.tvChangeEvent.setOnClickListener(eventClickListener);
+        binding.layoutAutomationDetail.tvChangeActions.setOnClickListener(actionsClickListener);
         btnRemoveAutomation.setOnClickListener(removeAutomationBtnClickListener);
     }
 
@@ -293,7 +277,7 @@ public class AutomationDetailActivity extends AppCompatActivity {
                         final String value = etAutomationName.getText().toString();
                         if (!TextUtils.isEmpty(value)) {
                             automationName = value;
-                            tvAutomationName.setText(automationName);
+                            binding.layoutAutomationDetail.tvAutomationName.setText(automationName);
                             dialog.dismiss();
                         } else {
                             etAutomationName.setError(getString(R.string.error_invalid_automation_name));
@@ -555,17 +539,16 @@ public class AutomationDetailActivity extends AppCompatActivity {
     }
 
     private void showLoading(String msg) {
-        rlAutomationDetails.setAlpha(0.3f);
-        rlAutomationProgress.setVisibility(View.VISIBLE);
-        TextView progressText = findViewById(R.id.tv_loading);
-        progressText.setText(msg);
+        binding.layoutAutomationDetail.rlAutomationDetail.setAlpha(0.3f);
+        binding.rlProgressAutomation.setVisibility(View.VISIBLE);
+        binding.tvLoading.setText(msg);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
     }
 
     private void hideLoading() {
-        rlAutomationDetails.setAlpha(1);
-        rlAutomationProgress.setVisibility(View.GONE);
+        binding.layoutAutomationDetail.rlAutomationDetail.setAlpha(1);
+        binding.rlProgressAutomation.setVisibility(View.GONE);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
     }
 }
