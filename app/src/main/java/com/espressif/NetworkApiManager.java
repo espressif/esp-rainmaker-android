@@ -67,6 +67,7 @@ public class NetworkApiManager {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
                     espApp.localDeviceMap.remove(nodeId);
+                    espApp.nodeMap.get(nodeId).setNodeStatus(AppConstants.NODE_STATUS_ONLINE);
                     updateParamValue(nodeId, body, listener);
                 }
 
@@ -75,6 +76,7 @@ public class NetworkApiManager {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
                     espApp.localDeviceMap.remove(nodeId);
+                    espApp.nodeMap.get(nodeId).setNodeStatus(AppConstants.NODE_STATUS_ONLINE);
                     updateParamValue(nodeId, body, listener);
                 }
             });
@@ -106,6 +108,7 @@ public class NetworkApiManager {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
                     espApp.localDeviceMap.remove(nodeId);
+                    espApp.nodeMap.get(nodeId).setNodeStatus(AppConstants.NODE_STATUS_ONLINE);
                     getParamsValues(nodeId, listener);
                 }
 
@@ -114,6 +117,7 @@ public class NetworkApiManager {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
                     espApp.localDeviceMap.remove(nodeId);
+                    espApp.nodeMap.get(nodeId).setNodeStatus(AppConstants.NODE_STATUS_ONLINE);
                     getParamsValues(nodeId, listener);
                 }
             });
@@ -145,6 +149,7 @@ public class NetworkApiManager {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
                     espApp.localDeviceMap.remove(nodeId);
+                    espApp.nodeMap.get(nodeId).setNodeStatus(AppConstants.NODE_STATUS_ONLINE);
                     getParamsValues(nodeId, listener);
                 }
 
@@ -153,6 +158,7 @@ public class NetworkApiManager {
                     Log.e(TAG, "Error : " + exception.getMessage());
                     Log.e(TAG, "Removing Node id : " + nodeId);
                     espApp.localDeviceMap.remove(nodeId);
+                    espApp.nodeMap.get(nodeId).setNodeStatus(AppConstants.NODE_STATUS_ONLINE);
                     getParamsValues(nodeId, listener);
                 }
             });

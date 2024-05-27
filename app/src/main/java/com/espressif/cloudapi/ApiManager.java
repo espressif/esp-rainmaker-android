@@ -1665,6 +1665,12 @@ public class ApiManager {
                 if (espNode.isOnline() != nodeStatus) {
                     espNode.setOnline(nodeStatus);
                 }
+
+                if (nodeStatus) {
+                    espNode.setNodeStatus(AppConstants.NODE_STATUS_ONLINE);
+                } else {
+                    espNode.setNodeStatus(AppConstants.NODE_STATUS_OFFLINE);
+                }
             } else {
                 Log.e(TAG, "Connectivity object is null");
             }
