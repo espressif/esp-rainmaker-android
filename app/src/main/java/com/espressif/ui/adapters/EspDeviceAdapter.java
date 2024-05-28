@@ -505,15 +505,23 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
                 deviceVh.llOffline.setVisibility(View.VISIBLE);
 
                 EspLocalDevice localDevice = espApp.localDeviceMap.get(nodeId);
-                if (localDevice.getSecurityType() == 1 || localDevice.getSecurityType() == 2) {
-                    deviceVh.ivSecureLocal.setVisibility(View.VISIBLE);
-                    deviceVh.ivOffline.setVisibility(View.INVISIBLE);
+                if (localDevice != null) {
+                    if (localDevice.getSecurityType() == 1 || localDevice.getSecurityType() == 2) {
+                        deviceVh.ivSecureLocal.setVisibility(View.VISIBLE);
+                        deviceVh.ivOffline.setVisibility(View.INVISIBLE);
+                    } else {
+                        deviceVh.ivSecureLocal.setVisibility(View.INVISIBLE);
+                        deviceVh.ivOffline.setVisibility(View.GONE);
+                    }
+                    deviceVh.tvOffline.setText(R.string.local_device_text);
+                    deviceVh.tvOffline.setTextColor(context.getColor(R.color.colorPrimaryDark));
                 } else {
-                    deviceVh.ivSecureLocal.setVisibility(View.INVISIBLE);
-                    deviceVh.ivOffline.setVisibility(View.GONE);
+                    if (espApp.nodeMap.get(nodeId).isOnline()) {
+                        node.setNodeStatus(AppConstants.NODE_STATUS_ONLINE);
+                    } else {
+                        node.setNodeStatus(AppConstants.NODE_STATUS_OFFLINE);
+                    }
                 }
-                deviceVh.tvOffline.setText(R.string.local_device_text);
-                deviceVh.tvOffline.setTextColor(context.getColor(R.color.colorPrimaryDark));
                 break;
 
             case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE:

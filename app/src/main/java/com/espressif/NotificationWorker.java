@@ -53,6 +53,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class NotificationWorker extends Worker {
 
@@ -192,6 +193,16 @@ public class NotificationWorker extends Worker {
                 EspNode node = espApp.nodeMap.get(nodeId);
                 node.setTimeStampOfStatus(timestamp);
                 node.setOnline(nodeStatus);
+
+                if (!Arrays.asList(AppConstants.NODE_STATUS_LOCAL, AppConstants.NODE_STATUS_MATTER_LOCAL,
+                        AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE).contains(node.getNodeStatus())) {
+                    if (nodeStatus) {
+                        node.setNodeStatus(AppConstants.NODE_STATUS_ONLINE);
+                    } else {
+                        node.setNodeStatus(AppConstants.NODE_STATUS_OFFLINE);
+                    }
+                }
+
                 ArrayList<Device> devices = node.getDevices();
                 ArrayList<String> deviceNames = new ArrayList<>();
                 if (devices != null) {

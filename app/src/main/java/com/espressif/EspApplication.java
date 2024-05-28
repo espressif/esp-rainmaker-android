@@ -220,7 +220,9 @@ public class EspApplication extends Application {
                         clientHelper.initChipClientInBackground(matterNodeId);
                     } else {
                         try {
-                            clientHelper.getCurrentValues(nodeId, matterNodeId, nodeMap.get(nodeId));
+                            if (nodeMap.get(nodeId) != null) {
+                                clientHelper.getCurrentValues(nodeId, matterNodeId, nodeMap.get(nodeId));
+                            }
                         } catch (ExecutionException e) {
                             e.printStackTrace();
                         }
@@ -1173,6 +1175,7 @@ public class EspApplication extends Application {
                         if (localDeviceMap.containsKey(nodeId)) {
                             Log.e(TAG, "Remove local device from list");
                             localDeviceMap.remove(nodeId);
+                            nodeMap.get(nodeId).setNodeStatus(AppConstants.NODE_STATUS_ONLINE);
                         }
                     }
 
