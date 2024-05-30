@@ -1017,7 +1017,7 @@ public class ApiManager {
 
                                                 if (nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
 
-                                                    if (matterDeviceInfo.getServerClusters().containsKey(String.valueOf(AppConstants.ENDPOINT_1))) {
+                                                    if (matterDeviceInfo.getServerClusters() != null && matterDeviceInfo.getServerClusters().containsKey(String.valueOf(AppConstants.ENDPOINT_1))) {
 
                                                         ArrayList<String> properties = new ArrayList<>();
                                                         properties.add(AppConstants.KEY_PROPERTY_WRITE);
