@@ -45,5 +45,32 @@ class ParamUtils {
             }
             return actionParams
         }
+
+        fun isParamAvailableInList(params: java.util.ArrayList<Param>, type: String): Boolean {
+            if (params.size > 0) {
+                for (p in params) {
+                    if (p.paramType != null && p.paramType == type) {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+
+        fun addToggleParam(
+            params: java.util.ArrayList<Param>,
+            properties: java.util.ArrayList<String>
+        ) {
+            // Add on/off param
+            val param = Param()
+            param.isDynamicParam = true
+            param.dataType = "bool"
+            param.uiType = AppConstants.UI_TYPE_TOGGLE
+            param.paramType = AppConstants.PARAM_TYPE_POWER
+            param.name = AppConstants.PARAM_POWER
+            param.switchStatus = false
+            param.properties = properties
+            params.add(param)
+        }
     }
 }

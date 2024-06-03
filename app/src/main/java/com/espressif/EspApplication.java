@@ -57,8 +57,7 @@ import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
 import com.espressif.ui.models.UpdateEvent;
 import com.espressif.utils.NodeUtils;
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GoogleApiAvailability;
+import com.espressif.utils.ParamUtils;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -739,11 +738,11 @@ public class EspApplication extends Application {
                             if (params == null || params.size() == 0) {
                                 params = new ArrayList<>();
                             }
-                            boolean isParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_POWER);
+                            boolean isParamAvailable = ParamUtils.Companion.isParamAvailableInList(params, AppConstants.PARAM_TYPE_POWER);
 
                             if (!isParamAvailable) {
                                 // Add on/off param
-                                addToggleParam(params, properties);
+                                ParamUtils.Companion.addToggleParam(params, properties);
                             }
                             device.setParams(params);
 
@@ -755,7 +754,7 @@ public class EspApplication extends Application {
                             if (params == null || params.size() == 0) {
                                 params = new ArrayList<>();
                             }
-                            boolean isParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_BRIGHTNESS);
+                            boolean isParamAvailable = ParamUtils.Companion.isParamAvailableInList(params, AppConstants.PARAM_TYPE_BRIGHTNESS);
                             Param brightnessParam = null;
                             if (isParamAvailable) {
                                 for (Param p : params) {
@@ -802,8 +801,8 @@ public class EspApplication extends Application {
                             if (params == null || params.size() == 0) {
                                 params = new ArrayList<>();
                             }
-                            boolean isSatParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_SATURATION);
-                            boolean isHueParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_HUE);
+                            boolean isSatParamAvailable = ParamUtils.Companion.isParamAvailableInList(params, AppConstants.PARAM_TYPE_SATURATION);
+                            boolean isHueParamAvailable = ParamUtils.Companion.isParamAvailableInList(params, AppConstants.PARAM_TYPE_HUE);
 
                             if (!isSatParamAvailable) {
                                 // Add saturation param
@@ -858,11 +857,11 @@ public class EspApplication extends Application {
                                 if (params == null || params.size() == 0) {
                                     params = new ArrayList<>();
                                 }
-                                boolean isParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_POWER);
+                                boolean isParamAvailable = ParamUtils.Companion.isParamAvailableInList(params, AppConstants.PARAM_TYPE_POWER);
 
                                 if (!isParamAvailable) {
                                     // Add on/off param
-                                    addToggleParam(params, properties);
+                                    ParamUtils.Companion.addToggleParam(params, properties);
                                 }
                                 device.setParams(params);
                             }
@@ -1228,32 +1227,5 @@ public class EspApplication extends Application {
     public void removeNodeInformation(String nodeId) {
         nodeMap.remove(nodeId);
         localDeviceMap.remove(nodeId);
-    }
-
-
-    private boolean isParamAvailableInList(ArrayList<Param> params, String type) {
-        boolean isAvailable = false;
-        if (params.size() > 0) {
-            for (Param p : params) {
-                if (p.getParamType() != null && p.getParamType().equals(type)) {
-                    isAvailable = true;
-                    break;
-                }
-            }
-        }
-        return isAvailable;
-    }
-
-    private void addToggleParam(ArrayList<Param> params, ArrayList<String> properties) {
-        // Add on/off param
-        Param param = new Param();
-        param.setDynamicParam(true);
-        param.setDataType("bool");
-        param.setUiType(AppConstants.UI_TYPE_TOGGLE);
-        param.setParamType(AppConstants.PARAM_TYPE_POWER);
-        param.setName(AppConstants.PARAM_POWER);
-        param.setSwitchStatus(false);
-        param.setProperties(properties);
-        params.add(param);
     }
 }
