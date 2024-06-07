@@ -92,10 +92,9 @@ public class AlexaApiManager {
                         Log.e(TAG, "Get alexa access token failed");
                         listener.onResponseFailure(new RuntimeException());
                     }
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
-                } catch (JSONException e) {
-                    e.printStackTrace();
+                    listener.onResponseFailure(e);
                 }
             }
 
