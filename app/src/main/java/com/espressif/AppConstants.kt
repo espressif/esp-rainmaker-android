@@ -435,6 +435,7 @@ class AppConstants {
         const val KEY_ON_BOARD_PAYLOAD = "on_board_payload"
         const val KEY_CHALLENGE = "challenge"
         const val KEY_RAINMAKER_NODE_ID = "rainmaker_node_id"
+        const val KEY_MATTER = "Matter"
 
         const val CERT_BEGIN = "-----BEGIN CERTIFICATE REQUEST-----"
         const val CERT_END = "-----END CERTIFICATE REQUEST-----"
