@@ -942,13 +942,20 @@ public class ApiManager {
 
                                         // Node metadata
                                         JSONObject metadataJson = nodeJson.optJSONObject(AppConstants.KEY_METADATA);
+                                        JSONObject matterMetadataJson = null;
+
                                         if (metadataJson != null) {
-                                            NodeMetadata metadata = new NodeMetadata();
-                                            metadata.setDeviceName(metadataJson.optString(AppConstants.KEY_DEVICENAME));
-                                            metadata.setGroupId(metadataJson.optString(AppConstants.KEY_GROUP_ID));
-                                            metadata.setRainMaker(metadataJson.optBoolean(AppConstants.KEY_IS_RAINMAKER));
-                                            metadata.setServersData(metadataJson.optString(AppConstants.KEY_SERVERS_DATA));
-                                            espNode.setNodeMetadata(metadata);
+
+                                            matterMetadataJson = metadataJson.optJSONObject(AppConstants.KEY_MATTER);
+
+                                            if (matterMetadataJson != null) {
+                                                NodeMetadata metadata = new NodeMetadata();
+                                                metadata.setDeviceName(matterMetadataJson.optString(AppConstants.KEY_DEVICENAME));
+                                                metadata.setGroupId(matterMetadataJson.optString(AppConstants.KEY_GROUP_ID));
+                                                metadata.setRainMaker(matterMetadataJson.optBoolean(AppConstants.KEY_IS_RAINMAKER));
+                                                metadata.setServersData(matterMetadataJson.optString(AppConstants.KEY_SERVERS_DATA));
+                                                espNode.setNodeMetadata(metadata);
+                                            }
                                         }
 
                                         if (!TextUtils.isEmpty(nodeType) &&
@@ -964,23 +971,23 @@ public class ApiManager {
                                             }
                                             Device device = devices.get(0);
 
-                                            if (metadataJson != null) {
+                                            if (matterMetadataJson != null) {
 
                                                 NodeMetadata metadata = espNode.getNodeMetadata();
-                                                String deviceName = metadataJson.optString(AppConstants.KEY_DEVICENAME);
+                                                String deviceName = matterMetadataJson.optString(AppConstants.KEY_DEVICENAME);
                                                 device.setDeviceName(deviceName);
-                                                int type = (int) metadataJson.optDouble(AppConstants.KEY_DEVICETYPE);
+                                                int type = (int) matterMetadataJson.optDouble(AppConstants.KEY_DEVICETYPE);
                                                 String matterDeviceType = Utils.getEspDeviceTypeForMatterDevice(type);
                                                 device.setDeviceType(matterDeviceType);
                                                 metadata.setDeviceType(matterDeviceType);
-                                                metadata.setProductId(metadataJson.optString(AppConstants.KEY_PRODUCT_ID));
-                                                metadata.setVendorId(metadataJson.optString(AppConstants.KEY_VENDOR_ID));
+                                                metadata.setProductId(matterMetadataJson.optString(AppConstants.KEY_PRODUCT_ID));
+                                                metadata.setVendorId(matterMetadataJson.optString(AppConstants.KEY_VENDOR_ID));
                                                 espNode.setNodeMetadata(metadata);
 
                                                 MatterDeviceInfo matterDeviceInfo = new MatterDeviceInfo();
-                                                matterDeviceInfo.setDeviceType(String.valueOf(metadataJson.optDouble(AppConstants.KEY_DEVICETYPE)));
-                                                JSONObject serverClustersJson = metadataJson.optJSONObject(AppConstants.KEY_SERVERS_DATA);
-                                                JSONObject clientClustersJson = metadataJson.optJSONObject(AppConstants.KEY_CLIENTS_DATA);
+                                                matterDeviceInfo.setDeviceType(String.valueOf(matterMetadataJson.optDouble(AppConstants.KEY_DEVICETYPE)));
+                                                JSONObject serverClustersJson = matterMetadataJson.optJSONObject(AppConstants.KEY_SERVERS_DATA);
+                                                JSONObject clientClustersJson = matterMetadataJson.optJSONObject(AppConstants.KEY_CLIENTS_DATA);
 
                                                 if (serverClustersJson != null) {
 

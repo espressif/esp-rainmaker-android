@@ -64,8 +64,8 @@ class ChipClient constructor(
         const val TAG = "ChipClient"
     }
 
-    /* 0xFFF4 is a test vendor ID, replace with your assigned company ID */
-    private val VENDOR_ID = 0xFFF4
+    /* 0x131B is a Espressif's vendor ID, replace with your assigned company ID */
+    private val VENDOR_ID = 0x131B
 
     private val DEFAULT_TIMEOUT = 1000
 
@@ -594,10 +594,13 @@ class ChipClient constructor(
                                     // Nothing to do
                                 }
 
-                                Log.d(TAG, "Metadata Json : ${metadataJson.toString()}")
+                                val matterMetadataJson = JsonObject()
+                                matterMetadataJson.add(AppConstants.KEY_MATTER, metadataJson)
+                                Log.d(TAG, "Metadata Json : ${matterMetadataJson.toString()}")
+
                                 body.addProperty(AppConstants.KEY_REQ_ID, requestId)
                                 body.addProperty(AppConstants.KEY_STATUS, "success")
-                                body.add(AppConstants.KEY_METADATA, metadataJson)
+                                body.add(AppConstants.KEY_METADATA, matterMetadataJson)
 
                                 var description: String? =
                                     ApiManager.getInstance(context)
