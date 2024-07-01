@@ -42,6 +42,7 @@ import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.EspOtaUpdate;
 import com.espressif.ui.models.Group;
+import com.espressif.ui.models.GroupSharingRequest;
 import com.espressif.ui.models.MatterDeviceInfo;
 import com.espressif.ui.models.NodeMetadata;
 import com.espressif.ui.models.Param;
@@ -67,6 +68,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -2921,6 +2923,7 @@ public class ApiManager {
                                     String fabricId = groupJson.optString(AppConstants.KEY_FABRIC_ID);
                                     boolean isMatter = groupJson.optBoolean(AppConstants.KEY_IS_MATTER);
                                     boolean isMutuallyExclusive = groupJson.optBoolean(AppConstants.KEY_MUTUALLY_EXCLUSIVE);
+                                    boolean isPrimary = groupJson.optBoolean(AppConstants.KEY_PRIMARY);
                                     JSONArray nodesArray = groupJson.optJSONArray(AppConstants.KEY_NODES);
                                     ArrayList<String> nodesOfGroup = new ArrayList<>();
                                     groupIds.add(gId);
@@ -2937,6 +2940,7 @@ public class ApiManager {
                                     group.setMatter(isMatter);
                                     group.setMutuallyExclusive(isMutuallyExclusive);
                                     group.setNodeList(nodesOfGroup);
+                                    group.setPrimary(isPrimary);
 
                                     if (groupJson.has(AppConstants.KEY_FABRIC_DETAILS)) {
                                         JSONObject fabricDetailsJson = groupJson.optJSONObject(AppConstants.KEY_FABRIC_DETAILS);
@@ -3545,6 +3549,7 @@ public class ApiManager {
 
                         ArrayList<String> primaryUsers = new ArrayList<>();
                         ArrayList<String> secondaryUsers = new ArrayList<>();
+                        ArrayList<String> sharedGroupIds = new ArrayList<>();
 
                         if (nodeSharingJsonArray != null && nodeSharingJsonArray.length() > 0) {
 
@@ -3573,10 +3578,22 @@ public class ApiManager {
                                         }
                                     }
 
+                                    JSONArray sourcesJsonArray = nodeSharingJson.optJSONArray(AppConstants.KEY_SOURCES);
+                                    if (sourcesJsonArray != null && sourcesJsonArray.length() > 0) {
+                                        for (int i = 0; i < sourcesJsonArray.length(); i++) {
+                                            String source = sourcesJsonArray.optString(i);
+                                            if (!source.equals(AppConstants.KEY_NODE)) {
+                                                sharedGroupIds.add(source);
+                                                break;
+                                            }
+                                        }
+                                    }
+
                                     EspNode node = espApp.nodeMap.get(nodeId);
                                     if (node != null) {
                                         node.setPrimaryUsers(primaryUsers);
                                         node.setSecondaryUsers(secondaryUsers);
+                                        node.setSharedGroupIds(sharedGroupIds);
                                     }
                                 }
                             }
@@ -3639,6 +3656,327 @@ public class ApiManager {
                 listener.onNetworkFailure(new RuntimeException("Failed to remove sharing"));
             }
         });
+    }
+
+
+    // Get group sharing requests
+    public void getGroupSharingRequests(boolean isPrimaryUser, final ApiResponseListener listener) {
+        Log.d(TAG, "Get sharing request");
+        ArrayList<GroupSharingRequest> groupSharingRequests = new ArrayList<>();
+        getGroupSharingRequests("", "", isPrimaryUser, groupSharingRequests, listener);
+    }
+
+    private void getGroupSharingRequests(final String startReqId, final String startUserName, final boolean isPrimaryUser,
+                                         final ArrayList<GroupSharingRequest> groupSharingRequests, final ApiResponseListener listener) {
+        Log.d(TAG, "Get sharing request, Start request id: " + startReqId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP_SHARING_REQUESTS;
+
+        apiInterface.getGroupSharingRequests(url, accessToken, isPrimaryUser, startReqId,
+                startUserName).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                Log.d(TAG, "Get group sharing request, Response code" + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+                        if (response.body() != null) {
+                            String jsonResponse = response.body().string();
+
+                            JSONObject jsonObject = new JSONObject(jsonResponse);
+                            JSONArray groupjsonarray = jsonObject.optJSONArray(AppConstants.KEY_SHARING_REQUESTS);
+
+                            if (groupjsonarray != null) {
+                                for (int groupIndex = 0; groupIndex < groupjsonarray.length(); groupIndex++) {
+                                    JSONObject groupJson = groupjsonarray.optJSONObject(groupIndex);
+
+                                    if (groupJson != null) {
+                                        String reqId = groupJson.optString(AppConstants.KEY_REQ_ID);
+
+                                        if (TextUtils.isEmpty(reqId)) {
+                                            continue;
+                                        }
+
+                                        GroupSharingRequest grpSharingRequest = new GroupSharingRequest(reqId);
+                                        grpSharingRequest.setReqStatus(groupJson.optString(AppConstants.KEY_REQ_STATUS));
+                                        grpSharingRequest.setReqTime(groupJson.optLong(AppConstants.KEY_REQ_TIME, 0));
+                                        grpSharingRequest.setPrimaryUserName(new ArrayList<>(Collections.singletonList(groupJson.optString(AppConstants.KEY_PRIMARY_USER_NAME))));
+                                        grpSharingRequest.setUserName(new ArrayList<>(Collections.singletonList(groupJson.optString(AppConstants.KEY_USER_NAME))));
+                                        JSONArray grpIdListJson = groupJson.optJSONArray(AppConstants.KEY_GROUP_IDS);
+                                        JSONArray grpNamesJson = groupJson.optJSONArray(AppConstants.KEY_GROUP_NAMES);
+                                        ArrayList<String> groupIds = new ArrayList<>();
+                                        ArrayList<String> groupNames = new ArrayList<>();
+
+                                        if (grpIdListJson != null && grpNamesJson != null) {
+                                            for (int i = 0; i < grpIdListJson.length() && i < grpNamesJson.length(); i++) {
+                                                String groupId = grpIdListJson.optString(i);
+                                                groupIds.add(groupId);
+                                                String groupName = grpNamesJson.optString(i);
+                                                groupNames.add(groupName);
+                                            }
+                                        }
+
+                                        grpSharingRequest.setGroup_names(groupNames);
+                                        grpSharingRequest.setGroup_ids(groupIds);
+                                        groupSharingRequests.add(grpSharingRequest);
+                                    }
+                                }
+                            }
+
+                            String nextId = jsonObject.optString(AppConstants.KEY_NEXT_REQ_ID);
+                            String nextUserName = jsonObject.optString(AppConstants.KEY_NEXT_USER_NAME);
+
+                            if (!TextUtils.isEmpty(nextId)) {
+                                getGroupSharingRequests(nextId, nextUserName, isPrimaryUser, groupSharingRequests, listener);
+                            } else {
+                                Bundle data = new Bundle();
+                                Log.d(TAG, "Number of sharing requests : " + groupSharingRequests.size());
+                                data.putParcelableArrayList(AppConstants.KEY_SHARING_REQUESTS, groupSharingRequests);
+                                listener.onSuccess(data);
+                            }
+                        } else {
+                            Log.e(TAG, "Response received : null");
+                            listener.onResponseFailure(new RuntimeException("Failed to get sharing requests"));
+                        }
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to get sharing requests");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to get sharing requests"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Getting group request failed"));
+            }
+        });
+
+    }
+
+    // Update group request - Accept or Decline
+    public void updateGroupSharingRequest(final String requestId, final boolean requestAccepted, final ApiResponseListener listener) {
+        Log.d(TAG, "Update group sharing request status with : " + requestAccepted + " for request id : " + requestId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP_SHARING_REQUESTS;
+
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_REQ_ACCEPT, requestAccepted);
+        body.addProperty(AppConstants.KEY_REQ_ID, requestId);
+
+        apiInterface.updateGroupSharingRequest(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Update group sharing request, Response code" + response.code());
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonResponse = response.body().string();
+                        listener.onSuccess(null);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to update group sharing request");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to update group sharing request"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to update group sharing request"));
+            }
+        });
+    }
+
+    // Share group with other user - make user primary/secondary
+    public void shareGroupWithUser(final String groupId, final String email, final boolean isPrimary, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Share Group" + groupId + " with User " + email);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP_SHARING;
+
+        JsonObject body = new JsonObject();
+        JsonArray groups = new JsonArray();
+
+        groups.add(groupId);
+
+        body.add(AppConstants.KEY_GROUPS, groups);
+        body.addProperty(AppConstants.KEY_USER_NAME, email);
+        body.addProperty(AppConstants.KEY_PRIMARY, isPrimary);
+
+        String groupName = null;
+        if (espApp.groupMap.containsKey(groupId)) {
+            groupName = espApp.groupMap.get(groupId).getGroupName();
+        }
+
+        apiInterface.shareGroupWithUser(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                Log.d(TAG, "Share Group with user, Response code" + response.code());
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonreponse = response.body().string();
+                        JSONObject jsonObject = new JSONObject(jsonreponse);
+                        String requestId = jsonObject.optString(AppConstants.KEY_REQ_ID);
+                        Bundle bundle = new Bundle();
+                        bundle.putString(AppConstants.KEY_REQ_ID, requestId);
+                        bundle.putString(AppConstants.KEY_EMAIL, email);
+                        listener.onSuccess(bundle);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Group sharing failed");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Group sharing failed"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Group sharing failed"));
+            }
+        });
+    }
+
+    // Remove sharing request pending for approval
+    public void removeGroupSharingRequest(final String requestId, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Remove Group Sharing Request : requestId: " + requestId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP_SHARING_REQUESTS;
+
+        apiInterface.removeGroupSharingRequest(url, accessToken, requestId).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                Log.d(TAG, "Remove Sharing Request, Response code" + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonResponse = response.body().string();
+                        listener.onSuccess(null);
+                    } else {
+                        String jsonErrResponse = response.body().string();
+                        processError(jsonErrResponse, listener, "Failed to remove sharing request");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to remove sharing request"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onResponseFailure(new RuntimeException("Failed to remove sharing request"));
+            }
+        });
+    }
+
+    // Get sharing request accepted by secondary users
+    public void getGroupSharing(final String groupId, final ApiResponseListener listener) {
+        Log.d(TAG, "Get Group Sharing for group: " + groupId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP_SHARING;
+
+        apiInterface.getGroupSharing(url, accessToken, groupId).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                Log.d(TAG, "Get Group Sharing info, Response code: " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonResponse = response.body().string();
+
+                        JSONObject jsonObject = new JSONObject(jsonResponse);
+                        JSONArray groupSharingJsonArray = jsonObject.optJSONArray(AppConstants.KEY_GROUP_SHARING);
+
+                        ArrayList<String> primaryUsers = new ArrayList<>();
+                        ArrayList<String> secondaryUsers = new ArrayList<>();
+
+                        if (groupSharingJsonArray != null && groupSharingJsonArray.length() > 0) {
+                            JSONObject groupSharingJson = groupSharingJsonArray.optJSONObject(0);
+
+                            if (groupSharingJson != null) {
+                                JSONObject usersJSON = groupSharingJson.optJSONObject(AppConstants.KEY_USERS);
+
+                                if (usersJSON != null) {
+                                    JSONArray primaryJsonArray = usersJSON.optJSONArray(AppConstants.KEY_USER_ROLE_PRIMARY);
+                                    JSONArray secondaryJsonArray = usersJSON.optJSONArray(AppConstants.KEY_USER_ROLE_SECONDARY);
+
+                                    if (primaryJsonArray != null && primaryJsonArray.length() > 0) {
+                                        for (int i = 0; i < primaryJsonArray.length(); i++) {
+                                            String email = primaryJsonArray.optString(i);
+                                            primaryUsers.add(email);
+                                        }
+                                    }
+
+                                    if (secondaryJsonArray != null && secondaryJsonArray.length() > 0) {
+                                        for (int i = 0; i < secondaryJsonArray.length(); i++) {
+                                            String email = secondaryJsonArray.optString(i);
+                                            secondaryUsers.add(email);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Bundle data = new Bundle();
+                        data.putStringArrayList(AppConstants.KEY_PRIMARY_USERS, primaryUsers);
+                        data.putStringArrayList(AppConstants.KEY_SECONDARY_USERS, secondaryUsers);
+                        listener.onSuccess(data);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to get group sharing info");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to get group sharing info"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to get group sharing info"));
+            }
+        });
+    }
+
+
+    // Remove Group Sharing - by primary user
+    public void removeGroupSharing(final String groupId, final String email, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Remove Group Sharing for group: " + groupId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP_SHARING;
+
+        apiInterface.removeGroupSharing(url, accessToken, groupId, email).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                Log.d(TAG, "Remove Group Sharing request, Response code: " + response.code());
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonResponse = response.body().string();
+                        listener.onSuccess(null);
+                    } else {
+                        String jsonErrResponse = response.body().string();
+                        processError(jsonErrResponse, listener, "Failed to remove sharing");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to remove sharing"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to remove sharing"));
+            }
+        });
+
     }
 
     public void registerDeviceToken(final String deviceToken, final ApiResponseListener listener) {

@@ -237,6 +237,39 @@ public interface ApiInterface {
     Call<ResponseBody> unregisterDeviceToken(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
                                              @Query(AppConstants.KEY_MOBILE_DEVICE_TOKEN) String deviceToken);
 
+    // Feature : Group Sharing
+
+    // Share group with user
+    @PUT
+    Call<ResponseBody> shareGroupWithUser(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonObject body);
+
+    // Get group sharing request
+    @GET
+    Call<ResponseBody> getGroupSharingRequests(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                               @Query(AppConstants.KEY_PRIMARY_USER) boolean isPrimaryUser,
+                                               @Query(AppConstants.KEY_START_REQ_ID) String startRequestId,
+                                               @Query(AppConstants.KEY_START_USER_NAME) String startUserName);
+
+    // Update group sharing request
+    @PUT
+    Call<ResponseBody> updateGroupSharingRequest(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                                 @Body JsonObject body);
+
+    // Remove group sharing request
+    @DELETE
+    Call<ResponseBody> removeGroupSharingRequest(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                                 @Query(AppConstants.KEY_REQ_ID) String requestId);
+
+    // Get group sharing information
+    @GET
+    Call<ResponseBody> getGroupSharing(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                       @Query(AppConstants.KEY_GROUP_ID) String groupId);
+
+    // Remove group sharing
+    @DELETE
+    Call<ResponseBody> removeGroupSharing(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                          @Query(AppConstants.KEY_GROUPS) String groups, @Query(AppConstants.KEY_USER_NAME) String userName);
+
     // Get time series data
     @GET
     Call<ResponseBody> getTimeSeriesData(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,

@@ -116,6 +116,9 @@ public class EspNode implements Parcelable {
     private boolean isController;
 
     @Ignore
+    private ArrayList<String> sharedGroupIds;
+
+    @Ignore
     private int nodeStatus = AppConstants.NODE_STATUS_OFFLINE;
 
     public EspNode() {
@@ -154,6 +157,7 @@ public class EspNode implements Parcelable {
         nodeMetadata = node.getNodeMetadata();
         isController = node.isController();
         nodeStatus = node.getNodeStatus();
+        sharedGroupIds = node.getSharedGroupIds();
     }
 
     public String getNodeId() {
@@ -394,6 +398,17 @@ public class EspNode implements Parcelable {
         this.nodeStatus = nodeStatus;
     }
 
+    public ArrayList<String> getSharedGroupIds() {
+        if (sharedGroupIds == null) {
+            sharedGroupIds = new ArrayList<>();
+        }
+        return sharedGroupIds;
+    }
+
+    public void setSharedGroupIds(ArrayList<String> sharedGroupIds) {
+        this.sharedGroupIds = sharedGroupIds;
+    }
+
     protected EspNode(Parcel in) {
 
         nodeId = in.readString();
@@ -425,6 +440,7 @@ public class EspNode implements Parcelable {
         nodeMetadata = in.readParcelable(NodeMetadata.class.getClassLoader());
         isController = in.readByte() != 0;
         nodeStatus = in.readInt();
+        sharedGroupIds = in.createStringArrayList();
     }
 
     public static final Creator<EspNode> CREATOR = new Creator<EspNode>() {
@@ -476,5 +492,6 @@ public class EspNode implements Parcelable {
         dest.writeParcelable(nodeMetadata, flags);
         dest.writeByte((byte) (isController ? 1 : 0));
         dest.writeInt(nodeStatus);
+        dest.writeStringList(sharedGroupIds);
     }
 }

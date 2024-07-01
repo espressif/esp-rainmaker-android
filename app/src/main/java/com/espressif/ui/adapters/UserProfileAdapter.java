@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.AboutAppActivity;
 import com.espressif.ui.activities.AccountActivity;
+import com.espressif.ui.activities.GroupShareActivity;
 import com.espressif.ui.activities.NotificationsActivity;
 import com.espressif.ui.activities.VoiceServicesActivity;
 
@@ -90,6 +91,10 @@ public class UserProfileAdapter extends RecyclerView.Adapter<UserProfileAdapter.
                 } else if (str.equals(context.getString(R.string.title_activity_about))) {
 
                     context.startActivity(new Intent(context, AboutAppActivity.class));
+
+                } else if (str.equals(context.getString(R.string.title_activity_group_sharing_requests))) {
+
+                    context.startActivity(new Intent(context, GroupShareActivity.class));
                 }
             }
         });

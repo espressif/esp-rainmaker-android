@@ -72,7 +72,11 @@ public class GroupDeviceAdapter extends RecyclerView.Adapter<GroupDeviceAdapter.
                 myViewHolder.ivRemove.setVisibility(View.GONE);
             } else {
                 myViewHolder.cbDevice.setVisibility(View.GONE);
-                myViewHolder.ivRemove.setVisibility(View.VISIBLE);
+                if (group.isPrimary()) {
+                    myViewHolder.ivRemove.setVisibility(View.VISIBLE);
+                } else {
+                    myViewHolder.ivRemove.setVisibility(View.GONE);
+                }
             }
         } else {
             myViewHolder.cbDevice.setVisibility(View.GONE);
@@ -93,7 +97,8 @@ public class GroupDeviceAdapter extends RecyclerView.Adapter<GroupDeviceAdapter.
 
                     if (context instanceof GroupDetailActivity) {
                         String nodeId = deviceList.get(myViewHolder.getAdapterPosition()).getNodeId();
-                        ((GroupDetailActivity) context).removeDevice(nodeId);
+                        ((GroupDetailActivity) context).confirmRemoveDevice(nodeId);
+
                     }
                 }
             });

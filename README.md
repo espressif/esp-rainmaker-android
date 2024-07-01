@@ -119,6 +119,24 @@ Sharing can be enabled/disabled by setting true/false value of `isNodeSharingSup
 Sharing feature is optional but enabled by default.
 Add `isNodeSharingSupported=false` in `local.properties` file to disable this feature.
 
+### Group Sharing
+
+Group sharing allows a user to share groups with other registered users and allow them to monitor and control nodes of the shared group.
+List of operations that are supported in group sharing :
+
+For primary users:
+- Register requests to share groups.
+- Share a group with full access.
+- View pending requests.
+- Cancel a pending request, if required.
+- Remove group sharing.
+
+For secondary users:
+- View pending requests.
+- Accept/decline pending requests.
+- Control nodes which are in shared group.
+- Leave a group.
+
 ### Device Automation
 
 Device Automation is a set of actions that will be triggered based on the completion of certain events. For example, the user can set an event as the Temperature sensor equals 35 degrees celsius. Then based on this event user can trigger different actions like Switching on AC or Setting the AC temperature to 20 degrees celsius or a combination of both.

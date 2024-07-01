@@ -14,12 +14,16 @@
 
 package com.espressif.ui.activities;
 
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
@@ -61,24 +65,20 @@ public class GroupDetailActivity extends AppCompatActivity {
 
     private static final int REQ_ADD_NODE_SELECTION = 10;
     private static final int REQ_EDIT_NODE_SELECTION = 11;
-
     private MaterialToolbar toolbar;
     private TextView tvGroupName;
-    private RelativeLayout rlGroupName, rlAddDevice, rlDevices;
+    private RelativeLayout rlGroupName, rlAddDevice, rlDevices, rlGroupSharedWith;
     private CardView btnNext;
     private TextView txtNextBtn;
     private RecyclerView rvDevices, rvNodes;
     private RelativeLayout layoutProgress;
     private ConstraintLayout layoutGroupDetail;
-
     private MaterialCardView btnRemoveGroup;
     private TextView txtRemoveGroupBtn;
-    private ImageView removeGroupImage;
+    private ImageView removeGroupImage, ivRightArrow;
     private ContentLoadingProgressBar progressBar;
-
     private GroupDeviceAdapter deviceAdapter;
     private GroupNodeAdapter nodeAdapter;
-
     private EspApplication espApp;
     private ApiManager apiManager;
     private Group group;
@@ -126,6 +126,7 @@ public class GroupDetailActivity extends AppCompatActivity {
 
         @Override
         public void onClick(View v) {
+
             askForGroupName();
         }
     };
@@ -144,7 +145,12 @@ public class GroupDetailActivity extends AppCompatActivity {
 
         @Override
         public void onClick(View v) {
-            confirmRemoveGroup();
+
+            if (group != null && group.isPrimary()) {
+                confirmRemoveGroup();
+            } else {
+                confirmLeaveGroup();
+            }
         }
     };
 
@@ -186,6 +192,7 @@ public class GroupDetailActivity extends AppCompatActivity {
         rlGroupName = findViewById(R.id.rl_group_name);
         rlAddDevice = findViewById(R.id.rl_add_device);
         rlDevices = findViewById(R.id.rl_devices);
+        rlGroupSharedWith = findViewById(R.id.rl_shared_with);
         rvDevices = findViewById(R.id.rv_device_list);
         rvNodes = findViewById(R.id.rv_node_list);
 
@@ -202,6 +209,7 @@ public class GroupDetailActivity extends AppCompatActivity {
 
         rlAddDevice.setOnClickListener(addDeviceClickListener);
         rlGroupName.setOnClickListener(groupNameClickListener);
+        ivRightArrow = findViewById(R.id.iv_right_arrow);
         btnRemoveGroup.setOnClickListener(removeGroupBtnClickListener);
 
         if (!isDeviceAvailable) {
@@ -231,32 +239,45 @@ public class GroupDetailActivity extends AppCompatActivity {
             btnNext.setVisibility(View.VISIBLE);
             setEnableNextBtn(false);
         } else {
-            getSupportActionBar().setTitle(R.string.title_activity_edit_group);
+            getSupportActionBar().setTitle(group.getGroupName());
             groupName = group.getGroupName();
             tvGroupName.setText(groupName);
+
+            if(!group.isPrimary()){
+                rlGroupName.setOnClickListener(null);
+                ivRightArrow.setVisibility(View.INVISIBLE);
+            }
+
+            if (group.isPrimary()) {
+                txtRemoveGroupBtn.setText(R.string.btn_remove_group);
+            } else {
+                txtRemoveGroupBtn.setText(R.string.btn_leave_group);
+            }
+
             btnRemoveGroup.setVisibility(View.VISIBLE);
             btnNext.setVisibility(View.GONE);
 
-            if (isDeviceAvailable) {
+            if (group.isPrimary() && isDeviceAvailable) {
                 rlAddDevice.setVisibility(View.VISIBLE);
-                devices.clear();
-                nodes.clear();
-                ArrayList<String> nodeIds = group.getNodeList();
+            } else {
+                rlAddDevice.setVisibility(View.GONE);
+            }
 
-                if (nodeIds != null && nodeIds.size() > 0) {
-                    for (int i = 0; i < nodeIds.size(); i++) {
-                        EspNode node = espApp.nodeMap.get(nodeIds.get(i));
-                        if (node != null) {
-                            if (node.getDevices().size() == 1) {
-                                devices.add(new Device(node.getDevices().get(0)));
-                            } else if (node.getDevices().size() > 1) {
-                                nodes.add(new EspNode(node));
-                            }
+            devices.clear();
+            nodes.clear();
+            ArrayList<String> nodeIds = group.getNodeList();
+
+            if (nodeIds != null && nodeIds.size() > 0) {
+                for (int i = 0; i < nodeIds.size(); i++) {
+                    EspNode node = espApp.nodeMap.get(nodeIds.get(i));
+                    if (node != null) {
+                        if (node.getDevices().size() == 1) {
+                            devices.add(new Device(node.getDevices().get(0)));
+                        } else if (node.getDevices().size() > 1) {
+                            nodes.add(new EspNode(node));
                         }
                     }
                 }
-            } else {
-                rlAddDevice.setVisibility(View.GONE);
             }
 
             if (nodes.size() > 0 || devices.size() > 0) {
@@ -370,6 +391,26 @@ public class GroupDetailActivity extends AppCompatActivity {
         }
     }
 
+    public void confirmRemoveDevice(final String nodeId) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.dialog_msg_confirmation);
+        builder.setPositiveButton(R.string.btn_yes, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                removeDevice(nodeId);
+            }
+        });
+        builder.setNegativeButton(R.string.btn_no, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
+    }
+
     public void removeDevice(final String nodeId) {
 
         showLoading(getString(R.string.progress_remove_device));
@@ -411,7 +452,7 @@ public class GroupDetailActivity extends AppCompatActivity {
         });
     }
 
-    private void removeGroup() {
+    private void removeGroupPrimary() {
 
         showRemoveGroupLoading();
         ApiManager apiManager = ApiManager.getInstance(getApplicationContext());
@@ -447,12 +488,50 @@ public class GroupDetailActivity extends AppCompatActivity {
         });
     }
 
+    private void removeGroupSecondary() {
+
+        showRemoveGroupLoading();
+        ApiManager apiManager = ApiManager.getInstance(getApplicationContext());
+        SharedPreferences sharedPreferences = this.getApplicationContext().getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
+        String userEmail = sharedPreferences.getString(AppConstants.KEY_EMAIL, "");
+
+        apiManager.removeGroupSharing(group.getGroupId(), userEmail, new ApiResponseListener() {
+            @Override
+            public void onSuccess(Bundle data) {
+                hideRemoveGroupLoading();
+                Toast.makeText(GroupDetailActivity.this, R.string.success_group_remove, Toast.LENGTH_LONG).show();
+                finish();
+            }
+
+            @Override
+            public void onResponseFailure(Exception exception) {
+                exception.printStackTrace();
+                hideRemoveGroupLoading();
+                if (exception instanceof CloudException) {
+                    Toast.makeText(GroupDetailActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(GroupDetailActivity.this, R.string.error_group_remove, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onNetworkFailure(Exception exception) {
+                exception.printStackTrace();
+                hideRemoveGroupLoading();
+                if (exception instanceof CloudException) {
+                    Toast.makeText(GroupDetailActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(GroupDetailActivity.this, R.string.error_group_remove, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
     private void confirmRemoveGroup() {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.dialog_title_remove);
-        builder.setMessage(R.string.dialog_msg_confirmation);
-
+        builder.setMessage(R.string.dialog_msg_confirmation_remove_group);
         // Set up the buttons
         builder.setPositiveButton(R.string.btn_yes, new DialogInterface.OnClickListener() {
 
@@ -460,7 +539,36 @@ public class GroupDetailActivity extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int which) {
 
                 dialog.dismiss();
-                removeGroup();
+                removeGroupPrimary();
+            }
+        });
+
+        builder.setNegativeButton(R.string.btn_no, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+                dialog.dismiss();
+            }
+        });
+
+        AlertDialog userDialog = builder.create();
+        userDialog.show();
+    }
+
+    private void confirmLeaveGroup() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.dialog_title_leave_group);
+        builder.setMessage(R.string.dialog_msg_confirmation_leave_group);
+        // Set up the buttons
+        builder.setPositiveButton(R.string.btn_yes, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+                dialog.dismiss();
+                removeGroupSecondary();
             }
         });
 
@@ -544,5 +652,36 @@ public class GroupDetailActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        menu.add(Menu.NONE, 1, Menu.NONE, R.string.btn_group_info).setIcon(R.drawable.ic_node_info).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        MenuItem groupInfoItem = menu.findItem(1);
+        if (getSupportActionBar() != null && getSupportActionBar().getTitle() != null) {
+            if (getSupportActionBar().getTitle().equals(groupName)) {
+                groupInfoItem.setVisible(true);
+            } else {
+                groupInfoItem.setVisible(false);
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case 1:
+                goToGroupShareInfoActivity();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void goToGroupShareInfoActivity() {
+        Intent intent = new Intent(GroupDetailActivity.this, GroupInfoActivity.class);
+        intent.putExtra(AppConstants.KEY_GROUP, group);
+        startActivity(intent);
     }
 }
