@@ -226,6 +226,16 @@ To build app with Matter support do the following :
 - Add `isMatterSupported=true` in `local.properties` file.
 - Enable `matterBuild` variable to `true` in `app/build.gradle` to add matter libs in app.
 
+### Add your cluster support in app for Matter device
+
+Assumption here is that you are already aware of the concept of clusters in matter terminology. For details you can refer to [here](
+https://blog.espressif.com/matter-clusters-attributes-commands-82b8ec1640a0).
+
+You can add support for your own custom cluster(s) in addition to the existing supported  clusters in your Android Application.
+A few additional steps are required to add this support.
+
+[Here](Matter_CustomCluster.md) is a guide to add support for custom cluster.
+
 ## Additional Settings:
 
 Settings associated with provisioning a device can be modified in the `local.properties` file.
