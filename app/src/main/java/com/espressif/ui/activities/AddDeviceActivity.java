@@ -548,8 +548,16 @@ public class AddDeviceActivity extends AppCompatActivity {
                 alertForClaimingNotSupported();
             }
         } else {
-            if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
-                goToWiFiScanActivity();
+            if (deviceCaps != null) {
+                if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN)) {
+                    goToWiFiScanActivity();
+                } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_SCAN)) {
+                    goToThreadConfigActivity(true);
+                } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_PROV)) {
+                    goToThreadConfigActivity(false);
+                } else {
+                    goToWiFiConfigActivity();
+                }
             } else {
                 goToWiFiConfigActivity();
             }
@@ -685,6 +693,14 @@ public class AddDeviceActivity extends AppCompatActivity {
         Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
         wifiConfigIntent.putExtra(AppConstants.KEY_SSID, connectedNetwork);
         startActivity(wifiConfigIntent);
+    }
+
+    private void goToThreadConfigActivity(boolean scanCapAvailable) {
+        finish();
+        Intent threadConfigIntent = new Intent(getApplicationContext(), ThreadConfigActivity.class);
+        threadConfigIntent.putExtras(getIntent());
+        threadConfigIntent.putExtra(AppConstants.KEY_THREAD_SCAN_AVAILABLE, scanCapAvailable);
+        startActivity(threadConfigIntent);
     }
 
     private void goToClaimingActivity() {

@@ -45,6 +45,7 @@
     <string name="progress_fetching_group_sharing_request">Fetching Request...</string>
     <string name="progress_canceling_group_sharing_request">Canceling Group Share Request...</string>
     <string name="progress_revoking_group_share_access">Revoking Group Share Access...</string>
+    <string name="progress_thread_networks">Searching thread\nnetworks...</string>
 
     <!--Error Messages-->
     <string name="error_title">Error!</string>
@@ -120,6 +121,10 @@
     <string name="error_fw_update_failed">OTA update failed.</string>
     <string name="error_base_url_empty">Cloud Endpoint URL cannot be empty</string>
     <string name="error_fabric_create">Failed to create fabric</string>
+    <string name="error_no_preferred_creds">No thread network added</string>
+    <string name="error_read_preferred_creds_request_denied">You have denied request for reading thread credentials</string>
+    <string name="error_no_thread_network">No Active Thread Border Router</string>
+    <string name="error_dataset_invalid">Invalid Dataset</string>
 
     <string name="title_activity_esp_device">Device</string>
 
@@ -257,6 +262,7 @@
     <string name="btn_leave_group">Leave Group</string>
     <string name="btn_share">Share</string>
     <string name="btn_group_info">Group Info</string>
+    <string name="btn_try_again">Try Again</string>
 
     <!--Screen titles-->
     <string name="title_activity_devices">Devices</string>
@@ -271,6 +277,7 @@
     <string name="title_activity_provisioning">Provisioning</string>
     <string name="title_activity_wifi_scan_list">Select Wi-Fi Network</string>
     <string name="title_activity_wifi_config">Wi-Fi Configuration</string>
+    <string name="title_activity_thread_config">Thread Network Configuration</string>
     <string name="title_activity_node_details">Node Details</string>
     <string name="title_activity_user_profile">User Profile</string>
     <string name="title_activity_claiming">Claiming</string>
@@ -492,6 +499,10 @@
     <string name="error_prov_step_5">Failed to setup node</string>
     <string name="prov_success">Device Added Successfully!!</string>
     <string name="prov_error">Reset your board to factory defaults and retry</string>
+    <string name="thread_prov_step_1">Sending Thread credentials</string>
+    <string name="thread_prov_step_2">Confirming Thread connection</string>
+    <string name="error_prov_thread_step_2">Failed to send Thread credentials</string>
+    <string name="error_prov_thread_step_2_">Failed to apply Thread credentials</string>
 
     <string name="schedule_on_day">On</string>
     <string name="schedule_once">Once</string>

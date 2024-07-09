@@ -121,6 +121,11 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
+            android:name="com.espressif.ui.activities.ThreadConfigActivity"
+            android:label="@string/title_activity_thread_config"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
             android:name="com.espressif.ui.activities.WiFiScanActivity"
             android:label="@string/title_activity_wifi_scan_list"
             android:screenOrientation="portrait"
@@ -303,10 +308,11 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
 
-        <activity android:name="com.espressif.ui.activities.GroupInfoActivity"
+        <activity
+            android:name="com.espressif.ui.activities.GroupInfoActivity"
             android:label="@string/title_activity_group_detail"
             android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.NoActionBar"/>
+            android:theme="@style/AppTheme.NoActionBar" />
 
         <receiver android:name="com.espressif.NodeSharingActionReceiver" />
 

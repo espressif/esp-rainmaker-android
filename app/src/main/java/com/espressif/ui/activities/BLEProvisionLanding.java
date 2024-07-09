@@ -468,17 +468,19 @@ public class BLEProvisionLanding extends AppCompatActivity {
         }
 
         if (deviceCaps != null && !deviceCaps.contains(AppConstants.CAPABILITY_NO_POP) && AppConstants.SEC_TYPE_0 != securityType) {
-
             goToPopActivity();
-
         } else if (rmakerCaps.size() > 0 && rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM)) {
-
             goToClaimingActivity();
-
-        } else if (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
-
-            goToWifiScanListActivity();
-
+        } else if (deviceCaps != null) {
+            if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN)) {
+                goToWifiScanListActivity();
+            } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_SCAN)) {
+                goToThreadConfigActivity(true);
+            } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_PROV)) {
+                goToThreadConfigActivity(false);
+            } else {
+                goToWiFiConfigActivity();
+            }
         } else {
             goToWiFiConfigActivity();
         }
@@ -660,6 +662,15 @@ public class BLEProvisionLanding extends AppCompatActivity {
         Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
         wifiConfigIntent.putExtras(getIntent());
         startActivity(wifiConfigIntent);
+    }
+
+    private void goToThreadConfigActivity(boolean scanCapAvailable) {
+        finish();
+        Intent threadConfigIntent = new Intent(getApplicationContext(), ThreadConfigActivity.class);
+        threadConfigIntent.putExtras(getIntent());
+        threadConfigIntent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceList.get(position).getName());
+        threadConfigIntent.putExtra(AppConstants.KEY_THREAD_SCAN_AVAILABLE, scanCapAvailable);
+        startActivity(threadConfigIntent);
     }
 
     private void goToClaimingActivity() {

@@ -16,12 +16,12 @@ package com.espressif.local_control;
 
 import android.util.Log;
 
-import com.espressif.AppConstants;
 import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.provisioning.security.Security;
 import com.espressif.provisioning.security.Security0;
 import com.espressif.provisioning.security.Security1;
 import com.espressif.provisioning.security.Security2;
+import com.espressif.rainmaker.BuildConfig;
 
 import java.util.HashMap;
 
@@ -34,7 +34,7 @@ public class EspLocalDevice {
     private String ipAddr;
     private int port;
     private HashMap<String, String> endpointList;
-    private String pop = "";
+    private String pop = "", userName = "";
     private int securityType;
     private int propertyCount;
 
@@ -66,7 +66,7 @@ public class EspLocalDevice {
             final String url = "http://" + getIpAddr() + ":" + getPort();
             Security security = null;
             if (securityType == 2) {
-                security = new Security2(AppConstants.DEFAULT_SEC2_USER_NAME, pop);
+                security = new Security2(BuildConfig.LOCAL_CONTROL_SECURITY_2_USERNAME, pop);
                 Log.d(TAG, "Created security 2 with pop : " + pop);
             } else if (securityType == 1) {
                 security = new Security1(pop);
@@ -199,6 +199,15 @@ public class EspLocalDevice {
     public void setSecurityType(int securityType) {
         Log.d(TAG, "========= Set Security Type : " + securityType);
         this.securityType = securityType;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        Log.d(TAG, "========= Set User name : " + userName);
+        this.userName = userName;
     }
 
     public int getPropertyCount() {

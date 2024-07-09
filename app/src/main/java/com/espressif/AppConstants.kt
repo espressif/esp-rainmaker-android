@@ -86,7 +86,8 @@ class AppConstants {
         const val PARAM_TYPE_TZ = "esp.param.tz"
         const val PARAM_TYPE_TZ_POSIX = "esp.param.tz_posix"
         const val PARAM_TYPE_LOCAL_CONTROL_POP = "esp.param.local_control_pop"
-        const val PARAM_TYPE_LOCAL_CONTROL_TYPE = "esp.param.local_control_type"
+        const val PARAM_TYPE_LOCAL_CONTROL_SEC_TYPE = "esp.param.local_control_type"
+        const val PARAM_TYPE_LOCAL_CONTROL_USERNAME = "esp.param.local_control_username"
         const val PARAM_TYPE_REBOOT = "esp.param.reboot"
         const val PARAM_TYPE_FACTORY_RESET = "esp.param.factory-reset"
         const val PARAM_TYPE_WIFI_RESET = "esp.param.wifi-reset"
@@ -111,7 +112,8 @@ class AppConstants {
         const val SEC_TYPE_1 = 1
         const val SEC_TYPE_2 = 2
         const val SEC_TYPE_DEFAULT = SEC_TYPE_2
-        const val DEFAULT_SEC2_USER_NAME = "wifiprov"
+        const val DEFAULT_SEC2_USER_NAME_WIFI = "wifiprov"
+        const val DEFAULT_SEC2_USER_NAME_THREAD = "threadprov"
 
         // OTA status
         const val OTA_STATUS_TRIGGERED = "triggered"
@@ -124,9 +126,12 @@ class AppConstants {
         const val OTA_STATUS_UNKNOWN = "unknown"
 
         // Device capability
-        const val CAPABILITY_WIFI_SACN = "wifi_scan"
+        const val CAPABILITY_WIFI_SCAN = "wifi_scan"
+        const val CAPABILITY_WIFI_PROV = "wifi_prov"
         const val CAPABILITY_NO_POP = "no_pop"
         const val CAPABILITY_CLAIM = "claim"
+        const val CAPABILITY_THREAD_SCAN = "thread_scan"
+        const val CAPABILITY_THREAD_PROV = "thread_prov"
 
         // Device End point names
         const val HANDLER_RM_USER_MAPPING = "cloud_user_assoc"
@@ -452,6 +457,10 @@ class AppConstants {
         const val KEY_CHALLENGE = "challenge"
         const val KEY_RAINMAKER_NODE_ID = "rainmaker_node_id"
         const val KEY_MATTER = "Matter"
+        const val KEY_USER_NAME_WIFI = "sec2_username_wifi"
+        const val KEY_USER_NAME_THREAD = "sec2_username_thread"
+        const val KEY_THREAD_SCAN_AVAILABLE = "thread_scan_available"
+        const val KEY_THREAD_DATASET = "thread_dataset"
 
         const val CERT_BEGIN = "-----BEGIN CERTIFICATE REQUEST-----"
         const val CERT_END = "-----END CERTIFICATE REQUEST-----"

@@ -17,6 +17,7 @@ package com.espressif.ui;
 import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Patterns;
@@ -95,11 +96,28 @@ public class Utils {
                         default:
                             provisionManager.getEspDevice().setSecurityType(ESPConstants.SecurityType.SECURITY_2);
                             String userName = provisionManager.getEspDevice().getUserName();
+                            SharedPreferences appPreferences = appContext.getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
+                            ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
+
                             if (TextUtils.isEmpty(userName)) {
-                                if (TextUtils.isEmpty(BuildConfig.SECURITY_2_USERNAME)) {
-                                    userName = BuildConfig.SECURITY_2_USERNAME;
-                                } else {
-                                    userName = AppConstants.DEFAULT_SEC2_USER_NAME;
+
+                                if (deviceCaps != null && !deviceCaps.isEmpty()) {
+
+                                    if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_SCAN) || deviceCaps.contains(AppConstants.CAPABILITY_THREAD_PROV)) {
+                                        userName = appPreferences.getString(AppConstants.KEY_USER_NAME_THREAD, AppConstants.DEFAULT_SEC2_USER_NAME_THREAD);
+                                        if (!TextUtils.isEmpty(BuildConfig.SECURITY_2_USERNAME_THREAD)) {
+                                            userName = BuildConfig.SECURITY_2_USERNAME_THREAD;
+                                        }
+                                        provisionManager.getEspDevice().setUserName(userName);
+                                    } else if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN) || deviceCaps.contains(AppConstants.CAPABILITY_WIFI_PROV)) {
+                                        userName = appPreferences.getString(AppConstants.KEY_USER_NAME_WIFI, AppConstants.DEFAULT_SEC2_USER_NAME_WIFI);
+                                        if (!TextUtils.isEmpty(BuildConfig.SECURITY_2_USERNAME_WIFI)) {
+                                            userName = BuildConfig.SECURITY_2_USERNAME_WIFI;
+                                        }
+                                        provisionManager.getEspDevice().setUserName(userName);
+                                    } else {
+                                        userName = AppConstants.DEFAULT_SEC2_USER_NAME_WIFI;
+                                    }
                                 }
                             }
                             provisionManager.getEspDevice().setUserName(userName);
@@ -553,5 +571,13 @@ public class Utils {
         catIdOperate = AppConstants.CAT_ID_PREFIX + catIdOperate;
         BigDecimal catId = new BigDecimal(new BigInteger(catIdOperate, 16));
         return catId.longValue();
+    }
+
+    public static String byteArrayToDs(byte[] byteArray) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : byteArray) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
     }
 }

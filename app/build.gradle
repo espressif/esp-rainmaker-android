@@ -25,7 +25,8 @@ def defaultSecurity = "2"
 def defaultPoP = ""
 def defaultPrefix = "PROV_"
 def defaultWiFiScanSrc = "Device"
-def defaultSec2Username = "wifiprov"
+def defaultSec2UsernameWifi = "wifiprov"
+def defaultSec2UsernameThread = "threadprov"
 
 def defaultClientId = "1h7ujqjs8140n17v0ahb4n51m2"
 
@@ -49,14 +50,14 @@ localProperties.load(new FileInputStream(rootProject.file("local.properties")))
 
 android {
 
-    compileSdkVersion 34
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 27
         targetSdkVersion 34
-        versionCode 128
-        versionName "3.4.0 - ${getGitHash()}"
+        versionCode 129
+        versionName "3.4.1 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -91,7 +92,9 @@ android {
             buildConfigField "String", "WIFI_SCAN_SRC", '"' + wifiScanSrc + '"'
         }
 
-        buildConfigField "String", "SECURITY_2_USERNAME", '"' + localProperties.getProperty("security2Username", defaultSec2Username) + '"'
+        buildConfigField "String", "SECURITY_2_USERNAME_WIFI", '"' + localProperties.getProperty("security2Username", defaultSec2UsernameWifi) + '"'
+        buildConfigField "String", "SECURITY_2_USERNAME_THREAD", '"' + localProperties.getProperty("security2UsernameThread", defaultSec2UsernameThread) + '"'
+        buildConfigField "String", "LOCAL_CONTROL_SECURITY_2_USERNAME", '"' + localProperties.getProperty("localControlSecurity2Username", defaultSec2UsernameWifi) + '"'
 
         buildConfigField "boolean", "isFilterPrefixEditable", localProperties.getProperty("isFilterPrefixEditable", "true")
         buildConfigField "String", "DEVICE_NAME_PREFIX", '"' + localProperties.getProperty("deviceNamePrefix", defaultPrefix) + '"'
@@ -228,7 +231,7 @@ dependencies {
     implementation 'com.larswerkman:HoloColorPicker:1.5'
     implementation 'com.aventrix.jnanoid:jnanoid:2.0.0'
     implementation 'com.github.yuriy-budiyev:code-scanner:2.1.2'
-    implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.1.4'
+    implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.2.0'
     implementation 'com.github.warkiz.tickseekbar:tickseekbar:0.1.4'
     implementation 'com.github.abdularis:TapHoldUpButton:0.1.2'
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
