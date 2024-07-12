@@ -213,8 +213,16 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
                         if (rmakerCaps.size() > 0 && rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM)) {
                             goToClaimingActivity();
                         } else {
-                            if (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
-                                goToWiFiScanListActivity();
+                            if (deviceCaps != null) {
+                                if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN)) {
+                                    goToWiFiScanListActivity();
+                                } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_SCAN)) {
+                                    goToThreadConfigActivity(true);
+                                } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_PROV)) {
+                                    goToThreadConfigActivity(false);
+                                } else {
+                                    goToWiFiConfigActivity();
+                                }
                             } else {
                                 goToWiFiConfigActivity();
                             }
@@ -261,6 +269,14 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         wifiConfigIntent.putExtras(getIntent());
         wifiConfigIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiConfigIntent);
+    }
+
+    private void goToThreadConfigActivity(boolean scanCapAvailable) {
+        finish();
+        Intent threadConfigIntent = new Intent(getApplicationContext(), ThreadConfigActivity.class);
+        threadConfigIntent.putExtras(getIntent());
+        threadConfigIntent.putExtra(AppConstants.KEY_THREAD_SCAN_AVAILABLE, scanCapAvailable);
+        startActivity(threadConfigIntent);
     }
 
     private void showAlertForDeviceDisconnected() {

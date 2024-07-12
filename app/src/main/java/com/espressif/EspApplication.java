@@ -1078,13 +1078,16 @@ public class EspApplication extends Application {
                 ArrayList<Param> popParams = localService.getParams();
                 if (popParams != null) {
                     for (int paramIdx = 0; paramIdx < popParams.size(); paramIdx++) {
-                        Param popParam = popParams.get(paramIdx);
-                        if (AppConstants.PARAM_TYPE_LOCAL_CONTROL_POP.equalsIgnoreCase(popParam.getParamType())) {
-                            String popValue = popParam.getLabelValue();
+                        Param param = popParams.get(paramIdx);
+                        if (AppConstants.PARAM_TYPE_LOCAL_CONTROL_POP.equalsIgnoreCase(param.getParamType())) {
+                            String popValue = param.getLabelValue();
                             newDevice.setPop(popValue);
-                        } else if (AppConstants.PARAM_TYPE_LOCAL_CONTROL_TYPE.equalsIgnoreCase(popParam.getParamType())) {
-                            int type = (int) popParam.getValue();
+                        } else if (AppConstants.PARAM_TYPE_LOCAL_CONTROL_SEC_TYPE.equalsIgnoreCase(param.getParamType())) {
+                            int type = (int) param.getValue();
                             newDevice.setSecurityType(type);
+                        } else if (AppConstants.PARAM_TYPE_LOCAL_CONTROL_USERNAME.equalsIgnoreCase(param.getParamType())) {
+                            String userName = param.getLabelValue();
+                            newDevice.setUserName(userName);
                         }
                     }
                 }

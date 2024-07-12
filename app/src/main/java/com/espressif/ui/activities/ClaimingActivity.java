@@ -458,7 +458,7 @@ public class ClaimingActivity extends AppCompatActivity {
                     Log.e(TAG, "Certificate Sent to device successfully.");
                     ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
 
-                    if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
+                    if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN)) {
                         goToWiFiScanActivity();
                     } else {
                         goToWiFiConfigActivity();

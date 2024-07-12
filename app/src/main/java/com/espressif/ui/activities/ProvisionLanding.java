@@ -251,23 +251,24 @@ public class ProvisionLanding extends AppCompatActivity {
         } else {
 
             if (!TextUtils.isEmpty(pop)) {
-
                 provisionManager.getEspDevice().setProofOfPossession(pop);
+            }
 
-                if (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
-                    goToWifiScanListActivity();
-                } else {
-                    goToWiFiConfigActivity();
-                }
-
-            } else {
-                if (deviceCaps != null && !deviceCaps.contains(AppConstants.CAPABILITY_NO_POP) && AppConstants.SEC_TYPE_0 != securityType) {
+            if (deviceCaps != null) {
+                if (!deviceCaps.contains(AppConstants.CAPABILITY_NO_POP) && AppConstants.SEC_TYPE_0 != securityType
+                        && TextUtils.isEmpty(pop)) {
                     goToPopActivity();
-                } else if (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SACN)) {
+                } else if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN)) {
                     goToWifiScanListActivity();
+                } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_SCAN)) {
+                    goToThreadConfigActivity(true);
+                } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_PROV)) {
+                    goToThreadConfigActivity(false);
                 } else {
                     goToWiFiConfigActivity();
                 }
+            } else {
+                goToWiFiConfigActivity();
             }
         }
     }
@@ -294,6 +295,14 @@ public class ProvisionLanding extends AppCompatActivity {
         Intent wifiConfigIntent = new Intent(getApplicationContext(), WiFiConfigActivity.class);
         wifiConfigIntent.putExtras(getIntent());
         startActivity(wifiConfigIntent);
+    }
+
+    private void goToThreadConfigActivity(boolean scanCapAvailable) {
+        finish();
+        Intent threadConfigIntent = new Intent(getApplicationContext(), ThreadConfigActivity.class);
+        threadConfigIntent.putExtras(getIntent());
+        threadConfigIntent.putExtra(AppConstants.KEY_THREAD_SCAN_AVAILABLE, scanCapAvailable);
+        startActivity(threadConfigIntent);
     }
 
     private boolean hasPermissions() {
