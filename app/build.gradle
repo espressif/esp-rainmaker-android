@@ -56,8 +56,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 27
         targetSdkVersion 34
-        versionCode 129
-        versionName "3.4.1 - ${getGitHash()}"
+        versionCode 130
+        versionName "3.4.2 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -231,7 +231,7 @@ dependencies {
     implementation 'com.larswerkman:HoloColorPicker:1.5'
     implementation 'com.aventrix.jnanoid:jnanoid:2.0.0'
     implementation 'com.github.yuriy-budiyev:code-scanner:2.1.2'
-    implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.2.0'
+    implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.2.1'
     implementation 'com.github.warkiz.tickseekbar:tickseekbar:0.1.4'
     implementation 'com.github.abdularis:TapHoldUpButton:0.1.2'
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'

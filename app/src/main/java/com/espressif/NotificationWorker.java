@@ -38,6 +38,7 @@ import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.db.EspDatabase;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.activities.FwUpdateActivity;
 import com.espressif.ui.activities.GroupShareActivity;
 import com.espressif.ui.activities.NotificationsActivity;
 import com.espressif.ui.activities.SplashActivity;
@@ -119,6 +120,10 @@ public class NotificationWorker extends Worker {
                     } else if (AppConstants.EVENT_NODE_AUTOMATION_TRIGGER.equals(eventType)) {
 
                         processAutomationTriggerEvent(title, notificationEvent, jsonEventData);
+
+                    } else if (AppConstants.EVENT_NODE_OTA.equals(eventType)) {
+
+                        processNodeOta(title, notificationEvent, jsonEventData);
 
                     } else if (AppConstants.EVENT_NODE_PARAM_MODIFIED.equals(eventType)) {
 
@@ -712,12 +717,12 @@ public class NotificationWorker extends Worker {
         declineIntent.putExtra(AppConstants.KEY_ID, id);
         PendingIntent declinePendingIntent;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            declinePendingIntent = PendingIntent.getActivity(espApp,
+            declinePendingIntent = PendingIntent.getBroadcast(espApp,
                     notificationId++ /* Request code */,
                     declineIntent,
                     PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_ONE_SHOT);
         } else {
-            declinePendingIntent = PendingIntent.getActivity(espApp,
+            declinePendingIntent = PendingIntent.getBroadcast(espApp,
                     notificationId++ /* Request code */,
                     declineIntent,
                     PendingIntent.FLAG_ONE_SHOT);
@@ -930,9 +935,50 @@ public class NotificationWorker extends Worker {
         EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
     }
 
-    private void sendNotification(String title, String messageBody, String channelId, Class activityClass) {
+    // Event type - Node OTA
 
-        Log.e(TAG, "Message : " + messageBody);
+    private void processNodeOta(String title, NotificationEvent notificationEvent, JSONObject jsonEventData) {
+
+        EspApplication espApp = (EspApplication) getApplicationContext();
+        String nodeId = jsonEventData.optString(AppConstants.KEY_NODE_ID);
+        StringBuilder msgBuilder = new StringBuilder();
+        msgBuilder.append("New OTA is available");
+        Log.d(TAG, "Node Id : " + nodeId);
+
+        if (!espApp.nodeMap.containsKey(nodeId)) {
+            ApiManager.getInstance(espApp).getNodeDetails(nodeId);
+        }
+
+        if (!espApp.nodeMap.containsKey(nodeId)) {
+            loadDataFromLocalStorage();
+        }
+
+        if (espApp.nodeMap.containsKey(nodeId)) {
+
+            EspNode node = espApp.nodeMap.get(nodeId);
+            ArrayList<Device> devices = node.getDevices();
+            ArrayList<String> deviceNames = new ArrayList<>();
+            if (devices != null) {
+                for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
+                    deviceNames.add(devices.get(deviceIndex).getUserVisibleName());
+                }
+            }
+            msgBuilder.append(" for ");
+            msgBuilder.append(getDeviceNameString(deviceNames));
+
+        } else {
+            Log.e(TAG, "Node id is not available for this event.");
+        }
+
+        notificationEvent.setNotificationMsg(msgBuilder.toString());
+        EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
+        Log.d(TAG, "OTA Notification inserted in database");
+        if (isNotificationAllowed) {
+            sendOtaNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_ADMIN);
+        }
+    }
+
+    private void sendNotification(String title, String messageBody, String channelId, Class activityClass) {
 
         Intent activityIntent = new Intent(espApp, activityClass);
 
@@ -958,6 +1004,44 @@ public class NotificationWorker extends Worker {
         Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
         Notification notification = new NotificationCompat.Builder(espApp, channelId)
+                .setSmallIcon(R.drawable.ic_notify_rainmaker)
+                .setColor(espApp.getColor(R.color.color_esp_logo))
+                .setContentTitle(title)
+                .setContentText(messageBody)
+                .setStyle(new NotificationCompat.BigTextStyle()
+                        .bigText(messageBody))
+                .setContentIntent(contentIntent)
+                .setShowWhen(true)
+                .setAutoCancel(true)
+                .setSound(defaultSoundUri)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .build();
+
+        notificationManager.notify(notificationId++, notification);
+    }
+
+    private void sendOtaNotification(String title, String messageBody, String nodeId) {
+
+        Intent activityIntent = new Intent(espApp, FwUpdateActivity.class);
+        activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        activityIntent.putExtra(AppConstants.KEY_NODE_ID, nodeId);
+
+        PendingIntent contentIntent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            contentIntent = PendingIntent.getActivity(espApp,
+                    0 /* Request code */,
+                    activityIntent,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        } else {
+            contentIntent = PendingIntent.getActivity(espApp,
+                    0 /* Request code */,
+                    activityIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT);
+        }
+
+        Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+        Notification notification = new NotificationCompat.Builder(espApp, AppConstants.CHANNEL_ADMIN)
                 .setSmallIcon(R.drawable.ic_notify_rainmaker)
                 .setColor(espApp.getColor(R.color.color_esp_logo))
                 .setContentTitle(title)

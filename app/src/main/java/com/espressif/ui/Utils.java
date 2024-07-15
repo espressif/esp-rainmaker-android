@@ -543,6 +543,8 @@ public class Utils {
     public static String getEspDeviceTypeForMatterDevice(int deviceType) {
 
         switch (deviceType) {
+            case AppConstants.MATTER_DEVICE_ON_OFF_LIGHT:
+            case AppConstants.MATTER_DEVICE_DIMMABLE_LIGHT:
             case AppConstants.MATTER_DEVICE_LIGHT_BULB:
                 return AppConstants.ESP_DEVICE_LIGHT_BULB;
 

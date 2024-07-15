@@ -154,11 +154,15 @@ public class NodeDetailsActivity extends AppCompatActivity {
         nodeInfoList.add(getString(R.string.node_id));
         nodeInfoValueList.add(node.getNodeId());
 
-        nodeInfoList.add(getString(R.string.node_type));
-        nodeInfoValueList.add(node.getNodeType());
+        if (!TextUtils.isEmpty(node.getNodeType())) {
+            nodeInfoList.add(getString(R.string.node_type));
+            nodeInfoValueList.add(node.getNodeType());
+        }
 
-        nodeInfoList.add(getString(R.string.node_fw_version));
-        nodeInfoValueList.add(node.getFwVersion());
+        if (!TextUtils.isEmpty(node.getFwVersion())) {
+            nodeInfoList.add(getString(R.string.node_fw_version));
+            nodeInfoValueList.add(node.getFwVersion());
+        }
 
         nodeInfoList.add(getString(R.string.node_fw_update));
         nodeInfoValueList.add(getString(R.string.btn_check_update));

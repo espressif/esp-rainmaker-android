@@ -530,6 +530,7 @@
     <string name="channel_node_alert">Alert Messages</string>
     <string name="channel_node_automation_trigger">Automation Triggers</string>
     <string name="channel_node_group_sharing">Group Sharing</string>
+    <string name="channel_admin">Admin Channel</string>
 
     <string name="notify_node_added">New device(s) are added. Tap to view.</string>
     <string name="notify_node_removed">Some device(s) are removed. Tap to view.</string>
@@ -537,6 +538,7 @@
     <string name="notify_node_disconnected">Some device(s) went offline. Tap to view.</string>
     <string name="notify_node_alert">Alert received from a device. Tap to view.</string>
     <string name="notify_node_automation_trigger">Node automation triggered for some device(s).</string>
+    <string name="notify_node_ota">New OTA is available for some device(s).</string>
 
     <string name="alert_factory_reset">Doing a factory reset on your device will erase all the data including Wi-Fi credentials from your device. You will no longer be able to control the device from the app. You need to provision the device again in order to control it. Do you wish to proceed?</string>
     <string name="alert_reboot">Device will be rebooted. Please wait sometime after reset. Do you wish to proceed?</string>
