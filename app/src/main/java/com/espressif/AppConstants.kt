@@ -59,6 +59,8 @@ class AppConstants {
         const val ESP_DEVICE_SECURITY_PANEL = "esp.device.security-panel"
         const val ESP_DEVICE_OTHER = "esp.device.other"
 
+        const val MATTER_DEVICE_ON_OFF_LIGHT = 256
+        const val MATTER_DEVICE_DIMMABLE_LIGHT = 257
         const val MATTER_DEVICE_LIGHT_BULB = 269
         const val MATTER_DEVICE_SWITCH = 259
         const val MATTER_DEVICE_CONTACT_SENSOR = 21
@@ -148,6 +150,7 @@ class AppConstants {
         const val CHANNEL_NODE_SHARING = "notify_node_sharing_id"
         const val CHANNEL_NODE_AUTOMATION_TRIGGER = "notify_node_automation_trigger"
         const val CHANNEL_GROUP_SHARING = "notify_group_sharing_id"
+        const val CHANNEL_ADMIN = "notify_admin"
 
         // Notification button actions
         const val ACTION_ACCEPT = "com.espressif.rainmaker.ACTION_ACCEPT"
@@ -165,6 +168,7 @@ class AppConstants {
         const val EVENT_GROUP_SHARING_ADD = "rmaker.event.user_node_group_sharing_add"
         const val EVENT_GROUP_SHARE_ADDED = "rmaker.event.user_node_group_added"
         const val EVENT_GROUP_SHARE_REMOVED = "rmaker.event.user_node_group_removed"
+        const val EVENT_NODE_OTA = "rmaker.event.user_node_ota"
 
         /* App related constants */
 

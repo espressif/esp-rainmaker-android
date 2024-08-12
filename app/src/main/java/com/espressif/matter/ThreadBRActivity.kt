@@ -144,12 +144,6 @@ class ThreadBRActivity : AppCompatActivity() {
                 }
                     ?: run {
                         Log.d(TAG, "ThreadClient: no preferred credentials found")
-                        Toast.makeText(
-                            this,
-                            "No preferred credentials found",
-                            Toast.LENGTH_SHORT
-                        )
-                            .show()
 
                         val matterNodeId = espApp.matterRmNodeIdMap.get(nodeId)
                         val id = matterNodeId?.let { BigInteger(it, 16) }

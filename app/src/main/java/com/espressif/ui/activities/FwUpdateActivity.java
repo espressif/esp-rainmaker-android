@@ -281,15 +281,7 @@ public class FwUpdateActivity extends AppCompatActivity {
                     txtUpdateBtn.setText(R.string.btn_update);
                     tvUpdateStatus.setText(R.string.fw_update_available);
                     btnCheckUpdate.setVisibility(View.VISIBLE);
-                    StringBuilder versionInfo = new StringBuilder();
-                    versionInfo.append(getString(R.string.current_version));
-                    versionInfo.append(": ");
-                    versionInfo.append(espApp.nodeMap.get(nodeId).getFwVersion());
-                    versionInfo.append("\n\n");
-                    versionInfo.append(getString(R.string.available_version));
-                    versionInfo.append(": ");
-                    versionInfo.append(otaUpdate.getFwVersion());
-                    tvAdditionalInfo.setText(versionInfo.toString());
+                    tvAdditionalInfo.setText(versionInfoString());
                     tvAdditionalInfo.setVisibility(View.VISIBLE);
                     ivUpdateProgress.setImageResource(R.drawable.ic_update);
                     ivUpdateProgress.setVisibility(View.VISIBLE);
@@ -297,12 +289,22 @@ public class FwUpdateActivity extends AppCompatActivity {
 
                 case AppConstants.OTA_STATUS_IN_PROGRESS:
                 case AppConstants.OTA_STATUS_STARTED:
+                case AppConstants.OTA_STATUS_FAILED:
                     long ts1 = System.currentTimeMillis();
                     long ts2 = otaUpdate.getTimestamp();
                     long diff = ts1 - ts2;
                     if (diff > TIMEOUT_IN_MILLIS) {
                         stopUpdateValueTask();
-                        displayFailure(getString(R.string.error_fw_update), getString(R.string.error_device_connection));
+                        updateInProgress = false;
+                        txtUpdateBtn.setText(R.string.btn_update);
+                        tvUpdateStatus.setText(R.string.fw_update_available);
+                        btnCheckUpdate.setVisibility(View.VISIBLE);
+                        tvAdditionalInfo.setText(versionInfoString());
+                        tvAdditionalInfo.setVisibility(View.VISIBLE);
+                        ivUpdateProgress.setImageResource(R.drawable.ic_update);
+                        ivUpdateProgress.setVisibility(View.VISIBLE);
+                        gifDownloading.setVisibility(View.GONE);
+                        btnCheckUpdate.setVisibility(View.VISIBLE);
                     } else {
                         updateInProgress = true;
                         btnCheckUpdate.setVisibility(View.INVISIBLE);
@@ -338,12 +340,6 @@ public class FwUpdateActivity extends AppCompatActivity {
                     displayFailure(otaUpdate.getAdditionalInfo(), getString(R.string.error_fw_update_rejected));
                     break;
 
-                case AppConstants.OTA_STATUS_FAILED:
-                    stopUpdateValueTask();
-                    updateInProgress = false;
-                    displayFailure(otaUpdate.getAdditionalInfo(), getString(R.string.error_fw_update_failed));
-                    break;
-
                 case AppConstants.OTA_STATUS_UNKNOWN:
                     stopUpdateValueTask();
                     updateInProgress = false;
@@ -354,7 +350,8 @@ public class FwUpdateActivity extends AppCompatActivity {
             Log.e(TAG, "OTA update status is not available.");
         }
 
-        if (isUpdateAvailable && !TextUtils.isEmpty(otaUpdate.getOtaStatusDescription())) {
+        if (isUpdateAvailable && !TextUtils.isEmpty(otaUpdate.getOtaStatusDescription())
+                && updateInProgress) {
             tvDescription.setVisibility(View.VISIBLE);
             tvDescription.setText(otaUpdate.getOtaStatusDescription());
         } else {
@@ -463,6 +460,18 @@ public class FwUpdateActivity extends AppCompatActivity {
         });
         AlertDialog userDialog = builder.create();
         userDialog.show();
+    }
+
+    private String versionInfoString() {
+        StringBuilder versionInfo = new StringBuilder();
+        versionInfo.append(getString(R.string.current_version));
+        versionInfo.append(": ");
+        versionInfo.append(espApp.nodeMap.get(nodeId).getFwVersion());
+        versionInfo.append("\n\n");
+        versionInfo.append(getString(R.string.available_version));
+        versionInfo.append(": ");
+        versionInfo.append(otaUpdate.getFwVersion());
+        return versionInfo.toString();
     }
 
     private void startUpdateValueTask() {

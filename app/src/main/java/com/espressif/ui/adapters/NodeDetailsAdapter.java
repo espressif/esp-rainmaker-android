@@ -87,8 +87,9 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
     public void onBindViewHolder(@NonNull final NodeDetailViewHolder nodeDetailVh, int position) {
 
         // set the data in items
+        String nodeInfoValue = nodeInfoValueList.get(position);
         String nodeInfoLabel = nodeInfoList.get(position);
-
+        
         if (node.isOnline() || !nodeInfoLabel.equals(context.getString(R.string.system_services))) {
             nodeDetailVh.tvNodeInfoLabel.setText(nodeInfoLabel);
         } else {
@@ -98,63 +99,44 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
             }
         }
 
+        // Default to hide all views
+        nodeDetailVh.rvSharedUsers.setVisibility(View.GONE);
+        nodeDetailVh.rlTimezone.setVisibility(View.GONE);
+        nodeDetailVh.dropDownTimezone.setVisibility(View.GONE);
+        nodeDetailVh.tvNodeInfoValue.setVisibility(View.GONE);
+        nodeDetailVh.ivCopy.setVisibility(View.GONE);
+
+        // Handle visibility based on the label
         if (nodeInfoLabel.equals(context.getString(R.string.node_id))) {
 
-            nodeDetailVh.rvSharedUsers.setVisibility(View.GONE);
-            nodeDetailVh.rlTimezone.setVisibility(View.GONE);
-            nodeDetailVh.dropDownTimezone.setVisibility(View.GONE);
             nodeDetailVh.tvNodeInfoValue.setVisibility(View.VISIBLE);
             nodeDetailVh.ivCopy.setVisibility(View.VISIBLE);
-            nodeDetailVh.tvNodeInfoValue.setText(nodeInfoValueList.get(position));
-            nodeDetailVh.ivCopy.setOnClickListener(new View.OnClickListener() {
-
-                @Override
-                public void onClick(View v) {
-                    ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-                    ClipData clip = ClipData.newPlainText(AppConstants.KEY_NODE_ID, nodeInfoValueList.get(nodeDetailVh.getAdapterPosition()));
-                    clipboard.setPrimaryClip(clip);
-                    Toast.makeText(context, R.string.text_copied, Toast.LENGTH_SHORT).show();
-                }
+            nodeDetailVh.tvNodeInfoValue.setText(nodeInfoValue);
+            nodeDetailVh.ivCopy.setOnClickListener(v -> {
+                ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText(AppConstants.KEY_NODE_ID, nodeInfoValue);
+                clipboard.setPrimaryClip(clip);
+                Toast.makeText(context, R.string.text_copied, Toast.LENGTH_SHORT).show();
             });
 
         } else if (nodeInfoLabel.equals(context.getString(R.string.node_fw_update))) {
 
-            nodeDetailVh.rvSharedUsers.setVisibility(View.GONE);
-            nodeDetailVh.dropDownTimezone.setVisibility(View.GONE);
             nodeDetailVh.tvNodeInfoValue.setVisibility(View.VISIBLE);
             nodeDetailVh.ivCopy.setImageResource(R.drawable.ic_side_arrow);
             nodeDetailVh.ivCopy.setVisibility(View.VISIBLE);
-            nodeDetailVh.tvNodeInfoValue.setText(nodeInfoValueList.get(position));
-
-            nodeDetailVh.tvNodeInfoValue.setOnClickListener(new View.OnClickListener() {
-
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent(context, FwUpdateActivity.class);
-                    intent.putExtra(AppConstants.KEY_NODE_ID, node.getNodeId());
-                    context.startActivity(intent);
-                }
-            });
-
-            nodeDetailVh.ivCopy.setOnClickListener(new View.OnClickListener() {
-
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent(context, FwUpdateActivity.class);
-                    intent.putExtra(AppConstants.KEY_NODE_ID, node.getNodeId());
-                    context.startActivity(intent);
-                }
-            });
+            nodeDetailVh.tvNodeInfoValue.setText(nodeInfoValue);
+            View.OnClickListener updateListener = v -> {
+                Intent intent = new Intent(context, FwUpdateActivity.class);
+                intent.putExtra(AppConstants.KEY_NODE_ID, node.getNodeId());
+                context.startActivity(intent);
+            };
+            nodeDetailVh.tvNodeInfoValue.setOnClickListener(updateListener);
+            nodeDetailVh.ivCopy.setOnClickListener(updateListener);
 
         } else if (nodeInfoLabel.equals(context.getString(R.string.node_shared_with))
                 || nodeInfoLabel.equals(context.getString(R.string.node_shared_by))) {
 
             nodeDetailVh.rvSharedUsers.setVisibility(View.VISIBLE);
-            nodeDetailVh.tvNodeInfoValue.setVisibility(View.GONE);
-            nodeDetailVh.rlTimezone.setVisibility(View.GONE);
-            nodeDetailVh.dropDownTimezone.setVisibility(View.GONE);
-            nodeDetailVh.ivCopy.setVisibility(View.GONE);
-
             LinearLayoutManager linearLayoutManager = new LinearLayoutManager(context);
             linearLayoutManager.setOrientation(RecyclerView.VERTICAL);
             nodeDetailVh.rvSharedUsers.setLayoutManager(linearLayoutManager);
@@ -166,11 +148,6 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
         } else if (nodeInfoLabel.equals(context.getString(R.string.pending_requests))) {
 
             nodeDetailVh.rvSharedUsers.setVisibility(View.VISIBLE);
-            nodeDetailVh.tvNodeInfoValue.setVisibility(View.GONE);
-            nodeDetailVh.rlTimezone.setVisibility(View.GONE);
-            nodeDetailVh.dropDownTimezone.setVisibility(View.GONE);
-            nodeDetailVh.ivCopy.setVisibility(View.GONE);
-
             LinearLayoutManager linearLayoutManager = new LinearLayoutManager(context);
             linearLayoutManager.setOrientation(RecyclerView.VERTICAL);
             nodeDetailVh.rvSharedUsers.setLayoutManager(linearLayoutManager);
@@ -182,17 +159,11 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
         } else if (nodeInfoLabel.equals(context.getString(R.string.system_services))) {
 
             nodeDetailVh.rvSharedUsers.setVisibility(View.VISIBLE);
-            nodeDetailVh.tvNodeInfoValue.setVisibility(View.GONE);
-            nodeDetailVh.rlTimezone.setVisibility(View.GONE);
-            nodeDetailVh.dropDownTimezone.setVisibility(View.GONE);
-            nodeDetailVh.ivCopy.setVisibility(View.GONE);
-
             LinearLayoutManager linearLayoutManager = new LinearLayoutManager(context);
             linearLayoutManager.setOrientation(RecyclerView.VERTICAL);
             nodeDetailVh.rvSharedUsers.setLayoutManager(linearLayoutManager);
             DividerItemDecoration itemDecor = new DividerItemDecoration(context, DividerItemDecoration.VERTICAL);
             nodeDetailVh.rvSharedUsers.addItemDecoration(itemDecor);
-
             Service systemService = NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_SYSTEM);
             if (systemService != null) {
                 SystemServiceAdapter adapter = new SystemServiceAdapter(context, node, systemService);
@@ -203,11 +174,8 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
 
         } else if (nodeInfoLabel.equals(context.getString(R.string.node_timezone))) {
 
-            nodeDetailVh.rvSharedUsers.setVisibility(View.GONE);
-            nodeDetailVh.tvNodeInfoValue.setVisibility(View.GONE);
             nodeDetailVh.rlTimezone.setVisibility(View.VISIBLE);
             nodeDetailVh.dropDownTimezone.setVisibility(View.VISIBLE);
-            nodeDetailVh.ivCopy.setVisibility(View.GONE);
             nodeDetailVh.dropDownTimezone.setEnabled(false);
             nodeDetailVh.dropDownTimezone.setOnItemSelectedListener(null);
 
