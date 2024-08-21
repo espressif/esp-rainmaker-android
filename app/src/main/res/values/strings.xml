@@ -219,6 +219,7 @@
     <string name="btn_removing">Removing&#8230;</string>
     <string name="btn_github">Sign in using GitHub</string>
     <string name="btn_google">Sign in using Google</string>
+    <string name="btn_apple">Sign in using Apple</string>
     <string name="btn_we_chat">Sign in using WeChat</string>
     <string name="btn_ok">OK</string>
     <string name="btn_back">Back</string>

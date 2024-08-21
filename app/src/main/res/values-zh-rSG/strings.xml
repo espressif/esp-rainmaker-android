@@ -219,6 +219,7 @@
     <string name="btn_removing">移除中&#8230;</string>
     <string name="btn_github">使用 GitHub 登录</string>
     <string name="btn_google">使用 Google 登录</string>
+    <string name="btn_apple">使用 Apple 登录</string>
     <string name="btn_we_chat">使用微信登录</string>
     <string name="btn_ok">确定</string>
     <string name="btn_back">返回</string>

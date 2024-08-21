@@ -37,6 +37,7 @@ def defaultAuthUrl = "https://3pauth.rainmaker.espressif.com"
 def defaultRedirectUri = "rainmaker://com.espressif.rainmaker/success"
 def gitHubIdentityProvider = "GitHub"
 def googleIdentityProvider = "Google"
+def appleIdentityProvider = "SignInWithApple"
 
 def defaultDocUrl = "https://rainmaker.espressif.com/"
 def defaultPrivacyUrl = "https://rainmaker.espressif.com/docs/privacy-policy.html"
@@ -72,8 +73,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 27
         targetSdkVersion 35
-        versionCode 183
-        versionName "3.9.1 - ${getGitHash()}"
+        versionCode 184
+        versionName "3.9.2 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -163,9 +164,12 @@ android {
                 "&redirect_uri=" + redirectUri + "&response_type=CODE&client_id=" + clientId
         def googleUrl = authUrl + "/authorize?identity_provider=" + googleIdentityProvider +
                 "&redirect_uri=" + redirectUri + "&response_type=CODE&client_id=" + clientId
+        def appleUrl = authUrl + "/authorize?identity_provider=" + appleIdentityProvider +
+                "&redirect_uri=" + redirectUri + "&response_type=CODE&client_id=" + clientId
 
         buildConfigField "String", "GITHUB_URL", '"' + gitHubUrl + '"'
         buildConfigField "String", "GOOGLE_URL", '"' + googleUrl + '"'
+        buildConfigField "String", "APPLE_URL", '"' + appleUrl + '"'
 
         buildConfigField "String", "DOCUMENTATION_URL", '"' + localProperties.getProperty("docUrl", defaultDocUrl) + '"'
         buildConfigField "String", "PRIVACY_URL", '"' + localProperties.getProperty("privacyUrl", defaultPrivacyUrl) + '"'
