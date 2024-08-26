@@ -25,6 +25,22 @@
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <!--Aroura push services permissions-->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.RECEIVE_USER_PRESENT" />
+    <uses-permission android:name="com.espressif.rainmaker.permission.JPUSH_MESSAGE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="com.espressif.rainmaker.permission.JOPERATE_MESSAGE" />
+
+    <permission
+        android:name="com.espressif.rainmaker.permission.JPUSH_MESSAGE"
+        android:protectionLevel="signature" />
+
+    <permission
+        android:name="com.espressif.rainmaker.permission.JOPERATE_MESSAGE"
+        android:protectionLevel="signature"/>
+
     <!-- Request legacy Bluetooth permissions on older devices. -->
     <uses-permission
         android:name="android.permission.BLUETOOTH"
@@ -57,6 +73,113 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
 
+        <!-- Aroura Configuration Services-->
+
+        <meta-data
+            android:name="JPUSH_APPKEY"
+            android:value="${JPUSH_APPKEY}" />
+
+        <meta-data
+            android:name="JPUSH_CHANNEL"
+            android:value="${JPUSH_CHANNEL}"
+            tools:replace="android:value" />
+
+        <meta-data
+            android:name="androidx.work.WorkManagerInitializer"
+            android:value="androidx.work.impl.WorkManagerInitializer" />
+
+        <service
+            android:name="cn.jpush.android.service.JCommonService"
+            android:exported="true"
+            tools:replace="android:exported"/>
+
+        <receiver
+            android:name="com.espressif.EspAuroraReceiver"
+            android:permission="cn.jpush.android.permission.JPUSH_MESSAGE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="cn.jpush.android.intent.REGISTRATION" />
+                <action android:name="cn.jpush.android.intent.MESSAGE_RECEIVED" />
+                <action android:name="cn.jpush.android.intent.NOTIFICATION_RECEIVED" />
+                <action android:name="cn.jpush.android.intent.NOTIFICATION_OPENED" />
+                <action android:name="cn.jpush.android.intent.SERVICE_MESSAGE" />
+                <action android:name="cn.jpush.android.intent.RECEIVER_MESSAGE" />
+                <action android:name="cn.jpush.android.intent.NOTIFICATION_RECEIVED_PROXY" />
+
+                <category android:name="com.espressif.rainmaker" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="cn.jpush.android.service.PushReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter android:priority="1000">
+                <action android:name="cn.jpush.android.intent.NOTIFICATION_RECEIVED_PROXY" />
+                <category android:name="com.espressif.rainmaker" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="cn.jpush.android.service.AlarmReceiver"
+            android:exported="false" />
+
+        <service
+            android:name="cn.jpush.android.service.PushService"
+            android:enabled="true"
+            android:exported="true"
+            android:process=":pushcore"
+            tools:replace="android:exported">
+            <intent-filter>
+                <action android:name="cn.jpush.android.intent.REGISTRATION"/>
+                <action android:name="cn.jpush.android.intent.RECEIVE_MESSAGE"/>
+                <action android:name="cn.jpush.android.intent.NOTIFICATION_OPENED"/>
+                <action android:name="cn.jpush.android.intent.NOTIFICATION_RECEIVED"/>
+            </intent-filter>
+        </service>
+
+        <activity
+            android:name="cn.android.service.JTransitActivity"
+            android:exported="true"
+            android:taskAffinity="">
+            <intent-filter>
+                <action android:name="cn.android.service.JTransitActivity" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="com.espressif.rainmaker" />
+            </intent-filter>
+        </activity>
+
+        <provider
+            android:name="cn.jpush.android.service.DataProvider"
+            android:authorities="com.espressif.rainmaker.DataProvider"
+            android:exported="false"
+            android:process=":pushcore" />
+
+        <receiver
+            android:name="cn.jpush.android.service.SchedulerReceiver"
+            android:exported="false" />
+
+        <activity
+            android:name="cn.jpush.android.ui.PushActivity"
+            android:exported="false"
+            tools:replace="android:exported"/>
+
+        <activity
+            android:name="cn.jpush.android.ui.PopWinActivity"
+            android:exported="true"
+            tools:replace="android:exported"/>
+
+        <activity
+            android:name="cn.jpush.android.service.JNotifyActivity"
+            android:exported="true"
+            tools:replace="android:exported">
+            <intent-filter>
+                <action android:name="cn.jpush.android.intent.JNotifyActivity" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="com.espressif.rainmaker" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name="com.espressif.ui.activities.SplashActivity"
             android:exported="true"
@@ -82,7 +205,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="your_app_id" /> <!-- Replace with your AppID -->
+                <data android:scheme="your_we_chat_id" /> <!-- Replace with your AppID -->
             </intent-filter>
         </activity>
 
