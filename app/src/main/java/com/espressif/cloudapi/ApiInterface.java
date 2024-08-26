@@ -74,6 +74,15 @@ public interface ApiInterface {
                                   @Field("code") String code,
                                   @Field("redirect_uri") String redirect_uri);
 
+    @FormUrlEncoded
+    @POST
+    Call<ResponseBody> oauthLoginForWeChat(@Url String url, @Header("Content-type") String contentType,
+                                           @Field("grant_type") String grant_type,
+                                           @Field("client_id") String client_id,
+                                           @Field("code") String code,
+                                           @Field("wechat_token_only") boolean weChatTokenOnly,
+                                           @Field("redirect_uri") String redirect_uri);
+
     // Get Supported Versions
     @GET
     Call<ResponseBody> getSupportedVersions(@Url String url);

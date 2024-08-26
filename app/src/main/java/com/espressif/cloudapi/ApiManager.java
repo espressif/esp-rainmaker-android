@@ -238,7 +238,7 @@ public class ApiManager {
     public void getOAuthToken(String code, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get OAuth Token");
-        String url = BuildConfig.TOKEN_URL;
+        String url = getTokenUrl();
 
         try {
             apiInterface.oauthLogin(url, "application/x-www-form-urlencoded",
@@ -294,10 +294,68 @@ public class ApiManager {
         }
     }
 
+    public void getOAuthTokenForWechat(String code, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Get OAuth Token for WeChat");
+        String url = getTokenUrl();
+
+        try {
+            apiInterface.oauthLoginForWeChat(url, "application/x-www-form-urlencoded",
+                    "authorization_code", BuildConfig.CHINA_CLIENT_ID, code, true,
+                    BuildConfig.REDIRECT_URI).enqueue(new Callback<ResponseBody>() {
+                @Override
+                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                    Log.d(TAG, "Get OAuth Token for WeChat, Response code  : " + response.code());
+                    try {
+                        if (response.isSuccessful()) {
+
+                            String jsonResponse = response.body().string();
+                            JSONObject jsonObject = new JSONObject(jsonResponse);
+                            idToken = jsonObject.getString(AppConstants.KEY_ID_TOKEN);
+                            accessToken = jsonObject.getString(AppConstants.KEY_ACCESS_TOKEN);
+                            refreshToken = jsonObject.getString(AppConstants.KEY_REFRESH_TOKEN);
+                            isOAuthLogin = true;
+
+                            SharedPreferences.Editor editor = sharedPreferences.edit();
+                            editor.putString(AppConstants.KEY_ID_TOKEN, idToken);
+                            editor.putString(AppConstants.KEY_ACCESS_TOKEN, accessToken);
+                            editor.putString(AppConstants.KEY_REFRESH_TOKEN, refreshToken);
+                            editor.putBoolean(AppConstants.KEY_IS_OAUTH_LOGIN, true);
+                            editor.apply();
+
+                            getTokenAndUserId();
+                            listener.onSuccess(null);
+
+                        } else {
+                            String jsonErrResponse = response.errorBody().string();
+                            processError(jsonErrResponse, listener, "Failed to get WeChat login token.");
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        listener.onResponseFailure(e);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        listener.onResponseFailure(e);
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<ResponseBody> call, Throwable t) {
+                    t.printStackTrace();
+                    listener.onNetworkFailure(new Exception(t));
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+            listener.onNetworkFailure(e);
+        }
+    }
+
     public void getOAuthTokenForController(String code, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get OAuth Token for Matter Controller");
-        String url = BuildConfig.TOKEN_URL;
+        String url = getTokenUrl();
 
         try {
             apiInterface.oauthLogin(url, "application/x-www-form-urlencoded",
@@ -2679,8 +2737,9 @@ public class ApiManager {
     public void initiateClaim(JsonObject body, final ApiResponseListener listener) {
 
         Log.d(TAG, "Initiate Claiming...");
+        String url = getClaimBaseUrl() + AppConstants.URL_CLAIM_INITIATE;
 
-        apiInterface.initiateClaiming(AppConstants.URL_CLAIM_INITIATE, accessToken, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.initiateClaiming(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2716,8 +2775,9 @@ public class ApiManager {
     public void verifyClaiming(JsonObject body, final ApiResponseListener listener) {
 
         Log.d(TAG, "Verifying Claiming...");
+        String url = getClaimBaseUrl() + AppConstants.URL_CLAIM_VERIFY;
 
-        apiInterface.verifyClaiming(AppConstants.URL_CLAIM_VERIFY, accessToken, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.verifyClaiming(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -4759,6 +4819,20 @@ public class ApiManager {
 
     private String getBaseUrl() {
         return EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION;
+    }
+
+    private String getTokenUrl() {
+        if (BuildConfig.isChinaRegion) {
+            return BuildConfig.CHINA_TOKEN_URL;
+        }
+        return BuildConfig.TOKEN_URL;
+    }
+
+    private String getClaimBaseUrl() {
+        if (BuildConfig.isChinaRegion) {
+            return BuildConfig.CHINA_CLAIM_BASE_URL;
+        }
+        return BuildConfig.CLAIM_BASE_URL;
     }
 
     private String getLoginEndpointUrl() {

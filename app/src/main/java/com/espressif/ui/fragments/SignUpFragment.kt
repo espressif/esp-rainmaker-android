@@ -125,7 +125,7 @@ class SignUpFragment : Fragment(R.layout.fragment_signup) {
         val privacyPolicyClick: ClickableSpan = object : ClickableSpan() {
             override fun onClick(textView: View) {
                 textView.invalidate()
-                val openURL = Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.PRIVACY_URL))
+                val openURL = Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getPrivacyUrl()))
                 startActivity(openURL)
             }
 
@@ -139,7 +139,7 @@ class SignUpFragment : Fragment(R.layout.fragment_signup) {
         val termsOfUseClick: ClickableSpan = object : ClickableSpan() {
             override fun onClick(textView: View) {
                 textView.invalidate()
-                val openURL = Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.TERMS_URL))
+                val openURL = Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getTermsOfUseUrl()))
                 startActivity(openURL)
             }
 

@@ -16,71 +16,42 @@ package com.espressif.ui.activities
 
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
-import android.text.SpannableString
-import android.text.Spanned
-import android.text.TextPaint
+import android.text.Html
 import android.text.method.LinkMovementMethod
-import android.text.style.ClickableSpan
-import android.view.View
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 
 import com.espressif.rainmaker.BuildConfig
 import com.espressif.rainmaker.R
 import com.espressif.rainmaker.databinding.ActivityConsentBinding
+import com.espressif.ui.Utils
 
 class ConsentActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityConsentBinding
+
+    companion object {
+        const val ANCHOR_TAG_START: String = "<a href='"
+        const val ANCHOR_TAG_END: String = "</a>"
+        const val URL_TAG_END: String = "'>"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityConsentBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
-        
-        setPolicyMessage()
+
+        setUrls()
         setAppVersion()
         setProceedBtn()
-    }
 
-    private fun setPolicyMessage() {
-
-        val privacyPolicyClick: ClickableSpan = object : ClickableSpan() {
-            override fun onClick(textView: View) {
-                textView.invalidate()
-                val openURL = Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.PRIVACY_URL))
-                startActivity(openURL)
-            }
-
-            override fun updateDrawState(ds: TextPaint) {
-                super.updateDrawState(ds)
-                ds.color = resources.getColor(R.color.colorPrimary)
-                ds.isUnderlineText = true
-            }
+        if (BuildConfig.isChinaRegion) {
+            showWebViewDialog(Utils.getPrivacyUrl())
         }
-
-        val termsOfUseClick: ClickableSpan = object : ClickableSpan() {
-            override fun onClick(textView: View) {
-                textView.invalidate()
-                val openURL = Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.TERMS_URL))
-                startActivity(openURL)
-            }
-
-            override fun updateDrawState(ds: TextPaint) {
-                super.updateDrawState(ds)
-                ds.color = resources.getColor(R.color.colorPrimary)
-                ds.isUnderlineText = true
-            }
-        }
-
-        val stringForPolicy = SpannableString(getString(R.string.user_agreement))
-        stringForPolicy.setSpan(privacyPolicyClick, 83, 97, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        stringForPolicy.setSpan(termsOfUseClick, 102, 114, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        binding.tvTermsCondition.text = stringForPolicy
-        binding.tvTermsCondition.movementMethod = LinkMovementMethod.getInstance()
     }
 
     private fun setAppVersion() {
@@ -124,5 +95,40 @@ class ConsentActivity : AppCompatActivity() {
         ) { dialog, which -> dialog.dismiss() }
         val userDialog = builder.create()
         userDialog.show()
+    }
+
+    private fun setUrls() {
+        // Set privacy URL
+        binding.tvPrivacy.movementMethod = LinkMovementMethod.getInstance()
+        val privacyUrl =
+            ANCHOR_TAG_START + Utils.getPrivacyUrl() + URL_TAG_END + getString(R.string.privacy_policy) + ANCHOR_TAG_END
+        binding.tvPrivacy.text = Html.fromHtml(privacyUrl)
+
+        // Set terms of use URL
+        binding.tvTermsOfUse.movementMethod = LinkMovementMethod.getInstance()
+        val termsUrl =
+            ANCHOR_TAG_START + Utils.getTermsOfUseUrl() + URL_TAG_END + getString(R.string.terms_of_use) + AboutAppActivity.ANCHOR_TAG_END
+        binding.tvTermsOfUse.text = Html.fromHtml(termsUrl)
+    }
+
+    private fun showWebViewDialog(url: String) {
+
+        val builder = AlertDialog.Builder(this)
+        builder.setCancelable(false)
+        builder.setTitle(R.string.privacy_policy)
+
+        val webView = WebView(this)
+        builder.setView(webView)
+        webView.webViewClient = WebViewClient()
+        webView.loadUrl(url)
+
+        builder.setPositiveButton(R.string.btn_agree) { dialog, which -> dialog.dismiss() }
+        builder.setNegativeButton(R.string.btn_disagree) { dialog, which ->
+            dialog.dismiss()
+            finish()
+        }
+
+        val dialog = builder.create()
+        dialog.show()
     }
 }

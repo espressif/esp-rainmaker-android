@@ -1,0 +1,581 @@
+<resources>
+    <string name="action_settings">设置</string>
+    <string name="title_activity_provision_landing">连接设备</string>
+    <string name="no_internet_note">为了确保您已真正连接到设备，请确保接受系统弹出的“网络无互联网连接”的提示。</string>
+    <string name="connect_to_device_action">连接</string>
+    <string name="connected_to_device_action">配置网络</string>
+    <string name="ssid_hint_text">网络名称</string>
+    <string name="password_hint_text">密码</string>
+    <string name="provision">配置</string>
+
+    <string name="success_text">设备已成功配置！</string>
+    <string name="add_device_success_text">设备已成功添加！</string>
+    <string name="wifi_disconnected_text">请检查设备指示灯以获取配置状态。</string>
+    <string name="done">完成</string>
+
+    <string name="enable_bluetooth_action">启用</string>
+    <string name="enabled_bluetooth_action">配置网络</string>
+
+    <!-- Strings used for Progress -->
+    <string name="progress_scanning">正在扫描设备...</string>
+    <string name="progress_get_status">正在获取状态</string>
+    <string name="progress_loading">正在加载...</string>
+    <string name="progress_claiming">正在获取证书...</string>
+    <string name="progress_add_sch">正在添加定时任务...</string>
+    <string name="progress_update_sch">正在更新定时任务...</string>
+    <string name="progress_add_scene">正在添加场景...</string>
+    <string name="progress_update_scene">正在更新场景...</string>
+    <string name="progress_create_group">正在创建群组...</string>
+    <string name="progress_update_group">正在更新群组...</string>
+    <string name="progress_remove_group">正在移除群组...</string>
+    <string name="progress_remove_device">正在移除设备...</string>
+    <string name="progress_remove_node">正在移除节点...</string>
+    <string name="progress_accepting">正在接受...</string>
+    <string name="progress_declining">正在拒绝...</string>
+    <string name="progress_wifi_scan">正在扫描Wi-Fi...</string>
+    <string name="progress_scan_networks">正在扫描网络...</string>
+    <string name="progress_add_automation">正在添加自动化...</string>
+    <string name="progress_get_automation">正在获取自动化...</string>
+    <string name="progress_update">正在更新...</string>
+    <string name="progress_check_update">正在检查更新...</string>
+    <string name="progress_check_fw_update_status">正在检查固件更新状态...</string>
+    <string name="progress_push_fw_update">正在推送OTA更新...</string>
+    <string name="progress_tbr_config">正在配置TBR...</string>
+    <string name="progress_group_sharing_request">正在发送请求...</string>
+    <string name="progress_fetching_group_sharing_request">正在获取请求...</string>
+    <string name="progress_canceling_group_sharing_request">正在取消群组分享请求...</string>
+    <string name="progress_revoking_group_share_access">正在撤销群组分享权限...</string>
+    <string name="progress_thread_networks">正在搜索Thread网络...</string>
+    <string name="progress_we_chat_login">请稍候...</string>
+
+    <!-- Error Messages -->
+    <string name="error_title">错误！</string>
+    <string name="error_ble_not_supported">抱歉！不支持BLE。</string>
+    <string name="error_bluetooth_not_supported">抱歉！不支持蓝牙。</string>
+    <string name="error_device_not_supported">通信失败。可能是不支持的设备。</string>
+    <string name="error_pop_incorrect">请重试正确的PIN码。</string>
+    <string name="error_qr_code_not_valid">错误！二维码无效。请重试。</string>
+    <string name="error_device_connect_failed">错误！连接设备失败。</string>
+    <string name="error_device_communication_failed">错误！无法与设备通信。</string>
+    <string name="error_ble_device_disconnected">蓝牙设备已断开连接。</string>
+    <string name="error_no_ble_device">未找到蓝牙设备！</string>
+    <string name="error_ble_device_config_failed">蓝牙设备配置失败。请尝试另一台设备。</string>
+    <string name="error_device_list_not_received">错误：未收到设备列表</string>
+    <string name="error_schedule_not_received">错误：未收到定时任务</string>
+    <string name="error_username_empty">用户名不能为空</string>
+    <string name="error_invalid_email">请输入有效的电子邮件</string>
+    <string name="error_password_empty">密码不能为空</string>
+    <string name="error_confirm_password_empty">确认密码不能为空</string>
+    <string name="error_confirmation_code_empty">确认码不能为空</string>
+    <string name="error_verification_code_empty">验证码不能为空</string>
+    <string name="error_ssid_empty">网络名称不能为空</string>
+    <string name="error_network_select">未选择网络</string>
+    <string name="error_password_not_matched">密码不匹配</string>
+    <string name="error_user_agreement">若要继续，请同意隐私政策和使用条款。</string>
+    <string name="error_authentication_failed">Wi-Fi认证失败。</string>
+    <string name="error_network_not_found">未找到网络。</string>
+    <string name="error_unknown">未知错误。</string>
+    <string name="error_device_name_empty">设备名称不能为空</string>
+    <string name="error_delete_node">删除此节点失败。</string>
+    <string name="error_session">无法建立会话</string>
+    <string name="error_provisioning_failed">配置失败</string>
+    <string name="error_param_update">更新失败</string>
+    <string name="error_login">登录失败</string>
+    <string name="error_wifi_off">请打开Wi-Fi以连接设备。</string>
+    <string name="error_claiming_progress">获取证书失败，错误：</string>
+    <string name="error_claiming">获取证书失败。请重启设备并重新开始配置。</string>
+    <string name="error_claiming_not_supported">SoftAP不支持辅助获取证书。无法继续。</string>
+    <string name="error_claiming_start">获取证书启动失败</string>
+    <string name="error_claiming_init">获取证书初始化失败</string>
+    <string name="error_claiming_verify">获取证书验证失败</string>
+    <string name="error_device_type_not_supported">设备可能不受支持。</string>
+    <string name="error_value_out_of_bound">值超出范围</string>
+    <string name="error_schedule_name_empty">定时任务的名称不能为空</string>
+    <string name="error_invalid_schedule_name">请输入定时任务名称以继续。</string>
+    <string name="error_schedule_action">请选择定时任务的动作</string>
+    <string name="error_scene_name_empty">场景名称不能为空</string>
+    <string name="error_invalid_scene_name">请输入场景名称以继续。</string>
+    <string name="error_invalid_automation_name">请输入自动化名称以继续。</string>
+    <string name="error_scene_action">请选择场景的动作</string>
+    <string name="error_group_device_remove">从群组中移除设备失败</string>
+    <string name="error_group_name_empty">群组名称不能为空</string>
+    <string name="error_group_name_update">更新群组名称失败</string>
+    <string name="error_group_create">创建群组失败</string>
+    <string name="error_group_update">更新群组失败</string>
+    <string name="error_group_remove">删除群组失败</string>
+    <string name="error_get_sharing_request">获取共享请求失败</string>
+    <string name="error_notification">获取通知失败</string>
+    <string name="error_add_member">添加成员失败</string>
+    <string name="error_remove_member">删除成员失败</string>
+    <string name="error_remove_sharing_req">删除共享请求失败</string>
+    <string name="error_update_timezone">更新时区失败</string>
+    <string name="error_camera_permission">未授予相机权限。应用将无法扫描二维码添加设备。</string>
+    <string name="error_location_permission">未授予位置权限。添加BLE或SoftAP设备时需要此权限。</string>
+    <string name="error_automation_create">创建自动化失败</string>
+    <string name="error_automation_update">更新自动化失败</string>
+    <string name="error_automation_remove">删除自动化失败</string>
+    <string name="error_automation_name_empty">自动化名称不能为空</string>
+    <string name="error_check_update">检查更新失败。</string>
+    <string name="error_fw_update">推送OTA更新失败。</string>
+    <string name="error_device_connection">请检查连接并稍后重试。</string>
+    <string name="error_fw_update_rejected">已拒绝OTA更新。</string>
+    <string name="error_fw_update_failed">OTA更新失败。</string>
+    <string name="error_base_url_empty">云端点URL不能为空</string>
+    <string name="error_fabric_create">创建Fabric失败</string>
+    <string name="error_no_preferred_creds">未添加Thread网络</string>
+    <string name="error_read_preferred_creds_request_denied">您已拒绝读取Thread凭证的请求</string>
+    <string name="error_no_thread_network">无活动的Thread边界路由器</string>
+    <string name="error_dataset_invalid">无效的数据集</string>
+    <string name="error_wechat_app_not_installed">请安装微信应用程序</string>
+    <string name="error_user_id_not_found">错误！未找到用户ID</string>
+
+    <string name="title_activity_esp_device">设备</string>
+
+    <string name="prefix">前缀 :</string>
+    <string name="base_url_title">云端点URL :</string>
+    <string name="hint_prefix">输入前缀</string>
+    <string name="hint_key">输入PIN码</string>
+    <string name="devices_title">设备</string>
+    <string name="enter_device_key">输入您的PoP码</string>
+    <string name="hint_base_url">输入您的云端点URL</string>
+
+    <string name="join_other_network">加入其他网络</string>
+    <string name="networks">网络</string>
+    <string name="text_on">开</string>
+    <string name="text_off">关</string>
+
+    <string name="Username">用户名</string>
+    <string name="Password">密码</string>
+    <string name="Menu">菜单</string>
+    <string name="name">名称</string>
+    <string name="app_main_desc">一个展示Cognito身份和Android SDK的示例应用。</string>
+    <string name="powered_by_esp">由ESPRESSIF提供支持</string>
+    <string name="no_devices">未添加设备</string>
+    <string name="no_schedules">未添加定时任务</string>
+    <string name="no_scenes">未添加场景</string>
+    <string name="no_automations">未添加自动化</string>
+    <string name="no_groups">未创建群组</string>
+    <string name="no_sharing_requests">没有通知</string>
+    <string name="add_device_txt">您可以通过扫描二维码来配置设备，或者通过点击此屏幕右上角的“+”图标手动进行配置。</string>
+    <string name="signup_confirm_msg">输入验证码。</string>
+    <string name="node_offline">节点离线</string>
+    <string name="status_offline">离线</string>
+    <string name="offline_at">离线时间</string>
+    <string name="status_local">本地</string>
+    <string name="no_device_support_this_feature">您没有任何支持此功能的设备。</string>
+    <string name="local_device_text">在WLAN上可访问</string>
+    <string name="max_cnt_reached">已达到最大支持数量 %d</string>
+    <string name="invalid">无效</string>
+    <string name="status_remote">远程</string>
+    <string name="no_group_share_requests">无共享请求</string>
+    <string name="permission_purpose">此应用需要相机权限以扫描二维码和位置权限以连接蓝牙设备。</string>
+    <string name="permission_purpose_for_new_version">此应用需要相机权限以扫描二维码和位置权限以连接蓝牙设备。</string>
+
+    <!--Tab titles-->
+    <string name="tab_login">登录</string>
+    <string name="tab_sign_up">注册</string>
+    <string name="tab_devices">设备</string>
+    <string name="tab_schedules">定时任务</string>
+    <string name="tab_scenes">场景</string>
+    <string name="tab_automations">自动化</string>
+    <string name="tab_user">用户</string>
+    <string name="tab_settings">设置</string>
+    <string name="tab_1d">1天</string>
+    <string name="tab_7d">7天</string>
+    <string name="tab_4w">4周</string>
+    <string name="tab_1y">1年</string>
+
+    <!--Hint texts-->
+    <string name="hint_username">用户名</string>
+    <string name="hint_password">密码</string>
+    <string name="hint_confirm_password">确认密码</string>
+    <string name="hint_old_password">旧密码</string>
+    <string name="hint_new_password">新密码</string>
+    <string name="hint_confirm_new_password">确认新密码</string>
+    <string name="hint_verification_code">验证码</string>
+    <string name="hint_pop">PoP码</string>
+    <string name="hint_ssid">网络名称</string>
+    <string name="hint_value">输入值</string>
+    <string name="hint_description">输入描述（可选）</string>
+    <string name="hint_schedule_name">为您的定时任务选择名称</string>
+    <string name="hint_scene_name">为您的场景选择名称</string>
+    <string name="hint_automation_name">为您的自动化选择名称</string>
+
+    <!--Button text-->
+    <string name="btn_register">注册</string>
+    <string name="btn_registering">注册中&#8230;</string>
+    <string name="btn_login">登录</string>
+    <string name="btn_signing_in">登录中&#8230;</string>
+    <string name="btn_confirm">确认</string>
+    <string name="btn_confirming">确认中&#8230;</string>
+    <string name="btn_set_password">设置密码</string>
+    <string name="btn_setting_password">设置密码中&#8230;</string>
+    <string name="btn_connect">连接</string>
+    <string name="btn_connecting">连接中&#8230;</string>
+    <string name="btn_reset_password">重置密码</string>
+    <string name="btn_resetting_password">重置密码中&#8230;</string>
+    <string name="btn_remove">移除</string>
+    <string name="btn_removing">移除中&#8230;</string>
+    <string name="btn_github">使用 GitHub 登录</string>
+    <string name="btn_google">使用 Google 登录</string>
+    <string name="btn_we_chat">使用微信登录</string>
+    <string name="btn_ok">确定</string>
+    <string name="btn_back">返回</string>
+    <string name="btn_cancel">取消</string>
+    <string name="btn_join">配置</string>
+    <string name="btn_yes">是</string>
+    <string name="btn_no">否</string>
+    <string name="btn_edit">编辑</string>
+    <string name="btn_no_qr_code">我没有二维码</string>
+    <string name="btn_add_device">添加设备</string>
+    <string name="btn_add_schedule">添加定时任务</string>
+    <string name="btn_add_scene">添加场景</string>
+    <string name="btn_add_automation">添加自动化</string>
+    <string name="btn_scan_again">重新扫描</string>
+    <string name="btn_sign_out">登出</string>
+    <string name="btn_skip">跳过</string>
+    <string name="btn_next">下一步</string>
+    <string name="btn_change_prefix">更改</string>
+    <string name="btn_save">保存</string>
+    <string name="btn_update">更新</string>
+    <string name="btn_logout">登出</string>
+    <string name="btn_done">完成</string>
+    <string name="btn_add">添加</string>
+    <string name="btn_accept">接受</string>
+    <string name="btn_deny">拒绝</string>
+    <string name="btn_get_permission">获取权限</string>
+    <string name="btn_start">开始</string>
+    <string name="btn_info">节点信息</string>
+    <string name="btn_delete_user">删除账户</string>
+    <string name="btn_deleting_user">处理中&#8230;</string>
+    <string name="btn_delete_user_confirm">确认删除</string>
+    <string name="btn_proceed">继续</string>
+    <string name="btn_link_alexa">关联 Amazon Alexa</string>
+    <string name="btn_unlink_alexa">取消关联 Amazon Alexa</string>
+    <string name="btn_activate">激活</string>
+    <string name="btn_equals">等于</string>
+    <string name="btn_less_than_sign">&lt;</string>
+    <string name="btn_greater_than_sign">&gt;</string>
+    <string name="btn_equal_sign">=</string>
+    <string name="btn_change_event">更改事件</string>
+    <string name="btn_change_actions">更改动作</string>
+    <string name="btn_check_update">检查固件更新</string>
+    <string name="btn_check_again">重新检查</string>
+    <string name="btn_configuring">配置中&#8230;</string>
+    <string name="btn_reset_to_defaults">重置</string>
+    <string name="btn_send_request">发送请求</string>
+    <string name="btn_remove_group">移除群组</string>
+    <string name="btn_leave_group">离开群组</string>
+    <string name="btn_share">共享</string>
+    <string name="btn_group_info">群组信息</string>
+    <string name="btn_try_again">重试</string>
+    <string name="btn_agree">同意</string>
+    <string name="btn_disagree">不同意</string>
+
+    <!--Screen titles-->
+    <string name="title_activity_devices">设备</string>
+    <string name="title_activity_sign_up_confirm">确认账户</string>
+    <string name="title_activity_forgot_password">忘记密码</string>
+    <string name="title_activity_reset_password">重置密码</string>
+    <string name="title_activity_change_password">更改密码</string>
+    <string name="title_activity_connect_device">连接设备</string>
+    <string name="title_activity_add_device">添加设备</string>
+    <string name="title_activity_pop">PoP码</string>
+    <string name="title_activity_provision">配置</string>
+    <string name="title_activity_provisioning">正在配置</string>
+    <string name="title_activity_wifi_scan_list">选择Wi-Fi网络</string>
+    <string name="title_activity_wifi_config">Wi-Fi配置</string>
+    <string name="title_activity_thread_config">Thread网络配置</string>
+    <string name="title_activity_node_details">节点详情</string>
+    <string name="title_activity_user_profile">用户资料</string>
+    <string name="title_activity_claiming">认领</string>
+    <string name="title_activity_schedule_details">定时任务</string>
+    <string name="title_activity_scene_details">场景</string>
+    <string name="title_activity_repeat_days">重复</string>
+    <string name="title_activity_actions">动作</string>
+    <string name="title_activity_schedules">计划</string>
+    <string name="title_activity_scenes">场景</string>
+    <string name="title_activity_automations">自动化</string>
+    <string name="title_activity_automation_details">自动化详情</string>
+    <string name="title_activity_select_devices">选择设备</string>
+    <string name="title_activity_select_actions">选择动作</string>
+    <string name="title_activity_select_event">选择事件</string>
+    <string name="title_activity_manage_groups">管理群组</string>
+    <string name="title_activity_create_group">创建群组</string>
+    <string name="title_activity_edit_group">编辑群组</string>
+    <string name="title_activity_sharing_requests">通知</string>
+    <string name="title_activity_voice_services">语音服务</string>
+    <string name="title_activity_settings">设置</string>
+    <string name="title_activity_account_settings">账户</string>
+    <string name="title_activity_about">关于</string>
+    <string name="title_activity_delete_user">删除账户</string>
+    <string name="title_activity_amazon_alexa">Amazon Alexa</string>
+    <string name="title_activity_fw_update">固件更新</string>
+    <string name="title_activity_tbr">Thread 边界路由器</string>
+    <string name="title_activity_group_sharing_requests">群组共享</string>
+    <string name="title_activity_group_detail">群组详情</string>
+
+    <!--Dialog texts-->
+    <string name="dialog_title_login_failed">登录失败</string>
+    <string name="dialog_title_sign_up_failed">注册失败</string>
+    <string name="dialog_title_sign_up_success">注册成功！</string>
+    <string name="dialog_title_conf_code_sent">验证码已发送</string>
+    <string name="dialog_title_conf_code_req_fail">验证码请求失败</string>
+    <string name="dialog_title_password_changed">密码修改成功！</string>
+    <string name="dialog_title_forgot_password_failed">忘记密码失败</string>
+    <string name="dialog_title_delete_user_success">您的账户已成功删除！</string>
+    <string name="dialog_title_delete_user_failed">删除账户失败</string>
+    <string name="dialog_title_new_version_available">有新版本可用！</string>
+    <string name="dialog_title_network_info">输入网络信息</string>
+    <string name="dialog_title_add_name">添加名称</string>
+    <string name="dialog_msg_for_gps">定位服务已禁用。请启用以继续</string>
+    <string name="dialog_msg_delete_node">您确定吗？</string>
+    <string name="dialog_msg_device_selection">选择设备配置传输方式</string>
+    <string name="dialog_title_remove">移除</string>
+    <string name="dialog_msg_confirmation">您确定吗？</string>
+    <string name="dialog_msg_ble_device_disconnection">设备已断开连接</string>
+    <string name="dialog_msg_connect_device_manually">设备连接失败。\n您想手动连接设备吗？</string>
+    <string name="dialog_title_group_name">输入群组名称</string>
+    <string name="dialog_title_user_email">用户邮箱</string>
+    <string name="dialog_title_logout">退出登录</string>
+    <string name="dialog_title_no_network">网络故障</string>
+    <string name="dialog_msg_no_network">请检查您的手机网络</string>
+    <string name="dialog_title_delete_user">警告！</string>
+    <string name="dialog_msg_delete_user">此操作将永久删除您的账户及与之相关的所有信息，包括所有设备。\n请谨慎操作。</string>
+    <string name="dialog_title_unlink_skill">禁用技能</string>
+    <string name="dialog_msg_unlink_skill">您想取消账户关联吗？</string>
+    <string name="dialog_title_error">错误！</string>
+    <string name="dialog_msg_proceed_confirmation">您想继续吗？</string>
+    <string name="dialog_msg_device_offline">设备已离线。请将您的设备连接到网络后重试。</string>
+    <string name="dialog_msg_play_services_required">您的手机需要安装 Google Play 服务以添加 Matter 支持的设备。</string>
+    <string name="dialog_title_play_services_required">警告！</string>
+    <string name="dialog_msg_confirmation_remove_group">您确定要移除此群组吗？\n这将撤销所有与此群组共享的用户的访问权限。</string>
+    <string name="dialog_title_leave_group">离开</string>
+    <string name="dialog_msg_confirmation_leave_group">您确定要离开此群组并移除您的访问权限吗？</string>
+    <string name="dialog_title_revoke_group_access">撤销</string>
+    <string name="dialog_msg_confirmation_revoke_group_access">您想撤销群组共享访问权限吗？</string>
+    <string name="dialog_msg_confirmation_cancel_group_request">您想取消群组共享请求吗？</string>
+    <string name="dialog_title_camera_permission">相机权限需要</string>
+    <string name="dialog_msg_camera_permission_use">此应用需要访问您的相机以扫描二维码。</string>
+    <string name="dialog_title_location_permission">位置权限需要</string>
+    <string name="dialog_title_location_bt_permission">位置和蓝牙权限需要</string>
+    <string name="dialog_msg_location_permission_use">连接附近蓝牙设备所必需的。</string>
+
+    <!--Node Details-->
+    <string name="node_id">节点 ID</string>
+    <string name="node_type">类型</string>
+    <string name="node_fw_version">固件版本</string>
+    <string name="node_config_version">配置版本</string>
+    <string name="node_timezone">时区</string>
+    <string name="node_shared_with">共享给</string>
+    <string name="node_shared_by">由...共享</string>
+    <string name="pending_requests">待处理请求</string>
+    <string name="system_services">系统服务</string>
+    <string name="add_member">添加成员</string>
+    <string name="node_fw_update">固件更新</string>
+    <string name="from_group">（来自群组）</string>
+
+    <!-- Instruction Strings -->
+    <string name="pop_instruction">请输入您的设备的PoP码</string>
+    <string name="setup_instructions">要完成设备 %1$s 的设置，请提供您的家庭网络凭据。</string>
+    <string name="connect_device_instruction_general">要配置您的设备，请确保它已开启。将您的手机连接到类似 PROV_XXXXXX 的 Wi-Fi 网络</string>
+    <string name="connect_device_instruction_specific">要配置您的设备，请确保它已开启。将您的手机连接到名称为</string>
+    <string name="password_instruction">密码应包含至少一个大写字母和一个数字。</string>
+    <string name="forgot_password_instruction">请输入您的注册邮箱以重置密码。</string>
+    <string name="enable_bluetooth_instructions">要配置您的新设备，请确保您的手机蓝牙已开启并在新设备的范围内。</string>
+    <string name="enabled_bluetooth_instructions">要配置设备，请在下一页输入您的网络凭据。</string>
+    <string name="delete_user_msg">删除账户将移除与您账户链接的所有设备。</string>
+    <string name="alexa_link_instruction">将您的账户与 Amazon Alexa 关联，可以通过 Alexa 设备使用语音命令控制智能家居设备。（例如：Alexa，打开灯）</string>
+    <string name="verification_code_sent_instruction">验证码已发送至\n</string>
+    <string name="delete_user_msg_china_region">要删除账户，请通过此邮箱请求：esp-rainmaker-admin@espressif.com</string>
+
+    <!--    Schedule -->
+    <string name="msg_schedule_added">定时任务创建成功</string>
+    <string name="error_schedule_add">创建定时任务失败</string>
+    <string name="error_schedule_add_partial">部分定时任务创建失败</string>
+
+    <string name="msg_schedule_updated">定时任务更新成功</string>
+    <string name="error_schedule_save">更新定时任务失败</string>
+    <string name="error_schedule_save_partial">部分定时任务更新失败</string>
+
+    <string name="msg_schedule_removed">定时任务删除成功</string>
+    <string name="error_schedule_remove">删除定时任务失败</string>
+    <string name="error_schedule_remove_partial">部分定时任务删除失败</string>
+
+    <!--    Scene-->
+    <string name="msg_scene_added">场景创建成功</string>
+    <string name="error_scene_add">创建场景失败</string>
+    <string name="error_scene_add_partial">部分场景创建失败</string>
+
+    <string name="msg_scene_updated">场景更新成功</string>
+    <string name="error_scene_save">更新场景失败</string>
+    <string name="error_scene_save_partial">部分场景更新失败</string>
+
+    <string name="msg_scene_removed">场景删除成功</string>
+    <string name="error_scene_remove">删除场景失败</string>
+    <string name="error_scene_remove_partial">部分场景删除失败</string>
+
+    <string name="msg_scene_activated">场景激活成功</string>
+    <string name="error_scene_activate">激活场景失败</string>
+    <string name="error_scene_activate_partial">部分场景激活失败</string>
+
+    <!--Other Strings-->
+    <string name="user_agreement">继续操作即表示我确认我已年满18岁，并已阅读并同意隐私政策和使用条款。</string>
+    <string name="login_with">使用……登录</string>
+    <string name="use_email_id">或使用您的电子邮件ID</string>
+    <string name="forgot_password">忘记密码？</string>
+    <string name="resend_code">重新发送验证码</string>
+    <string name="connect_your_device">连接您的设备</string>
+    <string name="documentation">文档</string>
+    <string name="privacy_policy">隐私政策</string>
+    <string name="terms_of_use">使用条款</string>
+    <string name="voice_services">语音服务</string>
+    <string name="looking_for_qr_code">寻找二维码</string>
+    <string name="position_camera_for_qr_code">请将摄像头对准二维码。</string>
+    <string name="app_version">应用版本</string>
+    <string name="app_region">区域：</string>
+    <string name="china">中国</string>
+    <string name="global">全球</string>
+    <string name="enter_valid_value">请输入有效值</string>
+    <string name="password_change_success">密码已更改</string>
+    <string name="password_change_failure">密码更改失败</string>
+    <string name="success">成功！</string>
+    <string name="req_confirmation_code">请求验证码或使用您已有的验证码进行确认。</string>
+    <string name="confirmation_failed">确认失败</string>
+    <string name="text_remove_node">移除节点将同时移除所有关联的设备。</string>
+    <string name="device_no_param">设备没有参数</string>
+    <string name="process_take_time">此过程可能需要一些时间。</string>
+    <string name="not_set">未设置</string>
+    <string name="msg_no_internet">无网络连接</string>
+    <string name="event">事件</string>
+    <string name="actions">动作</string>
+    <string name="group_all_devices">所有设备</string>
+    <string name="success_group_name_update">组名称更新成功</string>
+    <string name="success_group_create">组创建成功</string>
+    <string name="success_group_update">组更新成功</string>
+    <string name="success_group_remove">组移除成功</string>
+    <string name="success_automation_create">自动化添加成功</string>
+    <string name="success_automation_update">自动化更新成功</string>
+    <string name="success_automation_remove">自动化移除成功</string>
+    <string name="success_automation_enable">自动化启用成功</string>
+    <string name="success_automation_disable">自动化禁用成功</string>
+    <string name="wants_to_share">想要分享</string>
+    <string name="with_you">与你</string>
+    <string name="and">和</string>
+    <string name="devices">设备</string>
+    <string name="device">设备</string>
+    <string name="node">节点</string>
+    <string name="expires_in">有效期为</string>
+    <string name="expire_days">天</string>
+    <string name="expires_today">今天过期</string>
+    <string name="select_timezone">选择时区</string>
+    <string name="select_network">选择网络</string>
+    <string name="email">电子邮件</string>
+    <string name="user_id">用户ID（自动分配）</string>
+    <string name="supported_services">支持的服务</string>
+    <string name="text_alexa">亚马逊 Alexa</string>
+    <string name="text_gva">Google Assistant</string>
+    <string name="description">描述</string>
+    <string name="save_password">保存密码</string>
+    <string name="text_copied">已复制到剪贴板</string>
+    <string name="no_chart_data">无图表数据</string>
+    <string name="ts_not_supported">不支持此时段</string>
+    <string name="ts_data_type_not_supported">不支持的数据类型。</string>
+    <string name="no_internet_connection">无网络连接</string>
+    <string name="choose_parameter">选择参数</string>
+    <string name="fw_update_available">有新的固件版本可更新。</string>
+    <string name="current_version">当前版本</string>
+    <string name="available_version">可用版本</string>
+    <string name="fw_up_to_date">固件已是最新。</string>
+    <string name="fw_update_success">固件更新成功。</string>
+    <string name="fw_update_check">点击下方检查固件更新。</string>
+    <string name="dialog_msg_matter_controller">Matter 控制器需要访问您的 RainMaker 账户以获取该账户下的所有节点。是否继续？</string>
+    <string name="tbr_setup_done">Thread 边界路由器设置完成。</string>
+    <string name="was_shared_by">由...分享</string>
+    <string name="group">组</string>
+    <string name="group_request_shared_with">分享给</string>
+    <string name="checkbox_grant_full_access_primary">授予完全访问权限</string>
+    <string name="matter_fabric_yes">是</string>
+    <string name="matter_fabric_no">否</string>
+
+    <string name="linked_with_alexa">已与亚马逊 Alexa 连接</string>
+    <string name="alexa_link_str">现在您可以通过 Alexa 启用的音箱使用语音命令控制您的智能家居设备。</string>
+    <string name="alexa_example_1">Alexa，打开锅炉开关。</string>
+    <string name="alexa_example_2">Alexa，打开厨房灯。</string>
+    <string name="alexa_example_3">Alexa，将厨房灯调成红色。</string>
+
+    <string name="prov_step_1">发送 Wi-Fi 凭据</string>
+    <string name="prov_step_2">确认 Wi-Fi 连接</string>
+    <string name="prov_step_3">配置节点关联</string>
+    <string name="prov_step_4">确认节点关联</string>
+    <string name="prov_step_5">设置节点</string>
+    <string name="error_prov_step_1">设备关联失败</string>
+    <string name="error_prov_step_2">发送 Wi-Fi 凭据失败</string>
+    <string name="error_prov_step_3">配置节点关联失败</string>
+    <string name="error_prov_step_4">确认节点关联失败</string>
+    <string name="error_prov_step_5">节点设置失败</string>
+    <string name="prov_success">设备添加成功！</string>
+    <string name="prov_error">将您的设备重置为出厂默认设置并重试</string>
+    <string name="thread_prov_step_1">发送 Thread 凭据</string>
+    <string name="thread_prov_step_2">确认 Thread 连接</string>
+    <string name="error_prov_thread_step_2">发送 Thread 凭据失败</string>
+    <string name="error_prov_thread_step_2_">应用 Thread 凭据失败</string>
+
+    <string name="schedule_on_day">在</string>
+    <string name="schedule_once">一次</string>
+    <string name="schedule_daily">每天</string>
+    <string name="schedule_weekends">周末</string>
+    <string name="schedule_weekdays">工作日</string>
+
+    <string name="chart_bar">条形图</string>
+    <string name="chart_line">折线图</string>
+
+    <string name="day_1">周一</string>
+    <string name="day_2">周二</string>
+    <string name="day_3">周三</string>
+    <string name="day_4">周四</string>
+    <string name="day_5">周五</string>
+    <string name="day_6">周六</string>
+    <string name="day_7">周日</string>
+
+    <!-- Notification strings -->
+    <string name="channel_node_connected">节点已连接</string>
+    <string name="channel_node_disconnected">节点已断开连接</string>
+    <string name="channel_node_added">节点已添加</string>
+    <string name="channel_node_removed">节点已移除</string>
+    <string name="channel_node_sharing">节点共享</string>
+    <string name="channel_node_alert">警报消息</string>
+    <string name="channel_node_automation_trigger">自动化触发</string>
+    <string name="channel_node_group_sharing">群组共享</string>
+    <string name="channel_admin">管理员频道</string>
+
+    <string name="notify_node_added">新设备已添加。点击查看。</string>
+    <string name="notify_node_removed">某些设备已移除。点击查看。</string>
+    <string name="notify_node_connected">某些设备已上线。点击查看。</string>
+    <string name="notify_node_disconnected">某些设备已离线。点击查看。</string>
+    <string name="notify_node_alert">从设备收到警报。点击查看。</string>
+    <string name="notify_node_automation_trigger">节点自动化触发了某些设备。</string>
+    <string name="notify_node_ota">某些设备有新的 OTA 可用。</string>
+
+    <string name="alert_factory_reset">执行设备的恢复出厂设置将清除设备中的所有数据，包括 Wi-Fi 凭据。您将无法通过应用程序控制设备。您需要重新配置设备以便控制。是否继续?</string>
+    <string name="alert_reboot">设备将重启。重置后请稍等片刻。是否继续?</string>
+    <string name="alert_wifi_reset">执行 Wi-Fi 重置将清除设备中的 Wi-Fi 凭据。您将无法通过应用程序控制设备。您需要重新配置设备以便控制。是否继续?</string>
+
+    <string-array name="days">
+        <item>周日</item>
+        <item>周六</item>
+        <item>周五</item>
+        <item>周四</item>
+        <item>周三</item>
+        <item>周二</item>
+        <item>周一</item>
+    </string-array>
+
+    <string-array name="prov_transport_types">
+        <item>BLE</item>
+        <item>SoftAP</item>
+    </string-array>
+
+    <item name="position" type="id" />
+
+</resources>

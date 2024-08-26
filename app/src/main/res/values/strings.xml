@@ -46,6 +46,7 @@
     <string name="progress_canceling_group_sharing_request">Canceling Group Share Request...</string>
     <string name="progress_revoking_group_share_access">Revoking Group Share Access...</string>
     <string name="progress_thread_networks">Searching thread\nnetworks...</string>
+    <string name="progress_we_chat_login">Please wait...</string>
 
     <!--Error Messages-->
     <string name="error_title">Error!</string>
@@ -125,6 +126,8 @@
     <string name="error_read_preferred_creds_request_denied">You have denied request for reading thread credentials</string>
     <string name="error_no_thread_network">No Active Thread Border Router</string>
     <string name="error_dataset_invalid">Invalid Dataset</string>
+    <string name="error_wechat_app_not_installed">Please install WeChat application</string>
+    <string name="error_user_id_not_found">Error ! User ID not found</string>
 
     <string name="title_activity_esp_device">Device</string>
 
@@ -165,6 +168,8 @@
     <string name="invalid">Invalid</string>
     <string name="status_remote">Remote</string>
     <string name="no_group_share_requests">No Sharing Request</string>
+    <string name="permission_purpose">This app requires camera permission to scan QR code and location permission to connect Bluetooth device.</string>
+    <string name="permission_purpose_for_new_version">This app requires camera permission to scan QR code, location and bluetooth permissions to connect nearby Bluetooth device.</string>
 
     <!--Tab titles-->
     <string name="tab_login">SIGN IN</string>
@@ -213,6 +218,7 @@
     <string name="btn_removing">Removing&#8230;</string>
     <string name="btn_github">Sign in using GitHub</string>
     <string name="btn_google">Sign in using Google</string>
+    <string name="btn_we_chat">Sign in using WeChat</string>
     <string name="btn_ok">OK</string>
     <string name="btn_back">Back</string>
     <string name="btn_cancel">Cancel</string>
@@ -263,6 +269,8 @@
     <string name="btn_share">Share</string>
     <string name="btn_group_info">Group Info</string>
     <string name="btn_try_again">Try Again</string>
+    <string name="btn_agree">Agree</string>
+    <string name="btn_disagree">Disagree</string>
 
     <!--Screen titles-->
     <string name="title_activity_devices">Devices</string>
@@ -347,6 +355,11 @@
     <string name="dialog_title_revoke_group_access">Revoke</string>
     <string name="dialog_msg_confirmation_revoke_group_access">Do you want to revoke group sharing access?</string>
     <string name="dialog_msg_confirmation_cancel_group_request">Do you want to cancel group sharing request?</string>
+    <string name="dialog_title_camera_permission">Camera Permission Needed</string>
+    <string name="dialog_msg_camera_permission_use">This app requires access to your camera to scan QR code.</string>
+    <string name="dialog_title_location_permission">Location Permission Needed</string>
+    <string name="dialog_title_location_bt_permission">Location and Bluetooth Permission Needed</string>
+    <string name="dialog_msg_location_permission_use">It is required to connect nearby Bluetooth devices.</string>
 
     <!--Node Details-->
     <string name="node_id">Node Id</string>
@@ -374,6 +387,7 @@
     <string name="delete_user_msg">Delete account will remove all your devices which are linked to your account.</string>
     <string name="alexa_link_instruction">Linking your account with Amazon Alexa allows you to control your Smart Home Devices using Voice commands via Alexa enabled speakers. (E.g. Alexa, Turn on the Light)</string>
     <string name="verification_code_sent_instruction">Verification code sent to\n</string>
+    <string name="delete_user_msg_china_region">To delete account, please request on this email esp-rainmaker-admin@espressif.com</string>
 
     <!--    Schedule -->
     <string name="msg_schedule_added">Schedule created successfully</string>
@@ -419,6 +433,9 @@
     <string name="looking_for_qr_code">Looking for QR Code</string>
     <string name="position_camera_for_qr_code">Please position the camera to point at the QR Code.</string>
     <string name="app_version">App Version</string>
+    <string name="app_region">Region:</string>
+    <string name="china">China</string>
+    <string name="global">Global</string>
     <string name="enter_valid_value">Please enter valid value</string>
     <string name="password_change_success">Password has been changed</string>
     <string name="password_change_failure">Password change failed</string>

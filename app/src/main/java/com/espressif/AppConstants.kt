@@ -14,8 +14,6 @@
 
 package com.espressif
 
-import com.espressif.rainmaker.BuildConfig
-
 class AppConstants {
 
     companion object {
@@ -221,8 +219,8 @@ class AppConstants {
         const val URL_USER_NODE_STATUS = "/user/nodes/status"
         const val URL_USER_NODES_PARAMS = "/user/nodes/params"
 
-        const val URL_CLAIM_INITIATE = BuildConfig.CLAIM_BASE_URL + "/claim/initiate"
-        const val URL_CLAIM_VERIFY = BuildConfig.CLAIM_BASE_URL + "/claim/verify"
+        const val URL_CLAIM_INITIATE = "/claim/initiate"
+        const val URL_CLAIM_VERIFY = "/claim/verify"
         const val URL_USER_NODE_GROUP = "/user/node_group"
         const val URL_USER_NODES_SHARING_REQUESTS = "/user/nodes/sharing/requests"
         const val URL_USER_NODES_SHARING = "/user/nodes/sharing"
