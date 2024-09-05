@@ -155,8 +155,18 @@ android {
         buildConfigField "String", "USER_POOL", '"' + userPool + '"'
     }
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
     buildFeatures {
         viewBinding true
+        buildConfig = true
     }
 
     buildTypes {
@@ -201,76 +211,74 @@ dependencies {
 
     // Native libs
     implementation fileTree(dir: "third_party/connectedhomeip/libs", include: ["*.jar", "*.so"])
+    implementation fileTree(dir: "src/main/libs", include: ["*.aar"])
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+
+    implementation libs.appcompat
+    implementation libs.constraintlayout
+    implementation libs.recyclerview
+    implementation libs.swiperefreshlayout
+    implementation libs.browser
+    implementation libs.core.ktx
+    implementation libs.work.runtime
+
+    implementation libs.rxandroid
+    implementation libs.adapter.rxjava2
+    implementation libs.retrofit
+    implementation libs.converter.gson
+    implementation libs.logging.interceptor
+    implementation libs.gson
+
+    implementation libs.material
+    implementation libs.tink.android
+    implementation libs.protobuf.javalite
+
+    implementation libs.kotlinx.coroutines.android
+    implementation libs.kotlinx.coroutines.core
+    implementation libs.kotlinx.coroutines.rx2
+    implementation libs.kotlinx.coroutines.jdk8
+
+    // Firebase
+    implementation platform(libs.firebase.bom)
+    implementation libs.firebase.messaging
+    implementation libs.firebase.analytics
+    implementation libs.firebase.crashlytics
+    implementation libs.play.services.gcm
 
     // Connected Home
-    implementation "com.google.android.gms:play-services-base:18.2.0"
-    implementation "com.google.android.gms:play-services-home:16.0.0"
-    implementation 'com.google.android.gms:play-services-threadnetwork:16.0.0'
+    implementation libs.play.services.base
+    implementation libs.play.services.home
+    implementation libs.play.services.threadnetwork
 
-    implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation 'androidx.appcompat:appcompat:1.3.1'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.0'
-    implementation 'com.google.android.material:material:1.1.0'
-    implementation 'androidx.recyclerview:recyclerview:1.2.1'
-    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
-    implementation "androidx.browser:browser:1.3.0"
+    implementation libs.esp.idf.provisioning.android
+    implementation libs.code.scanner
+    implementation libs.mpandroidchart
+    implementation libs.tapholdupbutton
+    implementation libs.avloadingindicatorview
+    implementation libs.holocolorpicker
+    implementation libs.android.gif.drawable
+    implementation libs.android.segmented
+    implementation libs.eventbus
+    implementation libs.jnanoid
+    implementation libs.jwtdecode
+    implementation libs.commons.codec
 
-    implementation 'com.google.protobuf:protobuf-javalite:3.18.0'
-    implementation 'com.google.crypto.tink:tink-android:1.6.1'
+    //crypto
+    implementation libs.bcpkix.jdk15to18
+    implementation libs.bcprov.jdk15to18
 
-    implementation 'org.greenrobot:eventbus:3.3.1'
-    implementation 'com.auth0.android:jwtdecode:1.4.0'
-    implementation 'com.google.code.gson:gson:2.9.0'
-    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
-    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
-    implementation 'com.squareup.retrofit2:adapter-rxjava2:2.5.0'
-    implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
-    implementation 'com.squareup.okhttp3:logging-interceptor:4.9.0'
-
-    implementation 'com.github.firdausmaulan:AVLoadingIndicatorView:2.3.0'
-    implementation 'com.larswerkman:HoloColorPicker:1.5'
-    implementation 'com.aventrix.jnanoid:jnanoid:2.0.0'
-    implementation 'com.github.yuriy-budiyev:code-scanner:2.1.2'
-    implementation 'com.github.espressif:esp-idf-provisioning-android:lib-2.2.1'
-    implementation 'com.github.warkiz.tickseekbar:tickseekbar:0.1.4'
-    implementation 'com.github.abdularis:TapHoldUpButton:0.1.2'
-    implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
-    implementation 'info.hoang8f:android-segmented:1.0.6'
-    implementation 'pl.droidsonroids.gif:android-gif-drawable:1.2.25'
-    implementation 'androidx.core:core-ktx:1.8.0'
+    testImplementation libs.junit
+    androidTestImplementation libs.runner
+    androidTestImplementation libs.espresso.core
 
     // Room dependencies
     def room_version = "2.5.2"
     implementation "androidx.room:room-runtime:$room_version"
     kapt "androidx.room:room-compiler:$room_version"
 
-    def work_version = "2.7.1"
-    implementation "androidx.work:work-runtime:$work_version"
-
-    // Import the BoM for the Firebase platform
-    implementation platform('com.google.firebase:firebase-bom:30.0.0')
-    implementation 'com.google.firebase:firebase-messaging'
-    implementation 'com.google.firebase:firebase-analytics'
-    implementation 'com.google.firebase:firebase-crashlytics'
-    implementation 'com.google.android.gms:play-services-gcm:17.0.0'
-
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test:runner:1.5.2'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
-
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-rx2:1.5.2'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.5.2'
-    implementation 'commons-codec:commons-codec:1.16.0'
-
     // Hilt
     // https://dagger.dev/hilt/gradle-setup
     implementation 'com.google.dagger:hilt-android:2.44.2'
     implementation 'com.google.ar:core:1.35.0'
     kapt 'com.google.dagger:hilt-compiler:2.44.2'
-
-    //crypto
-    implementation "org.bouncycastle:bcpkix-jdk15to18:1.72"
-    implementation 'org.bouncycastle:bcprov-jdk15to18:1.72'
 }
