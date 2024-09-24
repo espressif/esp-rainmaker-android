@@ -1,0 +1,118 @@
+[versions]
+gradle = "8.4.2"
+kotlinGradlePlugin = "2.0.0"
+playServicesGcm = "17.0.0"
+protobufGradlePlugin = "0.9.1"
+googleServices = "4.4.2"
+firebaseCrashlyticsGradle = "2.9.9"
+hiltAndroidGradlePlugin = "2.42"
+
+appcompat = "1.3.1"
+recyclerview = "1.2.1"
+constraintlayout = "2.1.0"
+swiperefreshlayout = "1.1.0"
+browser = "1.3.0"
+coreKtx = "1.12.0"
+workRuntime = "2.7.1"
+
+rxandroid = "2.1.1"
+adapterRxjava2 = "2.5.0"
+retrofit = "2.9.0"
+loggingInterceptor = "4.9.0"
+gson = "2.9.0"
+
+material = "1.1.0"
+tinkAndroid = "1.6.1"
+protobufJavalite = "3.18.0"
+kotlinxCoroutinesAndroid = "1.5.2"
+firebaseBom = "30.0.0"
+
+playServicesBase = "18.2.0"
+playServicesHome = "16.0.0"
+
+espIdfProvisioningAndroid = "lib-2.2.1"
+codeScanner = "2.1.2"
+mpandroidchart = "v3.1.0"
+tapholdupbutton = "0.1.2"
+avloadingindicatorview = "2.3.0"
+holocolorpicker = "1.5"
+androidGifDrawable = "1.2.25"
+androidSegmented = "1.0.6"
+eventbus = "3.3.1"
+jnanoid = "2.0.0"
+jwtdecode = "1.4.0"
+commonsCodec = "1.16.0"
+
+bcpkixJdk15to18 = "1.72"
+
+junit = "4.13.2"
+runner = "1.5.2"
+espressoCore = "3.5.1"
+
+
+[libraries]
+gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinGradlePlugin" }
+play-services-gcm = { module = "com.google.android.gms:play-services-gcm", version.ref = "playServicesGcm" }
+protobuf-gradle-plugin = { module = "com.google.protobuf:protobuf-gradle-plugin", version.ref = "protobufGradlePlugin" }
+google-services = { module = "com.google.gms:google-services", version.ref = "googleServices" }
+firebase-crashlytics-gradle = { module = "com.google.firebase:firebase-crashlytics-gradle", version.ref = "firebaseCrashlyticsGradle" }
+hilt-android-gradle-plugin = { module = "com.google.dagger:hilt-android-gradle-plugin", version.ref = "hiltAndroidGradlePlugin" }
+
+appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
+constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefreshlayout" }
+browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
+core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+work-runtime = { group = "androidx.work", name = "work-runtime", version.ref = "workRuntime" }
+
+rxandroid = { group = "io.reactivex.rxjava2", name = "rxandroid", version.ref = "rxandroid" }
+adapter-rxjava2 = { group = "com.squareup.retrofit2", name = "adapter-rxjava2", version.ref = "adapterRxjava2" }
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "loggingInterceptor" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+tink-android = { group = "com.google.crypto.tink", name = "tink-android", version.ref = "tinkAndroid" }
+protobuf-javalite = { group = "com.google.protobuf", name = "protobuf-javalite", version.ref = "protobufJavalite" }
+
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesAndroid" }
+kotlinx-coroutines-jdk8 = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-jdk8", version.ref = "kotlinxCoroutinesAndroid" }
+kotlinx-coroutines-rx2 = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-rx2", version.ref = "kotlinxCoroutinesAndroid" }
+
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
+
+play-services-base = { group = "com.google.android.gms", name = "play-services-base", version.ref = "playServicesBase" }
+play-services-home = { group = "com.google.android.gms", name = "play-services-home", version.ref = "playServicesHome" }
+play-services-threadnetwork = { group = "com.google.android.gms", name = "play-services-threadnetwork", version.ref = "playServicesHome" }
+
+esp-idf-provisioning-android = { group = "com.github.espressif", name = "esp-idf-provisioning-android", version.ref = "espIdfProvisioningAndroid" }
+code-scanner = { group = "com.github.yuriy-budiyev", name = "code-scanner", version.ref = "codeScanner" }
+mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", version.ref = "mpandroidchart" }
+tapholdupbutton = { group = "com.github.abdularis", name = "TapHoldUpButton", version.ref = "tapholdupbutton" }
+avloadingindicatorview = { group = "com.github.firdausmaulan", name = "AVLoadingIndicatorView", version.ref = "avloadingindicatorview" }
+holocolorpicker = { group = "com.larswerkman", name = "HoloColorPicker", version.ref = "holocolorpicker" }
+android-gif-drawable = { group = "pl.droidsonroids.gif", name = "android-gif-drawable", version.ref = "androidGifDrawable" }
+android-segmented = { group = "info.hoang8f", name = "android-segmented", version.ref = "androidSegmented" }
+eventbus = { group = "org.greenrobot", name = "eventbus", version.ref = "eventbus" }
+jnanoid = { group = "com.aventrix.jnanoid", name = "jnanoid", version.ref = "jnanoid" }
+jwtdecode = { group = "com.auth0.android", name = "jwtdecode", version.ref = "jwtdecode" }
+commons-codec = { group = "commons-codec", name = "commons-codec", version.ref = "commonsCodec" }
+
+bcpkix-jdk15to18 = { group = "org.bouncycastle", name = "bcpkix-jdk15to18", version.ref = "bcpkixJdk15to18" }
+bcprov-jdk15to18 = { group = "org.bouncycastle", name = "bcprov-jdk15to18", version.ref = "bcpkixJdk15to18" }
+
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+runner = { group = "androidx.test", name = "runner", version.ref = "runner" }
+espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+
+[plugins]
+#android-application = { id = "com.android.application", version.ref = "agp" }
+#jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+
