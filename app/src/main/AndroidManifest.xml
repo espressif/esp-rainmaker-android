@@ -65,6 +65,22 @@
         </activity>
 
         <activity
+            android:name=".wxapi.WXEntryActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.espressif.rainmaker">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="wxcced7aa3898dff73" /> <!-- Replace with your AppID -->
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name="com.espressif.ui.activities.MainActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
             android:exported="true"
@@ -349,10 +365,19 @@
             android:name="com.google.ar.core"
             android:value="optional" />
 
+        <receiver
+            android:name="com.espressif.AppRegister"
+            android:exported="true"
+            android:permission="com.tencent.mm.plugin.permission.SEND">
+            <intent-filter>
+                <action android:name="com.tencent.mm.plugin.openapi.Intent.ACTION_REFRESH_WXAPP" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
-    <!--    <queries>-->
-    <!--        <package android:name="com.google.ar.core" />-->
-    <!--    </queries>-->
+    <queries>
+        <package android:name="com.tencent.mm" />
+    </queries>
 
 </manifest>

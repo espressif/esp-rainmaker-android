@@ -52,6 +52,38 @@
                 android:textIsSelectable="true"
                 android:textSize="15sp" />
 
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="@dimen/margin_8">
+
+                <TextView
+                    android:id="@+id/tv_app_region_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:lineSpacingExtra="6sp"
+                    android:text="@string/app_region"
+                    android:textColor="@color/colorPrimaryDark"
+                    android:textSize="16sp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/tv_app_region"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="3dp"
+                    android:layout_marginTop="1dp"
+                    android:layout_marginBottom="1dp"
+                    android:lineSpacingExtra="5sp"
+                    android:textColor="@color/colorPrimaryDark"
+                    android:textSize="16sp"
+                    app:layout_constraintStart_toEndOf="@id/tv_app_region_label"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
         </LinearLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout

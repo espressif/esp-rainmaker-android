@@ -16,7 +16,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_esp_splash"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/layout_terms_condition"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -27,7 +27,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/margin_24"
             android:orientation="horizontal"
-            app:layout_constraintBottom_toTopOf="@id/btn_proceed"
+            app:layout_constraintBottom_toTopOf="@id/layout_links"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
@@ -50,6 +50,40 @@
                 android:textColor="@color/color_text" />
 
         </RelativeLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/layout_links"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/margin_24"
+            app:layout_constraintBottom_toTopOf="@id/btn_proceed"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <TextView
+                android:id="@+id/tv_privacy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColorLink="@color/colorPrimary"
+                android:textSize="14sp"
+                android:text="@string/privacy_policy"
+                app:layout_constraintEnd_toStartOf="@+id/tv_terms_of_use"
+                app:layout_constraintHorizontal_chainStyle="spread_inside"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/tv_terms_of_use"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColorLink="@color/colorPrimary"
+                android:textSize="14sp"
+                android:text="@string/terms_of_use"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/tv_privacy"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <include
             android:id="@+id/btn_proceed"

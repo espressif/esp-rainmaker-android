@@ -235,7 +235,9 @@ public class AutomationFragment extends Fragment {
         }
 
         automationAdapter.updateList(automations);
-        ((EspMainActivity) getActivity()).updateActionBar();
+        if (getActivity() != null && !getActivity().isFinishing()) {
+            ((EspMainActivity) getActivity()).updateActionBar();
+        }
     }
 
     private void loadAutomations() {

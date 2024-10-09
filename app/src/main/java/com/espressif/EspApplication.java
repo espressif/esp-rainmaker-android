@@ -127,6 +127,7 @@ public class EspApplication extends Application {
     private KeyStore keyStore = null;
 
     public String mGroupId, mFabricId, mRootCa, mIpk, groupCatIdOperate;
+    public static boolean loggedInUsingWeChat = false;
 
     public enum AppState {
         NO_USER_LOGIN,
@@ -161,9 +162,13 @@ public class EspApplication extends Application {
             mdnsManager = mDNSManager.getInstance(getApplicationContext(), AppConstants.MDNS_SERVICE_TYPE, listener);
         }
 
-        if (Utils.isPlayServicesAvailable(getApplicationContext())) {
-            FirebaseMessaging.getInstance().setAutoInitEnabled(false);
-            setupNotificationChannels();
+        if (BuildConfig.isChinaRegion) {
+            BASE_URL = BuildConfig.CHINA_BASE_URL;
+        } else {
+            if (Utils.isPlayServicesAvailable(getApplicationContext())) {
+                FirebaseMessaging.getInstance().setAutoInitEnabled(false);
+                setupNotificationChannels();
+            }
         }
     }
 
@@ -1008,6 +1013,7 @@ public class EspApplication extends Application {
         localDeviceMap.clear();
         groupMap.clear();
         automations.clear();
+        loggedInUsingWeChat = false;
     }
 
     public void startLocalDeviceDiscovery() {

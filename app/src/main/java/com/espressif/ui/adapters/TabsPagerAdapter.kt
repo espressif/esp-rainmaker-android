@@ -20,6 +20,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentPagerAdapter
 
+import com.espressif.rainmaker.BuildConfig
 import com.espressif.rainmaker.R
 import com.espressif.ui.fragments.LoginFragment
 import com.espressif.ui.fragments.SignUpFragment
@@ -31,6 +32,10 @@ class TabsPagerAdapter(val context: Context, fm: FragmentManager) : FragmentPage
 
     override fun getCount(): Int {
         // Show 2 pages.
+
+        if (BuildConfig.isChinaRegion) {
+            return 1
+        }
         return 2
     }
 

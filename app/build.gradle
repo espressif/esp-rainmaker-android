@@ -2,7 +2,6 @@ plugins {
     id 'com.android.application'
     id 'com.google.protobuf'
     id 'com.google.gms.google-services'
-    id 'com.google.firebase.crashlytics'
     id 'kotlin-android'
     id 'org.jetbrains.kotlin.android'
     id "dagger.hilt.android.plugin"
@@ -45,8 +44,23 @@ def defaultTermsOfUseUrl = "https://rainmaker.espressif.com/docs/terms-of-use.ht
 def defaultUserPool = "2"
 def matterBuild = false
 
+def defaultChinaBaseUrl = "https://api2.rainmaker.espressif.com.cn"
+def defaultChinaAuthUrl = "https://api2.rainmaker.espressif.com.cn"
+def defaultChinaClientId = "6m3FgmvJSt4g6pDrHgfpYj"
+def defaultChinaClaimBaseUrl = "https://claiming.rainmaker.espressif.com.cn"
+def defaultChinaPrivacyUrl = "https://rainmaker.espressif.com/zh-hans/docs/privacy-policy-cn/"
+def defaultChinaTermsOfUseUrl = "https://rainmaker.espressif.com/zh-hans/docs/terms-of-use-cn/"
+
+// Please configure WeChat App id to support WeChat login for China region
+def weChatIdForLogin = "your_we_chat_id"
+
 def localProperties = new Properties()
 localProperties.load(new FileInputStream(rootProject.file("local.properties")))
+
+// Conditional plugin
+if (localProperties.getProperty("isChinaRegion", "false") != "true") {
+    apply plugin: 'com.google.firebase.crashlytics'
+}
 
 android {
 
@@ -56,8 +70,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 27
         targetSdkVersion 34
-        versionCode 130
-        versionName "3.4.2 - ${getGitHash()}"
+        versionCode 132
+        versionName "3.5.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -129,6 +143,19 @@ android {
         buildConfigField "String", "TOKEN_URL", '"' + authUrl + "/token" + '"'
         buildConfigField "String", "REDIRECT_URI", '"' + redirectUri + '"'
 
+        def chinaClientId = localProperties.getProperty("chinaClientId", defaultChinaClientId)
+        def chinaAuthUrl = localProperties.getProperty("chinaAuthUrl", defaultChinaAuthUrl)
+
+        buildConfigField "boolean", "isChinaRegion", localProperties.getProperty("isChinaRegion", "false")
+        buildConfigField "String", "CHINA_WE_CHAT_APP_ID", '"' + localProperties.getProperty("weChatId", weChatIdForLogin) + '"'
+        buildConfigField "String", "CHINA_BASE_URL", '"' + localProperties.getProperty("chinaBaseUrl", defaultChinaBaseUrl) + '"'
+        buildConfigField "String", "CHINA_AUTH_URL", '"' + chinaAuthUrl + '"'
+        buildConfigField "String", "CHINA_TOKEN_URL", '"' + chinaAuthUrl + "/token" + '"'
+        buildConfigField "String", "CHINA_CLIENT_ID", '"' + chinaClientId + '"'
+        buildConfigField "String", "CHINA_CLAIM_BASE_URL", '"' + localProperties.getProperty("chinaClaimBaseUrl", defaultChinaClaimBaseUrl) + '"'
+        buildConfigField "String", "CHINA_PRIVACY_URL", '"' + localProperties.getProperty("chinaPrivacyUrl", defaultChinaPrivacyUrl) + '"'
+        buildConfigField "String", "CHINA_TERMS_URL", '"' + localProperties.getProperty("chinaTermsOfUseUrl", defaultChinaTermsOfUseUrl) + '"'
+
         def gitHubUrl = authUrl + "/authorize?identity_provider=" + gitHubIdentityProvider +
                 "&redirect_uri=" + redirectUri + "&response_type=CODE&client_id=" + clientId
         def googleUrl = authUrl + "/authorize?identity_provider=" + googleIdentityProvider +
@@ -189,6 +216,10 @@ android {
         }
     }
 
+    lintOptions {
+        disable 'UnspecifiedImmutableFlag'
+    }
+
     namespace 'com.espressif.rainmaker'
 }
 
@@ -241,9 +272,12 @@ dependencies {
     // Firebase
     implementation platform(libs.firebase.bom)
     implementation libs.firebase.messaging
-    implementation libs.firebase.analytics
-    implementation libs.firebase.crashlytics
     implementation libs.play.services.gcm
+
+    if (localProperties.getProperty("isChinaRegion", "false") != "true") {
+        implementation libs.firebase.analytics
+        implementation libs.firebase.crashlytics
+    }
 
     // Connected Home
     implementation libs.play.services.base
@@ -266,6 +300,8 @@ dependencies {
     //crypto
     implementation libs.bcpkix.jdk15to18
     implementation libs.bcprov.jdk15to18
+
+    implementation libs.wechat.sdk.android.without.mta
 
     testImplementation libs.junit
     androidTestImplementation libs.runner

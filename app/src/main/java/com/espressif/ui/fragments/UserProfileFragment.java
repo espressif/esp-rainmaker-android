@@ -112,7 +112,11 @@ public class UserProfileFragment extends Fragment {
             userInfoList.add(getString(R.string.title_activity_sharing_requests));
         }
         userInfoList.add(getString(R.string.title_activity_group_sharing_requests));
-        userInfoList.add(getString(R.string.voice_services));
+
+        if (!BuildConfig.isChinaRegion) {
+            userInfoList.add(getString(R.string.voice_services));
+        }
+
         userInfoList.add(getString(R.string.title_activity_about));
         userInfoAdapter = new UserProfileAdapter(getActivity(), userInfoList, 0);
         rvUserInfo.setAdapter(userInfoAdapter);

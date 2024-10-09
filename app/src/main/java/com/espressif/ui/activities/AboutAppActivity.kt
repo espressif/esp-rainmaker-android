@@ -24,6 +24,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import com.espressif.rainmaker.BuildConfig
 import com.espressif.rainmaker.R
 import com.espressif.rainmaker.databinding.ActivityAboutBinding
+import com.espressif.ui.Utils
 
 class AboutAppActivity : AppCompatActivity() {
 
@@ -43,6 +44,7 @@ class AboutAppActivity : AppCompatActivity() {
 
         setToolbar()
         setAppVersion()
+        setRegion()
         setUrls()
     }
 
@@ -68,6 +70,13 @@ class AboutAppActivity : AppCompatActivity() {
         binding.tvAppVersion.text = version
     }
 
+    private fun setRegion() {
+        // Set app region
+        val region =
+            if (BuildConfig.isChinaRegion) getString(R.string.china) else getString(R.string.global)
+        binding.tvAppRegion.text = region
+    }
+
     private fun setUrls() {
         // Set documentation URL
         binding.tvDocumentation.movementMethod = LinkMovementMethod.getInstance()
@@ -78,13 +87,13 @@ class AboutAppActivity : AppCompatActivity() {
         // Set privacy URL
         binding.tvPrivacy.movementMethod = LinkMovementMethod.getInstance()
         val privacyUrl =
-            ANCHOR_TAG_START + BuildConfig.PRIVACY_URL + URL_TAG_END + getString(R.string.privacy_policy) + ANCHOR_TAG_END
+            ANCHOR_TAG_START + Utils.getPrivacyUrl() + URL_TAG_END + getString(R.string.privacy_policy) + ANCHOR_TAG_END
         binding.tvPrivacy.text = Html.fromHtml(privacyUrl)
 
         // Set terms of use URL
         binding.tvTermsCondition.movementMethod = LinkMovementMethod.getInstance()
         val termsUrl =
-            ANCHOR_TAG_START + BuildConfig.TERMS_URL + URL_TAG_END + getString(R.string.terms_of_use) + ANCHOR_TAG_END
+            ANCHOR_TAG_START + Utils.getTermsOfUseUrl() + URL_TAG_END + getString(R.string.terms_of_use) + ANCHOR_TAG_END
         binding.tvTermsCondition.text = Html.fromHtml(termsUrl)
     }
 }

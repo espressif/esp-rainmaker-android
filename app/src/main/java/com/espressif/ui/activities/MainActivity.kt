@@ -67,6 +67,13 @@ class MainActivity : AppCompatActivity() {
         binding.ivTitle.setOnClickListener { rmLogoClicked() }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (BuildConfig.isChinaRegion && EspApplication.loggedInUsingWeChat) {
+            launchHomeScreen()
+        }
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         Log.d(TAG, "On activity result")
         if (requestCode == SIGN_UP_CONFIRM_ACTIVITY_REQUEST) {

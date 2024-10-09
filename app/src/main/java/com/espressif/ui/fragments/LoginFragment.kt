@@ -36,6 +36,9 @@ import com.espressif.rainmaker.databinding.FragmentLoginBinding
 import com.espressif.ui.Utils
 import com.espressif.ui.activities.MainActivity
 import com.espressif.ui.user_module.ForgotPasswordActivity
+import com.tencent.mm.opensdk.modelmsg.SendAuth
+import com.tencent.mm.opensdk.openapi.IWXAPI
+import com.tencent.mm.opensdk.openapi.WXAPIFactory
 
 class LoginFragment : Fragment(R.layout.fragment_login) {
 
@@ -53,6 +56,8 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
 
     private var email: String? = null
     private var password: String? = null
+
+    private lateinit var api: IWXAPI
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -139,6 +144,30 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
         setLinks()
         setAppVersion()
 
+        if (BuildConfig.isChinaRegion) {
+
+            binding.btnLoginWithWeChat.layoutBtn.visibility = View.VISIBLE
+            binding.btnLoginWithWeChat.ivOauth.setImageResource(R.drawable.ic_we_chat)
+            binding.btnLoginWithWeChat.textBtn.text = getString(R.string.btn_we_chat)
+            binding.btnLoginWithGoogle.layoutBtn.visibility = View.GONE
+            binding.btnLoginWithGithub.layoutBtnGithub.visibility = View.GONE
+            binding.tvUseEmailId.visibility = View.GONE
+            binding.etEmail.visibility = View.GONE
+            binding.layoutPassword.visibility = View.GONE
+            binding.btnLogin.layoutBtn.visibility = View.GONE
+            binding.tvForgotPassword.visibility = View.GONE
+
+            api = WXAPIFactory.createWXAPI(
+                activity, BuildConfig.CHINA_WE_CHAT_APP_ID,
+                true
+            )
+
+            api.registerApp(BuildConfig.CHINA_WE_CHAT_APP_ID)
+
+        } else {
+            binding.btnLoginWithWeChat.layoutBtn.visibility = View.GONE
+        }
+
         binding.btnLogin.textBtn.text = getString(R.string.btn_login)
         binding.btnLogin.layoutBtn.setOnClickListener { signInUser() }
 
@@ -156,6 +185,10 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
             val uri = Uri.parse(uriStr)
             val openURL = Intent(Intent.ACTION_VIEW, uri)
             startActivity(openURL)
+        }
+
+        binding.btnLoginWithWeChat.layoutBtn.setOnClickListener {
+            loginUsingWeChat()
         }
 
         binding.tvForgotPassword.setOnClickListener {
@@ -180,13 +213,13 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
         // Set privacy URL
         binding.tvPrivacy.movementMethod = LinkMovementMethod.getInstance()
         val privacyUrl =
-            ANCHOR_TAG_START + BuildConfig.PRIVACY_URL + URL_TAG_END + getString(R.string.privacy_policy) + ANCHOR_TAG_END
+            ANCHOR_TAG_START + Utils.getPrivacyUrl() + URL_TAG_END + getString(R.string.privacy_policy) + ANCHOR_TAG_END
         binding.tvPrivacy.text = Html.fromHtml(privacyUrl)
 
         // Set terms of use URL
         binding.tvTermsCondition.movementMethod = LinkMovementMethod.getInstance()
         val termsUrl =
-            ANCHOR_TAG_START + BuildConfig.TERMS_URL + URL_TAG_END + getString(R.string.terms_of_use) + ANCHOR_TAG_END
+            ANCHOR_TAG_START + Utils.getTermsOfUseUrl() + URL_TAG_END + getString(R.string.terms_of_use) + ANCHOR_TAG_END
         binding.tvTermsCondition.text = Html.fromHtml(termsUrl)
     }
 
@@ -222,6 +255,25 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
             return
         }
         (activity as MainActivity?)!!.signInUser(email, password)
+    }
+
+    fun loginUsingWeChat() {
+        Log.d(TAG, "WeChat Login function called")
+        if (!api.isWXAppInstalled()) {
+            Log.e(TAG, "WeChat is not installed.")
+            Toast.makeText(
+                activity,
+                getString(R.string.error_wechat_app_not_installed),
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        val req = SendAuth.Req()
+        req.scope = "snsapi_userinfo"
+        req.state = "wechat_sdk_demo"
+        val success = api.sendReq(req)
+        Log.d(TAG, "WeChat login success : $success")
     }
 
     fun showGitHubLoginLoading() {

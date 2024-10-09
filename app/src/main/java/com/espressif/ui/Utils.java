@@ -582,4 +582,18 @@ public class Utils {
         }
         return sb.toString();
     }
+
+    public static String getPrivacyUrl() {
+        if (BuildConfig.isChinaRegion) {
+            return BuildConfig.CHINA_PRIVACY_URL;
+        }
+        return BuildConfig.PRIVACY_URL;
+    }
+
+    public static String getTermsOfUseUrl() {
+        if (BuildConfig.isChinaRegion) {
+            return BuildConfig.CHINA_TERMS_URL;
+        }
+        return BuildConfig.TERMS_URL;
+    }
 }

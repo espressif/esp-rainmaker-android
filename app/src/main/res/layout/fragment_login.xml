@@ -8,8 +8,8 @@
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_alignParentTop="true"
         android:layout_above="@id/layout_links"
+        android:layout_alignParentTop="true"
         android:fitsSystemWindows="true">
 
         <androidx.core.widget.NestedScrollView
@@ -46,6 +46,16 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/btn_login_with_github" />
 
+                <include
+                    android:id="@+id/btn_login_with_we_chat"
+                    layout="@layout/btn_google"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/margin_16"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/btn_login_with_google" />
+
                 <TextView
                     android:id="@+id/tv_use_email_id"
                     android:layout_width="wrap_content"
@@ -57,7 +67,7 @@
                     android:textSize="14sp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/btn_login_with_google" />
+                    app:layout_constraintTop_toBottomOf="@id/btn_login_with_we_chat" />
 
                 <EditText
                     android:id="@+id/et_email"
@@ -82,8 +92,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    app:boxBackgroundMode="none"
                     android:background="@drawable/bg_edit_text"
+                    app:boxBackgroundMode="none"
                     app:hintEnabled="false"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
@@ -141,17 +151,17 @@
         android:id="@+id/layout_links"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:layout_alignParentBottom="true"
         android:layout_marginStart="@dimen/margin_32"
-        android:layout_marginEnd="@dimen/margin_32"
         android:layout_marginTop="@dimen/margin_16"
-        android:layout_marginBottom="@dimen/margin_8">
+        android:layout_marginEnd="@dimen/margin_32"
+        android:layout_marginBottom="@dimen/margin_8"
+        android:orientation="vertical">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/margin_8" >
+            android:layout_marginBottom="@dimen/margin_8">
 
             <TextView
                 android:id="@+id/tv_documentation"
@@ -196,7 +206,7 @@
             android:lineSpacingExtra="6sp"
             android:text="App Version : v1.0"
             android:textColor="@color/colorPrimaryDark"
-            android:textSize="11sp"/>
+            android:textSize="11sp" />
 
     </LinearLayout>
 
