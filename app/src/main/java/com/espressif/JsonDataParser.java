@@ -302,8 +302,8 @@ public class JsonDataParser {
         espNode.setServices(services);
 
         // Attributes
-        JSONArray nodeAttributesJson = infoObj.optJSONArray(AppConstants.KEY_ATTRIBUTES);
         ArrayList<Param> nodeAttributes = new ArrayList<>();
+        JSONArray nodeAttributesJson = (infoObj != null) ? infoObj.optJSONArray(AppConstants.KEY_ATTRIBUTES) : null;
 
         if (nodeAttributesJson != null) {
 
