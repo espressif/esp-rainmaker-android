@@ -720,7 +720,7 @@ public class EspDeviceActivity extends AppCompatActivity {
 
                 if (espApp.getAppState().equals(EspApplication.AppState.GET_DATA_SUCCESS)) {
                     rlNodeStatus.setVisibility(View.VISIBLE);
-                    tvNodeStatus.setText(R.string.status_remote);
+                    tvNodeStatus.setText(R.string.status_controller);
                 } else {
                     rlNodeStatus.setVisibility(View.INVISIBLE);
                 }

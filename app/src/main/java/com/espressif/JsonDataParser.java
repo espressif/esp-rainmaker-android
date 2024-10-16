@@ -787,6 +787,7 @@ public class JsonDataParser {
         if (espApp.controllerDevices.containsKey(controllerNodeId)) {
 
             HashMap<String, String> matterOnlyDevices = espApp.controllerDevices.get(controllerNodeId);
+            boolean isControllerOnline = espApp.nodeMap.get(controllerNodeId).isOnline();
 
             for (Map.Entry<String, String> controllerDevice : matterOnlyDevices.entrySet()) {
                 String matterDeviceId = controllerDevice.getKey();
@@ -809,7 +810,7 @@ public class JsonDataParser {
                                         int nodeStatus = remoteNode.getNodeStatus();
                                         if (nodeStatus != AppConstants.NODE_STATUS_MATTER_LOCAL && nodeStatus != AppConstants.NODE_STATUS_LOCAL) {
 
-                                            if (enabled && reachable) {
+                                            if (enabled && reachable && isControllerOnline) {
                                                 Log.d(TAG, "Set Node status to remotely controllable for node id : " + rmNodeId);
                                                 remoteNode.setNodeStatus(AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE);
                                             }

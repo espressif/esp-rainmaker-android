@@ -1695,8 +1695,9 @@ public class ApiManager {
 
             for (Map.Entry<String, HashMap<String, String>> entry : espApp.controllerDevices.entrySet()) {
 
-                String key = entry.getKey();
+                String controllerNodeId = entry.getKey();
                 HashMap<String, String> controllerDevices = entry.getValue();
+                boolean isControllerOnline = espApp.nodeMap.get(controllerNodeId).isOnline();
 
                 if (controllerDevices.containsKey(matterNodeId)) {
                     String jsonStr = controllerDevices.get(matterNodeId);
@@ -1706,7 +1707,7 @@ public class ApiManager {
                             boolean enabled = deviceJson.optBoolean(AppConstants.KEY_ENABLED);
                             boolean reachable = deviceJson.optBoolean(AppConstants.KEY_REACHABLE);
 
-                            if (enabled && reachable) {
+                            if (enabled && reachable && isControllerOnline) {
                                 espNode.setNodeStatus(AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE);
                             }
                         } catch (JSONException e) {

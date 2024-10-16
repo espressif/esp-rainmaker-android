@@ -527,7 +527,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE:
                 deviceVh.llOffline.setVisibility(View.VISIBLE);
                 deviceVh.ivOffline.setVisibility(View.GONE);
-                deviceVh.tvOffline.setText(R.string.status_remote);
+                deviceVh.tvOffline.setText(R.string.status_controller);
                 deviceVh.tvOffline.setTextColor(context.getColor(R.color.colorPrimaryDark));
                 break;
 
