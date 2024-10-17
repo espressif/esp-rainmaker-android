@@ -565,6 +565,7 @@ public class EspApplication extends Application {
 
             String controllerNodeId = entry.getKey();
             HashMap<String, String> matterOnlyDevices = entry.getValue();
+            boolean isControllerOnline = nodeMap.get(controllerNodeId).isOnline();
 
             for (Map.Entry<String, String> controllerDevice : matterOnlyDevices.entrySet()) {
                 String matterDeviceId = controllerDevice.getKey();
@@ -584,7 +585,8 @@ public class EspApplication extends Application {
                                         String rmNodeId = matterDevice.getKey();
                                         if (nodeMap.containsKey(rmNodeId)) {
                                             int nodeStatus = nodeMap.get(rmNodeId).getNodeStatus();
-                                            if (nodeStatus != AppConstants.NODE_STATUS_MATTER_LOCAL && nodeStatus != AppConstants.NODE_STATUS_LOCAL) {
+                                            if (nodeStatus != AppConstants.NODE_STATUS_MATTER_LOCAL && nodeStatus != AppConstants.NODE_STATUS_LOCAL
+                                                    && isControllerOnline) {
                                                 Log.d(TAG, "Set Node status to remotely controllable for node id : " + rmNodeId);
                                                 nodeMap.get(rmNodeId).setNodeStatus(AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE);
                                             }

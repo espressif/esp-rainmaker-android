@@ -578,4 +578,6 @@
 
     <item name="position" type="id" />
 
+    <string name="status_controller">Controller</string>
+
 </resources>
