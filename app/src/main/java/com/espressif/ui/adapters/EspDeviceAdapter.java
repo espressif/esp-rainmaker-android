@@ -188,7 +188,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
                                                         if (AppConstants.PARAM_TYPE_MATTER_DEVICES.equals(deviceParam.getParamType())) {
 
                                                             if (status) {
-                                                                apiHelper.callOffAPI(entry.getKey(), finalMatterNodeId, deviceParam.getName(), controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1, new ApiResponseListener() {
+                                                                apiHelper.callOffAPI(entry.getKey(), finalMatterNodeId, deviceParam.getName(), controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1_HEX, new ApiResponseListener() {
                                                                     @Override
                                                                     public void onSuccess(@Nullable Bundle data) {
                                                                         param.setSwitchStatus(!status);
@@ -205,7 +205,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
                                                                     }
                                                                 });
                                                             } else {
-                                                                apiHelper.callOnAPI(entry.getKey(), finalMatterNodeId, deviceParam.getName(), controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1, new ApiResponseListener() {
+                                                                apiHelper.callOnAPI(entry.getKey(), finalMatterNodeId, deviceParam.getName(), controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1_HEX, new ApiResponseListener() {
                                                                     @Override
                                                                     public void onSuccess(@Nullable Bundle data) {
                                                                         param.setSwitchStatus(!status);
@@ -527,7 +527,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE:
                 deviceVh.llOffline.setVisibility(View.VISIBLE);
                 deviceVh.ivOffline.setVisibility(View.GONE);
-                deviceVh.tvOffline.setText(R.string.status_controller);
+                deviceVh.tvOffline.setText(R.string.status_remote);
                 deviceVh.tvOffline.setTextColor(context.getColor(R.color.colorPrimaryDark));
                 break;
 

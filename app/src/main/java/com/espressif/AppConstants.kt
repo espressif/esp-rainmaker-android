@@ -491,6 +491,7 @@ class AppConstants {
         const val COMMAND_UPDATE_DEVICE_LIST = 4L
 
         const val CAT_ID_PREFIX = "FFFFFFFD"
+        const val CONTROLLER_DATA_VERSION = "1.0.1"
 
         const val PRIVILEGE_ADMIN = 5
         const val PRIVILEGE_OPERATE = 3
@@ -500,6 +501,8 @@ class AppConstants {
         const val NODE_STATUS_LOCAL = 3;
         const val NODE_STATUS_MATTER_LOCAL = 4;
         const val NODE_STATUS_REMOTELY_CONTROLLABLE = 5;
+
+        const val HEX_PREFIX = "0x"
 
         enum class UpdateEventType {
             EVENT_DEVICE_ADDED,

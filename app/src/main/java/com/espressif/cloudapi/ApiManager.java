@@ -1187,6 +1187,11 @@ public class ApiManager {
                                             espApp.nodeMap.put(nodeId, espNode);
                                         }
 
+                                        // Node Status
+                                        JSONObject statusJson = nodeJson.optJSONObject(AppConstants.KEY_STATUS);
+                                        setDeviceConnectivity(nodeId, espNode, statusJson);
+                                        espDatabase.getNodeDao().insertOrUpdate(espNode);
+
                                         // Node Params values
                                         JSONObject paramsJson = nodeJson.optJSONObject(AppConstants.KEY_PARAMS);
                                         if (paramsJson != null) {
@@ -1565,7 +1570,7 @@ public class ApiManager {
 
                                                                 if (!TextUtils.isEmpty(type) && AppConstants.PARAM_TYPE_MATTER_CTRL_DATA_VERSION.equals(type)) {
 
-                                                                    controllerParam.setLabelValue(timeJson.optString(controllerParam.getName()));
+                                                                    controllerParam.setLabelValue(controllerJson.optString(controllerParam.getName()));
 
                                                                 } else if (!TextUtils.isEmpty(type) && AppConstants.PARAM_TYPE_MATTER_DEVICES.equals(type)) {
 
@@ -1595,11 +1600,6 @@ public class ApiManager {
                                                 Log.e(TAG, "Matter controller JSON is not available");
                                             }
                                         }
-
-                                        // Node Status
-                                        JSONObject statusJson = nodeJson.optJSONObject(AppConstants.KEY_STATUS);
-                                        setDeviceConnectivity(nodeId, espNode, statusJson);
-                                        espDatabase.getNodeDao().insertOrUpdate(espNode);
                                     }
                                 }
                             }

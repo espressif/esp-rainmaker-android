@@ -699,7 +699,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                                                     if (AppConstants.PARAM_TYPE_MATTER_DEVICES.equals(deviceParam.getParamType())) {
 
                                                         apiHelper.callBrightnessAPI(entry.getKey(), matterNodeId, deviceParam.getName(),
-                                                                controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1, lastProgressValue, new ApiResponseListener() {
+                                                                controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1_HEX, lastProgressValue, new ApiResponseListener() {
                                                                     @Override
                                                                     public void onSuccess(@Nullable Bundle data) {
                                                                     }
@@ -916,7 +916,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                                                 if (AppConstants.PARAM_TYPE_MATTER_DEVICES.equals(deviceParam.getParamType())) {
 
                                                     if (isChecked) {
-                                                        apiHelper.callOnAPI(entry.getKey(), matterNodeId, deviceParam.getName(), controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1, new ApiResponseListener() {
+                                                        apiHelper.callOnAPI(entry.getKey(), matterNodeId, deviceParam.getName(), controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1_HEX, new ApiResponseListener() {
                                                             @Override
                                                             public void onSuccess(@Nullable Bundle data) {
                                                             }
@@ -930,7 +930,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                                                             }
                                                         });
                                                     } else {
-                                                        apiHelper.callOffAPI(entry.getKey(), matterNodeId, deviceParam.getName(), controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1, new ApiResponseListener() {
+                                                        apiHelper.callOffAPI(entry.getKey(), matterNodeId, deviceParam.getName(), controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1_HEX, new ApiResponseListener() {
                                                             @Override
                                                             public void onSuccess(@Nullable Bundle data) {
                                                             }
