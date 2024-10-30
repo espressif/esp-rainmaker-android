@@ -576,6 +576,7 @@
     <string-array name="prov_transport_types">
         <item>BLE</item>
         <item>SoftAP</item>
+        <item>Matter</item>
     </string-array>
 
     <item name="position" type="id" />

@@ -56,6 +56,7 @@ import com.espressif.JsonDataParser;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.db.EspDatabase;
+import com.espressif.matter.GroupSelectionActivity;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
@@ -845,6 +846,15 @@ public class EspMainActivity extends AppCompatActivity {
                         Utils.createESPDevice(getApplicationContext(), ESPConstants.TransportType.TRANSPORT_SOFTAP, securityType);
                         goToWiFiProvisionLanding(securityType);
                         break;
+
+                    case 2:
+                        if (Utils.isPlayServicesAvailable(getApplicationContext())) {
+                            goToGroupSelectionActivity("");
+                        } else {
+                            Log.e(TAG, "Google Play Services not available.");
+                            Utils.showPlayServicesWarning(EspMainActivity.this);
+                        }
+                        break;
                 }
                 dialog.dismiss();
             }
@@ -863,6 +873,13 @@ public class EspMainActivity extends AppCompatActivity {
 
         Intent intent = new Intent(getApplicationContext(), ProvisionLanding.class);
         intent.putExtra(AppConstants.KEY_SECURITY_TYPE, securityType);
+        startActivity(intent);
+    }
+
+    private void goToGroupSelectionActivity(String qrCodeData) {
+
+        Intent intent = new Intent(getApplicationContext(), GroupSelectionActivity.class);
+        intent.putExtra(AppConstants.KEY_ON_BOARD_PAYLOAD, qrCodeData);
         startActivity(intent);
     }
 

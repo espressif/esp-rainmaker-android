@@ -17,6 +17,7 @@ package com.espressif.matter
 import android.app.Activity
 import android.content.ComponentName
 import android.os.Bundle
+import android.text.TextUtils
 import android.util.Log
 import android.view.View
 import android.widget.Toast
@@ -204,18 +205,33 @@ class GroupSelectionActivity : AppCompatActivity() {
 
     public fun commissionDevice() {
         var payload: String? = intent.getStringExtra(AppConstants.KEY_ON_BOARD_PAYLOAD)
-        Log.e(TAG, "OnboardPayload : $payload")
+        Log.d(TAG, "OnboardPayload : $payload")
+        var commissionDeviceRequest: CommissioningRequest
 
-        val commissionDeviceRequest =
-            CommissioningRequest.builder()
-                .setOnboardingPayload(payload)
-                .setCommissioningService(
-                    ComponentName(
-                        this,
-                        AppCommissioningService::class.java
+        if (TextUtils.isEmpty(payload)) {
+
+            commissionDeviceRequest =
+                CommissioningRequest.builder()
+                    .setCommissioningService(
+                        ComponentName(
+                            this,
+                            AppCommissioningService::class.java
+                        )
                     )
-                )
-                .build()
+                    .build()
+
+        } else {
+            commissionDeviceRequest =
+                CommissioningRequest.builder()
+                    .setOnboardingPayload(payload)
+                    .setCommissioningService(
+                        ComponentName(
+                            this,
+                            AppCommissioningService::class.java
+                        )
+                    )
+                    .build()
+        }
 
         // The call to commissionDevice() creates the IntentSender that will eventually be launched
         // in the fragment to trigger the commissioning activity in GPS.
