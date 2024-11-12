@@ -586,6 +586,15 @@ public class AddDeviceActivity extends AppCompatActivity {
                         Utils.createESPDevice(getApplicationContext(), ESPConstants.TransportType.TRANSPORT_SOFTAP, securityType);
                         goToWiFiProvisionLanding(securityType);
                         break;
+
+                    case 2:
+                        if (Utils.isPlayServicesAvailable(getApplicationContext())) {
+                            goToGroupSelectionActivity("");
+                        } else {
+                            Log.e(TAG, "Google Play Services not available.");
+                            Utils.showPlayServicesWarning(AddDeviceActivity.this);
+                        }
+                        break;
                 }
                 dialog.dismiss();
             }
@@ -684,19 +693,7 @@ public class AddDeviceActivity extends AppCompatActivity {
                         if (Utils.isPlayServicesAvailable(getApplicationContext())) {
                             goToGroupSelectionActivity(qrCodeData);
                         } else {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(AddDeviceActivity.this);
-                            builder.setMessage(R.string.dialog_msg_play_services_required);
-                            builder.setTitle(R.string.dialog_title_play_services_required);
-                            builder.setCancelable(false);
-                            builder.setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
-                                    finish();
-                                }
-                            });
-                            AlertDialog dialog = builder.create();
-                            dialog.show();
+                            Utils.showPlayServicesWarning(AddDeviceActivity.this);
                         }
                     } else {
                         String msg = e.getMessage();

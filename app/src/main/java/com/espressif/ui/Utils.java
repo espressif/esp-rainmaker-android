@@ -457,6 +457,22 @@ public class Utils {
         return false;
     }
 
+    public static void showPlayServicesWarning(Activity activityContext) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(activityContext);
+        builder.setMessage(R.string.dialog_msg_play_services_required);
+        builder.setTitle(R.string.dialog_title_play_services_required);
+        builder.setCancelable(false);
+        builder.setNeutralButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                activityContext.finish();
+            }
+        });
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
     public static void setDeviceIcon(ImageView ivDevice, String deviceType) {
 
         if (TextUtils.isEmpty(deviceType)) {

@@ -43,6 +43,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
+import com.espressif.matter.GroupSelectionActivity;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
@@ -311,6 +312,15 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
                         Utils.createESPDevice(context.getApplicationContext(), ESPConstants.TransportType.TRANSPORT_SOFTAP, securityType);
                         goToWiFiProvisionLanding(securityType);
                         break;
+
+                    case 2:
+                        if (Utils.isPlayServicesAvailable(espApp)) {
+                            goToGroupSelectionActivity("");
+                        } else {
+                            Log.e(TAG, "Google Play Services not available.");
+                            Utils.showPlayServicesWarning(context);
+                        }
+                        break;
                 }
                 dialog.dismiss();
             }
@@ -329,6 +339,13 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
 
         Intent intent = new Intent(context, ProvisionLanding.class);
         intent.putExtra(AppConstants.KEY_SECURITY_TYPE, securityType);
+        context.startActivity(intent);
+    }
+
+    private void goToGroupSelectionActivity(String qrCodeData) {
+
+        Intent intent = new Intent(espApp, GroupSelectionActivity.class);
+        intent.putExtra(AppConstants.KEY_ON_BOARD_PAYLOAD, qrCodeData);
         context.startActivity(intent);
     }
 
