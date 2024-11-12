@@ -137,6 +137,19 @@
             android:layout_marginStart="@dimen/margin_32"
             android:layout_marginEnd="@dimen/margin_32"
             android:layout_marginBottom="@dimen/margin_32"
+            app:layout_constraintBottom_toTopOf="@id/btn_app_link_deny"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <include
+            android:id="@+id/btn_app_link_deny"
+            layout="@layout/btn_delete_user"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/margin_32"
+            android:layout_marginEnd="@dimen/margin_32"
+            android:layout_marginBottom="@dimen/margin_32"
+            android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent" />

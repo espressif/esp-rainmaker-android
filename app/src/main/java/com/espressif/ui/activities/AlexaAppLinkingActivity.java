@@ -42,6 +42,7 @@ import com.espressif.AlexaLinkingWorker;
 import com.espressif.AppConstants;
 import com.espressif.cloudapi.AlexaApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.rainmaker.databinding.ActivityAlexaAppLinkingBinding;
@@ -51,12 +52,19 @@ public class AlexaAppLinkingActivity extends AppCompatActivity {
     private static final String TAG = "AlexaAppLinking";
     private static final long REQUIRED_MINIMUM_VERSION_CODE = 866607211;
 
+    private String QUERY_PARAMETER_KEY_CLIENT_ID = "client_id";
+    private String QUERY_PARAMETER_KEY_RESPONSE_TYPE = "response_type";
+    private String QUERY_PARAMETER_KEY_STATE = "state";
+    private String QUERY_PARAMETER_KEY_SCOPE = "scope";
+    private String QUERY_PARAMETER_KEY_REDIRECT_URI = "redirect_uri";
+
     private static String alexaCode = "", alexaAuthCode = "";
     private AlexaApiManager apiManager;
     private SharedPreferences sharedPreferences;
     private boolean isLinked = false;
     private boolean shouldGetAuthCode = false;
     private boolean isReturnedFromBrowser = false;
+    private boolean isAppLinkingStartedFromAlexa = false;
 
     private AppLinkingProgress appLinkingProgress = AppLinkingProgress.NONE;
 
@@ -82,12 +90,16 @@ public class AlexaAppLinkingActivity extends AppCompatActivity {
         apiManager = AlexaApiManager.getInstance(getApplicationContext());
         sharedPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
 
+        if (getIntent().getData() != null) {
+            isAppLinkingStartedFromAlexa = true;
+        }
+
         String alexaRefreshToken = sharedPreferences.getString(AppConstants.KEY_ALEXA_REFRESH_TOKEN, "");
 
         initViews();
         updateUi();
 
-        if (!TextUtils.isEmpty(alexaRefreshToken)) {
+        if (!TextUtils.isEmpty(alexaRefreshToken) && !isAppLinkingStartedFromAlexa) {
 
             Log.d(TAG, "Get Linking Status....");
             appLinkingProgress = AppLinkingProgress.GET_ALEXA_TOKEN;
@@ -156,7 +168,7 @@ public class AlexaAppLinkingActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        if (!isReturnedFromBrowser) {
+        if (!isReturnedFromBrowser && !isAppLinkingStartedFromAlexa) {
             isReturnedFromBrowser = false;
             if (!appLinkingProgress.equals(AppLinkingProgress.GET_ALEXA_TOKEN)) {
                 hideLoading();
@@ -167,6 +179,7 @@ public class AlexaAppLinkingActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+
         isReturnedFromBrowser = true;
 
         if (intent.getData() != null) {
@@ -212,6 +225,11 @@ public class AlexaAppLinkingActivity extends AppCompatActivity {
 
                                 @Override
                                 public void onResponseFailure(Exception exception) {
+                                    if (exception instanceof CloudException) {
+                                        Toast.makeText(AlexaAppLinkingActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        Toast.makeText(AlexaAppLinkingActivity.this, "Failed to do Alexa app linking", Toast.LENGTH_SHORT).show();
+                                    }
                                     updateUi();
                                     hideLoading();
                                 }
@@ -226,6 +244,11 @@ public class AlexaAppLinkingActivity extends AppCompatActivity {
 
                         @Override
                         public void onResponseFailure(Exception exception) {
+                            if (exception instanceof CloudException) {
+                                Toast.makeText(AlexaAppLinkingActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(AlexaAppLinkingActivity.this, "Failed to do Alexa app linking", Toast.LENGTH_SHORT).show();
+                            }
                             updateUi();
                             hideLoading();
                         }
@@ -343,14 +366,21 @@ public class AlexaAppLinkingActivity extends AppCompatActivity {
     }
 
     private void updateUi() {
-        if (isLinked) {
-            binding.layoutAlexaAppLinking.layoutAlexaLink.setVisibility(View.GONE);
-            binding.layoutAlexaAppLinking.layoutAlexaUnlink.setVisibility(View.VISIBLE);
-            binding.layoutAlexaAppLinking.btnAlexaAppLink.textBtn.setText(R.string.btn_unlink_alexa);
+        if (!isAppLinkingStartedFromAlexa) {
+            if (isLinked) {
+                binding.layoutAlexaAppLinking.layoutAlexaLink.setVisibility(View.GONE);
+                binding.layoutAlexaAppLinking.layoutAlexaUnlink.setVisibility(View.VISIBLE);
+                binding.layoutAlexaAppLinking.btnAlexaAppLink.textBtn.setText(R.string.btn_unlink_alexa);
+            } else {
+                binding.layoutAlexaAppLinking.layoutAlexaLink.setVisibility(View.VISIBLE);
+                binding.layoutAlexaAppLinking.layoutAlexaUnlink.setVisibility(View.GONE);
+                binding.layoutAlexaAppLinking.btnAlexaAppLink.textBtn.setText(R.string.btn_link_alexa);
+            }
         } else {
-            binding.layoutAlexaAppLinking.layoutAlexaLink.setVisibility(View.VISIBLE);
-            binding.layoutAlexaAppLinking.layoutAlexaUnlink.setVisibility(View.GONE);
-            binding.layoutAlexaAppLinking.btnAlexaAppLink.textBtn.setText(R.string.btn_link_alexa);
+            binding.layoutAlexaAppLinking.btnAlexaAppLink.ivArrow.setVisibility(View.GONE);
+            binding.layoutAlexaAppLinking.btnAlexaAppLink.textBtn.setText(R.string.btn_allow);
+            binding.layoutAlexaAppLinking.btnAppLinkDeny.layoutBtnRemove.setVisibility(View.VISIBLE);
+            binding.layoutAlexaAppLinking.btnAppLinkDeny.textBtn.setText(R.string.btn_alexa_deny);
         }
     }
 
@@ -413,6 +443,27 @@ public class AlexaAppLinkingActivity extends AppCompatActivity {
         }
     };
 
+    View.OnClickListener btnAppLinkAllowClickListener = new View.OnClickListener() {
+
+        @Override
+        public void onClick(View v) {
+
+            Log.d(TAG, "App linking allow button clicked.");
+            allowAppLinking();
+            finish();
+        }
+    };
+
+    View.OnClickListener btnAppLinkDenyClickListener = new View.OnClickListener() {
+
+        @Override
+        public void onClick(View v) {
+
+            Log.d(TAG, "App linking deny button clicked.");
+            finish();
+        }
+    };
+
     private void initViews() {
 
         setSupportActionBar(binding.toolbarLayout.toolbar);
@@ -427,9 +478,21 @@ public class AlexaAppLinkingActivity extends AppCompatActivity {
             }
         });
 
-        binding.layoutAlexaAppLinking.btnAlexaAppLink.ivArrow.setVisibility(View.GONE);
-        binding.layoutAlexaAppLinking.btnAlexaAppLink.textBtn.setText(R.string.btn_link_alexa);
-        binding.layoutAlexaAppLinking.btnAlexaAppLink.layoutBtn.setOnClickListener(btnAppLinkClickListener);
+        if (!isAppLinkingStartedFromAlexa) {
+            // App linking started from RainMaker app.
+            binding.layoutAlexaAppLinking.btnAlexaAppLink.ivArrow.setVisibility(View.GONE);
+            binding.layoutAlexaAppLinking.btnAlexaAppLink.textBtn.setText(R.string.btn_link_alexa);
+            binding.layoutAlexaAppLinking.btnAlexaAppLink.layoutBtn.setOnClickListener(btnAppLinkClickListener);
+            binding.layoutAlexaAppLinking.btnAppLinkDeny.layoutBtnRemove.setVisibility(View.GONE);
+        } else {
+            // App linking started from Alexa app.
+            binding.layoutAlexaAppLinking.btnAlexaAppLink.ivArrow.setVisibility(View.GONE);
+            binding.layoutAlexaAppLinking.btnAlexaAppLink.textBtn.setText(R.string.btn_allow);
+            binding.layoutAlexaAppLinking.btnAlexaAppLink.layoutBtn.setOnClickListener(btnAppLinkAllowClickListener);
+            binding.layoutAlexaAppLinking.btnAppLinkDeny.textBtn.setText(R.string.btn_deny);
+            binding.layoutAlexaAppLinking.btnAppLinkDeny.layoutBtnRemove.setVisibility(View.VISIBLE);
+            binding.layoutAlexaAppLinking.btnAppLinkDeny.layoutBtnRemove.setOnClickListener(btnAppLinkDenyClickListener);
+        }
     }
 
     private void confirmUnlink() {
@@ -491,6 +554,31 @@ public class AlexaAppLinkingActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    private void allowAppLinking() {
+
+        Log.d(TAG, "Getting auth code");
+        Intent intent = getIntent();
+
+        if (intent.getData() != null) {
+            // Get values from App Link
+            String clientId = intent.getData().getQueryParameter(QUERY_PARAMETER_KEY_CLIENT_ID);
+            String responseType = intent.getData().getQueryParameter(QUERY_PARAMETER_KEY_RESPONSE_TYPE);
+            String state = intent.getData().getQueryParameter(QUERY_PARAMETER_KEY_STATE);
+            String scope = intent.getData().getQueryParameter(QUERY_PARAMETER_KEY_SCOPE);
+            String redirectUri = intent.getData().getQueryParameter(QUERY_PARAMETER_KEY_REDIRECT_URI);
+
+            String uriStr = BuildConfig.AUTH_URL
+                    + "/authorize?response_type=" + responseType
+                    + "&client_id=" + clientId
+                    + "&redirect_uri=" + redirectUri
+                    + "&state=" + state + "&scope=" + scope;
+            Log.d(TAG, "URL : " + uriStr);
+            Uri uri = Uri.parse(uriStr);
+            Intent openURL = new Intent(Intent.ACTION_VIEW, uri);
+            startActivity(openURL);
+        }
     }
 
     private void showLoading(String msg) {
