@@ -64,14 +64,14 @@ if (localProperties.getProperty("isChinaRegion", "false") != "true") {
 
 android {
 
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 27
-        targetSdkVersion 34
-        versionCode 140
-        versionName "3.5.2 - ${getGitHash()}"
+        targetSdkVersion 35
+        versionCode 143
+        versionName "3.5.3 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""

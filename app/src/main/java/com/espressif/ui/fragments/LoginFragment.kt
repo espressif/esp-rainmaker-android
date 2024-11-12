@@ -229,7 +229,7 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
         try {
             val pInfo =
                 requireActivity().packageManager.getPackageInfo(requireActivity().packageName, 0)
-            version = pInfo.versionName
+            version = pInfo.versionName.toString()
         } catch (e: Exception) {
             e.printStackTrace()
         }

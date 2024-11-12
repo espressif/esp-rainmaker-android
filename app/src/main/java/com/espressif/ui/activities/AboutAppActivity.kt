@@ -63,7 +63,7 @@ class AboutAppActivity : AppCompatActivity() {
         var version = ""
         try {
             val pInfo = packageManager.getPackageInfo(packageName, 0)
-            version = pInfo.versionName
+            version = pInfo.versionName.toString()
         } catch (e: PackageManager.NameNotFoundException) {
             e.printStackTrace()
         }
