@@ -15,8 +15,6 @@
 package com.espressif.matter;
 
 import android.os.Bundle;
-import android.text.TextUtils;
-import android.util.Log;
 
 import com.espressif.AppConstants;
 import com.espressif.ESPControllerAPIKeys;
@@ -52,7 +50,8 @@ public class RemoteControlApiHelper {
         commands.add(jsonCommand);
 
         JsonObject cluster = new JsonObject();
-        cluster.addProperty(ESPControllerAPIKeys.KEY_CLUSTER_ID, ESPControllerAPIKeys.CLUSTER_ID_ON_OFF);
+        String clusterId = AppConstants.HEX_PREFIX + Integer.toHexString(ESPControllerAPIKeys.CLUSTER_ID_ON_OFF);
+        cluster.addProperty(ESPControllerAPIKeys.KEY_CLUSTER_ID, clusterId);
         cluster.add(ESPControllerAPIKeys.KEY_COMMANDS, commands);
 
         JsonArray clusters = new JsonArray();
@@ -112,7 +111,8 @@ public class RemoteControlApiHelper {
         commands.add(jsonCommand);
 
         JsonObject cluster = new JsonObject();
-        cluster.addProperty(ESPControllerAPIKeys.KEY_CLUSTER_ID, ESPControllerAPIKeys.CLUSTER_ID_ON_OFF);
+        String clusterId = AppConstants.HEX_PREFIX + Integer.toHexString(ESPControllerAPIKeys.CLUSTER_ID_ON_OFF);
+        cluster.addProperty(ESPControllerAPIKeys.KEY_CLUSTER_ID, clusterId);
         cluster.add(ESPControllerAPIKeys.KEY_COMMANDS, commands);
 
         JsonArray clusters = new JsonArray();
@@ -172,7 +172,8 @@ public class RemoteControlApiHelper {
         commands.add(jsonCommand);
 
         JsonObject cluster = new JsonObject();
-        cluster.addProperty(ESPControllerAPIKeys.KEY_CLUSTER_ID, ESPControllerAPIKeys.CLUSTER_ID_ON_OFF);
+        String clusterId = AppConstants.HEX_PREFIX + Integer.toHexString(ESPControllerAPIKeys.CLUSTER_ID_ON_OFF);
+        cluster.addProperty(ESPControllerAPIKeys.KEY_CLUSTER_ID, clusterId);
         cluster.add(ESPControllerAPIKeys.KEY_COMMANDS, commands);
 
         JsonArray clusters = new JsonArray();
@@ -239,7 +240,8 @@ public class RemoteControlApiHelper {
         commands.add(jsonCommand);
 
         JsonObject cluster = new JsonObject();
-        cluster.addProperty(ESPControllerAPIKeys.KEY_CLUSTER_ID, ESPControllerAPIKeys.CLUSTER_ID_LEVEL_CONTROL);
+        String clusterId = AppConstants.HEX_PREFIX + Integer.toHexString(ESPControllerAPIKeys.CLUSTER_ID_LEVEL_CONTROL);
+        cluster.addProperty(ESPControllerAPIKeys.KEY_CLUSTER_ID, clusterId);
         cluster.add(ESPControllerAPIKeys.KEY_COMMANDS, commands);
 
         JsonArray clusters = new JsonArray();
@@ -306,7 +308,8 @@ public class RemoteControlApiHelper {
         commands.add(jsonCommand);
 
         JsonObject cluster = new JsonObject();
-        cluster.addProperty(ESPControllerAPIKeys.KEY_CLUSTER_ID, ESPControllerAPIKeys.CLUSTER_ID_COLOR_CONTROL);
+        String clusterId = AppConstants.HEX_PREFIX + Integer.toHexString(ESPControllerAPIKeys.CLUSTER_ID_COLOR_CONTROL);
+        cluster.addProperty(ESPControllerAPIKeys.KEY_CLUSTER_ID, clusterId);
         cluster.add(ESPControllerAPIKeys.KEY_COMMANDS, commands);
 
         JsonArray clusters = new JsonArray();
@@ -374,7 +377,8 @@ public class RemoteControlApiHelper {
         commands.add(jsonCommand);
 
         JsonObject cluster = new JsonObject();
-        cluster.addProperty(ESPControllerAPIKeys.KEY_CLUSTER_ID, ESPControllerAPIKeys.CLUSTER_ID_COLOR_CONTROL);
+        String clusterId = AppConstants.HEX_PREFIX + Integer.toHexString(ESPControllerAPIKeys.CLUSTER_ID_COLOR_CONTROL);
+        cluster.addProperty(ESPControllerAPIKeys.KEY_CLUSTER_ID, clusterId);
         cluster.add(ESPControllerAPIKeys.KEY_COMMANDS, commands);
 
         JsonArray clusters = new JsonArray();
@@ -422,183 +426,5 @@ public class RemoteControlApiHelper {
                 listener.onNetworkFailure(exception);
             }
         });
-    }
-
-    /// Get on off cluster value
-    /// - Parameters:
-    ///   - controllerNodeId: controller node id
-    ///   - matterNodeId: matter node id
-    /// - Returns: on/off status
-    public boolean getOnOffValue(String controllerNodeId, String matterNodeId) {
-
-        if (espApp.controllerDevices.containsKey(controllerNodeId)) {
-            HashMap<String, String> matterDevices = espApp.controllerDevices.get(controllerNodeId);
-            if (matterDevices.containsKey(matterNodeId)) {
-                String myJson = matterDevices.get(matterNodeId);
-
-                try {
-                    JSONObject matterDeviceJson = new JSONObject(myJson);
-                    if (matterDeviceJson != null) {
-
-                        JSONObject endpointsJson = matterDeviceJson.optJSONObject(AppConstants.KEY_ENDPOINTS);
-                        Iterator<String> endpointKeys = endpointsJson.keys();
-
-                        while (endpointKeys.hasNext()) {
-                            String endpointId = endpointKeys.next();
-                            JSONObject endpointJson = matterDeviceJson.optJSONObject(endpointId);
-
-                            if (endpointJson != null) {
-                                JSONObject tempJson = endpointJson.optJSONObject(ESPControllerAPIKeys.ENDPOINT_ID_1);
-
-                                if (tempJson != null) {
-                                    JSONObject clusters = tempJson.optJSONObject("clusters");
-                                    JSONObject onOffCLuster = clusters.optJSONObject(ESPControllerAPIKeys.CLUSTER_ID_ON_OFF);
-                                    String attrValue = onOffCLuster.getString(ESPControllerAPIKeys.ATTRIBUTE_ID_ON_OFF);
-                                    if (attrValue != null && attrValue.equals("1")) {
-                                        return true;
-                                    } else {
-                                        return false;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    return false;
-                }
-            }
-        }
-        return false;
-    }
-
-    /// Get brightness level
-    /// - Parameters:
-    ///   - controllerNodeId: controller node id
-    ///   - matterNodeId: matter node id
-    /// - Returns: brightness level
-    public int getBrightnessLevel(String controllerNodeId, String matterNodeId) {
-
-        if (espApp.controllerDevices.containsKey(controllerNodeId)) {
-            HashMap<String, String> matterDevices = espApp.controllerDevices.get(controllerNodeId);
-            if (matterDevices.containsKey(matterNodeId)) {
-                String myJson = matterDevices.get(matterNodeId);
-
-                try {
-                    JSONObject matterDeviceJson = new JSONObject(myJson);
-                    if (matterDeviceJson != null) {
-
-                        JSONObject endpointsJson = matterDeviceJson.optJSONObject(AppConstants.KEY_ENDPOINTS);
-                        Iterator<String> endpointKeys = endpointsJson.keys();
-
-                        while (endpointKeys.hasNext()) {
-                            String endpointId = endpointKeys.next();
-                            JSONObject endpointJson = matterDeviceJson.optJSONObject(endpointId);
-
-                            if (endpointJson != null) {
-                                JSONObject tempJson = endpointJson.optJSONObject(ESPControllerAPIKeys.ENDPOINT_ID_1);
-
-                                if (tempJson != null) {
-                                    JSONObject clusters = tempJson.optJSONObject("clusters");
-                                    JSONObject onOffCLuster = clusters.optJSONObject(ESPControllerAPIKeys.CLUSTER_ID_LEVEL_CONTROL);
-                                    String attrValue = onOffCLuster.getString(ESPControllerAPIKeys.ATTRIBUTE_ID_BRIGHTNESS_LEVEL);
-                                    return Integer.valueOf(attrValue);
-                                }
-                            }
-                        }
-                    }
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    return 0;
-                }
-            }
-        }
-        return 0;
-    }
-
-    public int getCurrentHue(String controllerNodeId, String matterNodeId) {
-
-        if (espApp.controllerDevices.containsKey(controllerNodeId)) {
-            HashMap<String, String> matterDevices = espApp.controllerDevices.get(controllerNodeId);
-            if (matterDevices.containsKey(matterNodeId)) {
-                String myJson = matterDevices.get(matterNodeId);
-
-                try {
-                    JSONObject matterDeviceJson = new JSONObject(myJson);
-                    if (matterDeviceJson != null) {
-
-                        JSONObject endpointsJson = matterDeviceJson.optJSONObject(AppConstants.KEY_ENDPOINTS);
-                        Iterator<String> endpointKeys = endpointsJson.keys();
-
-                        while (endpointKeys.hasNext()) {
-                            String endpointId = endpointKeys.next();
-                            JSONObject endpointJson = matterDeviceJson.optJSONObject(endpointId);
-
-                            if (endpointJson != null) {
-                                JSONObject tempJson = endpointJson.optJSONObject(ESPControllerAPIKeys.ENDPOINT_ID_1);
-
-                                if (tempJson != null) {
-                                    JSONObject clusters = tempJson.optJSONObject("clusters");
-                                    JSONObject onOffCLuster = clusters.optJSONObject(ESPControllerAPIKeys.CLUSTER_ID_COLOR_CONTROL);
-                                    String attrValue = onOffCLuster.getString(ESPControllerAPIKeys.ATTRIBUTE_ID_CURRENT_HUE);
-                                    if (!TextUtils.isEmpty(attrValue)) {
-                                        return Integer.valueOf(attrValue);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    return 0;
-                }
-            }
-        }
-        return 0;
-    }
-
-    public int getCurrentSaturation(String controllerNodeId, String matterNodeId) {
-
-        if (espApp.controllerDevices.containsKey(controllerNodeId)) {
-            HashMap<String, String> matterDevices = espApp.controllerDevices.get(controllerNodeId);
-            if (matterDevices.containsKey(matterNodeId)) {
-                String myJson = matterDevices.get(matterNodeId);
-
-                try {
-                    JSONObject matterDeviceJson = new JSONObject(myJson);
-                    if (matterDeviceJson != null) {
-
-                        JSONObject endpointsJson = matterDeviceJson.optJSONObject(AppConstants.KEY_ENDPOINTS);
-                        Iterator<String> endpointKeys = endpointsJson.keys();
-
-                        while (endpointKeys.hasNext()) {
-                            String endpointId = endpointKeys.next();
-                            JSONObject endpointJson = matterDeviceJson.optJSONObject(endpointId);
-
-                            if (endpointJson != null) {
-                                JSONObject tempJson = endpointJson.optJSONObject(ESPControllerAPIKeys.ENDPOINT_ID_1);
-
-                                if (tempJson != null) {
-                                    JSONObject clusters = tempJson.optJSONObject("clusters");
-                                    JSONObject onOffCLuster = clusters.optJSONObject(ESPControllerAPIKeys.CLUSTER_ID_COLOR_CONTROL);
-                                    String attrValue = onOffCLuster.getString(ESPControllerAPIKeys.ATTRIBUTE_ID_CURRENT_SATURATION);
-                                    if (!TextUtils.isEmpty(attrValue)) {
-                                        return Integer.valueOf(attrValue);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    return 0;
-                }
-            }
-        }
-        return 0;
     }
 }

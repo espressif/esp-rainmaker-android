@@ -29,17 +29,25 @@ class ESPControllerAPIKeys {
         const val KEY_ENDPOINTS = "endpoints"
         const val KEY_ENDPOINT_ID = "endpoint-id"
         const val KEY_CLUSTERS = "clusters"
+        const val KEY_SERVERS = "servers"
+        const val KEY_CLIENTS = "clients"
         const val KEY_CLUSTER_ID = "cluster-id"
         const val KEY_COMMANDS = "commands"
         const val KEY_COMMAND_ID = "command-id"
 
-        const val ENDPOINT_ID_1 = "0x1"
+        const val ENDPOINT_ID_1 = 1
+        const val ENDPOINT_ID_1_HEX = "0x1"
 
-        const val CLUSTER_ID_ON_OFF = "0x6"
-        const val CLUSTER_ID_LEVEL_CONTROL = "0x8"
-        const val CLUSTER_ID_COLOR_CONTROL = "0x300"
-        const val CLUSTER_ID_THERMOSTAT = "0x201"
-        const val CLUSTER_ID_TEMPERATURE_MEASUREMENT = "0x402"
+        const val CLUSTER_ID_ON_OFF_HEX = "0x6"
+        const val CLUSTER_ID_LEVEL_CONTROL_HEX = "0x8"
+        const val CLUSTER_ID_COLOR_CONTROL_HEX = "0x300"
+        const val CLUSTER_ID_THERMOSTAT_HEX = "0x201"
+        const val CLUSTER_ID_TEMPERATURE_MEASUREMENT_HEX = "0x402"
+        const val CLUSTER_ID_ON_OFF = 6
+        const val CLUSTER_ID_LEVEL_CONTROL = 8
+        const val CLUSTER_ID_COLOR_CONTROL = 768
+        const val CLUSTER_ID_THERMOSTAT = 513
+        const val CLUSTER_ID_TEMPERATURE_MEASUREMENT = 1026
 
         const val COMMAND_ID_OFF = "0x0"
         const val COMMAND_ID_ON = "0x1"

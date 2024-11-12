@@ -685,10 +685,10 @@ public class EspApplication extends Application {
                 matterDeviceInfoMap.remove(matterNodeId);
                 availableMatterDevices.remove(matterNodeId);
                 chipClientMap.remove(matterNodeId);
-                nodeMap.get(nodeId).setOnline(false);
                 if (!Arrays.asList(AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE, AppConstants.NODE_STATUS_LOCAL,
                         AppConstants.NODE_STATUS_ONLINE).contains(nodeMap.get(nodeId).getNodeStatus())) {
                     nodeMap.get(nodeId).setNodeStatus(AppConstants.NODE_STATUS_OFFLINE);
+                    nodeMap.get(nodeId).setOnline(false);
                 }
             }
         } catch (ExecutionException e) {

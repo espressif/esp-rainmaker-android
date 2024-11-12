@@ -46,8 +46,7 @@
                 android:padding="@dimen/margin_8"
                 android:text="@string/local_device_text"
                 android:textColor="@color/colorPrimaryDark"
-                android:textSize="14sp"
-                android:textStyle="italic" />
+                android:textSize="14sp" />
 
         </RelativeLayout>
 
@@ -57,7 +56,7 @@
             android:layout_height="wrap_content"
             android:layout_below="@id/rl_node_status"
             android:layout_centerHorizontal="true"
-            android:layout_margin="@dimen/margin_16"
+            android:layout_margin="@dimen/margin_18"
             android:background="@color/color_background"
             android:padding="@dimen/margin_8">
 
@@ -80,7 +79,7 @@
             android:layout_height="wrap_content"
             android:layout_below="@id/rl_controller_login"
             android:layout_centerHorizontal="true"
-            android:layout_margin="@dimen/margin_16"
+            android:layout_margin="@dimen/margin_18"
             android:background="@color/color_background"
             android:padding="@dimen/margin_8">
 
@@ -88,11 +87,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerVertical="true"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:paddingLeft="8dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:alpha="0.5"
                     android:text="Controller"
                     android:textColor="@color/colorPrimaryDark"
                     android:textSize="12sp" />
@@ -113,7 +114,6 @@
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
                 android:background="@color/colorPrimary"
-                android:padding="@dimen/margin_8"
                 android:text="@string/btn_update"
                 android:textColor="@android:color/white" />
 
@@ -125,7 +125,7 @@
             android:layout_height="wrap_content"
             android:layout_below="@id/rl_matter_controller"
             android:layout_centerHorizontal="true"
-            android:layout_margin="@dimen/margin_16"
+            android:layout_margin="@dimen/margin_18"
             android:background="@color/color_background"
             android:padding="@dimen/margin_8">
 
