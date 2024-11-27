@@ -15,16 +15,12 @@
 package com.espressif.ui.fragments
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
-import android.text.SpannableString
-import android.text.Spanned
-import android.text.TextPaint
+import android.text.Html
 import android.text.TextUtils
 import android.text.TextWatcher
 import android.text.method.LinkMovementMethod
-import android.text.style.ClickableSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -37,7 +33,6 @@ import com.espressif.AppConstants
 import com.espressif.cloudapi.ApiManager
 import com.espressif.cloudapi.ApiResponseListener
 import com.espressif.cloudapi.CloudException
-import com.espressif.rainmaker.BuildConfig
 import com.espressif.rainmaker.R
 import com.espressif.rainmaker.databinding.FragmentSignupBinding
 import com.espressif.ui.Utils
@@ -122,39 +117,13 @@ class SignUpFragment : Fragment(R.layout.fragment_signup) {
 
     private fun setupLinks() {
 
-        val privacyPolicyClick: ClickableSpan = object : ClickableSpan() {
-            override fun onClick(textView: View) {
-                textView.invalidate()
-                val openURL = Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getPrivacyUrl()))
-                startActivity(openURL)
-            }
+        binding.tvPrivacy.movementMethod = LinkMovementMethod.getInstance()
+        val privacyUrl = "<a href='${Utils.getPrivacyUrl()}'>${getString(R.string.privacy_policy)}</a>"
+        binding.tvPrivacy.text = Html.fromHtml(privacyUrl)
 
-            override fun updateDrawState(ds: TextPaint) {
-                super.updateDrawState(ds)
-                ds.color = resources.getColor(R.color.colorPrimary)
-                ds.isUnderlineText = true
-            }
-        }
-
-        val termsOfUseClick: ClickableSpan = object : ClickableSpan() {
-            override fun onClick(textView: View) {
-                textView.invalidate()
-                val openURL = Intent(Intent.ACTION_VIEW, Uri.parse(Utils.getTermsOfUseUrl()))
-                startActivity(openURL)
-            }
-
-            override fun updateDrawState(ds: TextPaint) {
-                super.updateDrawState(ds)
-                ds.color = resources.getColor(R.color.colorPrimary)
-                ds.isUnderlineText = true
-            }
-        }
-
-        val stringForPolicy = SpannableString(getString(R.string.user_agreement))
-        stringForPolicy.setSpan(privacyPolicyClick, 83, 97, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        stringForPolicy.setSpan(termsOfUseClick, 102, 114, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        binding.tvTermsCondition.text = stringForPolicy
-        binding.tvTermsCondition.movementMethod = LinkMovementMethod.getInstance()
+        binding.tvTermsOfUse.movementMethod = LinkMovementMethod.getInstance()
+        val termsUrl = "<a href='${Utils.getTermsOfUseUrl()}'>${getString(R.string.terms_of_use)}</a>"
+        binding.tvTermsOfUse.text = Html.fromHtml(termsUrl)
     }
 
     private fun doSignUp() {
