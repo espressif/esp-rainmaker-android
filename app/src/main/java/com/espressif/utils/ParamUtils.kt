@@ -57,6 +57,26 @@ class ParamUtils {
             return false
         }
 
+        fun getParamIfAvailableInList(
+            params: java.util.ArrayList<Param>,
+            type: String,
+            name: String,
+            uiType: String?
+        ): Param? {
+            if (params.size > 0) {
+                for (p in params) {
+                    if (p.paramType != null && p.paramType == type && p.uiType != null && p.uiType == uiType) {
+                        return p
+                    } else if (p.name != null && p.name == name) {
+                        if (p.paramType == type || (p.uiType != null && p.uiType == uiType)) {
+                            return p
+                        }
+                    }
+                }
+            }
+            return null
+        }
+
         fun addToggleParam(
             params: java.util.ArrayList<Param>,
             properties: java.util.ArrayList<String>

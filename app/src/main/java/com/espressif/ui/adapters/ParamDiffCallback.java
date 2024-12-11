@@ -52,6 +52,11 @@ public class ParamDiffCallback extends DiffUtil.Callback {
         final Param oldParam = oldParamList.get(oldItemPosition);
         final Param newParam = newParamList.get(newItemPosition);
         int a = oldParam.compareTo(newParam);
+
+        if (oldParam.getDependencies() != null || newParam.getDependencies() != null) {
+            return false;
+        }
+
         if (a == 0) {
             return true;
         } else {

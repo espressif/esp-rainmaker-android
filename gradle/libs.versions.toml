@@ -1,6 +1,7 @@
 [versions]
 gradle = "8.4.2"
 kotlinGradlePlugin = "2.0.0"
+lifecycleViewmodelKtx = "2.8.7"
 playServicesGcm = "17.0.0"
 protobufGradlePlugin = "0.9.1"
 googleServices = "4.4.2"
@@ -55,6 +56,8 @@ espressoCore = "3.5.1"
 [libraries]
 gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinGradlePlugin" }
+lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycleViewmodelKtx" }
+lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
 play-services-gcm = { module = "com.google.android.gms:play-services-gcm", version.ref = "playServicesGcm" }
 protobuf-gradle-plugin = { module = "com.google.protobuf:protobuf-gradle-plugin", version.ref = "protobufGradlePlugin" }
 google-services = { module = "com.google.gms:google-services", version.ref = "googleServices" }

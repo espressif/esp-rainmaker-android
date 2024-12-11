@@ -556,35 +556,6 @@ public class Utils {
         }
     }
 
-    public static String getEspDeviceTypeForMatterDevice(int deviceType) {
-
-        switch (deviceType) {
-            case AppConstants.MATTER_DEVICE_ON_OFF_LIGHT:
-            case AppConstants.MATTER_DEVICE_DIMMABLE_LIGHT:
-            case AppConstants.MATTER_DEVICE_LIGHT_BULB:
-                return AppConstants.ESP_DEVICE_LIGHT_BULB;
-
-            case AppConstants.MATTER_DEVICE_SWITCH:
-                return AppConstants.ESP_DEVICE_SWITCH;
-
-            case AppConstants.MATTER_DEVICE_CONTACT_SENSOR:
-                return AppConstants.ESP_DEVICE_CONTACT_SENSOR;
-
-            case AppConstants.MATTER_DEVICE_OUTLET:
-                return AppConstants.ESP_DEVICE_OUTLET;
-
-            case AppConstants.MATTER_DEVICE_BULB_RGB:
-                return AppConstants.ESP_DEVICE_BULB_RGB;
-
-            case AppConstants.MATTER_DEVICE_THERMOSTAT:
-                return AppConstants.ESP_DEVICE_THERMOSTAT;
-
-            case AppConstants.MATTER_DEVICE_TEMP_SENSOR:
-                return AppConstants.ESP_DEVICE_TEMP_SENSOR;
-        }
-        return AppConstants.ESP_DEVICE_OTHER;
-    }
-
     public static Object getCatId(String catIdOperate) {
         catIdOperate = AppConstants.CAT_ID_PREFIX + catIdOperate;
         BigDecimal catId = new BigDecimal(new BigInteger(catIdOperate, 16));
@@ -611,5 +582,23 @@ public class Utils {
             return BuildConfig.CHINA_TERMS_URL;
         }
         return BuildConfig.TERMS_URL;
+    }
+
+    public static byte[] decodeHex(String hex) {
+        int length = hex.length();
+        byte[] data = new byte[length / 2];
+        for (int i = 0; i < length; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
+                    + Character.digit(hex.charAt(i + 1), 16));
+        }
+        return data;
+    }
+
+    public static int temperatureDeviceToAppConversion(int temp) {
+        return temp / 100;
+    }
+
+    public static int temperatureAppToDeviceConversion(int temp) {
+        return temp * 100;
     }
 }

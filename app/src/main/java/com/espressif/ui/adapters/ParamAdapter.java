@@ -47,15 +47,21 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.aar.tapholdupbutton.TapHoldUpButton;
 import com.espressif.AppConstants;
+import com.espressif.AppConstants.Companion.LockState;
+import com.espressif.AppConstants.Companion.SystemMode;
 import com.espressif.ESPControllerAPIKeys;
 import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.matter.ColorControlClusterHelper;
+import com.espressif.matter.DoorLockClusterHelper;
 import com.espressif.matter.LevelControlClusterHelper;
 import com.espressif.matter.OnOffClusterHelper;
 import com.espressif.matter.RemoteControlApiHelper;
+import com.espressif.matter.TemperatureClusterHelper;
+import com.espressif.matter.ThermostatClusterHelper;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.Utils;
 import com.espressif.ui.activities.EspDeviceActivity;
 import com.espressif.ui.activities.TimeSeriesActivity;
 import com.espressif.ui.models.Device;
@@ -71,9 +77,13 @@ import com.warkiz.tickseekbar.OnSeekChangeListener;
 import com.warkiz.tickseekbar.SeekParams;
 import com.warkiz.tickseekbar.TickSeekBar;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -89,6 +99,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     private final String nodeId;
     private final String deviceName;
+    private Device device;
     private DeviceParamUpdates deviceParamUpdates;
 
     private String matterNodeId;
@@ -98,6 +109,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     public ParamAdapter(Activity context, Device device, ArrayList<Param> paramList) {
         this.context = context;
+        this.device = device;
         this.params = paramList;
         this.nodeId = device.getNodeId();
         this.deviceName = device.getDeviceName();
@@ -193,7 +205,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("bool")
                         || dataType.equalsIgnoreCase("boolean"))) {
 
-                    displayToggle(paramViewHolder, param);
+                    displayToggle(paramViewHolder, param, position);
 
                 } else {
                     displayLabel(paramViewHolder, param, position);
@@ -591,165 +603,189 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                 if (((EspDeviceActivity) context).isNodeOnline()) {
 
-                    paramViewHolder.intSlider.setEnabled(true);
+                    boolean shouldEnable = checkDependencies(param);
 
-                    paramViewHolder.intSlider.setOnSeekChangeListener(new OnSeekChangeListener() {
+                    if (!shouldEnable) {
+                        paramViewHolder.itemView.setEnabled(false);
+                        paramViewHolder.intSlider.setEnabled(false);
+                        paramViewHolder.intSlider.setOnSeekChangeListener(null);
+                    } else {
+                        paramViewHolder.itemView.setEnabled(true);
+                        paramViewHolder.intSlider.setEnabled(true);
+                        paramViewHolder.intSlider.setOnSeekChangeListener(new OnSeekChangeListener() {
 
-                        @Override
-                        public void onSeeking(SeekParams seekParams) {
+                            @Override
+                            public void onSeeking(SeekParams seekParams) {
 
-                            switch (nodeStatus) {
+                                switch (nodeStatus) {
 
-                                case AppConstants.NODE_STATUS_LOCAL:
-                                case AppConstants.NODE_STATUS_ONLINE:
+                                    case AppConstants.NODE_STATUS_LOCAL:
+                                    case AppConstants.NODE_STATUS_ONLINE:
 
-                                    if (seekParams.fromUser) {
-                                        ((EspDeviceActivity) context).setIsUpdateView(false);
-                                        if (BuildConfig.isContinuousUpdateEnable) {
-                                            deviceParamUpdates.processSliderChange(param.getName(), seekParams.progress);
+                                        if (seekParams.fromUser) {
+                                            ((EspDeviceActivity) context).setIsUpdateView(false);
+                                            if (BuildConfig.isContinuousUpdateEnable) {
+                                                deviceParamUpdates.processSliderChange(param.getName(), seekParams.progress);
+                                            }
                                         }
-                                    }
-                                    break;
+                                        break;
 
-                                case AppConstants.NODE_STATUS_OFFLINE:
-                                case AppConstants.NODE_STATUS_MATTER_LOCAL:
-                                case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE:
-                                default:
-                                    break;
+                                    case AppConstants.NODE_STATUS_OFFLINE:
+                                    case AppConstants.NODE_STATUS_MATTER_LOCAL:
+                                    case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE:
+                                    default:
+                                        break;
+                                }
                             }
-                        }
 
-                        @Override
-                        public void onStartTrackingTouch(TickSeekBar seekBar) {
+                            @Override
+                            public void onStartTrackingTouch(TickSeekBar seekBar) {
 
-                            switch (nodeStatus) {
+                                switch (nodeStatus) {
 
-                                case AppConstants.NODE_STATUS_LOCAL:
-                                case AppConstants.NODE_STATUS_ONLINE:
+                                    case AppConstants.NODE_STATUS_LOCAL:
+                                    case AppConstants.NODE_STATUS_ONLINE:
 
-                                    ((EspDeviceActivity) context).setIsUpdateView(false);
-                                    if (!BuildConfig.isContinuousUpdateEnable) {
-                                        ((EspDeviceActivity) context).stopUpdateValueTask();
-                                    }
-                                    break;
+                                        ((EspDeviceActivity) context).setIsUpdateView(false);
+                                        if (!BuildConfig.isContinuousUpdateEnable) {
+                                            ((EspDeviceActivity) context).stopUpdateValueTask();
+                                        }
+                                        break;
 
-                                case AppConstants.NODE_STATUS_OFFLINE:
-                                case AppConstants.NODE_STATUS_MATTER_LOCAL:
-                                case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE:
-                                default:
-                                    break;
+                                    case AppConstants.NODE_STATUS_OFFLINE:
+                                    case AppConstants.NODE_STATUS_MATTER_LOCAL:
+                                    case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE:
+                                    default:
+                                        break;
+                                }
                             }
-                        }
 
-                        @Override
-                        public void onStopTrackingTouch(TickSeekBar seekBar) {
+                            @Override
+                            public void onStopTrackingTouch(TickSeekBar seekBar) {
 
-                            String paramType = param.getParamType();
-                            int lastProgressValue = seekBar.getProgress();
+                                String paramType = param.getParamType();
+                                int lastProgressValue = seekBar.getProgress();
 
-                            switch (nodeStatus) {
+                                switch (nodeStatus) {
 
-                                case AppConstants.NODE_STATUS_MATTER_LOCAL: {
-                                    lastProgressValue = (int) (lastProgressValue * 2.55f);
-                                    BigInteger id = new BigInteger(matterNodeId, 16);
-                                    long deviceId = id.longValue();
+                                    case AppConstants.NODE_STATUS_MATTER_LOCAL: {
 
-                                    if (lastProgressValue == 255) {
-                                        lastProgressValue = 254;
-                                    }
-
-                                    if (AppConstants.PARAM_TYPE_BRIGHTNESS.equals(paramType)
-                                            || AppConstants.PARAM_TYPE_SATURATION.equals(paramType)) {
+                                        BigInteger id = new BigInteger(matterNodeId, 16);
+                                        long deviceId = id.longValue();
 
                                         if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
-                                            if (AppConstants.PARAM_TYPE_BRIGHTNESS.equals(paramType)) {
-                                                LevelControlClusterHelper espClusterHelper = new LevelControlClusterHelper(espApp.chipClientMap.get(matterNodeId));
-                                                espClusterHelper.setLevelAsync(deviceId, AppConstants.ENDPOINT_1, lastProgressValue);
-                                            } else if (AppConstants.PARAM_TYPE_SATURATION.equals(paramType)) {
-                                                ColorControlClusterHelper espClusterHelper = new ColorControlClusterHelper(espApp.chipClientMap.get(matterNodeId));
-                                                espClusterHelper.setSaturationValueAsync(deviceId, AppConstants.ENDPOINT_1, lastProgressValue);
-                                            }
-                                        }
-                                    }
-                                }
-                                break;
 
-                                case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE: {
+                                            if (AppConstants.PARAM_TYPE_BRIGHTNESS.equals(paramType)
+                                                    || AppConstants.PARAM_TYPE_SATURATION.equals(paramType)) {
 
-                                    lastProgressValue = (int) (lastProgressValue * 2.55f);
-                                    if (lastProgressValue == 255) {
-                                        lastProgressValue = 254;
-                                    }
+                                                lastProgressValue = (int) (lastProgressValue * 2.55f);
+                                                if (lastProgressValue == 255) {
+                                                    lastProgressValue = 254;
+                                                }
+                                                if (AppConstants.PARAM_TYPE_BRIGHTNESS.equals(paramType)) {
+                                                    LevelControlClusterHelper espClusterHelper = new LevelControlClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                                                    espClusterHelper.setLevelAsync(deviceId, AppConstants.ENDPOINT_1, lastProgressValue);
+                                                } else if (AppConstants.PARAM_TYPE_SATURATION.equals(paramType)) {
+                                                    ColorControlClusterHelper espClusterHelper = new ColorControlClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                                                    espClusterHelper.setSaturationValueAsync(deviceId, AppConstants.ENDPOINT_1, lastProgressValue);
+                                                }
+                                            } else if (AppConstants.PARAM_TYPE_SETPOINT_TEMPERATURE.equals(paramType)) {
 
-                                    RemoteControlApiHelper apiHelper = new RemoteControlApiHelper(espApp);
+                                                params.get(position).setValue(lastProgressValue);
+                                                params.get(position).setLabelValue(String.valueOf(lastProgressValue));
+                                                updateParamList(params);
 
-                                    for (Map.Entry<String, HashMap<String, String>> entry : espApp.controllerDevices.entrySet()) {
+                                                lastProgressValue = Utils.temperatureAppToDeviceConversion(lastProgressValue);
 
-                                        HashMap<String, String> controllerDevices = entry.getValue();
-
-                                        if (controllerDevices.containsKey(matterNodeId)) {
-
-                                            EspNode controllerNode = espApp.nodeMap.get(entry.getKey());
-                                            Service controllerService = NodeUtils.Companion.getService(controllerNode, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER);
-
-                                            if (controllerService != null) {
-
-                                                for (Param deviceParam : controllerService.getParams()) {
-
-                                                    if (AppConstants.PARAM_TYPE_MATTER_DEVICES.equals(deviceParam.getParamType())) {
-
-                                                        apiHelper.callBrightnessAPI(entry.getKey(), matterNodeId, deviceParam.getName(),
-                                                                controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1_HEX, lastProgressValue, new ApiResponseListener() {
-                                                                    @Override
-                                                                    public void onSuccess(@Nullable Bundle data) {
-                                                                    }
-
-                                                                    @Override
-                                                                    public void onResponseFailure(@NonNull Exception exception) {
-                                                                    }
-
-                                                                    @Override
-                                                                    public void onNetworkFailure(@NonNull Exception exception) {
-                                                                    }
-                                                                });
-
-                                                        break;
-                                                    }
+                                                ThermostatClusterHelper espClusterHelper = new ThermostatClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                                                if (AppConstants.PARAM_COOLING_POINT.equals(param.getName())) {
+                                                    espClusterHelper.setOccupiedCoolingSetpointAsync(deviceId, AppConstants.ENDPOINT_1, lastProgressValue);
+                                                } else if (AppConstants.PARAM_HEATING_POINT.equals(param.getName())) {
+                                                    espClusterHelper.setOccupiedHeatingSetpointAsync(deviceId, AppConstants.ENDPOINT_1, lastProgressValue);
                                                 }
                                             }
-                                            break;
                                         }
                                     }
-                                }
-                                break;
-
-                                case AppConstants.NODE_STATUS_LOCAL:
-                                case AppConstants.NODE_STATUS_ONLINE:
-                                    ((EspDeviceActivity) context).setIsUpdateView(true);
-
-                                    deviceParamUpdates.clearQueueAndSendLastValue(param.getName(), lastProgressValue, new ApiResponseListener() {
-                                        @Override
-                                        public void onSuccess(Bundle data) {
-                                            ((EspDeviceActivity) context).startUpdateValueTask();
-                                        }
-
-                                        @Override
-                                        public void onResponseFailure(Exception exception) {
-                                            ((EspDeviceActivity) context).startUpdateValueTask();
-                                        }
-
-                                        @Override
-                                        public void onNetworkFailure(Exception exception) {
-                                            ((EspDeviceActivity) context).startUpdateValueTask();
-                                        }
-                                    });
-
-                                case AppConstants.NODE_STATUS_OFFLINE:
-                                default:
                                     break;
+
+                                    case AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE: {
+
+                                        lastProgressValue = (int) (lastProgressValue * 2.55f);
+                                        if (lastProgressValue == 255) {
+                                            lastProgressValue = 254;
+                                        }
+
+                                        RemoteControlApiHelper apiHelper = new RemoteControlApiHelper(espApp);
+
+                                        for (Map.Entry<String, HashMap<String, String>> entry : espApp.controllerDevices.entrySet()) {
+
+                                            HashMap<String, String> controllerDevices = entry.getValue();
+
+                                            if (controllerDevices.containsKey(matterNodeId)) {
+
+                                                EspNode controllerNode = espApp.nodeMap.get(entry.getKey());
+                                                Service controllerService = NodeUtils.Companion.getService(controllerNode, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER);
+
+                                                if (controllerService != null) {
+
+                                                    for (Param deviceParam : controllerService.getParams()) {
+
+                                                        if (AppConstants.PARAM_TYPE_MATTER_DEVICES.equals(deviceParam.getParamType())) {
+
+                                                            apiHelper.callBrightnessAPI(entry.getKey(), matterNodeId, deviceParam.getName(),
+                                                                    controllerService.getName(), ESPControllerAPIKeys.ENDPOINT_ID_1_HEX, lastProgressValue, new ApiResponseListener() {
+                                                                        @Override
+                                                                        public void onSuccess(@Nullable Bundle data) {
+                                                                        }
+
+                                                                        @Override
+                                                                        public void onResponseFailure(@NonNull Exception exception) {
+                                                                        }
+
+                                                                        @Override
+                                                                        public void onNetworkFailure(@NonNull Exception exception) {
+                                                                        }
+                                                                    });
+
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    break;
+
+                                    case AppConstants.NODE_STATUS_LOCAL:
+                                    case AppConstants.NODE_STATUS_ONLINE:
+                                        ((EspDeviceActivity) context).setIsUpdateView(true);
+
+                                        deviceParamUpdates.clearQueueAndSendLastValue(param.getName(), lastProgressValue, new ApiResponseListener() {
+                                            @Override
+                                            public void onSuccess(Bundle data) {
+                                                ((EspDeviceActivity) context).startUpdateValueTask();
+                                            }
+
+                                            @Override
+                                            public void onResponseFailure(Exception exception) {
+                                                ((EspDeviceActivity) context).startUpdateValueTask();
+                                            }
+
+                                            @Override
+                                            public void onNetworkFailure(Exception exception) {
+                                                ((EspDeviceActivity) context).startUpdateValueTask();
+                                            }
+                                        });
+
+                                    case AppConstants.NODE_STATUS_OFFLINE:
+                                    default:
+                                        break;
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
+
                 } else {
                     paramViewHolder.intSlider.setEnabled(false);
                 }
@@ -848,7 +884,79 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
     }
 
-    private void displayToggle(final ParamViewHolder paramViewHolder, final Param param) {
+    private boolean checkDependencies(Param param) {
+
+        switch (nodeStatus) {
+
+            case AppConstants.NODE_STATUS_ONLINE:
+            case AppConstants.NODE_STATUS_LOCAL:
+                if (!TextUtils.isEmpty(param.getDependencies())) {
+
+                    String dependencies = param.getDependencies();
+
+                    try {
+                        JSONObject jsonObject = new JSONObject(dependencies);
+                        Iterator<String> keys = jsonObject.keys();
+
+                        while (keys.hasNext()) {
+                            String key = keys.next();
+                            String value = jsonObject.getString(key);
+
+                            for (Param p : params) {
+
+                                if (key.equals(p.getName())) {
+
+                                    String paramValue = p.getLabelValue();
+
+                                    if (!TextUtils.isEmpty(value)) {
+                                        if (value.equalsIgnoreCase(paramValue)
+                                                && AppConstants.PARAM_COOLING_POINT.equals(param.getName())) {
+                                            return true;
+                                        } else if (value.equalsIgnoreCase(paramValue)
+                                                && AppConstants.PARAM_HEATING_POINT.equals(param.getName())) {
+                                            return true;
+                                        } else {
+                                            return false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    return true;
+                }
+
+            case AppConstants.NODE_STATUS_MATTER_LOCAL:
+                if (AppConstants.PARAM_COOLING_POINT.equals(param.getName())) {
+                    for (Param p : params) {
+                        if (AppConstants.PARAM_SYSTEM_MODE.equals(p.getName())) {
+                            if (p.getValue() == SystemMode.COOL.getModeValue()) {
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        }
+                    }
+                } else if (AppConstants.PARAM_HEATING_POINT.equals(param.getName())) {
+                    for (Param p : params) {
+                        if (AppConstants.PARAM_SYSTEM_MODE.equals(p.getName())) {
+                            if (p.getValue() == SystemMode.HEAT.getModeValue()) {
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                return true;
+        }
+        return true;
+    }
+
+    private void displayToggle(final ParamViewHolder paramViewHolder, final Param param, final int position) {
 
         paramViewHolder.rlUiTypeSlider.setVisibility(View.GONE);
         paramViewHolder.rlUiTypeSwitch.setVisibility(View.VISIBLE);
@@ -860,12 +968,19 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         paramViewHolder.tvSwitchName.setText(param.getName());
         paramViewHolder.tvSwitchStatus.setVisibility(View.VISIBLE);
 
-        if (param.getSwitchStatus()) {
+        if (AppConstants.ESP_DEVICE_LOCK.equals(device.getDeviceType())) {
 
-            paramViewHolder.tvSwitchStatus.setText(R.string.text_on);
-
+            if (param.getSwitchStatus()) {
+                paramViewHolder.tvSwitchStatus.setText(LockState.UNLOCK.getLockModeText());
+            } else {
+                paramViewHolder.tvSwitchStatus.setText(LockState.LOCK.getLockModeText());
+            }
         } else {
-            paramViewHolder.tvSwitchStatus.setText(R.string.text_off);
+            if (param.getSwitchStatus()) {
+                paramViewHolder.tvSwitchStatus.setText(R.string.text_on);
+            } else {
+                paramViewHolder.tvSwitchStatus.setText(R.string.text_off);
+            }
         }
 
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
@@ -888,13 +1003,33 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                                 if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
                                     BigInteger id = new BigInteger(matterNodeId, 16);
                                     long deviceId = id.longValue();
-                                    OnOffClusterHelper espClusterHelper = new OnOffClusterHelper(espApp.chipClientMap.get(matterNodeId));
-                                    espClusterHelper.setOnOffDeviceStateOnOffClusterAsync(deviceId, isChecked, AppConstants.ENDPOINT_1);
-                                    param.setSwitchStatus(!isChecked);
-                                    if (isChecked) {
-                                        paramViewHolder.tvSwitchStatus.setText(R.string.text_on);
+
+                                    if (AppConstants.ESP_DEVICE_LOCK.equals(device.getDeviceType())) {
+
+                                        DoorLockClusterHelper espClusterHelper = new DoorLockClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                                        try {
+                                            if (isChecked) {
+                                                espClusterHelper.unlockDoorAsync(deviceId, AppConstants.ENDPOINT_1, AppConstants.DOOR_LOCK_PIN);
+                                                params.get(position).setLabelValue(LockState.UNLOCK.getLockModeText());
+                                            } else {
+                                                espClusterHelper.lockDoorAsync(deviceId, AppConstants.ENDPOINT_1, AppConstants.DOOR_LOCK_PIN);
+                                                params.get(position).setLabelValue(LockState.LOCK.getLockModeText());
+                                            }
+                                            params.get(position).setSwitchStatus(isChecked);
+                                            updateParamList(params);
+
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
+                                        }
                                     } else {
-                                        paramViewHolder.tvSwitchStatus.setText(R.string.text_off);
+                                        OnOffClusterHelper espClusterHelper = new OnOffClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                                        espClusterHelper.setOnOffDeviceStateOnOffClusterAsync(deviceId, isChecked, AppConstants.ENDPOINT_1);
+                                        param.setSwitchStatus(!isChecked);
+                                        if (isChecked) {
+                                            paramViewHolder.tvSwitchStatus.setText(R.string.text_on);
+                                        } else {
+                                            paramViewHolder.tvSwitchStatus.setText(R.string.text_off);
+                                        }
                                     }
                                 }
                                 break;
@@ -1101,7 +1236,8 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
     }
 
-    private void displayLabel(final ParamViewHolder paramViewHolder, final Param param, final int position) {
+    private void displayLabel(final ParamViewHolder paramViewHolder, final Param param,
+                              final int position) {
 
         paramViewHolder.rlUiTypeSlider.setVisibility(View.GONE);
         paramViewHolder.rlUiTypeSwitch.setVisibility(View.GONE);
@@ -1157,9 +1293,25 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         } else {
             paramViewHolder.btnEdit.setVisibility(View.GONE);
         }
+
+        if (nodeStatus == AppConstants.NODE_STATUS_MATTER_LOCAL && device.getDeviceType().equals(AppConstants.ESP_DEVICE_TEMP_SENSOR)) {
+            if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
+                BigInteger id = new BigInteger(matterNodeId, 16);
+                long deviceId = id.longValue();
+                TemperatureClusterHelper espClusterHelper = new TemperatureClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                try {
+                    int temp = espClusterHelper.getTemperatureAsync(deviceId, AppConstants.ENDPOINT_1).get();
+                    param.setLabelValue(String.valueOf(temp));
+                    paramViewHolder.tvLabelValue.setText(param.getLabelValue());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
-    private void displaySpinner(final ParamViewHolder paramViewHolder, final Param param, final int position) {
+    private void displaySpinner(final ParamViewHolder paramViewHolder, final Param param,
+                                final int position) {
 
         paramViewHolder.rlUiTypeSlider.setVisibility(View.GONE);
         paramViewHolder.rlUiTypeSwitch.setVisibility(View.GONE);
@@ -1218,12 +1370,12 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             int sliderValue = (int) param.getValue();
             int max = param.getMaxBounds();
             int min = param.getMinBounds();
+            ArrayList<String> spinnerValues = new ArrayList<>();
+
             int stepCount = (int) param.getStepCount();
             if (stepCount == 0) {
                 stepCount = 1;
             }
-
-            ArrayList<String> spinnerValues = new ArrayList<>();
             for (int i = min; i <= max; i = i + stepCount) {
                 spinnerValues.add(String.valueOf(i));
             }
@@ -1298,7 +1450,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 @Override
                 public void onItemSelected(AdapterView<?> parent, View view, final int pos, long id) {
 
-                    Log.d(TAG, "Dropdown list item clicked position :  " + paramViewHolder.spinner.getTag(R.id.position));
+                    Log.d(TAG, "Dropdown list item clicked position :  " + pos);
 
                     if ((int) paramViewHolder.spinner.getTag(R.id.position) != pos) {
 
@@ -1308,76 +1460,102 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                         ((EspDeviceActivity) context).stopUpdateValueTask();
 
-                        JsonObject jsonParam = new JsonObject();
-                        JsonObject body = new JsonObject();
+                        if (nodeStatus == AppConstants.NODE_STATUS_MATTER_LOCAL && AppConstants.PARAM_SYSTEM_MODE.equals(param.getName())) {
 
-                        if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("string"))) {
+                            if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
+                                BigInteger matterDeviceId = new BigInteger(matterNodeId, 16);
+                                long deviceId = matterDeviceId.longValue();
+                                int newModeValue = SystemMode.OFF.getModeValue();
 
-                            jsonParam.addProperty(param.getName(), newValue);
+                                if (newValue.equalsIgnoreCase(SystemMode.COOL.getModeName())) {
+                                    newModeValue = SystemMode.COOL.getModeValue();
+                                } else if (newValue.equalsIgnoreCase(SystemMode.HEAT.getModeName())) {
+                                    newModeValue = SystemMode.HEAT.getModeValue();
+                                }
 
-                        } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
-                                || dataType.equalsIgnoreCase("integer"))) {
+                                ThermostatClusterHelper espClusterHelper = new ThermostatClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                                espClusterHelper.setSystemModeAsync(deviceId, AppConstants.ENDPOINT_1, newModeValue);
+                                paramViewHolder.spinner.setTag(R.id.position, pos);
+                                params.get(position).setValue(newModeValue);
+                                params.get(position).setLabelValue(newValue);
+                                updateParamList(params);
+                                paramViewHolder.spinner.setVisibility(View.VISIBLE);
+                                paramViewHolder.progressBarSpinner.setVisibility(View.GONE);
+                            }
+                        } else {
 
-                            jsonParam.addProperty(param.getName(), Integer.parseInt(newValue));
-                        }
-                        body.add(deviceName, jsonParam);
+                            JsonObject jsonParam = new JsonObject();
+                            JsonObject body = new JsonObject();
 
-                        deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
+                            if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("string"))) {
 
-                            @Override
-                            public void onSuccess(Bundle data) {
+                                jsonParam.addProperty(param.getName(), newValue);
 
-                                context.runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
+                            } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
+                                    || dataType.equalsIgnoreCase("integer"))) {
 
-                                        paramViewHolder.progressBarSpinner.setVisibility(View.GONE);
-                                        paramViewHolder.spinner.setVisibility(View.VISIBLE);
-                                        paramViewHolder.spinner.setTag(R.id.position, pos);
+                                jsonParam.addProperty(param.getName(), Integer.parseInt(newValue));
+                            }
+                            body.add(deviceName, jsonParam);
 
-                                        if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("string"))) {
+                            deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
 
-                                            params.get(position).setLabelValue(newValue);
-                                            paramViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+                                @Override
+                                public void onSuccess(Bundle data) {
 
-                                        } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
-                                                || dataType.equalsIgnoreCase("integer"))) {
+                                    context.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
 
-                                            params.get(position).setValue(Integer.parseInt(newValue));
-                                            paramViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+                                            paramViewHolder.progressBarSpinner.setVisibility(View.GONE);
+                                            paramViewHolder.spinner.setVisibility(View.VISIBLE);
+                                            paramViewHolder.spinner.setTag(R.id.position, pos);
+
+                                            if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("string"))) {
+
+                                                params.get(position).setLabelValue(newValue);
+                                                paramViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+
+                                            } else if (!TextUtils.isEmpty(dataType) && (dataType.equalsIgnoreCase("int")
+                                                    || dataType.equalsIgnoreCase("integer"))) {
+
+                                                params.get(position).setValue(Integer.parseInt(newValue));
+                                                paramViewHolder.tvSpinnerValue.setVisibility(View.GONE);
+                                            }
+
+                                            updateParamList(params);
+                                            ((EspDeviceActivity) context).startUpdateValueTask();
                                         }
+                                    });
+                                }
 
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
-                                    }
-                                });
-                            }
+                                @Override
+                                public void onResponseFailure(Exception exception) {
 
-                            @Override
-                            public void onResponseFailure(Exception exception) {
+                                    context.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            paramViewHolder.progressBarSpinner.setVisibility(View.GONE);
+                                            paramViewHolder.spinner.setVisibility(View.VISIBLE);
+                                            ((EspDeviceActivity) context).startUpdateValueTask();
+                                        }
+                                    });
+                                }
 
-                                context.runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        paramViewHolder.progressBarSpinner.setVisibility(View.GONE);
-                                        paramViewHolder.spinner.setVisibility(View.VISIBLE);
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
-                                    }
-                                });
-                            }
+                                @Override
+                                public void onNetworkFailure(Exception exception) {
 
-                            @Override
-                            public void onNetworkFailure(Exception exception) {
-
-                                context.runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        paramViewHolder.progressBarSpinner.setVisibility(View.GONE);
-                                        paramViewHolder.spinner.setVisibility(View.VISIBLE);
-                                        ((EspDeviceActivity) context).startUpdateValueTask();
-                                    }
-                                });
-                            }
-                        });
+                                    context.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            paramViewHolder.progressBarSpinner.setVisibility(View.GONE);
+                                            paramViewHolder.spinner.setVisibility(View.VISIBLE);
+                                            ((EspDeviceActivity) context).startUpdateValueTask();
+                                        }
+                                    });
+                                }
+                            });
+                        }
                     }
                 }
 
@@ -1392,7 +1570,8 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
     }
 
-    private void askForNewValue(final ParamViewHolder paramViewHolder, final Param param, final int position) {
+    private void askForNewValue(final ParamViewHolder paramViewHolder, final Param param,
+                                final int position) {
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(context);
         LayoutInflater inflater = context.getLayoutInflater();

@@ -29,6 +29,7 @@ class AppConstants {
         const val UI_TYPE_DROP_DOWN = "esp.ui.dropdown"
         const val UI_TYPE_HIDDEN = "esp.ui.hidden"
         const val UI_TYPE_TRIGGER = "esp.ui.trigger"
+        const val UI_TYPE_TEXT = "esp.ui.text"
 
         // Device Types
         const val ESP_DEVICE_SWITCH = "esp.device.switch"
@@ -64,8 +65,10 @@ class AppConstants {
         const val MATTER_DEVICE_CONTACT_SENSOR = 21
         const val MATTER_DEVICE_OUTLET = 266
         const val MATTER_DEVICE_BULB_RGB = 268
+        const val MATTER_DEVICE_AC = 114
         const val MATTER_DEVICE_THERMOSTAT = 769
         const val MATTER_DEVICE_TEMP_SENSOR = 770
+        const val MATTER_DEVICE_DOOR_LOCK = 10
 
         // Service Types
         const val SERVICE_TYPE_SCHEDULE = "esp.service.schedule"
@@ -94,12 +97,21 @@ class AppConstants {
         const val PARAM_TYPE_MATTER_DEVICES = "esp.param.matter-devices"
         const val PARAM_TYPE_MATTER_CTRL_DATA_VERSION =
             "esp.param.matter-controller-data-version"
+        const val PARAM_TYPE_AC_MODE = "esp.param.ac-mode"
+        const val PARAM_TYPE_SETPOINT_TEMPERATURE = "esp.param.setpoint_temperature"
+        const val PARAM_TYPE_SPEED = "esp.param.speed"
 
         // Param names
         const val PARAM_POWER = "Power"
         const val PARAM_BRIGHTNESS = "Brightness"
         const val PARAM_HUE = "Hue"
         const val PARAM_SATURATION = "Saturation"
+        const val PARAM_TEMPERATURE = "Temperature"
+        const val PARAM_SYSTEM_MODE = "System Mode"
+        const val PARAM_COOLING_POINT = "Cool-Temperature"
+        const val PARAM_HEATING_POINT = "Heat-Temperature"
+        const val PARAM_LOCAL_TEMPERATURE = "Local Temperature"
+        const val PARAM_SPEED = "Speed"
 
         // Transport types
         const val TRANSPORT_SOFTAP = "softap"
@@ -463,6 +475,7 @@ class AppConstants {
         const val KEY_USER_NAME_THREAD = "sec2_username_thread"
         const val KEY_THREAD_SCAN_AVAILABLE = "thread_scan_available"
         const val KEY_THREAD_DATASET = "thread_dataset"
+        const val KEY_DEPENDENCIES = "dependencies"
 
         const val CERT_BEGIN = "-----BEGIN CERTIFICATE REQUEST-----"
         const val CERT_END = "-----END CERTIFICATE REQUEST-----"
@@ -503,6 +516,19 @@ class AppConstants {
         const val NODE_STATUS_REMOTELY_CONTROLLABLE = 5;
 
         const val HEX_PREFIX = "0x"
+
+        const val DOOR_LOCK_PIN = "1234"
+
+        enum class SystemMode(val modeValue: Int, val modeName: String) {
+            OFF(0, "Off"),
+            COOL(3, "Cool"),
+            HEAT(4, "Heat")
+        }
+
+        enum class LockState(val value: Int, val lockModeText: String) {
+            LOCK(0, "Lock"),
+            UNLOCK(1, "Unlock")
+        }
 
         enum class UpdateEventType {
             EVENT_DEVICE_ADDED,
