@@ -35,6 +35,7 @@ public class Param implements Parcelable, Comparable {
     private ArrayList<String> validStrings;
     private boolean isDynamicParam;
     private boolean isSelected;
+    private String dependencies;
 
     public Param(Param param) {
 
@@ -52,6 +53,7 @@ public class Param implements Parcelable, Comparable {
         validStrings = param.getValidStrings();
         isDynamicParam = param.isDynamicParam();
         isSelected = param.isSelected();
+        dependencies = param.getDependencies();
     }
 
     public String getName() {
@@ -166,6 +168,14 @@ public class Param implements Parcelable, Comparable {
         isSelected = selected;
     }
 
+    public String getDependencies() {
+        return dependencies;
+    }
+
+    public void setDependencies(String dependencies) {
+        this.dependencies = dependencies;
+    }
+
     public Param() {
     }
 
@@ -184,6 +194,7 @@ public class Param implements Parcelable, Comparable {
         validStrings = in.createStringArrayList();
         isDynamicParam = in.readByte() != 0;
         isSelected = in.readByte() != 0;
+        dependencies = in.readString();
     }
 
     public static final Creator<Param> CREATOR = new Creator<Param>() {
@@ -219,6 +230,7 @@ public class Param implements Parcelable, Comparable {
         dest.writeStringList(validStrings);
         dest.writeByte((byte) (isDynamicParam ? 1 : 0));
         dest.writeByte((byte) (isSelected ? 1 : 0));
+        dest.writeString(dependencies);
     }
 
     @Override
@@ -246,6 +258,8 @@ public class Param implements Parcelable, Comparable {
         } else if (compare.properties != null && this.properties != null && !compare.properties.equals(this.properties)) {
             return 1;
         } else if (compare.validStrings != null && this.validStrings != null && !compare.validStrings.equals(this.validStrings)) {
+            return 1;
+        } else if (compare.dependencies != null && this.dependencies != null && !compare.dependencies.equals(this.dependencies)) {
             return 1;
         } else if (compare.minBounds == this.minBounds
                 && compare.maxBounds == this.maxBounds

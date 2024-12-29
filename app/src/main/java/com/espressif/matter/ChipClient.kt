@@ -28,6 +28,7 @@ import chip.tlv.TlvWriter
 import com.espressif.AppConstants
 import com.espressif.cloudapi.ApiManager
 import com.espressif.ui.Utils
+import com.espressif.utils.NodeUtils
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -457,6 +458,14 @@ class ChipClient constructor(
                                                     info.types.get(0).toInt()
                                                 )
                                             }
+                                            val deviceName =
+                                                NodeUtils.getDefaultNameForMatterDevice(
+                                                    info.types.get(0).toInt()
+                                                )
+                                            metadataJson.addProperty(
+                                                AppConstants.KEY_DEVICENAME,
+                                                deviceName
+                                            )
 
                                             endpointsArray.add(info.endpoint)
 

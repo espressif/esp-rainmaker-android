@@ -17,6 +17,7 @@ package com.espressif;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.espressif.AppConstants.Companion.SystemMode;
 import com.espressif.ui.models.Action;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
@@ -96,8 +97,20 @@ public class JsonDataParser {
                 param.setLabelValue(labelValue);
                 param.setValue(value);
             } else {
-                labelValue = deviceJson.optString(paramName);
-                param.setLabelValue(labelValue);
+                if (AppConstants.ESP_DEVICE_AIR_CONDITIONER.equals(device.getDeviceType())) {
+                    labelValue = deviceJson.optString(paramName);
+                    param.setLabelValue(labelValue);
+                    if (SystemMode.OFF.getModeName().equals(labelValue)) {
+                        param.setValue(SystemMode.OFF.getModeValue());
+                    } else if (SystemMode.COOL.getModeName().equals(labelValue)) {
+                        param.setValue(SystemMode.COOL.getModeValue());
+                    } else if (SystemMode.HEAT.getModeName().equals(labelValue)) {
+                        param.setValue(SystemMode.HEAT.getModeValue());
+                    }
+                } else {
+                    labelValue = deviceJson.optString(paramName);
+                    param.setLabelValue(labelValue);
+                }
             }
         } else {
 
@@ -194,6 +207,10 @@ public class JsonDataParser {
                         param.setDataType(paraObj.optString(AppConstants.KEY_DATA_TYPE));
                         param.setUiType(paraObj.optString(AppConstants.KEY_UI_TYPE));
                         param.setDynamicParam(true);
+                        JSONObject dependenciesJson = paraObj.optJSONObject(AppConstants.KEY_DEPENDENCIES);
+                        if (dependenciesJson != null) {
+                            param.setDependencies(dependenciesJson.toString());
+                        }
                         params.add(param);
 
                         JSONArray propertiesJson = paraObj.optJSONArray(AppConstants.KEY_PROPERTIES);

@@ -21,16 +21,17 @@ import chip.devicecontroller.ChipClusters
 import com.espressif.AppConstants
 import com.espressif.AppConstants.Companion.UpdateEventType
 import com.espressif.EspApplication
+import com.espressif.ui.Utils
 import com.espressif.ui.models.Device
 import com.espressif.ui.models.EspNode
 import com.espressif.ui.models.Param
 import com.espressif.ui.models.UpdateEvent
+import com.espressif.utils.NodeUtils
 import com.espressif.utils.ParamUtils
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
 import org.greenrobot.eventbus.EventBus
 import java.math.BigInteger
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 
 class ChipClientHelper constructor(private val espApp: EspApplication) {
@@ -97,7 +98,7 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                                 val node: EspNode? = espApp.nodeMap.get(nodeId)
                                 if (node != null) {
                                     if (node.devices[0] == null || node.devices[0].params == null) {
-                                        addParamsForMatterOnlyDevice(nodeId, matterNodeId, node)
+                                        addParamsForMatterDevice(nodeId, matterNodeId, node)
                                     }
                                     getCurrentValues(nodeId, matterNodeId, node)
                                 }
@@ -121,7 +122,8 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
     fun initChipClientInBackground(matterNodeId: String) =
         GlobalScope.future { initChipClient(matterNodeId) }
 
-    fun addParamsForMatterOnlyDevice(nodeId: String?, matterNodeId: String?, node: EspNode) {
+    fun addParamsForMatterDevice(nodeId: String?, matterNodeId: String?, node: EspNode) {
+        Log.d(TAG, "Adding Params for matter node id : $matterNodeId")
         val id = BigInteger(matterNodeId, 16)
         val deviceId = id.toLong()
         Log.d(TAG, "Device id : $deviceId")
@@ -153,145 +155,11 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                         properties.add(AppConstants.KEY_PROPERTY_WRITE)
                         properties.add(AppConstants.KEY_PROPERTY_READ)
 
-                        for (cluster in serverClusters) {
-                            val clusterId = cluster as Long
-
-                            if (clusterId == ChipClusters.OnOffCluster.CLUSTER_ID) {
-                                Log.d(TAG, "Found On Off Cluster in server clusters")
-                                val device = devices[0]
-                                deviceType = AppConstants.ESP_DEVICE_LIGHT
-                                device.deviceType = deviceType
-                                var params = device.params
-                                if (params == null || params.size == 0) {
-                                    params = java.util.ArrayList()
-                                }
-                                val isParamAvailable: Boolean =
-                                    ParamUtils.isParamAvailableInList(
-                                        params,
-                                        AppConstants.PARAM_TYPE_POWER
-                                    )
-
-                                if (!isParamAvailable) {
-                                    // Add on/off param
-                                    ParamUtils.addToggleParam(params, properties)
-                                    device.primaryParamName = AppConstants.PARAM_POWER
-                                }
-                                device.params = params
-                            } else if (clusterId == ChipClusters.LevelControlCluster.CLUSTER_ID) {
-                                Log.d(
-                                    TAG,
-                                    "Found level control Cluster in server clusters"
-                                )
-                                val device = devices[0]
-                                var params = device.params
-                                if (params == null || params.size == 0) {
-                                    params = java.util.ArrayList()
-                                }
-                                val isParamAvailable: Boolean =
-                                    ParamUtils.isParamAvailableInList(
-                                        params,
-                                        AppConstants.PARAM_TYPE_BRIGHTNESS
-                                    )
-                                var brightnessParam: Param? = null
-                                if (isParamAvailable) {
-                                    for (p in params) {
-                                        if (p.paramType == AppConstants.PARAM_TYPE_BRIGHTNESS) {
-                                            brightnessParam = p
-                                            break
-                                        }
-                                    }
-                                }
-
-                                if (!isParamAvailable) {
-                                    // Add brightness param
-                                    brightnessParam = Param()
-                                    brightnessParam.isDynamicParam = true
-                                    brightnessParam.dataType = "int"
-                                    brightnessParam.uiType = AppConstants.UI_TYPE_SLIDER
-                                    brightnessParam.paramType = AppConstants.PARAM_TYPE_BRIGHTNESS
-                                    brightnessParam.name = AppConstants.PARAM_BRIGHTNESS
-                                    brightnessParam.minBounds = 0
-                                    brightnessParam.maxBounds = 100
-                                    brightnessParam.properties = properties
-                                    params.add(brightnessParam)
-                                }
-                                device.params = params
-
-                                val levelControlCluster =
-                                    espApp.chipClientMap.get(matterNodeId)
-                                        ?.let { LevelControlClusterHelper(it) }
-
-                                if (levelControlCluster != null) {
-                                    val value: CompletableFuture<Int?> =
-                                        levelControlCluster.getCurrentLevelValueAsync(
-                                            deviceId,
-                                            AppConstants.ENDPOINT_1
-                                        )
-                                    try {
-                                        val level = value.get()
-                                        Log.d(
-                                            TAG,
-                                            "Received Brightness current value : $level"
-                                        )
-                                        if (level != null) {
-                                            brightnessParam!!.value = level.toDouble()
-                                        }
-                                    } catch (e: ExecutionException) {
-                                        e.printStackTrace()
-                                    } catch (e: InterruptedException) {
-                                        e.printStackTrace()
-                                    }
-                                }
-                            } else if (clusterId == ChipClusters.ColorControlCluster.CLUSTER_ID) {
-                                Log.d(
-                                    TAG,
-                                    "Found color control Cluster in server clusters"
-                                )
-                                val device = devices[0]
-                                var params = device.params
-                                if (params == null || params.size == 0) {
-                                    params = java.util.ArrayList()
-                                }
-                                val isSatParamAvailable: Boolean =
-                                    ParamUtils.isParamAvailableInList(
-                                        params,
-                                        AppConstants.PARAM_TYPE_SATURATION
-                                    )
-                                val isHueParamAvailable: Boolean =
-                                    ParamUtils.isParamAvailableInList(
-                                        params,
-                                        AppConstants.PARAM_TYPE_HUE
-                                    )
-
-                                if (!isSatParamAvailable) {
-                                    // Add saturation param
-                                    val saturation = Param()
-                                    saturation.isDynamicParam = true
-                                    saturation.dataType = "int"
-                                    saturation.uiType = AppConstants.UI_TYPE_SLIDER
-                                    saturation.paramType = AppConstants.PARAM_TYPE_SATURATION
-                                    saturation.name = AppConstants.PARAM_SATURATION
-                                    saturation.properties = properties
-                                    saturation.minBounds = 0
-                                    saturation.maxBounds = 100
-                                    params.add(saturation)
-                                }
-
-                                if (!isHueParamAvailable) {
-                                    // Add hue param
-                                    val hue = Param()
-                                    hue.isDynamicParam = true
-                                    hue.dataType = "int"
-                                    hue.uiType = AppConstants.UI_TYPE_HUE_SLIDER
-                                    hue.paramType = AppConstants.PARAM_TYPE_HUE
-                                    hue.name = AppConstants.PARAM_HUE
-                                    hue.properties = properties
-                                    params.add(hue)
-                                }
-                                device.params = params
-                            }
+                        val clusters: List<Long> = serverClusters.mapNotNull {
+                            (it as? Number)?.toLong() // Safely cast to Number and then to Long
                         }
-                        espApp.nodeMap.put(nodeId, node)
+                        val espNode = NodeUtils.addParamsForMatterClusters(node, clusters)
+                        espApp.nodeMap.put(nodeId, espNode)
 
                         if (TextUtils.isEmpty(deviceType)) {
                             for (cluster in clientClusters) {
@@ -356,10 +224,8 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
 
                     var params: ArrayList<Param> = node.devices[0].params
 
-                    if (clusterInfo.endpoint == AppConstants.ENDPOINT_1 &&
-                        clusterInfo.serverClusters != null
+                    if (clusterInfo.endpoint == AppConstants.ENDPOINT_1 && clusterInfo.serverClusters != null
                     ) {
-
                         if (clusterInfo.serverClusters.contains(ChipClusters.OnOffCluster.CLUSTER_ID)) {
 
                             val espClusterHelper =
@@ -373,7 +239,7 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                             Log.d(TAG, "On off cluster value : : $onOffStatus")
 
                             for (param in params) {
-                                if (param.paramType.equals(AppConstants.PARAM_TYPE_POWER)) {
+                                if (AppConstants.PARAM_TYPE_POWER.equals(param.paramType)) {
                                     if (onOffStatus != null) {
                                         param.switchStatus = onOffStatus
                                     }
@@ -394,7 +260,7 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                             Log.d(TAG, "Level control cluster value : $brightnessValue")
 
                             for (param in params) {
-                                if (param.paramType.equals(AppConstants.PARAM_TYPE_BRIGHTNESS)) {
+                                if (AppConstants.PARAM_TYPE_BRIGHTNESS.equals(param.paramType)) {
                                     if (brightnessValue != null) {
                                         var temp = ((brightnessValue * 100f) / 255f)
                                         brightnessValue = temp.toInt()
@@ -424,17 +290,140 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                             Log.d(TAG, "Color control cluster saturationValue : $saturationValue")
 
                             for (param in params) {
-                                if (param.paramType.equals(AppConstants.PARAM_TYPE_HUE)) {
+                                if (AppConstants.PARAM_TYPE_HUE.equals(param.paramType)) {
                                     if (hueValue != null) {
                                         var temp = ((hueValue * 360f) / 255f)
                                         hueValue = temp.toInt()
                                         param.value = hueValue.toDouble()
                                     }
-                                } else if (param.paramType.equals(AppConstants.PARAM_TYPE_SATURATION)) {
+                                } else if (AppConstants.PARAM_TYPE_SATURATION.equals(param.paramType)) {
                                     if (saturationValue != null) {
                                         var temp = ((saturationValue * 100f) / 255f)
                                         saturationValue = temp.toInt()
                                         param.value = saturationValue.toDouble()
+                                    }
+                                }
+                            }
+                        }
+
+                        if (clusterInfo.serverClusters.contains(ChipClusters.TemperatureMeasurementCluster.CLUSTER_ID)) {
+
+                            val espClusterHelper =
+                                TemperatureClusterHelper(espApp.chipClientMap[matterNodeId]!!)
+                            var temperatureValue: Int? =
+                                espClusterHelper.getTemperatureAsync(
+                                    deviceId,
+                                    AppConstants.ENDPOINT_1
+                                ).get()
+
+                            Log.d(TAG, "Temperature value : $temperatureValue")
+
+                            for (param in params) {
+                                if (AppConstants.PARAM_TYPE_TEMPERATURE.equals(param.paramType)) {
+                                    if (temperatureValue != null) {
+                                        val temp =
+                                            Utils.temperatureDeviceToAppConversion(temperatureValue)
+                                        temperatureValue = temp
+                                        param.value = temperatureValue.toDouble()
+                                        param.labelValue = temperatureValue.toString()
+                                    }
+                                }
+                            }
+                        }
+
+                        if (clusterInfo.serverClusters.contains(ChipClusters.DoorLockCluster.CLUSTER_ID)) {
+
+                            val espClusterHelper =
+                                DoorLockClusterHelper(espApp.chipClientMap[matterNodeId]!!)
+                            var lockStateValue: Int? =
+                                espClusterHelper.getLockStateAsync(
+                                    deviceId,
+                                    AppConstants.ENDPOINT_1
+                                ).get()
+
+                            Log.d(TAG, "Door lock state value : $lockStateValue")
+                        }
+
+                        if (clusterInfo.serverClusters.contains(ChipClusters.FanControlCluster.CLUSTER_ID)) {
+
+                            val espClusterHelper =
+                                FanControlClusterHelper(espApp.chipClientMap[matterNodeId]!!)
+                            var fanSpeed: Int? =
+                                espClusterHelper.getFanSpeedAsync(
+                                    deviceId,
+                                    AppConstants.ENDPOINT_1
+                                ).get()
+
+                            Log.d(TAG, "Fan speed value : $fanSpeed")
+
+                            for (param in params) {
+                                if (AppConstants.PARAM_TYPE_SPEED.equals(param.paramType)) {
+                                    if (fanSpeed != null) {
+                                        param.value = fanSpeed.toDouble()
+                                        param.labelValue = fanSpeed.toString()
+                                    }
+                                }
+                            }
+                        }
+
+                        if (clusterInfo.serverClusters.contains(ChipClusters.ThermostatCluster.CLUSTER_ID)) {
+
+                            val espClusterHelper =
+                                ThermostatClusterHelper(espApp.chipClientMap[matterNodeId]!!)
+                            var systemMode: Int? =
+                                espClusterHelper.getSystemModeAsync(
+                                    deviceId,
+                                    AppConstants.ENDPOINT_1
+                                ).get()
+
+                            var coolingSetpoint: Int? =
+                                espClusterHelper.getOccupiedCoolingSetpointAsync(
+                                    deviceId,
+                                    AppConstants.ENDPOINT_1
+                                ).get()
+
+                            var heatingSetpoint: Int? =
+                                espClusterHelper.getOccupiedHeatingSetpointAsync(
+                                    deviceId,
+                                    AppConstants.ENDPOINT_1
+                                ).get()
+
+                            var localTemp: Int? =
+                                espClusterHelper.getLocalTemperatureAsync(
+                                    deviceId,
+                                    AppConstants.ENDPOINT_1
+                                ).get()
+
+                            Log.d(
+                                TAG,
+                                "Thermostat cluster param values : mode - $systemMode, cooling point -  $coolingSetpoint, heating point - $heatingSetpoint, temp - $localTemp"
+                            )
+
+                            for (param in params) {
+                                if (AppConstants.PARAM_SYSTEM_MODE.equals(param.name)) {
+                                    if (systemMode != null) {
+                                        val mode =
+                                            NodeUtils.getSystemModeStringFromValue(systemMode)
+                                        param.value = mode.modeValue.toDouble()
+                                        param.labelValue = mode.modeName
+                                    }
+                                } else if (AppConstants.PARAM_COOLING_POINT.equals(param.name)) {
+                                    if (coolingSetpoint != null) {
+                                        param.value =
+                                            Utils.temperatureDeviceToAppConversion(coolingSetpoint)
+                                                .toDouble()
+                                    }
+                                } else if (AppConstants.PARAM_HEATING_POINT.equals(param.name)) {
+                                    if (heatingSetpoint != null) {
+                                        param.value =
+                                            Utils.temperatureDeviceToAppConversion(heatingSetpoint)
+                                                .toDouble()
+                                    }
+                                } else if (AppConstants.PARAM_TEMPERATURE.equals(param.name)) {
+                                    if (localTemp != null) {
+                                        param.value =
+                                            Utils.temperatureDeviceToAppConversion(localTemp)
+                                                .toDouble()
                                     }
                                 }
                             }

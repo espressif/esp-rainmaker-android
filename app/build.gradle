@@ -70,8 +70,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 27
         targetSdkVersion 34
-        versionCode 136
-        versionName "3.5.1 - ${getGitHash()}"
+        versionCode 140
+        versionName "3.5.2 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -244,6 +244,9 @@ dependencies {
     implementation fileTree(dir: "third_party/connectedhomeip/libs", include: ["*.jar", "*.so"])
     implementation fileTree(dir: "src/main/libs", include: ["*.aar"])
     implementation fileTree(include: ['*.jar'], dir: 'libs')
+
+    implementation libs.lifecycle.viewmodel.ktx
+    implementation libs.lifecycle.runtime.ktx
 
     implementation libs.appcompat
     implementation libs.constraintlayout

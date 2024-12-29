@@ -52,6 +52,7 @@ import com.espressif.ui.models.Service;
 import com.espressif.ui.models.SharingRequest;
 import com.espressif.ui.models.TsData;
 import com.espressif.ui.models.UpdateEvent;
+import com.espressif.utils.NodeUtils;
 import com.espressif.utils.ParamUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -1037,7 +1038,7 @@ public class ApiManager {
                                                 String deviceName = matterMetadataJson.optString(AppConstants.KEY_DEVICENAME);
                                                 device.setDeviceName(deviceName);
                                                 int type = (int) matterMetadataJson.optDouble(AppConstants.KEY_DEVICETYPE);
-                                                String matterDeviceType = Utils.getEspDeviceTypeForMatterDevice(type);
+                                                String matterDeviceType = NodeUtils.Companion.getEspDeviceTypeForMatterDevice(type);
                                                 device.setDeviceType(matterDeviceType);
                                                 metadata.setDeviceType(matterDeviceType);
                                                 metadata.setProductId(matterMetadataJson.optString(AppConstants.KEY_PRODUCT_ID));
@@ -1052,13 +1053,13 @@ public class ApiManager {
                                                 if (serverClustersJson != null) {
 
                                                     Iterator<String> serverClustersIt = serverClustersJson.keys();
-                                                    HashMap<String, ArrayList<Integer>> serverClusters = new HashMap<>();
+                                                    HashMap<String, ArrayList<Long>> serverClusters = new HashMap<>();
 
                                                     while (serverClustersIt.hasNext()) {
 
                                                         String endpointId = serverClustersIt.next();
                                                         JSONArray clusterArrayJson = serverClustersJson.optJSONArray(endpointId);
-                                                        ArrayList<Integer> serverClusterIds = new Gson().fromJson(clusterArrayJson.toString(), new TypeToken<List<Integer>>() {
+                                                        ArrayList<Long> serverClusterIds = new Gson().fromJson(clusterArrayJson.toString(), new TypeToken<List<Long>>() {
                                                         }.getType());
                                                         serverClusters.put(endpointId, serverClusterIds);
                                                     }
@@ -1068,13 +1069,13 @@ public class ApiManager {
                                                 if (clientClustersJson != null) {
 
                                                     Iterator<String> clientClustersIt = clientClustersJson.keys();
-                                                    HashMap<String, ArrayList<Integer>> clientClusters = new HashMap<>();
+                                                    HashMap<String, ArrayList<Long>> clientClusters = new HashMap<>();
 
                                                     while (clientClustersIt.hasNext()) {
 
                                                         String endpointId = clientClustersIt.next();
                                                         JSONArray clusterArrayJson = serverClustersJson.optJSONArray(endpointId);
-                                                        ArrayList<Integer> clientClusterIds = new Gson().fromJson(clusterArrayJson.toString(), new TypeToken<List<Integer>>() {
+                                                        ArrayList<Long> clientClusterIds = new Gson().fromJson(clusterArrayJson.toString(), new TypeToken<List<Long>>() {
                                                         }.getType());
                                                         clientClusters.put(endpointId, clientClusterIds);
                                                     }
@@ -1090,81 +1091,8 @@ public class ApiManager {
                                                         properties.add(AppConstants.KEY_PROPERTY_WRITE);
                                                         properties.add(AppConstants.KEY_PROPERTY_READ);
 
-                                                        ArrayList<Integer> clusters = matterDeviceInfo.getServerClusters().get(String.valueOf(AppConstants.ENDPOINT_1));
-                                                        ArrayList<Param> params = device.getParams();
-                                                        if (params == null || params.size() == 0) {
-                                                            params = new ArrayList<>();
-                                                        }
-
-                                                        for (Integer cluster : clusters) {
-
-                                                            long clusterId = (long) cluster;
-
-                                                            if (clusterId == ChipClusters.OnOffCluster.CLUSTER_ID) {
-
-                                                                boolean isParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_POWER);
-
-                                                                if (!isParamAvailable) {
-                                                                    // Add on/off param
-                                                                    addToggleParam(params, properties);
-                                                                    device.setPrimaryParamName(AppConstants.PARAM_POWER);
-                                                                }
-                                                                device.setParams(params);
-
-                                                            } else if (clusterId == ChipClusters.LevelControlCluster.CLUSTER_ID) {
-
-                                                                boolean isParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_BRIGHTNESS);
-                                                                Param brightnessParam = null;
-
-                                                                if (!isParamAvailable) {
-                                                                    // Add brightness param
-                                                                    brightnessParam = new Param();
-                                                                    brightnessParam.setDynamicParam(true);
-                                                                    brightnessParam.setDataType("int");
-                                                                    brightnessParam.setUiType(AppConstants.UI_TYPE_SLIDER);
-                                                                    brightnessParam.setParamType(AppConstants.PARAM_TYPE_BRIGHTNESS);
-                                                                    brightnessParam.setName(AppConstants.PARAM_BRIGHTNESS);
-                                                                    brightnessParam.setMinBounds(0);
-                                                                    brightnessParam.setMaxBounds(100);
-                                                                    brightnessParam.setValue(0);
-                                                                    brightnessParam.setProperties(properties);
-                                                                    params.add(brightnessParam);
-                                                                }
-                                                                device.setParams(params);
-
-                                                            } else if (clusterId == ChipClusters.ColorControlCluster.CLUSTER_ID) {
-
-                                                                boolean isSatParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_SATURATION);
-                                                                boolean isHueParamAvailable = isParamAvailableInList(params, AppConstants.PARAM_TYPE_HUE);
-
-                                                                if (!isSatParamAvailable) {
-                                                                    // Add saturation param
-                                                                    Param saturation = new Param();
-                                                                    saturation.setDynamicParam(true);
-                                                                    saturation.setDataType("int");
-                                                                    saturation.setUiType(AppConstants.UI_TYPE_SLIDER);
-                                                                    saturation.setParamType(AppConstants.PARAM_TYPE_SATURATION);
-                                                                    saturation.setName(AppConstants.PARAM_SATURATION);
-                                                                    saturation.setProperties(properties);
-                                                                    saturation.setMinBounds(0);
-                                                                    saturation.setMaxBounds(100);
-                                                                    params.add(saturation);
-                                                                }
-
-                                                                if (!isHueParamAvailable) {
-                                                                    // Add hue param
-                                                                    Param hue = new Param();
-                                                                    hue.setDynamicParam(true);
-                                                                    hue.setDataType("int");
-                                                                    hue.setUiType(AppConstants.UI_TYPE_HUE_SLIDER);
-                                                                    hue.setParamType(AppConstants.PARAM_TYPE_HUE);
-                                                                    hue.setName(AppConstants.PARAM_HUE);
-                                                                    hue.setProperties(properties);
-                                                                    params.add(hue);
-                                                                }
-                                                                device.setParams(params);
-                                                            }
-                                                        }
+                                                        ArrayList<Long> clusters = matterDeviceInfo.getServerClusters().get(String.valueOf(AppConstants.ENDPOINT_1));
+                                                        espNode = NodeUtils.Companion.addParamsForMatterClusters(espNode, clusters);
                                                     }
                                                 }
                                             }

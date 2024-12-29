@@ -25,8 +25,8 @@ import java.util.HashMap;
 public class MatterDeviceInfo implements Parcelable {
 
     private String deviceType;
-    private HashMap<String, ArrayList<Integer>> serverClusters;
-    private HashMap<String, ArrayList<Integer>> clientClusters;
+    private HashMap<String, ArrayList<Long>> serverClusters;
+    private HashMap<String, ArrayList<Long>> clientClusters;
 
     public MatterDeviceInfo() {
     }
@@ -39,19 +39,19 @@ public class MatterDeviceInfo implements Parcelable {
         this.deviceType = deviceType;
     }
 
-    public HashMap<String, ArrayList<Integer>> getServerClusters() {
+    public HashMap<String, ArrayList<Long>> getServerClusters() {
         return serverClusters;
     }
 
-    public void setServerClusters(HashMap<String, ArrayList<Integer>> serverClusters) {
+    public void setServerClusters(HashMap<String, ArrayList<Long>> serverClusters) {
         this.serverClusters = serverClusters;
     }
 
-    public HashMap<String, ArrayList<Integer>> getClientClusters() {
+    public HashMap<String, ArrayList<Long>> getClientClusters() {
         return clientClusters;
     }
 
-    public void setClientClusters(HashMap<String, ArrayList<Integer>> clientClusters) {
+    public void setClientClusters(HashMap<String, ArrayList<Long>> clientClusters) {
         this.clientClusters = clientClusters;
     }
 
@@ -69,8 +69,8 @@ public class MatterDeviceInfo implements Parcelable {
 
     public MatterDeviceInfo(Parcel in) {
         deviceType = in.readString();
-        serverClusters = (HashMap<String, ArrayList<Integer>>) in.readSerializable();
-        clientClusters = (HashMap<String, ArrayList<Integer>>) in.readSerializable();
+        serverClusters = (HashMap<String, ArrayList<Long>>) in.readSerializable();
+        clientClusters = (HashMap<String, ArrayList<Long>>) in.readSerializable();
     }
 
     public static final Creator<MatterDeviceInfo> CREATOR = new Creator<MatterDeviceInfo>() {

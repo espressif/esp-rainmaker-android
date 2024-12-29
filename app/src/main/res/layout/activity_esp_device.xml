@@ -5,9 +5,13 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
-    <include layout="@layout/toolbar" />
+    <include
+        android:id="@+id/toolbar_layout"
+        layout="@layout/toolbar" />
 
-    <include layout="@layout/content_esp_device" />
+    <include
+        android:id="@+id/esp_device_layout"
+        layout="@layout/content_esp_device" />
 
     <RelativeLayout
         android:id="@+id/rl_progress"
