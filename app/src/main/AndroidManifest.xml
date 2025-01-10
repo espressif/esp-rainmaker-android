@@ -76,7 +76,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="wxcced7aa3898dff73" /> <!-- Replace with your AppID -->
+                <data android:scheme="your_app_id" /> <!-- Replace with your AppID -->
             </intent-filter>
         </activity>
 
