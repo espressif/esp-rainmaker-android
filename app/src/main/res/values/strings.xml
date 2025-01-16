@@ -583,4 +583,28 @@
 
     <string name="status_controller">Controller</string>
 
+    <!-- Command Response -->
+    <string name="node_cmd_resp">Command-Response</string>
+    <string name="btn_send_cmd">Send Command</string>
+    <string name="title_activity_cmd_resp">Command-Response</string>
+    <string name="hint_cmd_id">Id</string>
+    <string name="hint_cmd_payload">Payload</string>
+    <string name="btn_send">Send</string>
+    <string name="error_cmd_id_empty">Please enter command ID</string>
+    <string name="error_cmd_id_positive">Command ID must be a positive number</string>
+    <string name="error_cmd_id_invalid">Invalid command ID</string>
+    <string name="error_payload_invalid">Invalid JSON payload</string>
+    <string name="error_network">Network error occurred</string>
+    <string name="request_id_received">Request ID: %1$s</string>
+    <string name="cmd_resp_failed">Command response %1$s</string>
+
+    <string name="error_invalid_json">Please enter a valid JSON payload</string>
+    <string name="error_invalid_payload">Please enter a valid JSON or base64 encoded string</string>
+    <string name="error_empty_payload">Please enter payload</string>
+
+    <string name="hint_cmd_timeout">Timeout (seconds)</string>
+    <string name="error_cmd_timeout_empty">Please enter timeout value</string>
+    <string name="error_cmd_timeout_positive">Timeout must be a positive number</string>
+    <string name="error_cmd_timeout_invalid">Invalid timeout value</string>
+
 </resources>

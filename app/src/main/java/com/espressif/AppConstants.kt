@@ -543,5 +543,16 @@ class AppConstants {
             EVENT_CTRL_CONFIG_DONE,
             EVENT_MATTER_DEVICE_CONNECTIVITY
         }
+
+        // Command Response constants
+        const val KEY_RESPONSE_DATA = "response_data"
+        const val KEY_REQUEST_ID = "request_id"
+        const val KEY_STATUS_DESCRIPTION = "status_description"
+        const val KEY_REQUESTS = "requests"
+        const val KEY_CMD = "cmd"
+        const val KEY_IS_BASE64 = "is_base64"
+        const val KEY_TIMEOUT = "timeout"
+        const val KEY_DATA = "data"
+        const val URL_USER_NODES_CMD = "/user/nodes/cmd"
     }
 }
