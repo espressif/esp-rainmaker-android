@@ -113,6 +113,9 @@ public class EspNode implements Parcelable {
     private NodeMetadata nodeMetadata;
 
     @Ignore
+    private String nodeMetadataJson;
+
+    @Ignore
     private boolean isController;
 
     @Ignore
@@ -155,6 +158,7 @@ public class EspNode implements Parcelable {
         sceneCurrentCnt = node.getSceneCurrentCnt();
         matterNodeId = node.getMatterNodeId();
         nodeMetadata = node.getNodeMetadata();
+        nodeMetadataJson = node.getNodeMetadataJson();
         isController = node.isController();
         nodeStatus = node.getNodeStatus();
         sharedGroupIds = node.getSharedGroupIds();
@@ -382,6 +386,14 @@ public class EspNode implements Parcelable {
         this.nodeMetadata = nodeMetadata;
     }
 
+    public String getNodeMetadataJson() {
+        return nodeMetadataJson;
+    }
+
+    public void setNodeMetadataJson(String nodeMetadataJson) {
+        this.nodeMetadataJson = nodeMetadataJson;
+    }
+
     public boolean isController() {
         return isController;
     }
@@ -438,6 +450,7 @@ public class EspNode implements Parcelable {
         isMatterNode = in.readByte() != 0;
         matterNodeId = in.readString();
         nodeMetadata = in.readParcelable(NodeMetadata.class.getClassLoader());
+        nodeMetadataJson = in.readString();
         isController = in.readByte() != 0;
         nodeStatus = in.readInt();
         sharedGroupIds = in.createStringArrayList();
@@ -490,6 +503,7 @@ public class EspNode implements Parcelable {
         dest.writeByte((byte) (isMatterNode ? 1 : 0));
         dest.writeString(matterNodeId);
         dest.writeParcelable(nodeMetadata, flags);
+        dest.writeString(nodeMetadataJson);
         dest.writeByte((byte) (isController ? 1 : 0));
         dest.writeInt(nodeStatus);
         dest.writeStringList(sharedGroupIds);

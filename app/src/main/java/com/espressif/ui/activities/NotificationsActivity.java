@@ -18,15 +18,11 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.espressif.AppConstants;
@@ -35,11 +31,11 @@ import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
 import com.espressif.db.EspDatabase;
 import com.espressif.rainmaker.R;
+import com.espressif.rainmaker.databinding.ActivityNotificationsBinding;
 import com.espressif.ui.adapters.NotificationAdapter;
 import com.espressif.ui.adapters.SharingRequestAdapter;
 import com.espressif.ui.models.NotificationEvent;
 import com.espressif.ui.models.SharingRequest;
-import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.ArrayList;
 
@@ -47,26 +43,20 @@ public class NotificationsActivity extends AppCompatActivity {
 
     private static final String TAG = NotificationsActivity.class.getSimpleName();
 
-    private RelativeLayout rlSharingReq, rlNotifications;
-    private RecyclerView rvSharingReq, rvNotifications;
-    private TextView tvNoRequest;
-    private RelativeLayout rlNoRequest;
-    private SwipeRefreshLayout swipeRefreshLayout;
-    private ImageView ivNoRequest;
-    private ContentLoadingProgressBar progressBar;
-    private RelativeLayout rlProgress, rlPendingReq;
-
     private SharingRequestAdapter sharingRequestAdapter;
     private NotificationAdapter notificationAdapter;
     private ArrayList<SharingRequest> pendingRequests;
     private ArrayList<NotificationEvent> notifications;
     private ApiManager apiManager;
 
+    private ActivityNotificationsBinding binding;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_notifications);
+        binding = ActivityNotificationsBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
         pendingRequests = new ArrayList<>();
         notifications = new ArrayList<>();
@@ -90,40 +80,27 @@ public class NotificationsActivity extends AppCompatActivity {
 
     private void initViews() {
 
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        setSupportActionBar(binding.toolbarLayout.toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
-        toolbar.setTitle(R.string.title_activity_sharing_requests);
-        toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+        getSupportActionBar().setTitle(R.string.title_activity_sharing_requests);
+        binding.toolbarLayout.toolbar.setNavigationIcon(R.drawable.ic_arrow_left);
+        binding.toolbarLayout.toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();
             }
         });
 
-        progressBar = findViewById(R.id.progress_get_sharing_requests);
-        rlNoRequest = findViewById(R.id.rl_no_request);
-        tvNoRequest = findViewById(R.id.tv_no_request);
-        ivNoRequest = findViewById(R.id.iv_no_request);
-        rlSharingReq = findViewById(R.id.rl_sharing_requests);
-        rlNotifications = findViewById(R.id.rl_notifications);
-        rvSharingReq = findViewById(R.id.rv_request_list);
-        rvNotifications = findViewById(R.id.rv_notifications);
-        swipeRefreshLayout = findViewById(R.id.swipe_container);
-        rlPendingReq = findViewById(R.id.rl_pending_requests);
-        rlProgress = findViewById(R.id.rl_progress);
-
-        rvSharingReq.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvRequestList.setLayoutManager(new LinearLayoutManager(this));
         sharingRequestAdapter = new SharingRequestAdapter(this, pendingRequests);
-        rvSharingReq.setAdapter(sharingRequestAdapter);
+        binding.rvRequestList.setAdapter(sharingRequestAdapter);
 
-        rvNotifications.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvNotifications.setLayoutManager(new LinearLayoutManager(this));
         notificationAdapter = new NotificationAdapter(this, notifications);
-        rvNotifications.setAdapter(notificationAdapter);
+        binding.rvNotifications.setAdapter(notificationAdapter);
 
-        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+        binding.swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
 
             @Override
             public void onRefresh() {
@@ -132,11 +109,11 @@ public class NotificationsActivity extends AppCompatActivity {
             }
         });
 
-        progressBar.setVisibility(View.VISIBLE);
-        tvNoRequest.setVisibility(View.GONE);
-        ivNoRequest.setVisibility(View.GONE);
-        rlSharingReq.setVisibility(View.GONE);
-        rlNotifications.setVisibility(View.GONE);
+        binding.progressGetSharingRequests.setVisibility(View.VISIBLE);
+        binding.tvNoRequest.setVisibility(View.GONE);
+        binding.ivNoRequest.setVisibility(View.GONE);
+        binding.rlSharingRequests.setVisibility(View.GONE);
+        binding.rlNotifications.setVisibility(View.GONE);
     }
 
     public void clearPendingRequest() {
@@ -148,30 +125,30 @@ public class NotificationsActivity extends AppCompatActivity {
 
         if ((pendingRequests.size() + notifications.size()) > 0) {
 
-            rlNoRequest.setVisibility(View.GONE);
+            binding.rlNoRequest.setVisibility(View.GONE);
 
             if (pendingRequests.size() > 0) {
-                rlSharingReq.setVisibility(View.VISIBLE);
+                binding.rlSharingRequests.setVisibility(View.VISIBLE);
             } else {
-                rlSharingReq.setVisibility(View.GONE);
+                binding.rlSharingRequests.setVisibility(View.GONE);
             }
             if (notifications.size() > 0) {
-                rlNotifications.setVisibility(View.VISIBLE);
+                binding.rlNotifications.setVisibility(View.VISIBLE);
             } else {
-                rlNotifications.setVisibility(View.GONE);
+                binding.rlNotifications.setVisibility(View.GONE);
             }
 
         } else {
-            tvNoRequest.setText(R.string.no_sharing_requests);
-            rlNoRequest.setVisibility(View.VISIBLE);
-            tvNoRequest.setVisibility(View.VISIBLE);
-            ivNoRequest.setVisibility(View.VISIBLE);
-            rlSharingReq.setVisibility(View.GONE);
-            rlNotifications.setVisibility(View.GONE);
+            binding.tvNoRequest.setText(R.string.no_sharing_requests);
+            binding.rlNoRequest.setVisibility(View.VISIBLE);
+            binding.tvNoRequest.setVisibility(View.VISIBLE);
+            binding.ivNoRequest.setVisibility(View.VISIBLE);
+            binding.rlSharingRequests.setVisibility(View.GONE);
+            binding.rlNotifications.setVisibility(View.GONE);
         }
-        progressBar.setVisibility(View.GONE);
+        binding.progressGetSharingRequests.setVisibility(View.GONE);
         sharingRequestAdapter.notifyDataSetChanged();
-        swipeRefreshLayout.setRefreshing(false);
+        binding.swipeContainer.setRefreshing(false);
     }
 
     private void getSharingRequests() {
@@ -194,14 +171,14 @@ public class NotificationsActivity extends AppCompatActivity {
                     }
                 }
                 updateUI();
-                progressBar.setVisibility(View.GONE);
-                swipeRefreshLayout.setRefreshing(false);
+                binding.progressGetSharingRequests.setVisibility(View.GONE);
+                binding.swipeContainer.setRefreshing(false);
             }
 
             @Override
             public void onResponseFailure(Exception exception) {
-                progressBar.setVisibility(View.GONE);
-                swipeRefreshLayout.setRefreshing(false);
+                binding.progressGetSharingRequests.setVisibility(View.GONE);
+                binding.swipeContainer.setRefreshing(false);
                 if (exception instanceof CloudException) {
                     Toast.makeText(NotificationsActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
                 } else {
@@ -211,8 +188,8 @@ public class NotificationsActivity extends AppCompatActivity {
 
             @Override
             public void onNetworkFailure(Exception exception) {
-                progressBar.setVisibility(View.GONE);
-                swipeRefreshLayout.setRefreshing(false);
+                binding.progressGetSharingRequests.setVisibility(View.GONE);
+                binding.swipeContainer.setRefreshing(false);
                 if (exception instanceof CloudException) {
                     Toast.makeText(NotificationsActivity.this, exception.getMessage(), Toast.LENGTH_SHORT).show();
                 } else {
@@ -232,8 +209,8 @@ public class NotificationsActivity extends AppCompatActivity {
     }
 
     public void showLoading(String msg) {
-        rlPendingReq.setAlpha(0.3f);
-        rlProgress.setVisibility(View.VISIBLE);
+        binding.rlPendingRequests.setAlpha(0.3f);
+        binding.rlProgress.setVisibility(View.VISIBLE);
         TextView progressText = findViewById(R.id.tv_loading);
         progressText.setText(msg);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
@@ -241,8 +218,8 @@ public class NotificationsActivity extends AppCompatActivity {
     }
 
     public void hideLoading() {
-        rlPendingReq.setAlpha(1);
-        rlProgress.setVisibility(View.GONE);
+        binding.rlPendingRequests.setAlpha(1);
+        binding.rlProgress.setVisibility(View.GONE);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
     }
 }

@@ -34,7 +34,6 @@ import com.espressif.JsonDataParser;
 import com.espressif.db.EspDatabase;
 import com.espressif.matter.FabricDetails;
 import com.espressif.rainmaker.BuildConfig;
-import com.espressif.ui.Utils;
 import com.espressif.ui.models.Action;
 import com.espressif.ui.models.ApiResponse;
 import com.espressif.ui.models.Automation;
@@ -76,7 +75,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import chip.devicecontroller.ChipClusters;
 import io.reactivex.Observable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
@@ -154,7 +152,6 @@ public class ApiManager {
                     if (response.isSuccessful()) {
 
                         String jsonResponse = response.body().string();
-                        Log.d(TAG, " -- Auth Success : response : " + jsonResponse);
                         JSONObject jsonObject = new JSONObject(jsonResponse);
                         idToken = jsonObject.getString("idtoken");
                         accessToken = jsonObject.getString("accesstoken");
@@ -420,11 +417,7 @@ public class ApiManager {
 
                 try {
                     if (response.isSuccessful()) {
-
-                        String jsonResponse = response.body().string();
-                        Log.e(TAG, "Response : " + jsonResponse);
                         listener.onSuccess(null);
-
                     } else {
                         String jsonErrResponse = response.errorBody().string();
                         processError(jsonErrResponse, listener, "Failed to create user");
@@ -461,11 +454,7 @@ public class ApiManager {
 
                 try {
                     if (response.isSuccessful()) {
-
-                        String jsonResponse = response.body().string();
-                        Log.e(TAG, "Response : " + jsonResponse);
                         listener.onSuccess(null);
-
                     } else {
                         String jsonErrResponse = response.errorBody().string();
                         processError(jsonErrResponse, listener, "Failed to confirm user");
@@ -498,11 +487,7 @@ public class ApiManager {
 
                 try {
                     if (response.isSuccessful()) {
-
-                        String jsonResponse = response.body().string();
-                        Log.e(TAG, "Response : " + jsonResponse);
                         listener.onSuccess(null);
-
                     } else {
                         String jsonErrResponse = response.errorBody().string();
                         processError(jsonErrResponse, listener, "Failed to request for delete user");
@@ -535,11 +520,7 @@ public class ApiManager {
 
                 try {
                     if (response.isSuccessful()) {
-
-                        String jsonResponse = response.body().string();
-                        Log.e(TAG, "Response : " + jsonResponse);
                         listener.onSuccess(null);
-
                     } else {
                         String jsonErrResponse = response.errorBody().string();
                         processError(jsonErrResponse, listener, "Failed to delete user");
@@ -576,11 +557,7 @@ public class ApiManager {
 
                 try {
                     if (response.isSuccessful()) {
-
-                        String jsonResponse = response.body().string();
-                        Log.e(TAG, "Response : " + jsonResponse);
                         listener.onSuccess(null);
-
                     } else {
                         String jsonErrResponse = response.errorBody().string();
                         processError(jsonErrResponse, listener, "Failed to send forgot password request");
@@ -619,11 +596,7 @@ public class ApiManager {
 
                 try {
                     if (response.isSuccessful()) {
-
-                        String jsonResponse = response.body().string();
-                        Log.e(TAG, "Response : " + jsonResponse);
                         listener.onSuccess(null);
-
                     } else {
                         String jsonErrResponse = response.errorBody().string();
                         processError(jsonErrResponse, listener, "Failed to reset password request");
@@ -661,11 +634,7 @@ public class ApiManager {
 
                 try {
                     if (response.isSuccessful()) {
-
-                        String jsonResponse = response.body().string();
-                        Log.e(TAG, "Response : " + jsonResponse);
                         listener.onSuccess(null);
-
                     } else {
                         String jsonErrResponse = response.errorBody().string();
                         processError(jsonErrResponse, listener, "Failed to change password");
@@ -799,8 +768,7 @@ public class ApiManager {
             if (response.isSuccessful()) {
                 ResponseBody responseBody = response.body();
                 String jsonResponse = responseBody.string();
-                Log.e(TAG, "Response Body : " + jsonResponse);
-                JSONObject jsonObject = null;
+                JSONObject jsonObject;
                 try {
                     jsonObject = new JSONObject(jsonResponse);
                     idToken = jsonObject.getString("idtoken");
@@ -842,9 +810,6 @@ public class ApiManager {
 
                 try {
                     if (response.isSuccessful()) {
-
-                        String jsonResponse = response.body().string();
-                        Log.d(TAG, "Response : " + jsonResponse);
                         listener.onSuccess(null);
                     } else {
                         String jsonErrResponse = response.errorBody().string();
@@ -890,7 +855,6 @@ public class ApiManager {
                                 if (response.body() != null) {
 
                                     String jsonResponse = response.body().string();
-                                    Log.e(TAG, "onResponse Success : " + jsonResponse);
                                     JSONObject jsonObject = new JSONObject(jsonResponse);
                                     JSONArray jsonArray = jsonObject.optJSONArray(AppConstants.KEY_SUPPORTED_VERSIONS);
                                     ArrayList<String> supportedVersions = new ArrayList<>();
@@ -968,7 +932,6 @@ public class ApiManager {
                         if (response.body() != null) {
 
                             String jsonResponse = response.body().string();
-                            Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
                             JSONArray nodeJsonArray = jsonObject.optJSONArray(AppConstants.KEY_NODE_DETAILS);
                             HashMap<String, Schedule> scheduleMap = new HashMap<>();
@@ -1003,20 +966,15 @@ public class ApiManager {
 
                                         // Node metadata
                                         JSONObject metadataJson = nodeJson.optJSONObject(AppConstants.KEY_METADATA);
-                                        JSONObject matterMetadataJson = null;
+                                        JSONObject matterMetadataJson = (metadataJson != null) ? metadataJson.optJSONObject(AppConstants.KEY_MATTER) : null;
 
-                                        if (metadataJson != null) {
-
-                                            matterMetadataJson = metadataJson.optJSONObject(AppConstants.KEY_MATTER);
-
-                                            if (matterMetadataJson != null) {
-                                                NodeMetadata metadata = new NodeMetadata();
-                                                metadata.setDeviceName(matterMetadataJson.optString(AppConstants.KEY_DEVICENAME));
-                                                metadata.setGroupId(matterMetadataJson.optString(AppConstants.KEY_GROUP_ID));
-                                                metadata.setRainMaker(matterMetadataJson.optBoolean(AppConstants.KEY_IS_RAINMAKER));
-                                                metadata.setServersData(matterMetadataJson.optString(AppConstants.KEY_SERVERS_DATA));
-                                                espNode.setNodeMetadata(metadata);
-                                            }
+                                        if (matterMetadataJson != null) {
+                                            NodeMetadata metadata = new NodeMetadata();
+                                            metadata.setDeviceName(matterMetadataJson.optString(AppConstants.KEY_DEVICENAME));
+                                            metadata.setGroupId(matterMetadataJson.optString(AppConstants.KEY_GROUP_ID));
+                                            metadata.setRainMaker(matterMetadataJson.optBoolean(AppConstants.KEY_IS_RAINMAKER));
+                                            metadata.setServersData(matterMetadataJson.optString(AppConstants.KEY_SERVERS_DATA));
+                                            espNode.setNodeMetadata(metadata);
                                         }
 
                                         if (!TextUtils.isEmpty(nodeType) &&
@@ -1036,7 +994,11 @@ public class ApiManager {
 
                                                 NodeMetadata metadata = espNode.getNodeMetadata();
                                                 String deviceName = matterMetadataJson.optString(AppConstants.KEY_DEVICENAME);
-                                                device.setDeviceName(deviceName);
+                                                if (nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
+                                                    device.setDeviceName(deviceName);
+                                                }
+                                                device.setUserVisibleName(deviceName);
+
                                                 int type = (int) matterMetadataJson.optDouble(AppConstants.KEY_DEVICETYPE);
                                                 String matterDeviceType = NodeUtils.Companion.getEspDeviceTypeForMatterDevice(type);
                                                 device.setDeviceType(matterDeviceType);
@@ -1044,6 +1006,7 @@ public class ApiManager {
                                                 metadata.setProductId(matterMetadataJson.optString(AppConstants.KEY_PRODUCT_ID));
                                                 metadata.setVendorId(matterMetadataJson.optString(AppConstants.KEY_VENDOR_ID));
                                                 espNode.setNodeMetadata(metadata);
+                                                espNode.setNodeMetadataJson(metadataJson.toString());
 
                                                 MatterDeviceInfo matterDeviceInfo = new MatterDeviceInfo();
                                                 matterDeviceInfo.setDeviceType(String.valueOf(matterMetadataJson.optDouble(AppConstants.KEY_DEVICETYPE)));
@@ -1092,7 +1055,7 @@ public class ApiManager {
                                                         properties.add(AppConstants.KEY_PROPERTY_READ);
 
                                                         ArrayList<Long> clusters = matterDeviceInfo.getServerClusters().get(String.valueOf(AppConstants.ENDPOINT_1));
-                                                        espNode = NodeUtils.Companion.addParamsForMatterClusters(espNode, clusters);
+                                                        espNode = NodeUtils.Companion.addParamsForMatterClusters(espNode, clusters, type);
                                                     }
                                                 }
                                             }
@@ -1113,6 +1076,17 @@ public class ApiManager {
 
                                             espNode.setConfigData(configJson.toString());
                                             espApp.nodeMap.put(nodeId, espNode);
+                                        }
+
+                                        if (matterMetadataJson != null) {
+
+                                            String deviceName = matterMetadataJson.optString(AppConstants.KEY_DEVICENAME);
+                                            Device device = espNode.getDevices().get(0);
+
+                                            if (nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
+                                                device.setDeviceName(deviceName);
+                                            }
+                                            device.setUserVisibleName(deviceName);
                                         }
 
                                         // Node Status
@@ -1158,8 +1132,6 @@ public class ApiManager {
                                                                 JsonDataParser.setDeviceParamValue(deviceJson, devices.get(i), param);
                                                             }
                                                         }
-                                                    } else {
-                                                        Log.e(TAG, "Device JSON is null");
                                                     }
                                                 }
                                             } else {
@@ -1167,269 +1139,259 @@ public class ApiManager {
                                             }
 
                                             // Schedules
-                                            if (scheduleJson != null) {
+                                            JSONArray scheduleArrayJson = (scheduleJson != null) ? scheduleJson.optJSONArray(AppConstants.KEY_SCHEDULES) : null;
 
-                                                JSONArray scheduleArrayJson = scheduleJson.optJSONArray(AppConstants.KEY_SCHEDULES);
+                                            if (scheduleArrayJson != null) {
 
-                                                if (scheduleArrayJson != null) {
+                                                for (int index = 0; index < scheduleArrayJson.length(); index++) {
 
-                                                    for (int index = 0; index < scheduleArrayJson.length(); index++) {
+                                                    JSONObject schJson = scheduleArrayJson.getJSONObject(index);
+                                                    String scheduleId = schJson.optString(AppConstants.KEY_ID);
+                                                    String key = scheduleId;
 
-                                                        JSONObject schJson = scheduleArrayJson.getJSONObject(index);
-                                                        String scheduleId = schJson.optString(AppConstants.KEY_ID);
-                                                        String key = scheduleId;
+                                                    if (!TextUtils.isEmpty(scheduleId)) {
 
-                                                        if (!TextUtils.isEmpty(scheduleId)) {
+                                                        String name = schJson.optString(AppConstants.KEY_NAME);
+                                                        key = key + "_" + name + "_" + schJson.optBoolean(AppConstants.KEY_ENABLED);
 
-                                                            String name = schJson.optString(AppConstants.KEY_NAME);
-                                                            key = key + "_" + name + "_" + schJson.optBoolean(AppConstants.KEY_ENABLED);
-
-                                                            HashMap<String, Integer> triggers = new HashMap<>();
-                                                            JSONArray triggerArray = schJson.optJSONArray(AppConstants.KEY_TRIGGERS);
-                                                            for (int t = 0; t < triggerArray.length(); t++) {
-                                                                JSONObject triggerJson = triggerArray.optJSONObject(t);
-                                                                int days = triggerJson.optInt(AppConstants.KEY_DAYS);
-                                                                int mins = triggerJson.optInt(AppConstants.KEY_MINUTES);
-                                                                triggers.put(AppConstants.KEY_DAYS, days);
-                                                                triggers.put(AppConstants.KEY_MINUTES, mins);
-                                                                key = key + "_" + days + "_" + mins;
-                                                            }
-
-                                                            Schedule schedule = scheduleMap.get(key);
-                                                            if (schedule == null) {
-                                                                schedule = new Schedule();
-                                                            }
-
-                                                            schedule.setId(scheduleId);
-                                                            schedule.setName(schJson.optString(AppConstants.KEY_NAME));
-                                                            schedule.setEnabled(schJson.optBoolean(AppConstants.KEY_ENABLED));
-
-                                                            scheduleIds.add(key);
-                                                            schedule.setTriggers(triggers);
-                                                            Log.d(TAG, "=============== Schedule : " + schedule.getName() + " ===============");
-
-                                                            // Actions
-                                                            JSONObject actionsSchJson = schJson.optJSONObject(AppConstants.KEY_ACTION);
-
-                                                            if (actionsSchJson != null) {
-
-                                                                ArrayList<Action> actions = schedule.getActions();
-                                                                if (actions == null) {
-                                                                    actions = new ArrayList<>();
-                                                                    schedule.setActions(actions);
-                                                                }
-
-                                                                for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
-
-                                                                    Device d = new Device(devices.get(deviceIndex));
-                                                                    ArrayList<Param> params = d.getParams();
-                                                                    String deviceName = d.getDeviceName();
-                                                                    JSONObject deviceAction = actionsSchJson.optJSONObject(deviceName);
-
-                                                                    if (deviceAction != null) {
-
-                                                                        Action action = null;
-                                                                        Device actionDevice = null;
-                                                                        int actionIndex = -1;
-
-                                                                        for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
-
-                                                                            Action a = actions.get(aIndex);
-                                                                            if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
-                                                                                action = actions.get(aIndex);
-                                                                                actionIndex = aIndex;
-                                                                            }
-                                                                        }
-
-                                                                        if (action == null) {
-                                                                            action = new Action();
-                                                                            action.setNodeId(nodeId);
-
-                                                                            for (int k = 0; k < devices.size(); k++) {
-
-                                                                                if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
-                                                                                    actionDevice = new Device(devices.get(k));
-                                                                                    actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
-                                                                                    break;
-                                                                                }
-                                                                            }
-
-                                                                            if (actionDevice == null) {
-                                                                                actionDevice = new Device(nodeId);
-                                                                            }
-                                                                            action.setDevice(actionDevice);
-                                                                        } else {
-                                                                            actionDevice = action.getDevice();
-                                                                        }
-
-                                                                        ArrayList<Param> actionParams = new ArrayList<>();
-                                                                        if (params != null) {
-                                                                            actionParams = ParamUtils.Companion.filterActionParams(params);
-                                                                        }
-                                                                        actionDevice.setParams(actionParams);
-
-                                                                        for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
-
-                                                                            Param p = actionParams.get(paramIndex);
-                                                                            String paramName = p.getName();
-
-                                                                            if (deviceAction.has(paramName)) {
-
-                                                                                p.setSelected(true);
-                                                                                JsonDataParser.setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
-                                                                            }
-                                                                        }
-
-                                                                        for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
-
-                                                                            if (!actionParams.get(paramIndex).isSelected()) {
-                                                                                actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
-                                                                            }
-                                                                        }
-
-                                                                        if (actionIndex == -1) {
-                                                                            actions.add(action);
-                                                                        } else {
-                                                                            actions.set(actionIndex, action);
-                                                                        }
-                                                                        schedule.setActions(actions);
-
-                                                                    }
-                                                                }
-                                                            }
-                                                            scheduleMap.put(key, schedule);
+                                                        HashMap<String, Integer> triggers = new HashMap<>();
+                                                        JSONArray triggerArray = schJson.optJSONArray(AppConstants.KEY_TRIGGERS);
+                                                        for (int t = 0; t < triggerArray.length(); t++) {
+                                                            JSONObject triggerJson = triggerArray.optJSONObject(t);
+                                                            int days = triggerJson.optInt(AppConstants.KEY_DAYS);
+                                                            int mins = triggerJson.optInt(AppConstants.KEY_MINUTES);
+                                                            triggers.put(AppConstants.KEY_DAYS, days);
+                                                            triggers.put(AppConstants.KEY_MINUTES, mins);
+                                                            key = key + "_" + days + "_" + mins;
                                                         }
+
+                                                        Schedule schedule = scheduleMap.get(key);
+                                                        if (schedule == null) {
+                                                            schedule = new Schedule();
+                                                        }
+
+                                                        schedule.setId(scheduleId);
+                                                        schedule.setName(schJson.optString(AppConstants.KEY_NAME));
+                                                        schedule.setEnabled(schJson.optBoolean(AppConstants.KEY_ENABLED));
+
+                                                        scheduleIds.add(key);
+                                                        schedule.setTriggers(triggers);
+                                                        Log.d(TAG, "=============== Schedule : " + schedule.getName() + " ===============");
+
+                                                        // Actions
+                                                        JSONObject actionsSchJson = schJson.optJSONObject(AppConstants.KEY_ACTION);
+
+                                                        if (actionsSchJson != null) {
+
+                                                            ArrayList<Action> actions = schedule.getActions();
+                                                            if (actions == null) {
+                                                                actions = new ArrayList<>();
+                                                                schedule.setActions(actions);
+                                                            }
+
+                                                            for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
+
+                                                                Device d = new Device(devices.get(deviceIndex));
+                                                                ArrayList<Param> params = d.getParams();
+                                                                String deviceName = d.getDeviceName();
+                                                                JSONObject deviceAction = actionsSchJson.optJSONObject(deviceName);
+
+                                                                if (deviceAction != null) {
+
+                                                                    Action action = null;
+                                                                    Device actionDevice = null;
+                                                                    int actionIndex = -1;
+
+                                                                    for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
+
+                                                                        Action a = actions.get(aIndex);
+                                                                        if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
+                                                                            action = actions.get(aIndex);
+                                                                            actionIndex = aIndex;
+                                                                        }
+                                                                    }
+
+                                                                    if (action == null) {
+                                                                        action = new Action();
+                                                                        action.setNodeId(nodeId);
+
+                                                                        for (int k = 0; k < devices.size(); k++) {
+
+                                                                            if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
+                                                                                actionDevice = new Device(devices.get(k));
+                                                                                actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
+                                                                                break;
+                                                                            }
+                                                                        }
+
+                                                                        if (actionDevice == null) {
+                                                                            actionDevice = new Device(nodeId);
+                                                                        }
+                                                                        action.setDevice(actionDevice);
+                                                                    } else {
+                                                                        actionDevice = action.getDevice();
+                                                                    }
+
+                                                                    ArrayList<Param> actionParams = new ArrayList<>();
+                                                                    if (params != null) {
+                                                                        actionParams = ParamUtils.Companion.filterActionParams(params);
+                                                                    }
+                                                                    actionDevice.setParams(actionParams);
+
+                                                                    for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                                                        Param p = actionParams.get(paramIndex);
+                                                                        String paramName = p.getName();
+
+                                                                        if (deviceAction.has(paramName)) {
+
+                                                                            p.setSelected(true);
+                                                                            JsonDataParser.setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
+                                                                        }
+                                                                    }
+
+                                                                    for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                                                        if (!actionParams.get(paramIndex).isSelected()) {
+                                                                            actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
+                                                                        }
+                                                                    }
+
+                                                                    if (actionIndex == -1) {
+                                                                        actions.add(action);
+                                                                    } else {
+                                                                        actions.set(actionIndex, action);
+                                                                    }
+                                                                    schedule.setActions(actions);
+
+                                                                }
+                                                            }
+                                                        }
+                                                        scheduleMap.put(key, schedule);
                                                     }
                                                 }
-                                            } else {
-                                                Log.e(TAG, "Schedule JSON is null");
                                             }
 
                                             // Scenes
-                                            if (sceneJson != null) {
+                                            JSONArray sceneArrayJson = (sceneJson != null) ? sceneJson.optJSONArray(AppConstants.KEY_SCENES) : null;
 
-                                                JSONArray sceneArrayJson = sceneJson.optJSONArray(AppConstants.KEY_SCENES);
+                                            if (sceneArrayJson != null) {
 
-                                                if (sceneArrayJson != null) {
+                                                for (int index = 0; index < sceneArrayJson.length(); index++) {
 
-                                                    for (int index = 0; index < sceneArrayJson.length(); index++) {
+                                                    JSONObject scJson = sceneArrayJson.getJSONObject(index);
+                                                    String sceneId = scJson.optString(AppConstants.KEY_ID);
+                                                    String key = sceneId;
 
-                                                        JSONObject scJson = sceneArrayJson.getJSONObject(index);
-                                                        String sceneId = scJson.optString(AppConstants.KEY_ID);
-                                                        String key = sceneId;
+                                                    if (!TextUtils.isEmpty(sceneId)) {
 
-                                                        if (!TextUtils.isEmpty(sceneId)) {
+                                                        String name = scJson.optString(AppConstants.KEY_NAME);
+                                                        String info = scJson.optString(AppConstants.KEY_INFO);
+                                                        key = key + "_" + name + "_" + info;
 
-                                                            String name = scJson.optString(AppConstants.KEY_NAME);
-                                                            String info = scJson.optString(AppConstants.KEY_INFO);
-                                                            key = key + "_" + name + "_" + info;
+                                                        Scene scene = sceneMap.get(key);
+                                                        if (scene == null) {
+                                                            scene = new Scene();
+                                                        }
 
-                                                            Scene scene = sceneMap.get(key);
-                                                            if (scene == null) {
-                                                                scene = new Scene();
+                                                        scene.setId(sceneId);
+                                                        scene.setName(name);
+                                                        scene.setInfo(info);
+                                                        sceneIds.add(key);
+
+                                                        Log.d(TAG, "=============== Scene : " + scene.getName() + " ===============");
+
+                                                        // Actions
+                                                        JSONObject actionsSceneJson = scJson.optJSONObject(AppConstants.KEY_ACTION);
+
+                                                        if (actionsSceneJson != null) {
+
+                                                            ArrayList<Action> actions = scene.getActions();
+                                                            if (actions == null) {
+                                                                actions = new ArrayList<>();
+                                                                scene.setActions(actions);
                                                             }
 
-                                                            scene.setId(sceneId);
-                                                            scene.setName(name);
-                                                            scene.setInfo(info);
-                                                            sceneIds.add(key);
+                                                            for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
 
-                                                            Log.d(TAG, "=============== Scene : " + scene.getName() + " ===============");
+                                                                Device d = new Device(devices.get(deviceIndex));
+                                                                ArrayList<Param> params = d.getParams();
+                                                                String deviceName = d.getDeviceName();
+                                                                JSONObject deviceAction = actionsSceneJson.optJSONObject(deviceName);
 
-                                                            // Actions
-                                                            JSONObject actionsSceneJson = scJson.optJSONObject(AppConstants.KEY_ACTION);
+                                                                if (deviceAction != null) {
 
-                                                            if (actionsSceneJson != null) {
+                                                                    Action action = null;
+                                                                    Device actionDevice = null;
+                                                                    int actionIndex = -1;
 
-                                                                ArrayList<Action> actions = scene.getActions();
-                                                                if (actions == null) {
-                                                                    actions = new ArrayList<>();
+                                                                    for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
+
+                                                                        Action a = actions.get(aIndex);
+                                                                        if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
+                                                                            action = actions.get(aIndex);
+                                                                            actionIndex = aIndex;
+                                                                        }
+                                                                    }
+
+                                                                    if (action == null) {
+                                                                        action = new Action();
+                                                                        action.setNodeId(nodeId);
+
+                                                                        for (int k = 0; k < devices.size(); k++) {
+
+                                                                            if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
+                                                                                actionDevice = new Device(devices.get(k));
+                                                                                actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
+                                                                                break;
+                                                                            }
+                                                                        }
+
+                                                                        if (actionDevice == null) {
+                                                                            actionDevice = new Device(nodeId);
+                                                                        }
+                                                                        action.setDevice(actionDevice);
+                                                                    } else {
+                                                                        actionDevice = action.getDevice();
+                                                                    }
+
+                                                                    ArrayList<Param> actionParams = new ArrayList<>();
+                                                                    if (params != null) {
+                                                                        actionParams = ParamUtils.Companion.filterActionParams(params);
+                                                                    }
+                                                                    actionDevice.setParams(actionParams);
+
+                                                                    for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                                                        Param p = actionParams.get(paramIndex);
+                                                                        String paramName = p.getName();
+
+                                                                        if (deviceAction.has(paramName)) {
+
+                                                                            p.setSelected(true);
+                                                                            JsonDataParser.setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
+                                                                        }
+                                                                    }
+
+                                                                    for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                                                        if (!actionParams.get(paramIndex).isSelected()) {
+                                                                            actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
+                                                                        }
+                                                                    }
+
+                                                                    if (actionIndex == -1) {
+                                                                        actions.add(action);
+                                                                    } else {
+                                                                        actions.set(actionIndex, action);
+                                                                    }
                                                                     scene.setActions(actions);
                                                                 }
-
-                                                                for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
-
-                                                                    Device d = new Device(devices.get(deviceIndex));
-                                                                    ArrayList<Param> params = d.getParams();
-                                                                    String deviceName = d.getDeviceName();
-                                                                    JSONObject deviceAction = actionsSceneJson.optJSONObject(deviceName);
-
-                                                                    if (deviceAction != null) {
-
-                                                                        Action action = null;
-                                                                        Device actionDevice = null;
-                                                                        int actionIndex = -1;
-
-                                                                        for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
-
-                                                                            Action a = actions.get(aIndex);
-                                                                            if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
-                                                                                action = actions.get(aIndex);
-                                                                                actionIndex = aIndex;
-                                                                            }
-                                                                        }
-
-                                                                        if (action == null) {
-                                                                            action = new Action();
-                                                                            action.setNodeId(nodeId);
-
-                                                                            for (int k = 0; k < devices.size(); k++) {
-
-                                                                                if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
-                                                                                    actionDevice = new Device(devices.get(k));
-                                                                                    actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
-                                                                                    break;
-                                                                                }
-                                                                            }
-
-                                                                            if (actionDevice == null) {
-                                                                                actionDevice = new Device(nodeId);
-                                                                            }
-                                                                            action.setDevice(actionDevice);
-                                                                        } else {
-                                                                            actionDevice = action.getDevice();
-                                                                        }
-
-                                                                        ArrayList<Param> actionParams = new ArrayList<>();
-                                                                        if (params != null) {
-                                                                            actionParams = ParamUtils.Companion.filterActionParams(params);
-                                                                        }
-                                                                        actionDevice.setParams(actionParams);
-
-                                                                        for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
-
-                                                                            Param p = actionParams.get(paramIndex);
-                                                                            String paramName = p.getName();
-
-                                                                            if (deviceAction.has(paramName)) {
-
-                                                                                p.setSelected(true);
-                                                                                JsonDataParser.setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
-                                                                            }
-                                                                        }
-
-                                                                        for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
-
-                                                                            if (!actionParams.get(paramIndex).isSelected()) {
-                                                                                actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
-                                                                            }
-                                                                        }
-
-                                                                        if (actionIndex == -1) {
-                                                                            actions.add(action);
-                                                                        } else {
-                                                                            actions.set(actionIndex, action);
-                                                                        }
-                                                                        scene.setActions(actions);
-                                                                    }
-                                                                }
                                                             }
-                                                            sceneMap.put(key, scene);
                                                         }
+                                                        sceneMap.put(key, scene);
                                                     }
                                                 }
-                                            } else {
-                                                Log.e(TAG, "Scene JSON is null");
                                             }
 
                                             // Timezone
@@ -1451,8 +1413,6 @@ public class ApiManager {
                                                         }
                                                     }
                                                 }
-                                            } else {
-                                                Log.e(TAG, "Time JSON is not available");
                                             }
 
                                             // Local control
@@ -1477,8 +1437,6 @@ public class ApiManager {
                                                         }
                                                     }
                                                 }
-                                            } else {
-                                                Log.e(TAG, "Local control JSON is not available");
                                             }
 
                                             // Matter controller
@@ -1566,7 +1524,6 @@ public class ApiManager {
 
                                     if (!scheduleIds.contains(key)) {
                                         schItr.remove();
-                                        Log.e(TAG, "Remove schedule for key : " + key + " and Size : " + espApp.scheduleMap.size());
                                     }
                                 }
 
@@ -1580,7 +1537,6 @@ public class ApiManager {
 
                                     if (!sceneIds.contains(key)) {
                                         sceneItr.remove();
-                                        Log.e(TAG, "Remove scene for key : " + key + " and Size : " + espApp.sceneMap.size());
                                     }
                                 }
                                 listener.onSuccess(null);
@@ -1667,8 +1623,6 @@ public class ApiManager {
                 } else {
                     espNode.setNodeStatus(AppConstants.NODE_STATUS_OFFLINE);
                 }
-            } else {
-                Log.e(TAG, "Connectivity object is null");
             }
         }
     }
@@ -1719,7 +1673,6 @@ public class ApiManager {
                     if (response.body() != null) {
 
                         String jsonResponse = response.body().string();
-                        Log.e(TAG, "onResponse Success : " + jsonResponse);
                         JSONObject jsonObject = new JSONObject(jsonResponse);
                         JSONArray nodeJsonArray = jsonObject.optJSONArray(AppConstants.KEY_NODE_DETAILS);
 
@@ -1805,7 +1758,6 @@ public class ApiManager {
                         if (response.body() != null) {
 
                             String jsonResponse = response.body().string();
-                            Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
                             JSONArray nodeJsonArray = jsonObject.optJSONArray(AppConstants.KEY_NODE_DETAILS);
 
@@ -1875,8 +1827,6 @@ public class ApiManager {
                                                     espNode.setOnline(nodeStatus);
                                                     EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                                                 }
-                                            } else {
-                                                Log.e(TAG, "Connectivity object is null");
                                             }
                                         }
                                     }
@@ -1910,34 +1860,35 @@ public class ApiManager {
         });
     }
 
-    public Bundle updateNodeMetadata(String nodeId, JsonObject body) {
+    public void updateNodeMetadata(String nodeId, JsonObject body, ApiResponseListener listener) {
 
         Log.d(TAG, "Update Node Metadata for id : " + nodeId);
         String url = getBaseUrl() + AppConstants.URL_USER_NODES;
-        Bundle data = new Bundle();
 
-        try {
-            Response<ResponseBody> response = apiInterface.updateNodeMetadata(url, accessToken, nodeId, body).execute();
-            Log.d(TAG, "Update Node Metadata, Response code : " + response.code());
+        apiInterface.updateNodeMetadata(url, accessToken, nodeId, body).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                Log.d(TAG, "Update Node Metadata, Response code : " + response.code());
 
-            if (response.isSuccessful()) {
-                if (response.body() != null) {
-
-                    String jsonResponse = response.body().string();
-                    Log.d(TAG, "onResponse Success : " + jsonResponse);
-                    data.putString(AppConstants.KEY_RESPONSE, jsonResponse);
-                } else {
-                    Log.e(TAG, "Failed to Update Node Metadata. Response received : null");
+                try {
+                    if (response.isSuccessful()) {
+                        listener.onSuccess(null);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to update Node metadata");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(e);
                 }
-            } else {
-                String jsonErrResponse = response.errorBody().string();
-                Log.e(TAG, "Failed to Update Node Metadata.");
-                Log.e(TAG, "onResponse, Error : " + jsonErrResponse);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return data;
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new Exception(t));
+            }
+        });
     }
 
 
@@ -1978,8 +1929,6 @@ public class ApiManager {
                                         espNode.setOnline(nodeStatus);
                                         EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_DEVICE_STATUS_UPDATE));
                                     }
-                                } else {
-                                    Log.e(TAG, "Connectivity object is null");
                                 }
                             }
 
@@ -2041,7 +1990,6 @@ public class ApiManager {
                         if (response.body() != null) {
 
                             String jsonResponse = response.body().string();
-                            Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
                             String reqId = jsonObject.optString(AppConstants.KEY_REQ_ID);
                             requestIds.put(nodeId, reqId);
@@ -2101,11 +2049,7 @@ public class ApiManager {
                     if (response.isSuccessful()) {
 
                         if (response.body() != null) {
-
-                            String jsonResponse = response.body().string();
-                            Log.e(TAG, "onResponse Success : " + jsonResponse);
                             listener.onSuccess(null);
-
                         } else {
                             listener.onResponseFailure(new RuntimeException("Failed to delete this node."));
                         }
@@ -2147,7 +2091,6 @@ public class ApiManager {
                         if (response.body() != null) {
 
                             String jsonResponse = response.body().string();
-                            Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
                             JSONObject scheduleJson = jsonObject.optJSONObject(AppConstants.KEY_SCHEDULE);
                             JSONObject sceneJson = jsonObject.optJSONObject(AppConstants.KEY_SCENES);
@@ -2177,8 +2120,6 @@ public class ApiManager {
                                                     JsonDataParser.setDeviceParamValue(deviceJson, devices.get(i), param);
                                                 }
                                             }
-                                        } else {
-                                            Log.e(TAG, "Device JSON is null");
                                         }
                                     }
                                 }
@@ -2319,8 +2260,6 @@ public class ApiManager {
                                             }
                                         }
                                     }
-                                } else {
-                                    Log.d(TAG, "Schedule JSON is null");
                                 }
 
                                 // Scenes
@@ -2447,8 +2386,6 @@ public class ApiManager {
                                             }
                                         }
                                     }
-                                } else {
-                                    Log.d(TAG, "Scene JSON is null");
                                 }
                             }
                             listener.onSuccess(null);
@@ -2495,11 +2432,7 @@ public class ApiManager {
                     if (response.isSuccessful()) {
 
                         if (response.body() != null) {
-
-                            String jsonResponse = response.body().string();
-                            Log.d(TAG, "onResponse Success : " + jsonResponse);
                             listener.onSuccess(null);
-
                         } else {
                             listener.onResponseFailure(new RuntimeException("Failed to update param value"));
                         }
@@ -2532,7 +2465,7 @@ public class ApiManager {
     public void updateParamsForMultiNode(final HashMap<String, JsonObject> map,
                                          final ApiResponseListener listener) {
 
-        Log.e(TAG, "Updating params for multi node");
+        Log.d(TAG, "Updating params for multi node");
         String url = getBaseUrl() + AppConstants.URL_USER_NODES_PARAMS;
         JsonArray finalArray = new JsonArray();
 
@@ -2556,7 +2489,6 @@ public class ApiManager {
                     if (response.isSuccessful()) {
                         if (response.body() != null) {
                             String jsonResponse = response.body().string();
-                            Log.e(TAG, "onResponse Success : " + jsonResponse);
                             Bundle data = new Bundle();
                             data.putString(AppConstants.KEY_RESPONSE, jsonResponse);
                             listener.onSuccess(data);
@@ -2597,7 +2529,6 @@ public class ApiManager {
                         try {
 
                             String jsonResponse = response.body().string();
-                            Log.e(TAG, "onResponse Success : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
                             String reqStatus = jsonObject.optString(AppConstants.KEY_REQ_STATUS);
 
@@ -3304,7 +3235,6 @@ public class ApiManager {
                     if (response.isSuccessful()) {
                         if (response.body() != null) {
                             String jsonResponse = response.body().string();
-                            Log.d(TAG, "Response : " + jsonResponse);
                             JSONObject jsonObject = new JSONObject(jsonResponse);
                             JSONArray nodeJsonArray = jsonObject.optJSONArray(AppConstants.KEY_SHARING_REQUESTS);
 
@@ -3401,8 +3331,6 @@ public class ApiManager {
 
                 try {
                     if (response.isSuccessful()) {
-                        String jsonResponse = response.body().string();
-                        Log.e(TAG, "onResponse Success : " + jsonResponse);
                         listener.onSuccess(null);
                     } else {
                         String jsonErrResponse = response.errorBody().string();
@@ -3436,7 +3364,6 @@ public class ApiManager {
 
                 try {
                     if (response.isSuccessful()) {
-                        String jsonResponse = response.body().string();
                         listener.onSuccess(null);
                     } else {
                         String jsonErrResponse = response.errorBody().string();
@@ -3532,7 +3459,6 @@ public class ApiManager {
                     if (response.isSuccessful()) {
 
                         String jsonResponse = response.body().string();
-                        Log.e(TAG, "Sharing response : " + jsonResponse);
                         JSONObject jsonObject = new JSONObject(jsonResponse);
                         JSONArray nodeSharingJsonArray = jsonObject.optJSONArray(AppConstants.KEY_NODE_SHARING);
 
@@ -3982,12 +3908,10 @@ public class ApiManager {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                Log.e(TAG, "Register FCM token, Response code  : " + response.code());
+                Log.d(TAG, "Register FCM token, Response code  : " + response.code());
 
                 try {
                     if (response.isSuccessful()) {
-                        String jsonResponse = response.body().string();
-                        Log.e(TAG, "Response : " + jsonResponse);
                         listener.onSuccess(null);
                     } else {
                         String jsonErrResponse = response.errorBody().string();
@@ -4017,12 +3941,10 @@ public class ApiManager {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                Log.e(TAG, "Unregister FCM token, Response code  : " + response.code());
+                Log.d(TAG, "Unregister FCM token, Response code  : " + response.code());
 
                 try {
                     if (response.isSuccessful()) {
-                        String jsonResponse = response.body().string();
-                        Log.e(TAG, "Response : " + jsonResponse);
                         listener.onSuccess(null);
                     } else {
                         String jsonErrResponse = response.errorBody().string();
@@ -4065,12 +3987,11 @@ public class ApiManager {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 
-                Log.e(TAG, "Get time series data, Response code  : " + response.code());
+                Log.d(TAG, "Get time series data, Response code  : " + response.code());
 
                 try {
                     if (response.isSuccessful()) {
                         String jsonResponse = response.body().string();
-                        Log.e(TAG, "Response : " + jsonResponse);
                         JSONObject jsonObject = new JSONObject(jsonResponse);
                         JSONArray jsonArray = jsonObject.optJSONArray("ts_data");
                         String nextId = "";

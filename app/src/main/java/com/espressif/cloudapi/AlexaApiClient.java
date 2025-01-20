@@ -17,7 +17,7 @@ package com.espressif.cloudapi;
 import android.content.Context;
 
 import com.espressif.AppConstants;
-import com.espressif.rainmaker.BuildConfig;
+import com.espressif.EspApplication;
 
 import java.util.concurrent.TimeUnit;
 
@@ -39,7 +39,7 @@ public class AlexaApiClient {
         OkHttpClient okHttpClient = null;
         AlexaTokenAuthenticator authAuthenticator;
 
-        authAuthenticator = new AlexaTokenAuthenticator(context);
+        authAuthenticator = new AlexaTokenAuthenticator((EspApplication) context.getApplicationContext());
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
         logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 

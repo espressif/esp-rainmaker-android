@@ -1201,46 +1201,43 @@ public class EspApplication extends Application {
     };
 
     private void setupNotificationChannels() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        NotificationChannel nodeConnectedChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_ONLINE_ID,
+                getString(R.string.channel_node_connected), NotificationManager.IMPORTANCE_HIGH);
 
-            NotificationChannel nodeConnectedChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_ONLINE_ID,
-                    getString(R.string.channel_node_connected), NotificationManager.IMPORTANCE_HIGH);
+        NotificationChannel nodeDisconnectedChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_OFFLINE_ID,
+                getString(R.string.channel_node_disconnected), NotificationManager.IMPORTANCE_HIGH);
 
-            NotificationChannel nodeDisconnectedChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_OFFLINE_ID,
-                    getString(R.string.channel_node_disconnected), NotificationManager.IMPORTANCE_HIGH);
+        NotificationChannel nodeAddedChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_ADDED,
+                getString(R.string.channel_node_added), NotificationManager.IMPORTANCE_HIGH);
 
-            NotificationChannel nodeAddedChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_ADDED,
-                    getString(R.string.channel_node_added), NotificationManager.IMPORTANCE_HIGH);
+        NotificationChannel nodeRemovedChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_REMOVED,
+                getString(R.string.channel_node_removed), NotificationManager.IMPORTANCE_HIGH);
 
-            NotificationChannel nodeRemovedChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_REMOVED,
-                    getString(R.string.channel_node_removed), NotificationManager.IMPORTANCE_HIGH);
+        NotificationChannel nodeSharingChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_SHARING,
+                getString(R.string.channel_node_sharing), NotificationManager.IMPORTANCE_HIGH);
 
-            NotificationChannel nodeSharingChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_SHARING,
-                    getString(R.string.channel_node_sharing), NotificationManager.IMPORTANCE_HIGH);
+        NotificationChannel alertChannel = new NotificationChannel(AppConstants.CHANNEL_ALERT,
+                getString(R.string.channel_node_alert), NotificationManager.IMPORTANCE_HIGH);
 
-            NotificationChannel alertChannel = new NotificationChannel(AppConstants.CHANNEL_ALERT,
-                    getString(R.string.channel_node_alert), NotificationManager.IMPORTANCE_HIGH);
+        NotificationChannel automationChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_AUTOMATION_TRIGGER,
+                getString(R.string.channel_node_automation_trigger), NotificationManager.IMPORTANCE_HIGH);
 
-            NotificationChannel automationChannel = new NotificationChannel(AppConstants.CHANNEL_NODE_AUTOMATION_TRIGGER,
-                    getString(R.string.channel_node_automation_trigger), NotificationManager.IMPORTANCE_HIGH);
+        NotificationChannel groupSharingChannel = new NotificationChannel(AppConstants.CHANNEL_GROUP_SHARING,
+                getString(R.string.channel_node_group_sharing), NotificationManager.IMPORTANCE_HIGH);
 
-            NotificationChannel groupSharingChannel = new NotificationChannel(AppConstants.CHANNEL_GROUP_SHARING,
-                    getString(R.string.channel_node_group_sharing), NotificationManager.IMPORTANCE_HIGH);
+        NotificationChannel adminChannel = new NotificationChannel(AppConstants.CHANNEL_ADMIN,
+                getString(R.string.channel_admin), NotificationManager.IMPORTANCE_HIGH);
 
-            NotificationChannel adminChannel = new NotificationChannel(AppConstants.CHANNEL_ADMIN,
-                    getString(R.string.channel_admin), NotificationManager.IMPORTANCE_HIGH);
-
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(nodeConnectedChannel);
-            notificationManager.createNotificationChannel(nodeDisconnectedChannel);
-            notificationManager.createNotificationChannel(nodeAddedChannel);
-            notificationManager.createNotificationChannel(nodeRemovedChannel);
-            notificationManager.createNotificationChannel(nodeSharingChannel);
-            notificationManager.createNotificationChannel(alertChannel);
-            notificationManager.createNotificationChannel(automationChannel);
-            notificationManager.createNotificationChannel(groupSharingChannel);
-            notificationManager.createNotificationChannel(adminChannel);
-        }
+        NotificationManager notificationManager = getSystemService(NotificationManager.class);
+        notificationManager.createNotificationChannel(nodeConnectedChannel);
+        notificationManager.createNotificationChannel(nodeDisconnectedChannel);
+        notificationManager.createNotificationChannel(nodeAddedChannel);
+        notificationManager.createNotificationChannel(nodeRemovedChannel);
+        notificationManager.createNotificationChannel(nodeSharingChannel);
+        notificationManager.createNotificationChannel(alertChannel);
+        notificationManager.createNotificationChannel(automationChannel);
+        notificationManager.createNotificationChannel(groupSharingChannel);
+        notificationManager.createNotificationChannel(adminChannel);
     }
 
     public void removeNodeInformation(String nodeId) {

@@ -77,7 +77,7 @@ public class ApiClient {
         // creating a KeyStore containing our trusted CAs
         String keyStoreType = KeyStore.getDefaultType();
         KeyStore keyStore = null;
-        authAuthenticator = new TokenAuthenticator(context);
+        authAuthenticator = new TokenAuthenticator((EspApplication) context.getApplicationContext());
 
         try {
             keyStore = KeyStore.getInstance(keyStoreType);

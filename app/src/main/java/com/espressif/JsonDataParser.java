@@ -78,15 +78,18 @@ public class JsonDataParser {
         } else if (AppConstants.UI_TYPE_TOGGLE.equalsIgnoreCase(param.getUiType())
                 || AppConstants.UI_TYPE_TRIGGER.equalsIgnoreCase(param.getUiType())) {
 
-            boolean value = deviceJson.optBoolean(paramName);
-            param.setSwitchStatus(value);
-
-            if (value) {
-                param.setLabelValue("true");
+            if (dataType.equalsIgnoreCase("bool") || dataType.equalsIgnoreCase("boolean")) {
+                boolean value = deviceJson.optBoolean(paramName);
+                param.setSwitchStatus(value);
+                if (value) {
+                    param.setLabelValue("true");
+                } else {
+                    param.setLabelValue("false");
+                }
             } else {
-                param.setLabelValue("false");
+                param.setLabelValue(deviceJson.optString(paramName));
             }
-
+            
         } else if (AppConstants.UI_TYPE_DROP_DOWN.equalsIgnoreCase(param.getUiType())) {
 
             String labelValue = "";
@@ -157,12 +160,12 @@ public class JsonDataParser {
         // Node ID
         String nodeId = nodeConfigJson.optString(AppConstants.KEY_NODE_ID);
 
-        if (TextUtils.isEmpty(nodeId)) {
-            return null;
-        }
-
         if (espNode == null) {
             espNode = new EspNode(nodeId);
+        }
+
+        if (TextUtils.isEmpty(nodeId)) {
+            nodeId = espNode.getNodeId();
         }
 
         // Node Config
@@ -368,21 +371,16 @@ public class JsonDataParser {
 
         // Node Status
         JSONObject statusJson = nodeConfigJson.optJSONObject(AppConstants.KEY_STATUS);
-        if (statusJson != null) {
+        JSONObject connectivityObject = (statusJson != null) ? statusJson.optJSONObject(AppConstants.KEY_CONNECTIVITY) : null;
 
-            JSONObject connectivityObject = statusJson.optJSONObject(AppConstants.KEY_CONNECTIVITY);
+        if (connectivityObject != null) {
 
-            if (connectivityObject != null) {
+            boolean nodeStatus = connectivityObject.optBoolean(AppConstants.KEY_CONNECTED);
+            long timestamp = connectivityObject.optLong(AppConstants.KEY_TIMESTAMP);
+            espNode.setTimeStampOfStatus(timestamp);
 
-                boolean nodeStatus = connectivityObject.optBoolean(AppConstants.KEY_CONNECTED);
-                long timestamp = connectivityObject.optLong(AppConstants.KEY_TIMESTAMP);
-                espNode.setTimeStampOfStatus(timestamp);
-
-                if (espNode.isOnline() != nodeStatus) {
-                    espNode.setOnline(nodeStatus);
-                }
-            } else {
-                Log.e(TAG, "Connectivity object is null");
+            if (espNode.isOnline() != nodeStatus) {
+                espNode.setOnline(nodeStatus);
             }
         }
         return espNode;
@@ -430,277 +428,267 @@ public class JsonDataParser {
         }
 
         // Schedules
-        if (scheduleJson != null) {
+        JSONArray scheduleArrayJson = (scheduleJson != null) ? scheduleJson.optJSONArray(AppConstants.KEY_SCHEDULES) : null;
 
-            JSONArray scheduleArrayJson = scheduleJson.optJSONArray(AppConstants.KEY_SCHEDULES);
+        if (scheduleArrayJson != null) {
 
-            if (scheduleArrayJson != null) {
+            for (int index = 0; index < scheduleArrayJson.length(); index++) {
 
-                for (int index = 0; index < scheduleArrayJson.length(); index++) {
+                JSONObject schJson = null;
+                try {
+                    schJson = scheduleArrayJson.getJSONObject(index);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                String scheduleId = schJson.optString(AppConstants.KEY_ID);
+                String key = scheduleId;
 
-                    JSONObject schJson = null;
-                    try {
-                        schJson = scheduleArrayJson.getJSONObject(index);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
+                if (!TextUtils.isEmpty(scheduleId)) {
+
+                    String name = schJson.optString(AppConstants.KEY_NAME);
+                    key = key + "_" + name + "_" + schJson.optBoolean(AppConstants.KEY_ENABLED);
+
+                    HashMap<String, Integer> triggers = new HashMap<>();
+                    JSONArray triggerArray = schJson.optJSONArray(AppConstants.KEY_TRIGGERS);
+                    for (int t = 0; t < triggerArray.length(); t++) {
+                        JSONObject triggerJson = triggerArray.optJSONObject(t);
+                        int days = triggerJson.optInt(AppConstants.KEY_DAYS);
+                        int mins = triggerJson.optInt(AppConstants.KEY_MINUTES);
+                        triggers.put(AppConstants.KEY_DAYS, days);
+                        triggers.put(AppConstants.KEY_MINUTES, mins);
+                        key = key + "_" + days + "_" + mins;
                     }
-                    String scheduleId = schJson.optString(AppConstants.KEY_ID);
-                    String key = scheduleId;
 
-                    if (!TextUtils.isEmpty(scheduleId)) {
+                    Schedule schedule = espAppContext.scheduleMap.get(key);
+                    if (schedule == null) {
+                        schedule = new Schedule();
+                    }
+                    scheduleCnt++;
 
-                        String name = schJson.optString(AppConstants.KEY_NAME);
-                        key = key + "_" + name + "_" + schJson.optBoolean(AppConstants.KEY_ENABLED);
+                    schedule.setId(scheduleId);
+                    schedule.setName(schJson.optString(AppConstants.KEY_NAME));
+                    schedule.setEnabled(schJson.optBoolean(AppConstants.KEY_ENABLED));
+                    schedule.setTriggers(triggers);
+                    Log.d(TAG, "=============== Schedule : " + schedule.getName() + " ===============");
 
-                        HashMap<String, Integer> triggers = new HashMap<>();
-                        JSONArray triggerArray = schJson.optJSONArray(AppConstants.KEY_TRIGGERS);
-                        for (int t = 0; t < triggerArray.length(); t++) {
-                            JSONObject triggerJson = triggerArray.optJSONObject(t);
-                            int days = triggerJson.optInt(AppConstants.KEY_DAYS);
-                            int mins = triggerJson.optInt(AppConstants.KEY_MINUTES);
-                            triggers.put(AppConstants.KEY_DAYS, days);
-                            triggers.put(AppConstants.KEY_MINUTES, mins);
-                            key = key + "_" + days + "_" + mins;
+                    // Actions
+                    JSONObject actionsSchJson = schJson.optJSONObject(AppConstants.KEY_ACTION);
+
+                    if (actionsSchJson != null) {
+
+                        ArrayList<Action> actions = schedule.getActions();
+                        if (actions == null) {
+                            actions = new ArrayList<>();
+                            schedule.setActions(actions);
                         }
 
-                        Schedule schedule = espAppContext.scheduleMap.get(key);
-                        if (schedule == null) {
-                            schedule = new Schedule();
-                        }
-                        scheduleCnt++;
+                        for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
 
-                        schedule.setId(scheduleId);
-                        schedule.setName(schJson.optString(AppConstants.KEY_NAME));
-                        schedule.setEnabled(schJson.optBoolean(AppConstants.KEY_ENABLED));
-                        schedule.setTriggers(triggers);
-                        Log.d(TAG, "=============== Schedule : " + schedule.getName() + " ===============");
+                            Device d = new Device(devices.get(deviceIndex));
+                            ArrayList<Param> params = d.getParams();
+                            String deviceName = d.getDeviceName();
+                            JSONObject deviceAction = actionsSchJson.optJSONObject(deviceName);
 
-                        // Actions
-                        JSONObject actionsSchJson = schJson.optJSONObject(AppConstants.KEY_ACTION);
+                            if (deviceAction != null) {
 
-                        if (actionsSchJson != null) {
+                                Action action = null;
+                                Device actionDevice = null;
+                                int actionIndex = -1;
 
-                            ArrayList<Action> actions = schedule.getActions();
-                            if (actions == null) {
-                                actions = new ArrayList<>();
+                                for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
+
+                                    Action a = actions.get(aIndex);
+                                    if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
+                                        action = actions.get(aIndex);
+                                        actionIndex = aIndex;
+                                    }
+                                }
+
+                                if (action == null) {
+                                    action = new Action();
+                                    action.setNodeId(nodeId);
+
+                                    for (int k = 0; k < devices.size(); k++) {
+
+                                        if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
+                                            actionDevice = new Device(devices.get(k));
+                                            actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
+                                            break;
+                                        }
+                                    }
+
+                                    if (actionDevice == null) {
+                                        actionDevice = new Device(nodeId);
+                                    }
+                                    action.setDevice(actionDevice);
+                                } else {
+                                    actionDevice = action.getDevice();
+                                }
+
+                                ArrayList<Param> actionParams = new ArrayList<>();
+                                if (params != null) {
+                                    actionParams = ParamUtils.Companion.filterActionParams(params);
+                                }
+                                actionDevice.setParams(actionParams);
+
+                                for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                    Param p = actionParams.get(paramIndex);
+                                    String paramName = p.getName();
+
+                                    if (deviceAction.has(paramName)) {
+
+                                        p.setSelected(true);
+                                        setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
+                                    }
+                                }
+
+                                for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                    if (!actionParams.get(paramIndex).isSelected()) {
+                                        actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
+                                    }
+                                }
+
+                                if (actionIndex == -1) {
+                                    actions.add(action);
+                                } else {
+                                    actions.set(actionIndex, action);
+                                }
                                 schedule.setActions(actions);
                             }
-
-                            for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
-
-                                Device d = new Device(devices.get(deviceIndex));
-                                ArrayList<Param> params = d.getParams();
-                                String deviceName = d.getDeviceName();
-                                JSONObject deviceAction = actionsSchJson.optJSONObject(deviceName);
-
-                                if (deviceAction != null) {
-
-                                    Action action = null;
-                                    Device actionDevice = null;
-                                    int actionIndex = -1;
-
-                                    for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
-
-                                        Action a = actions.get(aIndex);
-                                        if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
-                                            action = actions.get(aIndex);
-                                            actionIndex = aIndex;
-                                        }
-                                    }
-
-                                    if (action == null) {
-                                        action = new Action();
-                                        action.setNodeId(nodeId);
-
-                                        for (int k = 0; k < devices.size(); k++) {
-
-                                            if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
-                                                actionDevice = new Device(devices.get(k));
-                                                actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
-                                                break;
-                                            }
-                                        }
-
-                                        if (actionDevice == null) {
-                                            actionDevice = new Device(nodeId);
-                                        }
-                                        action.setDevice(actionDevice);
-                                    } else {
-                                        actionDevice = action.getDevice();
-                                    }
-
-                                    ArrayList<Param> actionParams = new ArrayList<>();
-                                    if (params != null) {
-                                        actionParams = ParamUtils.Companion.filterActionParams(params);
-                                    }
-                                    actionDevice.setParams(actionParams);
-
-                                    for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
-
-                                        Param p = actionParams.get(paramIndex);
-                                        String paramName = p.getName();
-
-                                        if (deviceAction.has(paramName)) {
-
-                                            p.setSelected(true);
-                                            setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
-                                        }
-                                    }
-
-                                    for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
-
-                                        if (!actionParams.get(paramIndex).isSelected()) {
-                                            actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
-                                        }
-                                    }
-
-                                    if (actionIndex == -1) {
-                                        actions.add(action);
-                                    } else {
-                                        actions.set(actionIndex, action);
-                                    }
-                                    schedule.setActions(actions);
-                                }
-                            }
                         }
-                        espAppContext.scheduleMap.put(key, schedule);
                     }
+                    espAppContext.scheduleMap.put(key, schedule);
                 }
             }
-        } else {
-            Log.e(TAG, "Schedule JSON is not available");
         }
         node.setScheduleCurrentCnt(scheduleCnt);
 
         // Scenes
-        if (sceneJson != null) {
+        JSONArray sceneArrayJson = (sceneJson != null) ? sceneJson.optJSONArray(AppConstants.KEY_SCENES) : null;
 
-            JSONArray sceneArrayJson = sceneJson.optJSONArray(AppConstants.KEY_SCENES);
+        if (sceneArrayJson != null) {
 
-            if (sceneArrayJson != null) {
+            for (int index = 0; index < sceneArrayJson.length(); index++) {
 
-                for (int index = 0; index < sceneArrayJson.length(); index++) {
+                JSONObject scJson = null;
+                try {
+                    scJson = sceneArrayJson.getJSONObject(index);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                String sceneId = scJson.optString(AppConstants.KEY_ID);
+                String key = sceneId;
 
-                    JSONObject scJson = null;
-                    try {
-                        scJson = sceneArrayJson.getJSONObject(index);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
+                if (!TextUtils.isEmpty(sceneId)) {
+
+                    String name = scJson.optString(AppConstants.KEY_NAME);
+                    String info = scJson.optString(AppConstants.KEY_INFO);
+                    key = key + "_" + name + "_" + info;
+
+                    Scene scene = espAppContext.sceneMap.get(key);
+                    if (scene == null) {
+                        scene = new Scene();
                     }
-                    String sceneId = scJson.optString(AppConstants.KEY_ID);
-                    String key = sceneId;
+                    sceneCnt++;
+                    scene.setId(sceneId);
+                    scene.setName(name);
+                    scene.setInfo(info);
 
-                    if (!TextUtils.isEmpty(sceneId)) {
+                    Log.d(TAG, "=============== Scene : " + scene.getName() + " ===============");
 
-                        String name = scJson.optString(AppConstants.KEY_NAME);
-                        String info = scJson.optString(AppConstants.KEY_INFO);
-                        key = key + "_" + name + "_" + info;
+                    // Actions
+                    JSONObject actionsSceneJson = scJson.optJSONObject(AppConstants.KEY_ACTION);
 
-                        Scene scene = espAppContext.sceneMap.get(key);
-                        if (scene == null) {
-                            scene = new Scene();
+                    if (actionsSceneJson != null) {
+
+                        ArrayList<Action> actions = scene.getActions();
+                        if (actions == null) {
+                            actions = new ArrayList<>();
+                            scene.setActions(actions);
                         }
-                        sceneCnt++;
-                        scene.setId(sceneId);
-                        scene.setName(name);
-                        scene.setInfo(info);
 
-                        Log.d(TAG, "=============== Scene : " + scene.getName() + " ===============");
+                        for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
 
-                        // Actions
-                        JSONObject actionsSceneJson = scJson.optJSONObject(AppConstants.KEY_ACTION);
+                            Device d = new Device(devices.get(deviceIndex));
+                            ArrayList<Param> params = d.getParams();
+                            String deviceName = d.getDeviceName();
+                            JSONObject deviceAction = actionsSceneJson.optJSONObject(deviceName);
 
-                        if (actionsSceneJson != null) {
+                            if (deviceAction != null) {
 
-                            ArrayList<Action> actions = scene.getActions();
-                            if (actions == null) {
-                                actions = new ArrayList<>();
+                                Action action = null;
+                                Device actionDevice = null;
+                                int actionIndex = -1;
+
+                                for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
+
+                                    Action a = actions.get(aIndex);
+                                    if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
+                                        action = actions.get(aIndex);
+                                        actionIndex = aIndex;
+                                    }
+                                }
+
+                                if (action == null) {
+                                    action = new Action();
+                                    action.setNodeId(nodeId);
+
+                                    for (int k = 0; k < devices.size(); k++) {
+
+                                        if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
+                                            actionDevice = new Device(devices.get(k));
+                                            actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
+                                            break;
+                                        }
+                                    }
+
+                                    if (actionDevice == null) {
+                                        actionDevice = new Device(nodeId);
+                                    }
+                                    action.setDevice(actionDevice);
+                                } else {
+                                    actionDevice = action.getDevice();
+                                }
+
+                                ArrayList<Param> actionParams = new ArrayList<>();
+                                if (params != null) {
+                                    actionParams = ParamUtils.Companion.filterActionParams(params);
+                                }
+                                actionDevice.setParams(actionParams);
+
+                                for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                    Param p = actionParams.get(paramIndex);
+                                    String paramName = p.getName();
+
+                                    if (deviceAction.has(paramName)) {
+
+                                        p.setSelected(true);
+                                        setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
+                                    }
+                                }
+
+                                for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+
+                                    if (!actionParams.get(paramIndex).isSelected()) {
+                                        actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
+                                    }
+                                }
+
+                                if (actionIndex == -1) {
+                                    actions.add(action);
+                                } else {
+                                    actions.set(actionIndex, action);
+                                }
                                 scene.setActions(actions);
                             }
-
-                            for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
-
-                                Device d = new Device(devices.get(deviceIndex));
-                                ArrayList<Param> params = d.getParams();
-                                String deviceName = d.getDeviceName();
-                                JSONObject deviceAction = actionsSceneJson.optJSONObject(deviceName);
-
-                                if (deviceAction != null) {
-
-                                    Action action = null;
-                                    Device actionDevice = null;
-                                    int actionIndex = -1;
-
-                                    for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
-
-                                        Action a = actions.get(aIndex);
-                                        if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
-                                            action = actions.get(aIndex);
-                                            actionIndex = aIndex;
-                                        }
-                                    }
-
-                                    if (action == null) {
-                                        action = new Action();
-                                        action.setNodeId(nodeId);
-
-                                        for (int k = 0; k < devices.size(); k++) {
-
-                                            if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
-                                                actionDevice = new Device(devices.get(k));
-                                                actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
-                                                break;
-                                            }
-                                        }
-
-                                        if (actionDevice == null) {
-                                            actionDevice = new Device(nodeId);
-                                        }
-                                        action.setDevice(actionDevice);
-                                    } else {
-                                        actionDevice = action.getDevice();
-                                    }
-
-                                    ArrayList<Param> actionParams = new ArrayList<>();
-                                    if (params != null) {
-                                        actionParams = ParamUtils.Companion.filterActionParams(params);
-                                    }
-                                    actionDevice.setParams(actionParams);
-
-                                    for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
-
-                                        Param p = actionParams.get(paramIndex);
-                                        String paramName = p.getName();
-
-                                        if (deviceAction.has(paramName)) {
-
-                                            p.setSelected(true);
-                                            setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
-                                        }
-                                    }
-
-                                    for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
-
-                                        if (!actionParams.get(paramIndex).isSelected()) {
-                                            actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
-                                        }
-                                    }
-
-                                    if (actionIndex == -1) {
-                                        actions.add(action);
-                                    } else {
-                                        actions.set(actionIndex, action);
-                                    }
-                                    scene.setActions(actions);
-                                }
-                            }
                         }
-                        espAppContext.sceneMap.put(key, scene);
                     }
+                    espAppContext.sceneMap.put(key, scene);
                 }
             }
-        } else {
-            Log.e(TAG, "Scene JSON is not available");
         }
         node.setSceneCurrentCnt(sceneCnt);
 

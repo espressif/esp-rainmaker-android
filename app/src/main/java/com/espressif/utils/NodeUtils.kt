@@ -59,7 +59,11 @@ class NodeUtils {
             return AppConstants.ESP_DEVICE_OTHER
         }
 
-        fun addParamsForMatterClusters(node: EspNode, clusters: List<Long>): EspNode {
+        fun addParamsForMatterClusters(
+            node: EspNode,
+            clusters: List<Long>,
+            deviceType: Long
+        ): EspNode {
 
             var devices = node.devices
 
@@ -73,6 +77,39 @@ class NodeUtils {
             val properties = java.util.ArrayList<String>()
             properties.add(AppConstants.KEY_PROPERTY_WRITE)
             properties.add(AppConstants.KEY_PROPERTY_READ)
+
+            val device = devices[0]
+            var params = device.params
+            if (params == null || params.size == 0) {
+                params = java.util.ArrayList()
+            }
+
+            if (AppConstants.NODE_TYPE_PURE_MATTER.equals(node.newNodeType)) {
+
+                var nameParam = ParamUtils.getParamIfAvailableInList(
+                    params, AppConstants.PARAM_TYPE_NAME,
+                    AppConstants.PARAM_NAME, AppConstants.UI_TYPE_TEXT,
+                )
+
+                if (nameParam == null) {
+                    nameParam = Param()
+                    nameParam.isDynamicParam = true
+                    nameParam.dataType = "String"
+                    nameParam.paramType = AppConstants.PARAM_TYPE_NAME
+                    nameParam.name = AppConstants.PARAM_NAME
+                    nameParam.uiType = AppConstants.UI_TYPE_TEXT
+                    nameParam.properties = properties
+                    params.add(nameParam)
+                }
+
+                if (!TextUtils.isEmpty(node.nodeMetadata.deviceName)) {
+                    nameParam.labelValue = node.nodeMetadata.deviceName
+                } else {
+                    nameParam.labelValue = getDefaultNameForMatterDevice(deviceType.toInt())
+                }
+                device.userVisibleName = nameParam.labelValue
+            }
+            device.params = params
 
             for (cluster in clusters) {
                 val clusterId = cluster
@@ -384,7 +421,7 @@ class NodeUtils {
                 AppConstants.MATTER_DEVICE_AC -> return "AC"
                 AppConstants.MATTER_DEVICE_DOOR_LOCK -> return "Door Lock"
             }
-            return AppConstants.ESP_DEVICE_OTHER
+            return ""
         }
     }
 }

@@ -904,25 +904,25 @@ public class NotificationWorker extends Worker {
                                         } else if (dataType.equalsIgnoreCase("float") || dataType.equalsIgnoreCase("double")) {
                                             double value = deviceJson.optDouble(key);
                                             msgBuilder.append("" + value);
+                                        } else if (dataType.equalsIgnoreCase("String")) {
+                                            String value = deviceJson.optString(key);
+                                            msgBuilder.append(value);
                                         }
                                     }
                                 }
-                            } else {
-                                Log.e(TAG, "Device JSON is not available");
-                                msgBuilder.append(espApp.getString(R.string.notify_node_alert));
                             }
                         }
-                    } else {
-                        msgBuilder.append(espApp.getString(R.string.notify_node_alert));
                     }
                 } else {
+                    Log.e(TAG, "Node is not available in node map");
+                }
+
+                if (TextUtils.isEmpty(msgBuilder.toString())) {
                     msgBuilder.append(espApp.getString(R.string.notify_node_alert));
                 }
             } else {
                 msgBuilder.append(alertStr);
             }
-        } else {
-            msgBuilder.append(espApp.getString(R.string.notify_node_alert));
         }
 
         notificationEvent.setNotificationMsg(msgBuilder.toString());

@@ -33,7 +33,7 @@ class TemperatureClusterHelper constructor(private val chipClient: ChipClient) {
         const val TAG = "TemperatureCluster"
     }
 
-    suspend fun getTemperature(deviceId: Long, endpoint: Int): Int? {
+    suspend fun getTemperature(deviceId: Long, endpoint: Int): Double? {
         Log.d(TAG, "Get Temperature")
         val connectedDevicePtr =
             try {
@@ -48,7 +48,7 @@ class TemperatureClusterHelper constructor(private val chipClient: ChipClient) {
                     object : MeasuredValueAttributeCallback {
                         override fun onSuccess(value: Int?) {
                             Log.d(TAG, "Get Temperature success : [$value]")
-                            continuation.resume(value)
+                            continuation.resume(value?.toDouble())
                         }
 
                         override fun onError(ex: java.lang.Exception) {
@@ -62,7 +62,7 @@ class TemperatureClusterHelper constructor(private val chipClient: ChipClient) {
     fun getTemperatureAsync(
         deviceId: Long,
         endpoint: Int
-    ): CompletableFuture<Int?> =
+    ): CompletableFuture<Double?> =
         GlobalScope.future { getTemperature(deviceId, endpoint) }
 
     suspend fun subscribeForTemperatureValue(

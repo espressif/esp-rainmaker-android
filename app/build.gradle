@@ -70,8 +70,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 27
         targetSdkVersion 35
-        versionCode 143
-        versionName "3.5.3 - ${getGitHash()}"
+        versionCode 145
+        versionName "3.5.4 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -298,7 +298,6 @@ dependencies {
     implementation libs.eventbus
     implementation libs.jnanoid
     implementation libs.jwtdecode
-    implementation libs.commons.codec
 
     //crypto
     implementation libs.bcpkix.jdk15to18

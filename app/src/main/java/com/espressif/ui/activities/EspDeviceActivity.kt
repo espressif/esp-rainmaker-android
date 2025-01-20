@@ -384,7 +384,6 @@ class EspDeviceActivity : AppCompatActivity() {
         binding.toolbarLayout.toolbar.navigationIcon =
             AppCompatResources.getDrawable(this, R.drawable.ic_arrow_left)
         binding.toolbarLayout.toolbar.setNavigationOnClickListener { finish() }
-        supportActionBar!!.setTitle(device!!.userVisibleName)
     }
 
     private fun getNodeDetails() {
