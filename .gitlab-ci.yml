@@ -1,0 +1,24 @@
+stages:
+    - build
+
+build_apk:
+    stage: build
+    image: espressif/idf:latest
+    tags:
+        - build
+
+    variables:
+      deployment: "production"  
+
+    rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+    script:
+        - rm -rf /tmp/esp-rainmaker-jenkins-ci
+        - git clone https://$CI_GITLAB_USERNAME_APP_FRAMEWORKS:$CI_GITLAB_PASSWORD_APP_FRAMEWORKS@gitlab.espressif.cn:6688/app-frameworks/esp-rainmaker-jenkins-ci.git
+        - cd esp-rainmaker-jenkins-ci
+        - pip3 install -r requirements.txt
+        - python3 key_update.py android-rm-app.params --key branch --value $CI_COMMIT_REF_NAME
+        - python3 key_update.py android-rm-app.params --key deployment --value $deployment
+        - python3 -u git_jenkins_ci_gateway_cli.py android-rm-app --gateway_branch test/android-rm-app/$CI_COMMIT_REF_NAME
+
