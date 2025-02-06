@@ -158,7 +158,7 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                         val clusters: List<Long> = serverClusters.mapNotNull {
                             (it as? Number)?.toLong() // Safely cast to Number and then to Long
                         }
-                        val espNode = NodeUtils.addParamsForMatterClusters(node, clusters)
+                        val espNode = NodeUtils.addParamsForMatterClusters(node, clusters, types[0])
                         espApp.nodeMap.put(nodeId, espNode)
 
                         if (TextUtils.isEmpty(deviceType)) {
@@ -310,7 +310,7 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
 
                             val espClusterHelper =
                                 TemperatureClusterHelper(espApp.chipClientMap[matterNodeId]!!)
-                            var temperatureValue: Int? =
+                            var temperatureValue: Double? =
                                 espClusterHelper.getTemperatureAsync(
                                     deviceId,
                                     AppConstants.ENDPOINT_1
@@ -321,10 +321,7 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                             for (param in params) {
                                 if (AppConstants.PARAM_TYPE_TEMPERATURE.equals(param.paramType)) {
                                     if (temperatureValue != null) {
-                                        val temp =
-                                            Utils.temperatureDeviceToAppConversion(temperatureValue)
-                                        temperatureValue = temp
-                                        param.value = temperatureValue.toDouble()
+                                        param.value = temperatureValue
                                         param.labelValue = temperatureValue.toString()
                                     }
                                 }

@@ -106,8 +106,7 @@ public class WiFiScanActivity extends AppCompatActivity {
         previousNetwork = getIntent().getStringExtra(AppConstants.KEY_SSID);
         initViews();
         EventBus.getDefault().register(this);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
             ActivityCompat.requestPermissions(this, new
                     String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_ACCESS_FINE_LOCATION);

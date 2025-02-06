@@ -107,9 +107,7 @@ public class AutomationActionsActivity extends AppCompatActivity {
         }
 
         // Sort device list
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            Collections.sort(devices, new DeviceSelectionComparator());
-        }
+        Collections.sort(devices, new DeviceSelectionComparator());
         initViews();
     }
 

@@ -51,6 +51,7 @@ import com.espressif.AppConstants.Companion.LockState;
 import com.espressif.AppConstants.Companion.SystemMode;
 import com.espressif.ESPControllerAPIKeys;
 import com.espressif.EspApplication;
+import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.matter.ColorControlClusterHelper;
 import com.espressif.matter.DoorLockClusterHelper;
@@ -71,6 +72,7 @@ import com.espressif.ui.models.Service;
 import com.espressif.ui.widgets.EspDropDown;
 import com.espressif.ui.widgets.PaletteBar;
 import com.espressif.utils.NodeUtils;
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.larswerkman.holocolorpicker.ColorPicker;
 import com.warkiz.tickseekbar.OnSeekChangeListener;
@@ -1294,17 +1296,19 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             paramViewHolder.btnEdit.setVisibility(View.GONE);
         }
 
-        if (nodeStatus == AppConstants.NODE_STATUS_MATTER_LOCAL && device.getDeviceType().equals(AppConstants.ESP_DEVICE_TEMP_SENSOR)) {
-            if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
-                BigInteger id = new BigInteger(matterNodeId, 16);
-                long deviceId = id.longValue();
-                TemperatureClusterHelper espClusterHelper = new TemperatureClusterHelper(espApp.chipClientMap.get(matterNodeId));
-                try {
-                    int temp = espClusterHelper.getTemperatureAsync(deviceId, AppConstants.ENDPOINT_1).get();
-                    param.setLabelValue(String.valueOf(temp));
-                    paramViewHolder.tvLabelValue.setText(param.getLabelValue());
-                } catch (Exception e) {
-                    e.printStackTrace();
+        if (AppConstants.PARAM_TYPE_TEMPERATURE.equals(param.getParamType())) {
+            if (nodeStatus == AppConstants.NODE_STATUS_MATTER_LOCAL && device.getDeviceType().equals(AppConstants.ESP_DEVICE_TEMP_SENSOR)) {
+                if (!TextUtils.isEmpty(matterNodeId) && espApp.chipClientMap.containsKey(matterNodeId)) {
+                    BigInteger id = new BigInteger(matterNodeId, 16);
+                    long deviceId = id.longValue();
+                    TemperatureClusterHelper espClusterHelper = new TemperatureClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                    try {
+                        double temp = espClusterHelper.getTemperatureAsync(deviceId, AppConstants.ENDPOINT_1).get();
+                        param.setLabelValue(String.valueOf(temp));
+                        paramViewHolder.tvLabelValue.setText(param.getLabelValue());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
@@ -1859,62 +1863,115 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                 } else {
 
+                    EspNode espNode = espApp.nodeMap.get(nodeId);
+                    if (params.get(position).getParamType() != null && params.get(position).getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
+
+                        if (AppConstants.NODE_TYPE_RM_MATTER.equals(espApp.nodeMap.get(nodeId).getNewNodeType())
+                                || AppConstants.NODE_TYPE_PURE_MATTER.equals(espApp.nodeMap.get(nodeId).getNewNodeType())) {
+
+                            JsonObject matterMetadataJson = new JsonObject();
+
+                            // Update metadata
+                            String metadata = espNode.getNodeMetadataJson();
+                            try {
+                                JSONObject metadataJsonObj = new JSONObject(metadata);
+                                metadataJsonObj = metadataJsonObj.optJSONObject(AppConstants.KEY_MATTER);
+                                Gson gson = new Gson();
+                                JsonObject metadataJson = gson.fromJson(metadataJsonObj.toString(), JsonObject.class);
+                                metadataJson.remove(AppConstants.KEY_DEVICENAME);
+                                metadataJson.addProperty(AppConstants.KEY_DEVICENAME, value);
+                                JsonObject matterMetadata = new JsonObject();
+                                matterMetadata.add(AppConstants.KEY_MATTER, metadataJson);
+                                matterMetadataJson.add(AppConstants.KEY_METADATA, matterMetadata);
+
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+
+                            ApiManager apiManager = ApiManager.getInstance(espApp);
+                            apiManager.updateNodeMetadata(nodeId, matterMetadataJson, new ApiResponseListener() {
+                                @Override
+                                public void onSuccess(@Nullable Bundle data) {
+
+                                    context.runOnUiThread(() -> {
+                                        paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                        paramViewHolder.progressBar.setVisibility(View.GONE);
+                                        paramViewHolder.tvLabelValue.setText(value);
+                                        params.get(position).setLabelValue(value);
+                                        ((EspDeviceActivity) context).updateDeviceNameInTitle(value);
+                                    });
+                                }
+
+                                @Override
+                                public void onResponseFailure(@NonNull Exception exception) {
+                                }
+
+                                @Override
+                                public void onNetworkFailure(@NonNull Exception exception) {
+                                }
+                            });
+                        }
+                    }
+
                     jsonParam.addProperty(param.getName(), value);
                     body.add(deviceName, jsonParam);
 
-                    deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
+                    if (!AppConstants.NODE_TYPE_PURE_MATTER.equals(espApp.nodeMap.get(nodeId).getNewNodeType())) {
+                        deviceParamUpdates.addParamUpdateRequest(body, new ApiResponseListener() {
 
-                        @Override
-                        public void onSuccess(Bundle data) {
+                            @Override
+                            public void onSuccess(Bundle data) {
 
-                            context.runOnUiThread(new Runnable() {
+                                context.runOnUiThread(new Runnable() {
 
-                                @Override
-                                public void run() {
+                                    @Override
+                                    public void run() {
 
-                                    paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                                    paramViewHolder.progressBar.setVisibility(View.GONE);
-                                    paramViewHolder.tvLabelValue.setText(value);
-                                    params.get(position).setLabelValue(value);
+                                        paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                        paramViewHolder.progressBar.setVisibility(View.GONE);
+                                        paramViewHolder.tvLabelValue.setText(value);
+                                        params.get(position).setLabelValue(value);
 
-                                    if (params.get(position).getParamType() != null && params.get(position).getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
-                                        ((EspDeviceActivity) context).updateDeviceNameInTitle(value);
+                                        if (params.get(position).getParamType() != null && params.get(position).getParamType().equals(AppConstants.PARAM_TYPE_NAME)) {
+
+                                            ((EspDeviceActivity) context).updateDeviceNameInTitle(value);
+                                        }
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
                                     }
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                }
-                            });
-                        }
+                                });
+                            }
 
-                        @Override
-                        public void onResponseFailure(Exception exception) {
+                            @Override
+                            public void onResponseFailure(Exception exception) {
 
-                            context.runOnUiThread(new Runnable() {
+                                context.runOnUiThread(new Runnable() {
 
-                                @Override
-                                public void run() {
-                                    paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                                    paramViewHolder.progressBar.setVisibility(View.GONE);
-                                    paramViewHolder.tvLabelValue.setText(param.getLabelValue());
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                }
-                            });
-                        }
+                                    @Override
+                                    public void run() {
+                                        paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                        paramViewHolder.progressBar.setVisibility(View.GONE);
+                                        paramViewHolder.tvLabelValue.setText(param.getLabelValue());
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+                                });
+                            }
 
-                        @Override
-                        public void onNetworkFailure(Exception exception) {
+                            @Override
+                            public void onNetworkFailure(Exception exception) {
 
-                            context.runOnUiThread(new Runnable() {
+                                context.runOnUiThread(new Runnable() {
 
-                                @Override
-                                public void run() {
-                                    paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
-                                    paramViewHolder.progressBar.setVisibility(View.GONE);
-                                    paramViewHolder.tvLabelValue.setText(param.getLabelValue());
-                                    ((EspDeviceActivity) context).startUpdateValueTask();
-                                }
-                            });
-                        }
-                    });
+                                    @Override
+                                    public void run() {
+                                        paramViewHolder.btnEdit.setVisibility(View.VISIBLE);
+                                        paramViewHolder.progressBar.setVisibility(View.GONE);
+                                        paramViewHolder.tvLabelValue.setText(param.getLabelValue());
+                                        ((EspDeviceActivity) context).startUpdateValueTask();
+                                    }
+                                });
+                            }
+                        });
+                    }
                 }
             }
         });

@@ -42,7 +42,6 @@ androidSegmented = "1.0.6"
 eventbus = "3.3.1"
 jnanoid = "2.0.0"
 jwtdecode = "1.4.0"
-commonsCodec = "1.16.0"
 
 bcpkixJdk15to18 = "1.72"
 
@@ -108,7 +107,6 @@ android-segmented = { group = "info.hoang8f", name = "android-segmented", versio
 eventbus = { group = "org.greenrobot", name = "eventbus", version.ref = "eventbus" }
 jnanoid = { group = "com.aventrix.jnanoid", name = "jnanoid", version.ref = "jnanoid" }
 jwtdecode = { group = "com.auth0.android", name = "jwtdecode", version.ref = "jwtdecode" }
-commons-codec = { group = "commons-codec", name = "commons-codec", version.ref = "commonsCodec" }
 
 bcpkix-jdk15to18 = { group = "org.bouncycastle", name = "bcpkix-jdk15to18", version.ref = "bcpkixJdk15to18" }
 bcprov-jdk15to18 = { group = "org.bouncycastle", name = "bcprov-jdk15to18", version.ref = "bcpkixJdk15to18" }

@@ -96,9 +96,14 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             matterNodeId = espApp.matterRmNodeIdMap.get(nodeId);
         }
 
-        // set the data in items
+        if (AppConstants.NODE_TYPE_RM_MATTER.equals(node.getNewNodeType())
+                || AppConstants.NODE_TYPE_PURE_MATTER.equals(node.getNewNodeType())) {
+            deviceName = (node.getNodeMetadata() != null) ? node.getNodeMetadata().getDeviceName() : "";
+        }
+
+        // Set device name according to device type if it is empty.
         if (TextUtils.isEmpty(deviceName)) {
-            deviceName = device.getDeviceName();
+            deviceName = setDeviceNameFromType(device.getDeviceType());
         }
 
         deviceVh.tvDeviceName.setText(deviceName);
@@ -589,6 +594,37 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
         });
 
         builder.show();
+    }
+
+    private String setDeviceNameFromType(String deviceType) {
+
+        String name = "";
+        if (!TextUtils.isEmpty(deviceType)) {
+            name = switch (deviceType) {
+                case AppConstants.ESP_DEVICE_LIGHT_BULB, AppConstants.ESP_DEVICE_LIGHT, AppConstants.ESP_DEVICE_BULB_CCT, AppConstants.ESP_DEVICE_BULB_RGB ->
+                        "Light";
+                case AppConstants.ESP_DEVICE_SWITCH -> "Switch";
+                case AppConstants.ESP_DEVICE_LOCK -> "Door Lock";
+                case AppConstants.ESP_DEVICE_THERMOSTAT -> "Thermostat";
+                case AppConstants.ESP_DEVICE_FAN -> "Fan";
+                case AppConstants.ESP_DEVICE_TEMP_SENSOR -> "Temperature";
+                case AppConstants.ESP_DEVICE_OUTLET -> "Outlet";
+                case AppConstants.ESP_DEVICE_PLUG -> "Plug";
+                case AppConstants.ESP_DEVICE_SOCKET -> "Socket";
+                case AppConstants.ESP_DEVICE_BLINDS_INTERNAL, AppConstants.ESP_DEVICE_BLINDS_EXTERNAL ->
+                        "Blinds";
+                case AppConstants.ESP_DEVICE_GARAGE_DOOR -> "Garage Door";
+                case AppConstants.ESP_DEVICE_SPEAKER -> "Speaker";
+                case AppConstants.ESP_DEVICE_AIR_CONDITIONER -> "AC";
+                case AppConstants.ESP_DEVICE_TV -> "TV";
+                case AppConstants.ESP_DEVICE_WASHER -> "Washer";
+                case AppConstants.ESP_DEVICE_CONTACT_SENSOR -> "Contact Sensor";
+                case AppConstants.ESP_DEVICE_MOTION_SENSOR -> "Motion Sensor";
+                case AppConstants.ESP_DEVICE_DOORBELL -> "Doorbell";
+                default -> name;
+            };
+        }
+        return name;
     }
 
     static class DeviceViewHolder extends RecyclerView.ViewHolder {

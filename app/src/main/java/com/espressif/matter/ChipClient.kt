@@ -35,7 +35,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.apache.commons.codec.binary.Hex
 import org.bouncycastle.asn1.DERBitString
 import org.bouncycastle.asn1.DERSequence
 import java.io.ByteArrayInputStream
@@ -95,9 +94,8 @@ class ChipClient constructor(
             DiagnosticDataProviderImpl(context)
         )
 
-        val decodedHex: ByteArray = Hex.decodeHex(ipk)
-        val encodedHexB64: ByteArray =
-            org.apache.commons.codec.binary.Base64.encodeBase64(decodedHex)
+        val decodedHex: ByteArray = Utils.decodeHex(ipk)
+        val encodedHexB64: ByteArray = Base64.getEncoder().encode(decodedHex)
         var ipk = String(encodedHexB64)
         ipkEpochKey = Base64.getDecoder().decode(ipk)
 
@@ -455,17 +453,18 @@ class ChipClient constructor(
                                             if (info.types != null && info.types.isNotEmpty()) {
                                                 metadataJson.addProperty(
                                                     "deviceType",
-                                                    info.types.get(0).toInt()
+                                                    info.types[0].toInt()
+                                                )
+
+                                                val deviceName =
+                                                    NodeUtils.getDefaultNameForMatterDevice(
+                                                        info.types[0].toInt()
+                                                    )
+                                                metadataJson.addProperty(
+                                                    AppConstants.KEY_DEVICENAME,
+                                                    deviceName
                                                 )
                                             }
-                                            val deviceName =
-                                                NodeUtils.getDefaultNameForMatterDevice(
-                                                    info.types.get(0).toInt()
-                                                )
-                                            metadataJson.addProperty(
-                                                AppConstants.KEY_DEVICENAME,
-                                                deviceName
-                                            )
 
                                             endpointsArray.add(info.endpoint)
 
@@ -504,6 +503,17 @@ class ChipClient constructor(
 
                                                     if (clusterId == AppConstants.CONTROLLER_CLUSTER_ID) {
                                                         isControllerClusterAvailable = true
+                                                        metadataJson.addProperty(
+                                                            AppConstants.KEY_DEVICENAME,
+                                                            "Matter Controller"
+                                                        )
+                                                    }
+
+                                                    if (clusterId == AppConstants.THREAD_BR_CLUSTER_ID) {
+                                                        metadataJson.addProperty(
+                                                            AppConstants.KEY_DEVICENAME,
+                                                            "Thread-BR"
+                                                        )
                                                     }
                                                 }
                                             }

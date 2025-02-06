@@ -89,12 +89,9 @@ public class SceneActionsActivity extends AppCompatActivity {
         }
 
         // Sort device list
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-
-            Collections.sort(devices, new OnlineDeviceComparator()
-                    .thenComparing(new DeviceSelectionComparator())
-                    .thenComparing(new MaxCountComparator()));
-        }
+        Collections.sort(devices, new OnlineDeviceComparator()
+                .thenComparing(new DeviceSelectionComparator())
+                .thenComparing(new MaxCountComparator()));
         initViews();
     }
 

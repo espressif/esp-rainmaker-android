@@ -102,6 +102,7 @@ class AppConstants {
         const val PARAM_TYPE_SPEED = "esp.param.speed"
 
         // Param names
+        const val PARAM_NAME = "Name"
         const val PARAM_POWER = "Power"
         const val PARAM_BRIGHTNESS = "Brightness"
         const val PARAM_HUE = "Hue"

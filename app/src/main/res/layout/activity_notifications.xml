@@ -6,7 +6,9 @@
     android:layout_height="match_parent"
     android:background="@color/color_background">
 
-    <include layout="@layout/toolbar" />
+    <include
+        android:id="@+id/toolbar_layout"
+        layout="@layout/toolbar" />
 
     <RelativeLayout
         android:id="@+id/rl_no_request"
