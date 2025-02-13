@@ -608,4 +608,10 @@
     <string name="error_cmd_timeout_positive">Timeout must be a positive number</string>
     <string name="error_cmd_timeout_invalid">Invalid timeout value</string>
 
+    <!-- Challenge-Response based user-node mapping -->
+    <string name="confirming_node_association">Confirming Node Association</string>
+    <string name="error_node_association">Node Association Failed</string>
+    <string name="error_node_association_msg">Failed to verify node association. Please reset your device and try again.</string>
+    <string name="error_wifi_connection_failed">Failed to confirm WiFi connection. Please check if your device is connected to the network successfully.</string>
+    
 </resources>
