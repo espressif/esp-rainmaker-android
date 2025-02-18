@@ -15,15 +15,17 @@
 package com.espressif.matter
 
 import android.util.Log
-import chip.devicecontroller.model.ChipAttributePath
-import chip.devicecontroller.model.InvokeElement
-import chip.tlv.AnonymousTag
-import chip.tlv.ContextSpecificTag
-import chip.tlv.TlvWriter
+import chip.devicecontroller.ChipClusters
+import chip.devicecontroller.ChipClusters.DefaultClusterCallback
+import chip.devicecontroller.ChipClusters.GeneralCommissioningCluster.CommissioningCompleteResponseCallback
 import com.espressif.AppConstants
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
+import java.util.Optional
 import java.util.concurrent.CompletableFuture
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 class ThreadBRClusterHelper constructor(
     private val chipClient: ChipClient
@@ -35,141 +37,214 @@ class ThreadBRClusterHelper constructor(
 
     fun configureThreadBRAsync(
         nodeId: Long,
-        endpointId: Long,
-        clusterId: Long,
-        datasetStr: String
+        endpointId: Int,
+        datasetStr: ByteArray
     ) = GlobalScope.future {
         configureThreadBR(
             nodeId,
             endpointId,
-            clusterId,
             datasetStr
         )
     }
 
+    suspend fun configureThreadBR(
+        nodeId: Long,
+        endpointId: Int,
+        datasetStr: ByteArray
+    ) {
+        setArmFailSafe(nodeId, AppConstants.ENDPOINT_0)
+        sendDataset(nodeId, endpointId, datasetStr)
+        setCommissioningComplete(nodeId, AppConstants.ENDPOINT_0)
+    }
+
+    suspend fun setArmFailSafe(
+        deviceId: Long,
+        endpointId: Int,
+    ) {
+        Log.d(TAG, "setArmFailSafe")
+        val connectedDevicePtr =
+            try {
+                chipClient.getConnectedDevicePointer(deviceId)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Can't get connectedDevicePointer.")
+                return
+            }
+        val cluster =
+            getGeneralCommissioningClusterForDevice(connectedDevicePtr, endpointId)
+
+        return suspendCoroutine { continuation ->
+            cluster.armFailSafe(object :
+                ChipClusters.GeneralCommissioningCluster.ArmFailSafeResponseCallback {
+                override fun onSuccess(errorCode: Int?, debugText: String?) {
+                    Log.d(TAG, "armFailSafe success")
+                    continuation.resume(Unit)
+                }
+
+                override fun onError(error: Exception) {
+                    Log.e(TAG, "armFailSafe command failure")
+                    continuation.resumeWithException(error)
+                }
+            }, 300, 1)
+        }
+    }
+
+    suspend fun sendDataset(
+        nodeId: Long,
+        endpointId: Int,
+        datasetStr: ByteArray
+    ): Unit? {
+        Log.d(TAG, "Send Dataset")
+        val breadcrumb: Optional<Long> = Optional.of(1L)
+
+        val connectedDevicePtr =
+            try {
+                chipClient.getConnectedDevicePointer(nodeId)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Can't get connectedDevicePointer.")
+                return null
+            }
+        return suspendCoroutine { continuation ->
+            getThreadBorderRouterManagementCluster(connectedDevicePtr, endpointId)
+                .setActiveDatasetRequest(object : DefaultClusterCallback {
+
+                    override fun onSuccess() {
+                        Log.d(TAG, "setDataset success")
+                        continuation.resume(Unit)
+                    }
+
+                    override fun onError(error: Exception) {
+                        Log.e(TAG, "setDataset command failure")
+                        continuation.resumeWithException(error)
+                    }
+                }, datasetStr, breadcrumb)
+        }
+    }
+
+    suspend fun setCommissioningComplete(
+        deviceId: Long,
+        endpointId: Int,
+    ) {
+        Log.d(TAG, "setCommissioningComplete")
+        val connectedDevicePtr =
+            try {
+                chipClient.getConnectedDevicePointer(deviceId)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Can't get connectedDevicePointer.")
+                return
+            }
+        val cluster =
+            getGeneralCommissioningClusterForDevice(connectedDevicePtr, endpointId)
+
+        return suspendCoroutine { continuation ->
+            cluster.commissioningComplete(
+                object :
+                    CommissioningCompleteResponseCallback {
+                    override fun onSuccess(errorCode: Int?, debugText: String?) {
+                        Log.d(TAG, "commissioningComplete success")
+                        continuation.resume(Unit)
+                    }
+
+                    override fun onError(error: Exception) {
+                        Log.e(TAG, "commissioningComplete command failure")
+                        continuation.resumeWithException(error)
+                    }
+                }
+            )
+        }
+    }
+
+    // Read from device
     fun readDatasetAsync(
         nodeId: Long,
     ): CompletableFuture<ArrayList<String>> = GlobalScope.future {
         readDataset(nodeId)
     }
 
-    suspend fun configureThreadBR(
-        nodeId: Long,
-        endpointId: Long,
-        clusterId: Long,
-        datasetStr: String
-    ) {
-        sendDataset(nodeId, endpointId, clusterId, 0L, datasetStr)
-        startThread(nodeId, endpointId, clusterId, 1L)
-    }
-
-    suspend fun sendDataset(
-        nodeId: Long,
-        endpointId: Long,
-        clusterId: Long,
-        commandId: Long,
-        datasetStr: String
-    ) {
-        val tlvWriter1 = TlvWriter()
-        tlvWriter1.startStructure(AnonymousTag)
-        tlvWriter1.put(ContextSpecificTag(0), datasetStr)
-        tlvWriter1.endStructure()
-
-        val invokeElement1 =
-            InvokeElement.newInstance(
-                endpointId,
-                clusterId,
-                commandId,
-                tlvWriter1.getEncoded(),
-                null
-            )
-
-        val devicePtr = chipClient.awaitGetConnectedDevicePointer(nodeId)
-        val invoke = chipClient.invoke(devicePtr, invokeElement1)
-        Log.d(TAG, "Send Dataset, result : $invoke")
-    }
-
-    suspend fun startThread(
-        nodeId: Long,
-        endpointId: Long,
-        clusterId: Long,
-        commandId: Long
-    ) {
-        val tlvWriter = TlvWriter()
-        tlvWriter.startStructure(AnonymousTag)
-        tlvWriter.endStructure()
-
-        val invokeElement =
-            InvokeElement.newInstance(
-                endpointId,
-                clusterId,
-                commandId,
-                tlvWriter.getEncoded(),
-                null
-            )
-
-        val devicePtr = chipClient.awaitGetConnectedDevicePointer(nodeId)
-        val invoke = chipClient.invoke(devicePtr, invokeElement)
-        Log.d(TAG, "Start Thread, result : $invoke")
-    }
-
-    suspend fun readDatasetAttribute(
-        nodeId: Long
-    ): String? {
-
-        val devicePtr = chipClient.awaitGetConnectedDevicePointer(nodeId)
-
-        // Read active dataset
-        val attributePath =
-            ChipAttributePath.newInstance(
-                AppConstants.ENDPOINT_0.toLong(),
-                AppConstants.THREAD_BR_CLUSTER_ID_HEX,
-                0x0L
-            )
-        val data = chipClient.readAttribute(devicePtr, attributePath)
-        val datasetValue = data?.value as ByteArray?
-        val datasetStr = datasetValue?.byteArrayToDs()
-        Log.d(TAG, "Active dataset : $datasetStr")
-        return datasetStr
-    }
-
-    suspend fun readBaIdAttribute(
-        nodeId: Long
-    ): String? {
-
-        val devicePtr = chipClient.awaitGetConnectedDevicePointer(nodeId)
-
-        // Read border router id
-        val attributePath =
-            ChipAttributePath.newInstance(
-                AppConstants.ENDPOINT_0.toLong(),
-                AppConstants.THREAD_BR_CLUSTER_ID_HEX,
-                0x2L
-            )
-
-        val data = chipClient.readAttribute(devicePtr, attributePath)
-        val baIdValue = data?.value as ByteArray?
-        val baIdValueStr = baIdValue?.byteArrayToDs()
-        Log.d(TAG, "BA ID : $baIdValueStr")
-
-        return baIdValueStr
-    }
-
     suspend fun readDataset(
         nodeId: Long
     ): ArrayList<String> {
 
-        val tbrData: ArrayList<String> = ArrayList<String>()
-        val dataset = readDatasetAttribute(nodeId)
-        val baId = readBaIdAttribute(nodeId)
+        val tbrData: ArrayList<String> = ArrayList()
 
+        val dataset = readActiveDataset(nodeId, AppConstants.ENDPOINT_1)
         if (dataset != null) {
             tbrData.add(dataset)
         }
+
+        val baId = readBaId(nodeId, AppConstants.ENDPOINT_1)
         if (baId != null) {
             tbrData.add(baId)
         }
         return tbrData
+    }
+
+    suspend fun readActiveDataset(deviceId: Long, endpoint: Int): String? {
+        Log.d(TAG, "readActiveDataset")
+        val connectedDevicePtr =
+            try {
+                chipClient.getConnectedDevicePointer(deviceId)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Can't get connectedDevicePointer.")
+                return null
+            }
+        return suspendCoroutine { continuation ->
+            getThreadBorderRouterManagementCluster(connectedDevicePtr, endpoint)
+                .getActiveDatasetRequest(object :
+                    ChipClusters.ThreadBorderRouterManagementCluster.DatasetResponseCallback {
+
+                    override fun onSuccess(dataset: ByteArray?) {
+                        val datasetStr = dataset?.byteArrayToDs()
+                        Log.d(TAG, "readActiveDataset command success")
+                        continuation.resume(datasetStr)
+                    }
+
+                    override fun onError(error: Exception) {
+                        Log.e(TAG, "readActiveDataset command failure")
+                        continuation.resumeWithException(error)
+                    }
+                })
+        }
+    }
+
+    suspend fun readBaId(deviceId: Long, endpoint: Int): String? {
+        Log.d(TAG, "readBaId")
+        val connectedDevicePtr =
+            try {
+                chipClient.getConnectedDevicePointer(deviceId)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Can't get connectedDevicePointer.")
+                return null
+            }
+        return suspendCoroutine { continuation ->
+            getThreadBorderRouterManagementCluster(connectedDevicePtr, endpoint)
+                .readBorderAgentIDAttribute(object : ChipClusters.OctetStringAttributeCallback {
+
+                    override fun onSuccess(value: ByteArray?) {
+                        val baId = value?.byteArrayToDs()
+                        Log.d(TAG, "readBaId : $baId")
+                        continuation.resume(baId)
+                    }
+
+                    override fun onError(error: Exception) {
+                        Log.e(TAG, "readBaId command failure")
+                        continuation.resumeWithException(error)
+                    }
+                })
+        }
+    }
+
+    private fun getThreadBorderRouterManagementCluster(
+        devicePtr: Long,
+        endpoint: Int
+    ): ChipClusters.ThreadBorderRouterManagementCluster {
+        return ChipClusters.ThreadBorderRouterManagementCluster(devicePtr, endpoint)
+    }
+
+    private fun getGeneralCommissioningClusterForDevice(
+        devicePtr: Long,
+        endpoint: Int
+    ): ChipClusters.GeneralCommissioningCluster {
+        return ChipClusters.GeneralCommissioningCluster(devicePtr, endpoint)
     }
 
     private fun ByteArray.byteArrayToDs(): String =

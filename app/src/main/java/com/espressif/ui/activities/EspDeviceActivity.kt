@@ -145,7 +145,12 @@ class EspDeviceActivity : AppCompatActivity() {
                                     val id = serverCluster as Long
                                     if (id == AppConstants.CONTROLLER_CLUSTER_ID) {
                                         isControllerClusterAvailable = true
-                                    } else if (id == AppConstants.THREAD_BR_CLUSTER_ID) {
+                                    }
+                                }
+                            } else if (endpoint == 1 && serverClusters != null && !serverClusters.isEmpty()) {
+                                for (serverCluster in serverClusters) {
+                                    val id = serverCluster as Long
+                                    if (id == AppConstants.THREAD_BR_MANAGEMENT_CLUSTER_ID) {
                                         isTbrClusterAvailable = true
                                     }
                                 }
@@ -335,7 +340,7 @@ class EspDeviceActivity : AppCompatActivity() {
                 )
                 espClusterHelper.sendUpdateDeviceListEventAsync(
                     deviceId,
-                    AppConstants.ENDPOINT_0.toLong(),
+                    AppConstants.ENDPOINT_0,
                     AppConstants.CONTROLLER_CLUSTER_ID_HEX
                 )
             }

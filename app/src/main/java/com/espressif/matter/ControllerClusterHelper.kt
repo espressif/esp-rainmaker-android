@@ -18,9 +18,9 @@ import android.content.Context
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import chip.devicecontroller.model.InvokeElement
-import chip.tlv.AnonymousTag
-import chip.tlv.ContextSpecificTag
-import chip.tlv.TlvWriter
+import matter.tlv.AnonymousTag
+import matter.tlv.ContextSpecificTag
+import matter.tlv.TlvWriter
 import com.espressif.AppConstants
 import com.espressif.AppConstants.Companion.UpdateEventType
 import com.espressif.EspApplication
@@ -41,7 +41,7 @@ class ControllerClusterHelper constructor(
     suspend fun sendTokenToDevice(
         rmNodeId: String,
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
         refreshToken: String
     ) {
@@ -73,7 +73,7 @@ class ControllerClusterHelper constructor(
     fun sendTokenToDeviceAsync(
         rmNodeId: String,
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
         refreshToken: String
     ) = GlobalScope.future {
@@ -88,7 +88,7 @@ class ControllerClusterHelper constructor(
 
     suspend fun sendUpdateDeviceListEvent(
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
     ) {
         Log.d(TAG, "Update device list process - started")
@@ -100,7 +100,7 @@ class ControllerClusterHelper constructor(
 
     fun sendUpdateDeviceListEventAsync(
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
     ) = GlobalScope.future {
         sendUpdateDeviceListEvent(
@@ -112,7 +112,7 @@ class ControllerClusterHelper constructor(
 
     suspend fun resetRefreshToken(
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
         commandId: Long
     ) {
@@ -137,14 +137,14 @@ class ControllerClusterHelper constructor(
 
     fun resetRefreshTokenAsync(
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
         commandId: Long
     ) = GlobalScope.future { resetRefreshToken(nodeId, endpointId, clusterId, commandId) }
 
     suspend fun appendRefreshToken(
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
         commandId: Long,
         refreshToken: String
@@ -197,7 +197,7 @@ class ControllerClusterHelper constructor(
 
     fun appendRefreshTokenAsync(
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
         commandId: Long,
         refreshToken: String
@@ -213,7 +213,7 @@ class ControllerClusterHelper constructor(
 
     suspend fun authorizeDevice(
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
         commandId: Long
     ) {
@@ -244,14 +244,14 @@ class ControllerClusterHelper constructor(
 
     fun authorizeDeviceAsync(
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
         commandId: Long
     ) = GlobalScope.future { authorizeDevice(nodeId, endpointId, clusterId, commandId) }
 
     suspend fun updateUserNoc(
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
         commandId: Long
     ) {
@@ -276,14 +276,14 @@ class ControllerClusterHelper constructor(
 
     fun updateUserNocAsync(
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
         commandId: Long
     ) = GlobalScope.future { updateUserNoc(nodeId, endpointId, clusterId, commandId) }
 
     suspend fun updateDeviceList(
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
         commandId: Long
     ) {
@@ -308,7 +308,7 @@ class ControllerClusterHelper constructor(
 
     fun updateDeviceListAsync(
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
         commandId: Long
     ) = GlobalScope.future { updateDeviceList(nodeId, endpointId, clusterId, commandId) }

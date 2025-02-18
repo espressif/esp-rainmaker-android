@@ -248,7 +248,7 @@ class ControllerLoginActivity : AppCompatActivity() {
                 nodeId?.let {
                     clustersHelper.sendTokenToDeviceAsync(
                         it,
-                        deviceId, AppConstants.ENDPOINT_0.toLong(),
+                        deviceId, AppConstants.ENDPOINT_0,
                         AppConstants.CONTROLLER_CLUSTER_ID_HEX, token
                     )
                 }

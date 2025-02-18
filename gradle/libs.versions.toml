@@ -28,8 +28,9 @@ protobufJavalite = "3.18.0"
 kotlinxCoroutinesAndroid = "1.5.2"
 firebaseBom = "30.0.0"
 
-playServicesBase = "18.2.0"
+playServicesBase = "18.6.0"
 playServicesHome = "16.0.0"
+playServicesThreadnetwork = "16.2.1"
 
 espIdfProvisioningAndroid = "lib-2.2.1"
 codeScanner = "2.1.2"
@@ -94,7 +95,7 @@ firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging
 
 play-services-base = { group = "com.google.android.gms", name = "play-services-base", version.ref = "playServicesBase" }
 play-services-home = { group = "com.google.android.gms", name = "play-services-home", version.ref = "playServicesHome" }
-play-services-threadnetwork = { group = "com.google.android.gms", name = "play-services-threadnetwork", version.ref = "playServicesHome" }
+play-services-threadnetwork = { group = "com.google.android.gms", name = "play-services-threadnetwork", version.ref = "playServicesThreadnetwork" }
 
 esp-idf-provisioning-android = { group = "com.github.espressif", name = "esp-idf-provisioning-android", version.ref = "espIdfProvisioningAndroid" }
 code-scanner = { group = "com.github.yuriy-budiyev", name = "code-scanner", version.ref = "codeScanner" }

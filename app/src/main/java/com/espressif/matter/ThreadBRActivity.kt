@@ -75,10 +75,9 @@ class ThreadBRActivity : AppCompatActivity() {
                     val threadNetworkCredentials =
                         ThreadNetworkCredentials.fromIntentSenderResultData(result.data!!)
 
-                    Log.d(TAG, "Network name : " + threadNetworkCredentials.networkName)
+                    Log.d(TAG, "Thread Network name : " + threadNetworkCredentials.networkName)
                     val activeDataset = threadNetworkCredentials.activeOperationalDataset
-                    val datasetStr = activeDataset.byteArrayToDs()
-                    Log.d(TAG, "Active dataset : $datasetStr")
+                    val datasetStr = activeDataset.byteArrayToDs().dsToByteArray()
 
                     val matterNodeId = espApp.matterRmNodeIdMap.get(nodeId)
                     val id = matterNodeId?.let { BigInteger(it, 16) }
@@ -90,17 +89,15 @@ class ThreadBRActivity : AppCompatActivity() {
                             ThreadBRClusterHelper(espApp.chipClientMap.get(matterNodeId)!!)
 
                         if (deviceId != null) {
-                            nodeId?.let {
-                                clustersHelper.configureThreadBRAsync(
-                                    deviceId, AppConstants.ENDPOINT_0.toLong(),
-                                    AppConstants.THREAD_BR_CLUSTER_ID_HEX, datasetStr
-                                )
-                                hideLoading()
-                                binding.tvTbrProgress.setText(R.string.tbr_setup_done)
-                                binding.tvPleaseWait.visibility = View.GONE
-                            }
+                            clustersHelper.configureThreadBRAsync(
+                                deviceId, AppConstants.ENDPOINT_1, datasetStr
+                            )
+                            hideLoading()
+                            binding.tvTbrProgress.setText(R.string.tbr_setup_done)
+                            binding.tvPleaseWait.visibility = View.GONE
                         }
                     }
+
                 } else {
                     Log.e(TAG, "User denied request.")
                     hideLoading()
@@ -143,7 +140,8 @@ class ThreadBRActivity : AppCompatActivity() {
                     )
                 }
                     ?: run {
-                        Log.d(TAG, "ThreadClient: no preferred credentials found")
+
+                        Log.d(TAG, "No preferred credentials found on phone")
 
                         val matterNodeId = espApp.matterRmNodeIdMap.get(nodeId)
                         val id = matterNodeId?.let { BigInteger(it, 16) }
@@ -161,11 +159,7 @@ class ThreadBRActivity : AppCompatActivity() {
                                 Log.d(TAG, "Received data : ${tbrData}")
 
                                 val threadNetworkCredentials =
-                                    ThreadNetworkCredentials.fromActiveOperationalDataset(
-                                        tbrData.get(
-                                            0
-                                        ).dsToByteArray()
-                                    )
+                                    ThreadNetworkCredentials.fromActiveOperationalDataset(tbrData[0].dsToByteArray())
 
                                 Log.d(TAG, "Network Name : " + threadNetworkCredentials.networkName)
                                 Log.d(TAG, "panId : " + threadNetworkCredentials.panId)
@@ -175,7 +169,7 @@ class ThreadBRActivity : AppCompatActivity() {
                                 )
 
                                 val threadBorderAgent =
-                                    ThreadBorderAgent.newBuilder(tbrData.get(1).dsToByteArray())
+                                    ThreadBorderAgent.newBuilder(tbrData[1].dsToByteArray())
                                         .build()
 
                                 ThreadNetwork.getClient(this)
@@ -205,6 +199,37 @@ class ThreadBRActivity : AppCompatActivity() {
                     "ThreadClient: " + ThreadNetworkStatusCodes.getStatusCodeString((e as ApiException).statusCode)
                 )
                 hideLoading()
+            }
+    }
+
+    private fun addCredentials(
+        borderAgentId: String,
+        credentialsToBeAdded: ThreadNetworkCredentials
+    ) {
+
+        val threadBorderAgent = ThreadBorderAgent.newBuilder(borderAgentId.dsToByteArray()).build()
+
+        ThreadNetwork.getClient(this)
+            .addCredentials(threadBorderAgent, credentialsToBeAdded)
+            .addOnSuccessListener {
+                Log.d(TAG, "Credentials added.")
+                Toast.makeText(
+                    this,
+                    "Credentials added",
+                    Toast.LENGTH_LONG
+                )
+                    .show()
+
+                hideLoading()
+                binding.tvTbrProgress.setText(R.string.tbr_setup_done)
+                binding.tvPleaseWait.visibility = View.GONE
+            }
+            .addOnFailureListener { e: Exception ->
+                Log.e(TAG, "ERROR: [${e}]")
+                hideLoading()
+                binding.tvTbrProgress.visibility = View.GONE
+                binding.tvPleaseWait.visibility = View.VISIBLE
+                binding.tvPleaseWait.setText("Failed to add thread credentials")
             }
     }
 
