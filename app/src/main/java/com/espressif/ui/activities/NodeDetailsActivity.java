@@ -49,6 +49,9 @@ import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.ArrayList;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 public class NodeDetailsActivity extends AppCompatActivity {
 
     private RecyclerView nodeInfoRecyclerView;
@@ -157,6 +160,29 @@ public class NodeDetailsActivity extends AppCompatActivity {
         if (!TextUtils.isEmpty(node.getNodeType())) {
             nodeInfoList.add(getString(R.string.node_type));
             nodeInfoValueList.add(node.getNodeType());
+        }
+
+        /* Check for cmd-resp in config */
+        try {
+            String configData = node.getConfigData();
+            if (BuildConfig.isCommandResponseSupported && !TextUtils.isEmpty(configData)) {
+                JSONObject configJson = new JSONObject(configData);
+                if (configJson.has("attributes")) {
+                    JSONArray attributes = configJson.getJSONArray("attributes");
+                    for (int i = 0; i < attributes.length(); i++) {
+                        JSONObject attribute = attributes.getJSONObject(i);
+                        if (attribute.has("name") && attribute.has("value") &&
+                            "cmd-resp".equals(attribute.getString("name")) &&
+                            "1".equals(attribute.getString("value"))) {
+                            nodeInfoList.add(getString(R.string.node_cmd_resp));
+                            nodeInfoValueList.add(getString(R.string.btn_send_cmd));
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         if (!TextUtils.isEmpty(node.getFwVersion())) {

@@ -378,6 +378,11 @@
             </intent-filter>
         </receiver>
 
+        <activity
+            android:name="com.espressif.ui.activities.CmdRespActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+
     </application>
 
     <queries>

@@ -44,6 +44,7 @@ import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.activities.FwUpdateActivity;
+import com.espressif.ui.activities.CmdRespActivity;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Service;
@@ -84,7 +85,15 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
     }
 
     @Override
-    public void onBindViewHolder(@NonNull final NodeDetailViewHolder nodeDetailVh, int position) {
+    public void onBindViewHolder(@NonNull NodeDetailViewHolder nodeDetailVh, final int position) {
+
+        // Default to hide all views
+        nodeDetailVh.rvSharedUsers.setVisibility(View.GONE);
+        nodeDetailVh.rlTimezone.setVisibility(View.GONE);
+        nodeDetailVh.dropDownTimezone.setVisibility(View.GONE);
+        nodeDetailVh.tvNodeInfoValue.setVisibility(View.GONE);
+        nodeDetailVh.ivCopy.setVisibility(View.GONE);
+        nodeDetailVh.ivCopy.setImageResource(R.drawable.ic_copy);  // Reset to copy icon by default
 
         // set the data in items
         String nodeInfoValue = nodeInfoValueList.get(position);
@@ -99,17 +108,11 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
             }
         }
 
-        // Default to hide all views
-        nodeDetailVh.rvSharedUsers.setVisibility(View.GONE);
-        nodeDetailVh.rlTimezone.setVisibility(View.GONE);
-        nodeDetailVh.dropDownTimezone.setVisibility(View.GONE);
-        nodeDetailVh.tvNodeInfoValue.setVisibility(View.GONE);
-        nodeDetailVh.ivCopy.setVisibility(View.GONE);
-
         // Handle visibility based on the label
         if (nodeInfoLabel.equals(context.getString(R.string.node_id))) {
 
             nodeDetailVh.tvNodeInfoValue.setVisibility(View.VISIBLE);
+            nodeDetailVh.ivCopy.setImageResource(R.drawable.ic_copy);
             nodeDetailVh.ivCopy.setVisibility(View.VISIBLE);
             nodeDetailVh.tvNodeInfoValue.setText(nodeInfoValue);
             nodeDetailVh.ivCopy.setOnClickListener(v -> {
@@ -118,6 +121,7 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
                 clipboard.setPrimaryClip(clip);
                 Toast.makeText(context, R.string.text_copied, Toast.LENGTH_SHORT).show();
             });
+            nodeDetailVh.tvNodeInfoValue.setOnClickListener(null);  // Remove any previous click listeners
 
         } else if (nodeInfoLabel.equals(context.getString(R.string.node_fw_update))) {
 
@@ -308,6 +312,20 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
                     }
                 });
             }
+
+        } else if (nodeInfoLabel.equals(context.getString(R.string.node_cmd_resp))) {
+
+            nodeDetailVh.tvNodeInfoValue.setVisibility(View.VISIBLE);
+            nodeDetailVh.ivCopy.setImageResource(R.drawable.ic_side_arrow);
+            nodeDetailVh.ivCopy.setVisibility(View.VISIBLE);
+            nodeDetailVh.tvNodeInfoValue.setText(nodeInfoValue);
+            View.OnClickListener cmdRespListener = v -> {
+                Intent intent = new Intent(context, CmdRespActivity.class);
+                intent.putExtra(AppConstants.KEY_NODE_ID, node.getNodeId());
+                context.startActivity(intent);
+            };
+            nodeDetailVh.tvNodeInfoValue.setOnClickListener(cmdRespListener);
+            nodeDetailVh.ivCopy.setOnClickListener(cmdRespListener);
 
         } else if (!TextUtils.isEmpty(nodeInfoValueList.get(position))) {
 

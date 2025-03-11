@@ -76,13 +76,17 @@ import java.util.List;
 import java.util.Map;
 
 import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.disposables.Disposable;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import retrofit2.HttpException;
 
 public class ApiManager {
 
@@ -4710,5 +4714,93 @@ public class ApiManager {
 
     public void cancelRequestStatusPollingTask() {
         handler.removeCallbacks(stopRequestStatusPollingTask);
+    }
+
+    public void sendCommandResponse(JsonObject requestBody, ApiResponseListener listener) {
+        Log.d(TAG, "Send command response");
+
+        apiInterface.sendCommandResponse(getBaseUrl() + AppConstants.URL_USER_NODES_CMD,
+                accessToken, requestBody).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonResponse = response.body().string();
+                        Log.d(TAG, "Response : " + jsonResponse);
+                        JSONObject jsonObject = new JSONObject(jsonResponse);
+                        String requestId = jsonObject.optString(AppConstants.KEY_REQUEST_ID);
+                        Bundle data = new Bundle();
+                        data.putString(AppConstants.KEY_REQUEST_ID, requestId);
+                        listener.onSuccess(data);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to send command");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(e);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new Exception(t));
+            }
+        });
+    }
+
+    public void getCommandResponseStatus(String requestId, ApiResponseListener listener) {
+        Log.d(TAG, "Get command response status");
+
+        apiInterface.getCommandResponseStatus(
+                getBaseUrl() + AppConstants.URL_USER_NODES_CMD, accessToken,
+                requestId).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonResponse = response.body().string();
+                        Log.d(TAG, "Response : " + jsonResponse);
+                        JSONObject jsonObject = new JSONObject(jsonResponse);
+                        JSONArray requests = jsonObject.getJSONArray("requests");
+
+                        if (requests.length() > 0) {
+                            JSONObject request = requests.getJSONObject(0);
+                            String status = request.optString(AppConstants.KEY_STATUS);
+                            Bundle data = new Bundle();
+                            data.putString(AppConstants.KEY_STATUS, status);
+
+                            // Enable button if status is not "requested" or "in_progress"
+                            boolean enableButton = !status.equals("requested") && !status.equals("in_progress");
+                            data.putBoolean("enable_button", enableButton);
+
+                            if (request.has(AppConstants.KEY_RESPONSE_DATA)) {
+                                data.putString(AppConstants.KEY_RESPONSE_DATA, request.getJSONObject(AppConstants.KEY_RESPONSE_DATA).toString());
+                            }
+                            if (request.has(AppConstants.KEY_STATUS_DESCRIPTION)) {
+                                data.putString(AppConstants.KEY_STATUS_DESCRIPTION, request.getString(AppConstants.KEY_STATUS_DESCRIPTION));
+                            }
+                            listener.onSuccess(data);
+                        } else {
+                            listener.onResponseFailure(new Exception("No request found"));
+                        }
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to get command status");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(e);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new Exception(t));
+            }
+        });
     }
 }

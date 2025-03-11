@@ -203,6 +203,14 @@ This account linking flow enables users to link their Alexa user identity with t
 - Link their account without entering Alexa account credentials if already logged into Alexa app. They will have to login to Rainmaker once, when trying to link accounts.
 - Link their account from your RainMaker using [Login with Amazon (LWA)](https://developer.amazon.com/docs/login-with-amazon/documentation-overview.html), when the Alexa app isn't installed on their device.
 
+### Command Response
+
+Command Response allows users to send commands to nodes and receive responses back asynchronously. This provides a more robust way of communicating with nodes and also allows nodes to provide access control based on primary/secondary role.
+More information about this can be found [here](https://rainmaker.espressif.com/docs/cmd-resp)
+
+This feature is optional and disabled by default.
+Add `isCommandResponseSupported=true` in `local.properties` file to enable this feature.
+
 ## Matter support
 
 ### What is Matter?

@@ -122,6 +122,7 @@ android {
         buildConfigField "boolean", "isAutomationSupported", localProperties.getProperty("isAutomationSupported", "true")
         buildConfigField "boolean", "isOtaSupported", localProperties.getProperty("isOtaSupported", "false")
         buildConfigField "boolean", "isMatterSupported", localProperties.getProperty("isMatterSupported", "false")
+        buildConfigField "boolean", "isCommandResponseSupported", localProperties.getProperty("isCommandResponseSupported", "false")
 
         //---Enable Continuous Updates---//
         buildConfigField "boolean", "isContinuousUpdateEnable", localProperties.getProperty("isContinuousUpdateEnable", "true")

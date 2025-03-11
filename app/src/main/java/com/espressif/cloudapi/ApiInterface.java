@@ -346,4 +346,13 @@ public interface ApiInterface {
     Call<ResponseBody> convertGroupToFabric(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
                                             @Query(AppConstants.KEY_GROUP_ID) String groupId,
                                             @Body JsonObject body);
+
+    @POST
+    Call<ResponseBody> sendCommandResponse(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                           @Body JsonObject requestBody);
+
+    @GET
+    Call<ResponseBody> getCommandResponseStatus(
+            @Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+            @Query(AppConstants.KEY_REQUEST_ID) String requestId);
 }

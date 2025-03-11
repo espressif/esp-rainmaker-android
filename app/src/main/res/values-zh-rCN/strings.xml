@@ -1,7 +1,7 @@
 <resources>
     <string name="action_settings">设置</string>
     <string name="title_activity_provision_landing">连接设备</string>
-    <string name="no_internet_note">为了确保您已真正连接到设备，请确保接受系统弹出的“网络无互联网连接”的提示。</string>
+    <string name="no_internet_note">为了确保您已真正连接到设备，请确保接受系统弹出的"网络无互联网连接"的提示。</string>
     <string name="connect_to_device_action">连接</string>
     <string name="connected_to_device_action">配置网络</string>
     <string name="ssid_hint_text">网络名称</string>
@@ -156,7 +156,7 @@
     <string name="no_automations">未添加自动化</string>
     <string name="no_groups">未创建群组</string>
     <string name="no_sharing_requests">没有通知</string>
-    <string name="add_device_txt">您可以通过扫描二维码来配置设备，或者通过点击此屏幕右上角的“+”图标手动进行配置。</string>
+    <string name="add_device_txt">您可以通过扫描二维码来配置设备，或者通过点击此屏幕右上角的"+"图标手动进行配置。</string>
     <string name="signup_confirm_msg">输入验证码。</string>
     <string name="node_offline">节点离线</string>
     <string name="status_offline">离线</string>
@@ -580,5 +580,29 @@
     <item name="position" type="id" />
 
     <string name="status_controller">Controller</string>
+
+    <!-- Command Response -->
+    <string name="node_cmd_resp">命令响应</string>
+    <string name="btn_send_cmd">发送命令</string>
+    <string name="title_activity_cmd_resp">命令响应</string>
+    <string name="hint_cmd_id">ID</string>
+    <string name="hint_cmd_payload">负载</string>
+    <string name="btn_send">发送</string>
+    <string name="error_cmd_id_empty">请输入命令ID</string>
+    <string name="error_cmd_id_positive">命令ID必须为正数</string>
+    <string name="error_cmd_id_invalid">无效的命令ID</string>
+    <string name="error_payload_invalid">无效的JSON负载</string>
+    <string name="error_network">发生网络错误</string>
+    <string name="request_id_received">请求ID: %1$s</string>
+    <string name="cmd_resp_failed">命令响应 %1$s</string>
+
+    <string name="error_invalid_json">请输入有效的JSON负载</string>
+    <string name="error_invalid_payload">请输入有效的JSON或base64编码字符串</string>
+    <string name="error_empty_payload">请输入负载</string>
+
+    <string name="hint_cmd_timeout">超时（秒）</string>
+    <string name="error_cmd_timeout_empty">请输入超时值</string>
+    <string name="error_cmd_timeout_positive">超时值必须为正数</string>
+    <string name="error_cmd_timeout_invalid">无效的超时值</string>
 
 </resources>
