@@ -128,6 +128,7 @@
     <string name="error_dataset_invalid">无效的数据集</string>
     <string name="error_wechat_app_not_installed">请安装微信应用程序</string>
     <string name="error_user_id_not_found">错误！未找到用户ID</string>
+    <string name="error_pending_dataset_not_supported">设备已有数据集。此设备不支持数据集更新。</string>
 
     <string name="title_activity_esp_device">设备</string>
 

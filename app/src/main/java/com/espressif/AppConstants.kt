@@ -520,6 +520,9 @@ class AppConstants {
 
         const val DOOR_LOCK_PIN = "1234"
 
+        const val DEVICE_NAME_MATTER_CONTROLLER = "Matter Controller"
+        const val DEVICE_NAME_THREAD_BR = "Thread-BR"
+
         enum class SystemMode(val modeValue: Int, val modeName: String) {
             OFF(0, "Off"),
             COOL(3, "Cool"),

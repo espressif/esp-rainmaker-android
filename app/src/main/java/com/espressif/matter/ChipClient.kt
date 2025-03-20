@@ -18,6 +18,7 @@ package com.espressif.matter
 
 import android.content.Context
 import android.os.Bundle
+import android.text.TextUtils
 import android.util.Log
 import chip.devicecontroller.*
 import chip.devicecontroller.GetConnectedDeviceCallbackJni.GetConnectedDeviceCallback
@@ -452,6 +453,7 @@ class ChipClient constructor(
                                 var isControllerClusterAvailable = false
                                 val metadataJson = JsonObject()
                                 val body = JsonObject()
+                                var deviceName = ""
 
                                 if (deviceMatterInfo != null && deviceMatterInfo.isNotEmpty()) {
                                     try {
@@ -471,14 +473,12 @@ class ChipClient constructor(
                                                     info.types[0].toInt()
                                                 )
 
-                                                val deviceName =
-                                                    NodeUtils.getDefaultNameForMatterDevice(
-                                                        info.types[0].toInt()
-                                                    )
-                                                metadataJson.addProperty(
-                                                    AppConstants.KEY_DEVICENAME,
-                                                    deviceName
-                                                )
+                                                if (TextUtils.isEmpty(deviceName)) {
+                                                    deviceName =
+                                                        NodeUtils.getDefaultNameForMatterDevice(
+                                                            info.types[0].toInt()
+                                                        )
+                                                }
                                             }
 
                                             endpointsArray.add(info.endpoint)
@@ -519,17 +519,13 @@ class ChipClient constructor(
 
                                                     if (clusterId == AppConstants.CONTROLLER_CLUSTER_ID) {
                                                         isControllerClusterAvailable = true
-                                                        metadataJson.addProperty(
-                                                            AppConstants.KEY_DEVICENAME,
-                                                            "Matter Controller"
-                                                        )
+                                                        deviceName =
+                                                            AppConstants.DEVICE_NAME_MATTER_CONTROLLER
                                                     }
 
                                                     if (clusterId == AppConstants.THREAD_BR_MANAGEMENT_CLUSTER_ID) {
-                                                        metadataJson.addProperty(
-                                                            AppConstants.KEY_DEVICENAME,
-                                                            "Thread-BR"
-                                                        )
+                                                        deviceName =
+                                                            AppConstants.DEVICE_NAME_THREAD_BR
                                                     }
                                                 }
                                             }
@@ -538,6 +534,10 @@ class ChipClient constructor(
                                         metadataJson.addProperty(
                                             AppConstants.KEY_IS_RAINMAKER,
                                             isRmClusterAvailable
+                                        )
+                                        metadataJson.addProperty(
+                                            AppConstants.KEY_DEVICENAME,
+                                            deviceName
                                         )
                                         metadataJson.addProperty(AppConstants.KEY_GROUP_ID, groupId)
                                         metadataJson.add("endpointsData", endpointsArray)
