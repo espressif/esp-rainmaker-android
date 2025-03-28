@@ -1254,28 +1254,15 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_TS)) {
 
             paramViewHolder.ivTsArrow.setVisibility(View.VISIBLE);
-            paramViewHolder.ivTsArrow.setOnClickListener(new View.OnClickListener() {
+            paramViewHolder.ivTsArrow.setOnClickListener(v -> startTimeSeriesActivity(param, AppConstants.KEY_PROPERTY_TS));
+            paramViewHolder.itemView.setOnClickListener(v -> startTimeSeriesActivity(param, AppConstants.KEY_PROPERTY_TS));
 
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent(context, TimeSeriesActivity.class);
-                    intent.putExtra(AppConstants.KEY_NODE_ID, nodeId);
-                    intent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceName);
-                    intent.putExtra(AppConstants.KEY_PARAM_NAME, param);
-                    context.startActivity(intent);
-                }
-            });
+        } else if (param.getProperties().contains(AppConstants.KEY_PROPERTY_TS_SIMPLE)) {
 
-            paramViewHolder.itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent(context, TimeSeriesActivity.class);
-                    intent.putExtra(AppConstants.KEY_NODE_ID, nodeId);
-                    intent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceName);
-                    intent.putExtra(AppConstants.KEY_PARAM_NAME, param);
-                    context.startActivity(intent);
-                }
-            });
+            paramViewHolder.ivTsArrow.setVisibility(View.VISIBLE);
+            paramViewHolder.ivTsArrow.setOnClickListener(v -> startTimeSeriesActivity(param, AppConstants.KEY_PROPERTY_TS_SIMPLE));
+            paramViewHolder.itemView.setOnClickListener(v -> startTimeSeriesActivity(param, AppConstants.KEY_PROPERTY_TS_SIMPLE));
+            
         } else {
             paramViewHolder.ivTsArrow.setVisibility(View.GONE);
             paramViewHolder.ivTsArrow.setOnClickListener(null);
@@ -1987,6 +1974,15 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
         AlertDialog alertDialog = builder.create();
         alertDialog.show();
+    }
+
+    private void startTimeSeriesActivity(Param param, String tsPropertyType) {
+        Intent intent = new Intent(context, TimeSeriesActivity.class);
+        intent.putExtra(AppConstants.KEY_NODE_ID, nodeId);
+        intent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceName);
+        intent.putExtra(AppConstants.KEY_PARAM, param);
+        intent.putExtra(AppConstants.KEY_PROPERTY_TS_TYPE, tsPropertyType);
+        context.startActivity(intent);
     }
 
     static class ParamViewHolder extends RecyclerView.ViewHolder {

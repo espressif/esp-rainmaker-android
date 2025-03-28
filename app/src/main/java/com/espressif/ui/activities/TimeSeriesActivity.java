@@ -86,7 +86,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
     private String timeZone;
 
     private ApiManager apiManager;
-    private String nodeId, deviceName, paramName;
+    private String nodeId, deviceName, paramName, tsType;
     private Param param;
     private long myStartTime, myEndTime;
     private SimpleDateFormat dateFormatter;
@@ -111,7 +111,8 @@ public class TimeSeriesActivity extends AppCompatActivity {
         Intent intent = getIntent();
         nodeId = intent.getStringExtra(AppConstants.KEY_NODE_ID);
         deviceName = intent.getStringExtra(AppConstants.KEY_DEVICE_NAME);
-        param = intent.getParcelableExtra(AppConstants.KEY_PARAM_NAME);
+        param = intent.getParcelableExtra(AppConstants.KEY_PARAM);
+        tsType = intent.getStringExtra(AppConstants.KEY_PROPERTY_TS_TYPE);
         dateFormatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
         initViews();
@@ -188,6 +189,15 @@ public class TimeSeriesActivity extends AppCompatActivity {
         binding.sgChartType.setOnCheckedChangeListener(sgChartTypeChangeListener);
         binding.ivPrev.setOnClickListener(prevBtnClickListener);
         binding.ivNext.setOnClickListener(nextBtnClickListener);
+
+        if (AppConstants.KEY_PROPERTY_TS_SIMPLE.equals(tsType)) {
+            binding.sgAggregateType.setVisibility(View.INVISIBLE);
+            binding.radioBtn4w.setLayoutParams(binding.radioBtn1y.getLayoutParams());
+            binding.sgChartInterval.setWeightSum(3);
+            binding.sgChartInterval.removeViewAt(3);
+        } else {
+            binding.sgAggregateType.setVisibility(View.VISIBLE);
+        }
 
         binding.barChart.setVisibility(View.INVISIBLE);
         binding.lineChart.setVisibility(View.INVISIBLE);
@@ -508,17 +518,14 @@ public class TimeSeriesActivity extends AppCompatActivity {
                            String weekStart, String timeZone, ApiResponseListener listener) {
 
         apiManager.getTimeSeriesData(nodeId, paramName, param.getDataType(), aggregate, timeInterval,
-                startTime, endTime, weekStart, timeZone, new ApiResponseListener() {
+                startTime, endTime, weekStart, timeZone, tsType, new ApiResponseListener() {
 
                     @Override
                     public void onSuccess(Bundle data) {
                         if (data != null) {
                             tsData = data.getParcelableArrayList("ts_data");
-                            Log.e(TAG, "Time Series data size : " + tsData.size());
+                            Log.d(TAG, "Time Series data size : " + tsData.size());
                             processTsData(startTime, endTime, tsData);
-
-                            Log.e(TAG, "Bar Entries size == : " + barEntries.size());
-                            Log.e(TAG, "Line Entries size == : " + lineEntries.size());
                             listener.onSuccess(data);
                         }
                     }
