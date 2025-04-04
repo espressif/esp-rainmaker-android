@@ -15,7 +15,8 @@ Here are the steps to compile.
 ```
 $ git clone https://github.com/project-chip/connectedhomeip.git 
 $ cd connectedhomeip 
-$ git checkout 3c6bed3bb28f66cc2e1ebbe3561fa0838f6b7c51
+$ git checkout 577b3f2be0e526643c124071de64f2e810982c87
+$ git submodule update --init --recursive
 ```
 
 2. Run bootstrap (**only required first time**)
@@ -36,17 +37,34 @@ In case you want to define your own new cluster, define your  `sample-mei-cluste
 
 Some modifications will be required to add your cluster support.
 
-1. Add `<xi:include href="chip/sample-mei-cluster.xml" />` into src/app/zap-templates/zcl/data-model/all.xml file.
+1. Add `load "../src/app/zap-templates/zcl/data-model/chip/sample-mei-cluster.xml";` into scripts/rules.matterlint file.
 
-   **`src/app/zap-templates/zcl/data-model/all.xml`**
+   **`scripts/rules.matterlint`**
 
-   ![src/app/zap-templates/zcl/data-model/all.xml](cluster_doc_image1.png)
+   ![scripts/rules.matterlint](cluster_doc_image1.png)
 
 2. **`src/app/zap-templates/zcl/zcl.json`**  is also used by the ZAP GUI. It alternatively draws from this list the set of available clusters when a device is being created. Make sure you also define your cluster here.
 
    **`src/app/zap-templates/zcl/zcl.json`**
 
    ![src/app/zap-templates/zcl/zcl.json](cluster_doc_image2.png)
+
+### Install ZAP for code generation
+
+You will need the ZAP tool to edit the ZAP file to enable your new cluster in Android clients.
+
+Run below command to download the latest version of ZAP tool.
+```
+$ ./scripts/tools/zap/zap_download.py
+```
+
+- [ZAP tool info](https://developers.home.google.com/matter/tools/zap)
+- [ZAP tool repo](https://github.com/project-chip/zap)
+
+Export the your ZAP installation path.
+```
+$ export ZAP_INSTALL_PATH=connectedhomeip/.zap/zap-v2025.01.10-nightly
+```
 
 ### Add changes for zap code generation
 
@@ -65,21 +83,14 @@ Note : DO NOT edit `src/controller/data_model/controller-clusters.zap` file manu
 ```
 $ ./scripts/tools/zap/run_zaptool.sh src/controller/data_model/controller-clusters.zap
 ```
+- In the gui, select Endpoint-1 from the left pane.
 - Find your cluster and turn on 'client/server'.
 - Use the tab to select the Attributes page.
 - Enable your attributes.
 - Go back to the main page.
 - Set the cluster to 'client'.
 - Save the file.
-
-### Add JNI support
-
-Modify **`src/controller/data_model/BUILD.gn`** to include Android JNI generation for your cluster.
-Add 2 lines as mentioned below in outputs array.
-```
-"jni/SampleMeiClient-ReadImpl.cpp",
-"jni/SampleMeiClient-InvokeSubscribeImpl.cpp",
-```
+- Close the GUI.
 
 ### Regenerate all code
 
@@ -114,8 +125,9 @@ export JAVA_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home/
 
 
 Now run below command to build :
-
-`./scripts/build/build_examples.py --target android-arm64-chip-tool build`
+```
+./scripts/build/build_examples.py --target android-arm64-chip-tool build
+```
 
 Copy examples/android/CHIPTool/app/lib into your android project - “arm64-v8a” folder of jniLibs.
 
@@ -127,8 +139,10 @@ Rebuild the android project and run.
 
 [Matter repo](https://github.com/project-chip/connectedhomeip)
 
-[Android Matter build steps](https://github.com/project-chip/connectedhomeip/blob/master/docs/guides/android_building.md)
+[Android Matter build steps](https://github.com/project-chip/connectedhomeip/blob/master/docs/platforms/android/android_building.md)
+
+[Matter - Adding new clusters](https://github.com/project-chip/connectedhomeip/blob/master/docs/cluster_and_device_type_dev/how_to_add_new_dts_and_clusters.md)
 
 [Espressif Matter blogs](https://blog.espressif.com/matter-38ccf1d60bcd)
 
-[ESP Matter device setuo](https://docs.espressif.com/projects/esp-matter/en/latest/esp32c3/developing.html#esp-matter-setup)
+[ESP Matter device setup](https://docs.espressif.com/projects/esp-matter/en/latest/esp32c3/developing.html#esp-matter-setup)
