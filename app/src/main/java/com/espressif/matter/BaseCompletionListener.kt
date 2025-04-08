@@ -37,15 +37,15 @@ abstract class BaseCompletionListener : ChipDeviceController.CompletionListener 
         Log.d(TAG, "onStatusUpdate(): status [${status}]")
     }
 
-    override fun onPairingComplete(code: Int) {
+    override fun onPairingComplete(code: Long) {
         Log.d(TAG, "onPairingComplete(): code [${code}]")
     }
 
-    override fun onPairingDeleted(code: Int) {
-        Log.d(TAG, "onPairingDeleted(): code [${code}]")
+    override fun onPairingDeleted(errorCode: Long) {
+        Log.d(TAG, "onPairingDeleted(): code [${errorCode}]")
     }
 
-    override fun onCommissioningComplete(nodeId: Long, errorCode: Int) {
+    override fun onCommissioningComplete(nodeId: Long, errorCode: Long) {
         Log.d(TAG, "onCommissioningComplete(): nodeId [${nodeId}] errorCode [${errorCode}]")
     }
 
@@ -78,7 +78,7 @@ abstract class BaseCompletionListener : ChipDeviceController.CompletionListener 
         )
     }
 
-    override fun onCommissioningStatusUpdate(nodeId: Long, stage: String?, errorCode: Int) {
+    override fun onCommissioningStatusUpdate(nodeId: Long, stage: String?, errorCode: Long) {
         Log.d(
             TAG,
             "onCommissioningStatusUpdate nodeId [${nodeId}]  stage [${stage}]  errorCode [${errorCode}]"

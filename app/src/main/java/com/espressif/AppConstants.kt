@@ -492,11 +492,11 @@ class AppConstants {
 
         const val RM_CLUSTER_ID_HEX = 0x131bfc00L
         const val CONTROLLER_CLUSTER_ID_HEX = 0x131BFC01L
-        const val THREAD_BR_CLUSTER_ID_HEX = 0x131BFC02L
-
+        const val THREAD_BR_MANAGEMENT_CLUSTER_ID_HEX = 0x00000452L
+        
         const val RM_CLUSTER_ID = 320601088L
         const val CONTROLLER_CLUSTER_ID = 320601089L
-        const val THREAD_BR_CLUSTER_ID = 320601090L
+        const val THREAD_BR_MANAGEMENT_CLUSTER_ID = 1106L
 
         const val COMMAND_APPEND_REFRESH_TOKEN = 0L
         const val COMMAND_RESET_REFRESH_TOKEN = 1L

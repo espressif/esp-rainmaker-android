@@ -556,7 +556,7 @@ public class Utils {
         }
     }
 
-    public static Object getCatId(String catIdOperate) {
+    public static Long getCatId(String catIdOperate) {
         catIdOperate = AppConstants.CAT_ID_PREFIX + catIdOperate;
         BigDecimal catId = new BigDecimal(new BigInteger(catIdOperate, 16));
         return catId.longValue();

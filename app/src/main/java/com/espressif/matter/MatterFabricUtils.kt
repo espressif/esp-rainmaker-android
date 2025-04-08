@@ -21,7 +21,7 @@ import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
-import java.util.*
+import java.util.Base64
 
 class MatterFabricUtils {
 

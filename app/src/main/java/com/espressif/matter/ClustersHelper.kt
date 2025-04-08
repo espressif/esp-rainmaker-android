@@ -21,8 +21,8 @@ import chip.devicecontroller.ChipClusters
 import chip.devicecontroller.ChipClusters.BasicInformationCluster
 import chip.devicecontroller.ChipStructs
 import chip.devicecontroller.model.ChipAttributePath
-import chip.tlv.AnonymousTag
-import chip.tlv.TlvWriter
+import matter.tlv.AnonymousTag
+import matter.tlv.TlvWriter
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
 import java.util.concurrent.CompletableFuture
@@ -119,7 +119,7 @@ class ClustersHelper constructor(private val chipClient: ChipClient) {
             fetchDeviceMatterInfo(nodeId, connectedDevicePtr, endpointInt, matterDeviceInfoList)
         }
     }
-    
+
     // -----------------------------------------------------------------------------------------------
     // DescriptorCluster functions
 
@@ -308,9 +308,8 @@ class ClustersHelper constructor(private val chipClient: ChipClient) {
         return suspendCoroutine { continuation ->
             getBasicClusterForDevice(connectedDevicePtr, endpoint)
                 .readVendorIDAttribute(
-                    object :
-                        ChipClusters.ApplicationBasicCluster.VendorIDAttributeCallback {
-                        override fun onSuccess(value: Int?) {
+                    object : ChipClusters.IntegerAttributeCallback {
+                        override fun onSuccess(value: Int) {
                             continuation.resume(value)
                         }
 
@@ -487,7 +486,7 @@ class ClustersHelper constructor(private val chipClient: ChipClient) {
 
     suspend fun writeEspDeviceAttribute(
         nodeId: Long,
-        endpointId: Long,
+        endpointId: Int,
         clusterId: Long,
         attributeId: Long,
         matterNodeId: String
@@ -601,6 +600,7 @@ class ClustersHelper constructor(private val chipClient: ChipClient) {
                             CommissioningWindowStatus.WindowNotOpen.status -> {
                                 continuation.resume(false)
                             }
+
                             CommissioningWindowStatus.EnhancedWindowOpen.status,
                             CommissioningWindowStatus.BasicWindowOpen.status -> {
                                 continuation.resume(true)

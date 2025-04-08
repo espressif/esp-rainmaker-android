@@ -600,29 +600,69 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
 
         String name = "";
         if (!TextUtils.isEmpty(deviceType)) {
-            name = switch (deviceType) {
-                case AppConstants.ESP_DEVICE_LIGHT_BULB, AppConstants.ESP_DEVICE_LIGHT, AppConstants.ESP_DEVICE_BULB_CCT, AppConstants.ESP_DEVICE_BULB_RGB ->
-                        "Light";
-                case AppConstants.ESP_DEVICE_SWITCH -> "Switch";
-                case AppConstants.ESP_DEVICE_LOCK -> "Door Lock";
-                case AppConstants.ESP_DEVICE_THERMOSTAT -> "Thermostat";
-                case AppConstants.ESP_DEVICE_FAN -> "Fan";
-                case AppConstants.ESP_DEVICE_TEMP_SENSOR -> "Temperature";
-                case AppConstants.ESP_DEVICE_OUTLET -> "Outlet";
-                case AppConstants.ESP_DEVICE_PLUG -> "Plug";
-                case AppConstants.ESP_DEVICE_SOCKET -> "Socket";
-                case AppConstants.ESP_DEVICE_BLINDS_INTERNAL, AppConstants.ESP_DEVICE_BLINDS_EXTERNAL ->
-                        "Blinds";
-                case AppConstants.ESP_DEVICE_GARAGE_DOOR -> "Garage Door";
-                case AppConstants.ESP_DEVICE_SPEAKER -> "Speaker";
-                case AppConstants.ESP_DEVICE_AIR_CONDITIONER -> "AC";
-                case AppConstants.ESP_DEVICE_TV -> "TV";
-                case AppConstants.ESP_DEVICE_WASHER -> "Washer";
-                case AppConstants.ESP_DEVICE_CONTACT_SENSOR -> "Contact Sensor";
-                case AppConstants.ESP_DEVICE_MOTION_SENSOR -> "Motion Sensor";
-                case AppConstants.ESP_DEVICE_DOORBELL -> "Doorbell";
-                default -> name;
-            };
+            switch (deviceType) {
+                case AppConstants.ESP_DEVICE_LIGHT_BULB:
+                case AppConstants.ESP_DEVICE_LIGHT:
+                case AppConstants.ESP_DEVICE_BULB_CCT:
+                case AppConstants.ESP_DEVICE_BULB_RGB:
+                    name = "Light";
+                    break;
+                case AppConstants.ESP_DEVICE_SWITCH:
+                    name = "Switch";
+                    break;
+                case AppConstants.ESP_DEVICE_LOCK:
+                    name = "Door Lock";
+                    break;
+                case AppConstants.ESP_DEVICE_THERMOSTAT:
+                    name = "Thermostat";
+                    break;
+                case AppConstants.ESP_DEVICE_FAN:
+                    name = "Fan";
+                    break;
+                case AppConstants.ESP_DEVICE_TEMP_SENSOR:
+                    name = "Temperature";
+                    break;
+                case AppConstants.ESP_DEVICE_OUTLET:
+                    name = "Outlet";
+                    break;
+                case AppConstants.ESP_DEVICE_PLUG:
+                    name = "Plug";
+                    break;
+                case AppConstants.ESP_DEVICE_SOCKET:
+                    name = "Socket";
+                    break;
+                case AppConstants.ESP_DEVICE_BLINDS_INTERNAL:
+                case AppConstants.ESP_DEVICE_BLINDS_EXTERNAL:
+                    name = "Blinds";
+                    break;
+                case AppConstants.ESP_DEVICE_GARAGE_DOOR:
+                    name = "Garage Door";
+                    break;
+                case AppConstants.ESP_DEVICE_SPEAKER:
+                    name = "Speaker";
+                    break;
+                case AppConstants.ESP_DEVICE_AIR_CONDITIONER:
+                    name = "AC";
+                    break;
+                case AppConstants.ESP_DEVICE_TV:
+                    name = "TV";
+                    break;
+                case AppConstants.ESP_DEVICE_WASHER:
+                    name = "Washer";
+                    break;
+                case AppConstants.ESP_DEVICE_CONTACT_SENSOR:
+                    name = "Contact Sensor";
+                    break;
+                case AppConstants.ESP_DEVICE_MOTION_SENSOR:
+                    name = "Motion Sensor";
+                    break;
+                case AppConstants.ESP_DEVICE_DOORBELL:
+                    name = "Doorbell";
+                    break;
+                default:
+                    name = name;
+                    break;
+            }
         }
         return name;
     }

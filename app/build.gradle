@@ -43,6 +43,7 @@ def defaultTermsOfUseUrl = "https://rainmaker.espressif.com/docs/terms-of-use.ht
 
 def defaultUserPool = "2"
 def matterBuild = false
+def defaultVendorId = "0x131B" // Espressif's vendor ID
 
 def defaultChinaBaseUrl = "https://api2.rainmaker.espressif.com.cn"
 def defaultChinaAuthUrl = "https://api2.rainmaker.espressif.com.cn"
@@ -70,8 +71,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 27
         targetSdkVersion 35
-        versionCode 145
-        versionName "3.5.4 - ${getGitHash()}"
+        versionCode 147
+        versionName "3.6.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -181,15 +182,19 @@ android {
         // User pool selection
         def userPool = localProperties.getProperty("userPool", defaultUserPool)
         buildConfigField "String", "USER_POOL", '"' + userPool + '"'
+
+        // Vendor Id for Matter
+        def vendorId = localProperties.getProperty("vendorId", defaultVendorId)
+        buildConfigField 'int', 'VENDOR_ID', String.valueOf(vendorId)
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-        jvmTarget = '17'
+        jvmTarget = "11"
     }
 
     buildFeatures {
@@ -287,7 +292,7 @@ dependencies {
     implementation libs.play.services.base
     implementation libs.play.services.home
     implementation libs.play.services.threadnetwork
-
+    
     implementation libs.esp.idf.provisioning.android
     implementation libs.code.scanner
     implementation libs.mpandroidchart
@@ -320,4 +325,6 @@ dependencies {
     implementation 'com.google.dagger:hilt-android:2.44.2'
     implementation 'com.google.ar:core:1.35.0'
     kapt 'com.google.dagger:hilt-compiler:2.44.2'
+
+    implementation 'org.jsoup:jsoup:1.15.4'
 }

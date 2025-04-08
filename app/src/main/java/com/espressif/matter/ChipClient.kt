@@ -23,8 +23,6 @@ import chip.devicecontroller.*
 import chip.devicecontroller.GetConnectedDeviceCallbackJni.GetConnectedDeviceCallback
 import chip.devicecontroller.model.*
 import chip.platform.*
-import chip.tlv.AnonymousTag
-import chip.tlv.TlvWriter
 import com.espressif.AppConstants
 import com.espressif.cloudapi.ApiManager
 import com.espressif.ui.Utils
@@ -35,6 +33,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import matter.tlv.AnonymousTag
+import matter.tlv.TlvWriter
 import org.bouncycastle.asn1.DERBitString
 import org.bouncycastle.asn1.DERSequence
 import java.io.ByteArrayInputStream
@@ -68,6 +68,7 @@ class ChipClient constructor(
     private val VENDOR_ID = 0x131B
 
     private val DEFAULT_TIMEOUT = 1000
+    private val INVOKE_COMMAND_TIMEOUT = 15000
 
     val keyStore: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
         load(null)
@@ -358,9 +359,9 @@ class ChipClient constructor(
 
                     // Note that an error in processing is not necessarily communicated via onError().
                     // onCommissioningComplete with a "code != 0" also denotes an error in processing.
-                    override fun onPairingComplete(code: Int) {
+                    override fun onPairingComplete(code: Long) {
                         super.onPairingComplete(code)
-                        if (code != 0) {
+                        if (code != 0L) {
                             continuation.resumeWithException(
                                 IllegalStateException("Pairing failed with error code [${code}]")
                             )
@@ -392,10 +393,24 @@ class ChipClient constructor(
                     override fun onCommissioningStatusUpdate(
                         nodeId: Long,
                         stage: String?,
-                        errorCode: Int
+                        errorCode: Long
                     ) {
                         super.onCommissioningStatusUpdate(nodeId, stage, errorCode)
                         continuation.resume(Unit)
+                    }
+
+                    override fun onICDRegistrationInfoRequired() {
+                        Log.d(TAG, "onICDRegistrationInfoRequired")
+                    }
+
+                    override fun onICDRegistrationComplete(
+                        errorCode: Long,
+                        icdDeviceInfo: ICDDeviceInfo?
+                    ) {
+                        Log.d(
+                            TAG,
+                            "onICDRegistrationComplete - errorCode: $errorCode, icdDeviceInfo : $icdDeviceInfo"
+                        )
                     }
                 })
 
@@ -415,9 +430,9 @@ class ChipClient constructor(
                 object : BaseCompletionListener() {
                     // Note that an error in processing is not necessarily communicated via onError().
                     // onCommissioningComplete with an "errorCode != 0" also denotes an error in processing.
-                    override fun onCommissioningComplete(nodeId: Long, errorCode: Int) {
+                    override fun onCommissioningComplete(nodeId: Long, errorCode: Long) {
                         super.onCommissioningComplete(nodeId, errorCode)
-                        if (errorCode != 0) {
+                        if (errorCode != 0L) {
                             continuation.resumeWithException(
                                 IllegalStateException("Commissioning failed with error code [${errorCode}]")
                             )
@@ -498,6 +513,7 @@ class ChipClient constructor(
                                                 for (serverCluster in info.serverClusters) {
                                                     var clusterId: Long = serverCluster as Long
                                                     if (clusterId == AppConstants.RM_CLUSTER_ID) {
+                                                        Log.d(TAG, "RainMaker Cluster Available")
                                                         isRmClusterAvailable = true
                                                     }
 
@@ -509,7 +525,7 @@ class ChipClient constructor(
                                                         )
                                                     }
 
-                                                    if (clusterId == AppConstants.THREAD_BR_CLUSTER_ID) {
+                                                    if (clusterId == AppConstants.THREAD_BR_MANAGEMENT_CLUSTER_ID) {
                                                         metadataJson.addProperty(
                                                             AppConstants.KEY_DEVICENAME,
                                                             "Thread-BR"
@@ -545,7 +561,7 @@ class ChipClient constructor(
                                     // Read RM node Id
                                     val rmNodeIdAttributePath =
                                         ChipAttributePath.newInstance(
-                                            0x0L,
+                                            0x0,
                                             AppConstants.RM_CLUSTER_ID_HEX,
                                             0x1L
                                         )
@@ -561,7 +577,7 @@ class ChipClient constructor(
 
                                         val attributePath3 =
                                             ChipAttributePath.newInstance(
-                                                0x0L,
+                                                0x0,
                                                 AppConstants.RM_CLUSTER_ID_HEX,
                                                 0x3L
                                             )
@@ -573,14 +589,14 @@ class ChipClient constructor(
                                             )
                                         Log.d(
                                             TAG,
-                                            "Write matter node id, response : ${matterNodeIdData.toString()}"
+                                            "Write matter node id, response : $matterNodeIdData"
                                         )
                                     }
 
                                     // Read challenge response
                                     val challengeAttributePath =
                                         ChipAttributePath.newInstance(
-                                            0x0L,
+                                            0x0,
                                             AppConstants.RM_CLUSTER_ID_HEX,
                                             0x2L
                                         )
@@ -615,7 +631,7 @@ class ChipClient constructor(
 
                                 val matterMetadataJson = JsonObject()
                                 matterMetadataJson.add(AppConstants.KEY_MATTER, metadataJson)
-                                Log.d(TAG, "Metadata Json : ${matterMetadataJson.toString()}")
+                                Log.d(TAG, "Metadata Json : $matterMetadataJson")
 
                                 body.addProperty(AppConstants.KEY_REQ_ID, requestId)
                                 body.addProperty(AppConstants.KEY_STATUS, "success")
@@ -653,7 +669,7 @@ class ChipClient constructor(
                                     }
                                 }
 
-                                var subjects: ArrayList<Any> = ArrayList<Any>()
+                                var subjects: ArrayList<Long> = ArrayList<Long>()
                                 subjects.add(Utils.getCatId(groupCatIdOperate))
 
                                 var entry =
@@ -680,6 +696,15 @@ class ChipClient constructor(
                     override fun onError(error: Throwable) {
                         super.onError(error)
                         continuation.resumeWithException(error)
+                    }
+
+                    override fun onICDRegistrationInfoRequired() {
+                    }
+
+                    override fun onICDRegistrationComplete(
+                        errorCode: Long,
+                        icdDeviceInfo: ICDDeviceInfo?
+                    ) {
                     }
                 })
             chipDeviceController.commissionDevice(deviceId, networkCredentials)
@@ -811,7 +836,8 @@ class ChipClient constructor(
                         continuation.resume(Unit)
                     }
 
-                    override fun onResponse(attributePath: ChipAttributePath?) {
+                    override fun onResponse(attributePath: ChipAttributePath?, status: Status?) {
+
                         if (attributePath!! ==
                             ChipAttributePath.newInstance(
                                 requests.last().endpointId,
@@ -886,36 +912,18 @@ class ChipClient constructor(
                         Log.d(TAG, "Report callback onDone")
                     }
                 }
-            chipDeviceController.readAttributePath(callback, devicePtr, attributePaths)
-        }
-    }
-
-    /** Wrapper around [ChipDeviceController.subscribeToAttributePath] */
-    suspend fun subscribeToAttribute(
-        devicePtr: Long,
-        attributePath: ChipAttributePath,
-        minInterval: Int,
-        maxInterval: Int,
-        callback: ReportCallback
-    ) {
-        return suspendCoroutine { continuation ->
-            chipDeviceController.subscribeToAttributePath(
-                { continuation.resume(Unit) },
-                callback,
-                devicePtr,
-                listOf(attributePath),
-                minInterval,
-                maxInterval
+            chipDeviceController.readAttributePath(
+                callback, devicePtr, attributePaths, DEFAULT_TIMEOUT
             )
         }
     }
-
+    
     /** Wrapper around [ChipDeviceController.invoke] */
     suspend fun invoke(
         devicePtr: Long,
         invokeElement: InvokeElement,
-        timedRequestTimeoutMs: Int = DEFAULT_TIMEOUT,
-        imTimeoutMs: Int = DEFAULT_TIMEOUT
+        timedRequestTimeoutMs: Int = INVOKE_COMMAND_TIMEOUT,
+        imTimeoutMs: Int = INVOKE_COMMAND_TIMEOUT
     ): Long {
         return suspendCoroutine { continuation ->
             val invokeCallback: InvokeCallback =
@@ -932,6 +940,7 @@ class ChipClient constructor(
                     }
 
                     override fun onResponse(invokeElement: InvokeElement?, successCode: Long) {
+                        Log.d(TAG, "Invoke command success")
                         continuation.resume(successCode)
                     }
                 }
