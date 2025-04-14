@@ -30,6 +30,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import com.espressif.AppConstants
 import com.espressif.EspApplication
+import com.espressif.matter.MatterFabricUtils.Companion.extractActiveTimestamp
 import com.espressif.rainmaker.R
 import com.espressif.rainmaker.databinding.ActivityTbrBinding
 import com.google.android.gms.common.api.ApiException
@@ -79,7 +80,7 @@ class ThreadBRActivity : AppCompatActivity() {
                     val activeDataset = threadNetworkCredentials.activeOperationalDataset
                     val datasetStr = activeDataset.byteArrayToDs().dsToByteArray()
 
-                    val matterNodeId = espApp.matterRmNodeIdMap.get(nodeId)
+                    val matterNodeId = espApp.matterRmNodeIdMap[nodeId]
                     val id = matterNodeId?.let { BigInteger(it, 16) }
                     val deviceId = id?.toLong()
                     Log.d(TAG, "Device id : $deviceId")
@@ -95,6 +96,62 @@ class ThreadBRActivity : AppCompatActivity() {
                             hideLoading()
                             binding.tvTbrProgress.setText(R.string.tbr_setup_done)
                             binding.tvPleaseWait.visibility = View.GONE
+
+                            Log.d(TAG, "Reading Thread credentials from Device")
+                            val data: CompletableFuture<String?> =
+                                clustersHelper.readActiveDatasetAsync(deviceId)
+                            val tbrActiveDataset: String? = data.get()
+
+                            if (tbrActiveDataset != null) {
+
+                                // If device has active dataset.
+                                Log.d(TAG, "Both Phone and device has thread active dataset.")
+                                var androidThreadActiveDataset = datasetStr
+
+                                val androidActiveTimestamp =
+                                    extractActiveTimestamp(androidThreadActiveDataset)
+                                val espActiveTimestamp =
+                                    extractActiveTimestamp(tbrActiveDataset.dsToByteArray())
+
+                                if (androidActiveTimestamp <= espActiveTimestamp) {
+                                    // increase phone dataset by timestamp difference.
+                                    val diff = espActiveTimestamp - androidActiveTimestamp
+                                    androidThreadActiveDataset =
+                                        MatterFabricUtils.updateActiveTimestamp(
+                                            androidThreadActiveDataset,
+                                            diff
+                                        )
+                                }
+
+                                androidThreadActiveDataset =
+                                    MatterFabricUtils.addDelayTimer(
+                                        androidThreadActiveDataset,
+                                        60000
+                                    )
+
+                                if (isPendingDatasetFeatureAvailable()) {
+                                    clustersHelper.sendPendingDatasetAsync(
+                                        deviceId,
+                                        AppConstants.ENDPOINT_1,
+                                        androidThreadActiveDataset
+                                    )
+                                    hideLoading()
+                                    binding.tvTbrProgress.setText(R.string.tbr_setup_done)
+                                    binding.tvPleaseWait.visibility = View.GONE
+                                } else {
+                                    hideLoading()
+                                    binding.tvTbrProgress.setText(R.string.error_pending_dataset_not_supported)
+                                    binding.tvPleaseWait.visibility = View.GONE
+                                }
+                            } else {
+                                // If device does not have active dataset.
+                                clustersHelper.configureThreadBRAsync(
+                                    deviceId, AppConstants.ENDPOINT_1, datasetStr
+                                )
+                                hideLoading()
+                                binding.tvTbrProgress.setText(R.string.tbr_setup_done)
+                                binding.tvPleaseWait.visibility = View.GONE
+                            }
                         }
                     }
 
@@ -128,6 +185,28 @@ class ThreadBRActivity : AppCompatActivity() {
         getGPSThreadPreferredCredentials(this)
     }
 
+    private fun isPendingDatasetFeatureAvailable(): Boolean {
+
+        val matterNodeId = espApp.matterRmNodeIdMap[nodeId]
+        val id = matterNodeId?.let { BigInteger(it, 16) }
+        val deviceId = id?.toLong()
+
+        if (espApp.chipClientMap[matterNodeId] != null) {
+            val clustersHelper =
+                ThreadBRClusterHelper(espApp.chipClientMap[matterNodeId]!!)
+            val isFeatureSupported =
+                deviceId?.let { it1 -> clustersHelper.readFeatureMapAsync(it1).get() }
+            if (isFeatureSupported?.toInt() == 1) {
+                Log.d(TAG, "Pending dataset feature is supported.")
+                return true
+            } else {
+                Log.e(TAG, "Pending dataset feature is not supported.")
+                return false
+            }
+        }
+        return false
+    }
+
     fun getGPSThreadPreferredCredentials(activity: Activity) {
         Log.d(TAG, "ThreadClient: getPreferredCredentials intent sent")
         ThreadNetwork.getClient(activity)
@@ -143,10 +222,9 @@ class ThreadBRActivity : AppCompatActivity() {
 
                         Log.d(TAG, "No preferred credentials found on phone")
 
-                        val matterNodeId = espApp.matterRmNodeIdMap.get(nodeId)
+                        val matterNodeId = espApp.matterRmNodeIdMap[nodeId]
                         val id = matterNodeId?.let { BigInteger(it, 16) }
                         val deviceId = id?.toLong()
-                        Log.d(TAG, "Device id : $deviceId")
 
                         if (espApp.chipClientMap.get(matterNodeId) != null) {
                             val clustersHelper =
@@ -156,39 +234,55 @@ class ThreadBRActivity : AppCompatActivity() {
                                 val data: CompletableFuture<ArrayList<String>> =
                                     clustersHelper.readDatasetAsync(deviceId)
                                 val tbrData: ArrayList<String> = data.get()
-                                Log.d(TAG, "Received data : ${tbrData}")
 
-                                val threadNetworkCredentials =
-                                    ThreadNetworkCredentials.fromActiveOperationalDataset(tbrData[0].dsToByteArray())
+                                var threadNetworkCredentials: ThreadNetworkCredentials
 
-                                Log.d(TAG, "Network Name : " + threadNetworkCredentials.networkName)
-                                Log.d(TAG, "panId : " + threadNetworkCredentials.panId)
-                                Log.d(
-                                    TAG,
-                                    "extendedPanId : " + threadNetworkCredentials.extendedPanId
-                                )
+                                if (tbrData.size == 2) {
 
-                                val threadBorderAgent =
-                                    ThreadBorderAgent.newBuilder(tbrData[1].dsToByteArray())
-                                        .build()
+                                    // If device has active dataset.
+                                    threadNetworkCredentials =
+                                        ThreadNetworkCredentials.fromActiveOperationalDataset(
+                                            tbrData[0].dsToByteArray()
+                                        )
+                                    Log.d(TAG, "Received active dataset from device")
+                                    Log.d(
+                                        TAG,
+                                        "Network Name : " + threadNetworkCredentials.networkName
+                                    )
+                                    val borderAgentId = tbrData[1]
+                                    addCredentials(borderAgentId, threadNetworkCredentials)
 
-                                ThreadNetwork.getClient(this)
-                                    .addCredentials(threadBorderAgent, threadNetworkCredentials)
-                                    .addOnSuccessListener {
-                                        Log.d(TAG, "Credentials added.")
-                                        Toast.makeText(this, "Credentials added", Toast.LENGTH_LONG)
-                                            .show()
-                                        hideLoading()
-                                        binding.tvTbrProgress.setText(R.string.tbr_setup_done)
-                                        binding.tvPleaseWait.visibility = View.GONE
+                                } else {
+                                    Log.d(
+                                        TAG,
+                                        "Both device and phone does not have thread credentials."
+                                    )
+                                    // Create new dataset, add it in phone and send it to device.
+                                    threadNetworkCredentials =
+                                        ThreadNetworkCredentials.newRandomizedBuilder()
+                                            .setNetworkName("EspThreadNetwork")
+                                            .build()
+
+                                    val data: CompletableFuture<String?> =
+                                        clustersHelper.readBorderAgentIdAsync(deviceId)
+                                    val borderAgentId: String? = data.get()
+                                    Log.d(TAG, "Received border Agent Id : ${borderAgentId}")
+
+                                    val activeDataset =
+                                        threadNetworkCredentials.activeOperationalDataset
+                                    val datasetStr = activeDataset.byteArrayToDs().dsToByteArray()
+                                    clustersHelper.configureThreadBRAsync(
+                                        deviceId, AppConstants.ENDPOINT_1, datasetStr
+                                    )
+
+                                    borderAgentId?.let {
+                                        addCredentials(borderAgentId, threadNetworkCredentials)
                                     }
-                                    .addOnFailureListener { e: Exception ->
-                                        Log.e(TAG, "ERROR: [${e}]")
-                                        hideLoading()
-                                        binding.tvTbrProgress.visibility = View.GONE
-                                        binding.tvPleaseWait.visibility = View.VISIBLE
-                                        binding.tvPleaseWait.setText("Failed to add thread credentials")
-                                    }
+
+                                    hideLoading()
+                                    binding.tvTbrProgress.setText(R.string.tbr_setup_done)
+                                    binding.tvPleaseWait.visibility = View.GONE
+                                }
                             }
                         }
                     }

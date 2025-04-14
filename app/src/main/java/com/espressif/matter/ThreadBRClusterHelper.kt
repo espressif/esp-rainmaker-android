@@ -18,6 +18,7 @@ import android.util.Log
 import chip.devicecontroller.ChipClusters
 import chip.devicecontroller.ChipClusters.DefaultClusterCallback
 import chip.devicecontroller.ChipClusters.GeneralCommissioningCluster.CommissioningCompleteResponseCallback
+import chip.devicecontroller.ChipClusters.LongAttributeCallback
 import com.espressif.AppConstants
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
@@ -120,6 +121,48 @@ class ThreadBRClusterHelper constructor(
         }
     }
 
+    fun sendPendingDatasetAsync(
+        nodeId: Long,
+        endpointId: Int,
+        datasetStr: ByteArray
+    ) = GlobalScope.future {
+        sendPendingDataset(
+            nodeId,
+            endpointId,
+            datasetStr
+        )
+    }
+
+    suspend fun sendPendingDataset(
+        nodeId: Long,
+        endpointId: Int,
+        datasetStr: ByteArray
+    ): Unit? {
+        Log.d(TAG, "Send pending Dataset")
+        val connectedDevicePtr =
+            try {
+                chipClient.getConnectedDevicePointer(nodeId)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Can't get connectedDevicePointer.")
+                return null
+            }
+        return suspendCoroutine { continuation ->
+            getThreadBorderRouterManagementCluster(connectedDevicePtr, endpointId)
+                .setPendingDatasetRequest(object : DefaultClusterCallback {
+
+                    override fun onSuccess() {
+                        Log.d(TAG, "Pending dataset send command success")
+                        continuation.resume(Unit)
+                    }
+
+                    override fun onError(error: Exception) {
+                        Log.e(TAG, "Pending dataset send command failure")
+                        continuation.resumeWithException(error)
+                    }
+                }, datasetStr)
+        }
+    }
+
     suspend fun setCommissioningComplete(
         deviceId: Long,
         endpointId: Int,
@@ -160,25 +203,57 @@ class ThreadBRClusterHelper constructor(
         readDataset(nodeId)
     }
 
+    fun readActiveDatasetAsync(
+        nodeId: Long,
+    ): CompletableFuture<String?> = GlobalScope.future {
+        readActiveDataset(nodeId)
+    }
+
+    fun readBorderAgentIdAsync(
+        nodeId: Long,
+    ): CompletableFuture<String?> = GlobalScope.future {
+        readBorderAgentId(nodeId, AppConstants.ENDPOINT_1)
+    }
+
     suspend fun readDataset(
         nodeId: Long
     ): ArrayList<String> {
 
+        Log.d(TAG, "Reading Active dataset from Device")
         val tbrData: ArrayList<String> = ArrayList()
 
-        val dataset = readActiveDataset(nodeId, AppConstants.ENDPOINT_1)
-        if (dataset != null) {
-            tbrData.add(dataset)
-        }
+        try {
+            val dataset = readActiveDatasetFromDevice(nodeId, AppConstants.ENDPOINT_1)
+            if (dataset != null) {
+                tbrData.add(dataset)
+            }
 
-        val baId = readBaId(nodeId, AppConstants.ENDPOINT_1)
-        if (baId != null) {
-            tbrData.add(baId)
+            val baId = readBorderAgentId(nodeId, AppConstants.ENDPOINT_1)
+            if (baId != null) {
+                tbrData.add(baId)
+            }
+        } catch (exception: Exception) {
+            exception.printStackTrace()
         }
         return tbrData
     }
 
-    suspend fun readActiveDataset(deviceId: Long, endpoint: Int): String? {
+    suspend fun readActiveDataset(
+        nodeId: Long
+    ): String? {
+
+        Log.d(TAG, "Reading Active dataset from Device")
+        var dataset: String? = null
+
+        try {
+            dataset = readActiveDatasetFromDevice(nodeId, AppConstants.ENDPOINT_1)
+        } catch (exception: Exception) {
+            exception.printStackTrace()
+        }
+        return dataset
+    }
+
+    suspend fun readActiveDatasetFromDevice(deviceId: Long, endpoint: Int): String? {
         Log.d(TAG, "readActiveDataset")
         val connectedDevicePtr =
             try {
@@ -206,8 +281,8 @@ class ThreadBRClusterHelper constructor(
         }
     }
 
-    suspend fun readBaId(deviceId: Long, endpoint: Int): String? {
-        Log.d(TAG, "readBaId")
+    suspend fun readBorderAgentId(deviceId: Long, endpoint: Int): String? {
+        Log.d(TAG, "readBorderAgentId")
         val connectedDevicePtr =
             try {
                 chipClient.getConnectedDevicePointer(deviceId)
@@ -221,12 +296,44 @@ class ThreadBRClusterHelper constructor(
 
                     override fun onSuccess(value: ByteArray?) {
                         val baId = value?.byteArrayToDs()
-                        Log.d(TAG, "readBaId : $baId")
+                        Log.d(TAG, "readBorderAgentId command success : $baId")
                         continuation.resume(baId)
                     }
 
                     override fun onError(error: Exception) {
-                        Log.e(TAG, "readBaId command failure")
+                        Log.e(TAG, "readBorderAgentId command failure")
+                        continuation.resumeWithException(error)
+                    }
+                })
+        }
+    }
+
+    fun readFeatureMapAsync(
+        nodeId: Long,
+    ): CompletableFuture<Long?> = GlobalScope.future {
+        readFeatureMap(nodeId, AppConstants.ENDPOINT_1)
+    }
+
+    suspend fun readFeatureMap(deviceId: Long, endpoint: Int): Long? {
+        Log.d(TAG, "readFeatureMap")
+        val connectedDevicePtr =
+            try {
+                chipClient.getConnectedDevicePointer(deviceId)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Can't get connectedDevicePointer.")
+                return null
+            }
+        return suspendCoroutine { continuation ->
+            getThreadBorderRouterManagementCluster(connectedDevicePtr, endpoint)
+                .readFeatureMapAttribute(object : LongAttributeCallback {
+
+                    override fun onSuccess(value: Long) {
+                        Log.d(TAG, "readFeatureMap command success : $value")
+                        continuation.resume(value)
+                    }
+
+                    override fun onError(error: Exception) {
+                        Log.e(TAG, "readFeatureMap command failure")
                         continuation.resumeWithException(error)
                     }
                 })
