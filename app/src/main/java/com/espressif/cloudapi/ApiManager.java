@@ -76,17 +76,13 @@ import java.util.List;
 import java.util.Map;
 
 import io.reactivex.Observable;
-import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
-import io.reactivex.observers.DisposableSingleObserver;
-import io.reactivex.disposables.Disposable;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.HttpException;
 
 public class ApiManager {
 
@@ -3968,25 +3964,24 @@ public class ApiManager {
         });
     }
 
-    public void getTimeSeriesData(String nodeId, String paramName, String dataType,
-                                  String aggregate, String timeInterval, long startTime,
-                                  long endTime, String weekStart, String timezone, final ApiResponseListener listener) {
+    public void getTimeSeriesData(String nodeId, String paramName, String dataType, String aggregate,
+                                  String timeInterval, long startTime, long endTime, String weekStart,
+                                  String timezone, String tsType, final ApiResponseListener listener) {
         ArrayList<TsData> tsData = new ArrayList<>();
         getTimeSeriesDataForOnePage(nodeId, paramName, dataType, aggregate, timeInterval, startTime, endTime,
-                weekStart, timezone, "", listener, tsData);
+                weekStart, timezone, "", tsType, listener, tsData);
     }
 
     private void getTimeSeriesDataForOnePage(String nodeId, String paramName, String dataType,
                                              String aggregate, String timeInterval, long startTime,
                                              long endTime, String weekStart, String timezone,
-                                             String startId, final ApiResponseListener listener,
+                                             String startId, String tsType, final ApiResponseListener listener,
                                              ArrayList<TsData> tsData) {
 
         Log.d(TAG, "Get time series data...");
         String url = getBaseUrl() + AppConstants.URL_USER_NODES_TS;
 
-        apiInterface.getTimeSeriesData(url, accessToken, nodeId, paramName, dataType,
-                aggregate, timeInterval, startTime, endTime, weekStart, timezone, startId).enqueue(new Callback<ResponseBody>() {
+        Callback<ResponseBody> responseCallback = new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -4039,7 +4034,7 @@ public class ApiManager {
                         Log.d(TAG, "Start next id : " + nextId);
                         if (!TextUtils.isEmpty(nextId)) {
                             getTimeSeriesDataForOnePage(nodeId, paramName, dataType, aggregate, timeInterval, startTime, endTime,
-                                    weekStart, timezone, nextId, listener, tsData);
+                                    weekStart, timezone, nextId, tsType, listener, tsData);
                         } else {
                             Log.e(TAG, "TS DATA Array list size : " + tsData.size());
                             Bundle data = new Bundle();
@@ -4061,7 +4056,16 @@ public class ApiManager {
                 t.printStackTrace();
                 listener.onNetworkFailure(new RuntimeException("Failed to time series data"));
             }
-        });
+        };
+
+        if (AppConstants.KEY_PROPERTY_TS_SIMPLE.equals(tsType)) {
+            url = getBaseUrl() + AppConstants.URL_USER_NODES_TS_SIMPLE;
+            apiInterface.getSimpleTimeSeriesData(url, accessToken, nodeId, paramName, dataType,
+                    aggregate, startTime, endTime, weekStart, startId).enqueue(responseCallback);
+        } else {
+            apiInterface.getTimeSeriesData(url, accessToken, nodeId, paramName, dataType,
+                    aggregate, timeInterval, startTime, endTime, weekStart, timezone, startId).enqueue(responseCallback);
+        }
     }
 
     public void addAutomations(JsonObject body, final ApiResponseListener listener) {

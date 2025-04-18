@@ -293,6 +293,17 @@ public interface ApiInterface {
                                          @Query(AppConstants.KEY_TIMEZONE) String timezone,
                                          @Query(AppConstants.KEY_START_ID) String startId);
 
+    @GET
+    Call<ResponseBody> getSimpleTimeSeriesData(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                               @Query(AppConstants.KEY_NODE_ID) String nodeId,
+                                               @Query(AppConstants.KEY_PARAM_NAME) String paramName,
+                                               @Query(AppConstants.KEY_DATA_TYPE) String dataType,
+                                               @Query(AppConstants.KEY_AGGREGATE) String aggregate,
+                                               @Query(AppConstants.KEY_START_TIME) long startTime,
+                                               @Query(AppConstants.KEY_END_TIME) long endTime,
+                                               @Query(AppConstants.KEY_WEEK_START) String weekStart,
+                                               @Query(AppConstants.KEY_START_ID) String startId);
+
     // Device Automation
     @POST
     Call<ResponseBody> addAutomations(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
