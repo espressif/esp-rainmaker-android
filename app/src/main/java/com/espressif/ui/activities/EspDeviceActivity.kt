@@ -814,6 +814,10 @@ class EspDeviceActivity : AppCompatActivity() {
         if (espApp!!.nodeMap.containsKey(nodeId)) {
             val devices = espApp!!.nodeMap[nodeId]!!
                 .devices
+            if (devices == null || devices.isEmpty()) {
+                Log.e(TAG, "Node devices are not available")
+                return
+            }
             timeStampOfStatus = espApp!!.nodeMap[nodeId]!!.timeStampOfStatus
             nodeStatus = espApp!!.nodeMap[nodeId]!!.nodeStatus
 

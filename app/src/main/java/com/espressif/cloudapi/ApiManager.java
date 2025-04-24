@@ -1080,7 +1080,12 @@ public class ApiManager {
                                         if (matterMetadataJson != null) {
 
                                             String deviceName = matterMetadataJson.optString(AppConstants.KEY_DEVICENAME);
-                                            Device device = espNode.getDevices().get(0);
+                                            List<Device> devices = espNode.getDevices();
+                                            if (devices == null || devices.isEmpty()) {
+                                                Log.e(TAG, "Matter device list is empty for node : " + nodeId);
+                                                continue;
+                                            }
+                                            Device device = devices.get(0);
 
                                             if (nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
                                                 device.setDeviceName(deviceName);
