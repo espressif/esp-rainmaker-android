@@ -19,6 +19,7 @@ import android.content.Intent;
 import android.content.IntentSender;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
@@ -29,10 +30,11 @@ import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.cardview.widget.CardView;
 
 import com.espressif.AppConstants;
+import com.espressif.EspApplication;
+import com.espressif.local_control.TbrServiceDiscovery;
 import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
@@ -40,6 +42,10 @@ import com.espressif.provisioning.WiFiAccessPoint;
 import com.espressif.provisioning.listeners.WiFiScanListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
+import com.espressif.ui.models.EspNode;
+import com.espressif.ui.models.Param;
+import com.espressif.ui.models.Service;
+import com.espressif.utils.NodeUtils;
 import com.google.android.gms.threadnetwork.ThreadNetwork;
 import com.google.android.gms.threadnetwork.ThreadNetworkCredentials;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -49,6 +55,7 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 public class ThreadConfigActivity extends AppCompatActivity {
 
@@ -58,12 +65,15 @@ public class ThreadConfigActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private CardView btnNext;
     private TextView txtNextBtn, tvProgress, tvError;
-    private ArrayList<WiFiAccessPoint> threadNetworkList;
+
+    private EspApplication espApp;
     private ESPProvisionManager provisionManager;
+    private ArrayList<WiFiAccessPoint> threadNetworkList;
 
     private ActivityResultLauncher<IntentSenderRequest> preferredCredentialsLauncher;
     private ThreadNetworkCredentials preferredCredentials;
-    private boolean scanCapAvailable = false;
+    private boolean scanCapAvailable = false, isTbrAvailable = false;
+    private String tbrNodeId = "", threadNetworkName = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,11 +82,13 @@ public class ThreadConfigActivity extends AppCompatActivity {
 
         handler = new Handler();
         threadNetworkList = new ArrayList<>();
-        provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
+        espApp = (EspApplication) getApplicationContext();
+        provisionManager = ESPProvisionManager.getInstance(espApp);
         scanCapAvailable = getIntent().getBooleanExtra(AppConstants.KEY_THREAD_SCAN_AVAILABLE, false);
 
         initViews();
         EventBus.getDefault().register(this);
+        isTbrAvailable = isTbrAvailable();
         getThreadPreferredCredentials();
     }
 
@@ -114,8 +126,29 @@ public class ThreadConfigActivity extends AppCompatActivity {
             if (btnText.equals(getString(R.string.btn_next))) {
 
                 showLoading(getString(R.string.progress_thread_networks));
-                byte[] activeDataset = preferredCredentials.getActiveOperationalDataset();
-                sendActiveDataset(Utils.byteArrayToDs(activeDataset));
+                if (preferredCredentials != null) {
+                    byte[] activeDataset = preferredCredentials.getActiveOperationalDataset();
+                    sendActiveDataset(Utils.byteArrayToDs(activeDataset));
+                } else {
+
+                    EspNode tbrNode = espApp.nodeMap.get(tbrNodeId);
+                    Service tbrService = NodeUtils.Companion.getService(tbrNode, AppConstants.SERVICE_TYPE_TBR);
+
+                    if (tbrService != null && tbrService.getParams() != null && tbrService.getParams().size() > 0) {
+                        for (Param p : tbrService.getParams()) {
+                            if (AppConstants.PARAM_TYPE_ACTIVE_DATASET.equals(p.getParamType())) {
+                                String activeDataset = p.getLabelValue();
+                                if (!TextUtils.isEmpty(activeDataset)) {
+                                    sendActiveDataset(activeDataset);
+                                } else {
+                                    Log.e(TAG, "No active dataset available!");
+                                    hideLoading();
+                                    showError(getString(R.string.error_title), getString(R.string.error_no_preferred_creds), false);
+                                }
+                            }
+                        }
+                    }
+                }
 
             } else if (btnText.equals(getString(R.string.btn_try_again))) {
 
@@ -197,8 +230,41 @@ public class ThreadConfigActivity extends AppCompatActivity {
                     } else {
                         // No preferred credentials found!
                         Log.e(TAG, "No preferred credentials found!");
-                        hideLoading();
-                        showError(getString(R.string.error_title), getString(R.string.error_no_preferred_creds), false);
+
+                        // start discovery and check if any thread network is available.
+                        if (isTbrAvailable) {
+                            Log.d(TAG, "TBR is available");
+                            handler.postDelayed(stopTbrDiscoveryTask, 15000);
+                            TbrServiceDiscovery tbrMdnsManager = new TbrServiceDiscovery(this, AppConstants.MDNS_TBR_SERVICE_TYPE,
+                                    new TbrServiceDiscovery.ThreadDeviceListener() {
+                                        @Override
+                                        public void deviceFound(String nodeId, String networkName) {
+
+                                            tbrNodeId = nodeId;
+                                            threadNetworkName = networkName;
+                                            handler.removeCallbacks(stopTbrDiscoveryTask);
+
+                                            // if TBR's thread network is available, then check active dataset param value.
+                                            // if active dataset is available, use it for provisioning thread device.
+
+                                            if (scanCapAvailable) {
+                                                startThreadScan();
+                                            } else {
+                                                // If "thread_scan" capability is not available and "thread_prov" is available
+                                                hideLoading();
+                                                txtNextBtn.setText(R.string.btn_next);
+                                                String str = "Available Thread Network : " + threadNetworkName + "\n"
+                                                        + "Do you want to proceed ?";
+                                                tvProgress.setText(str);
+                                            }
+                                        }
+                                    });
+                            tbrMdnsManager.initializeNsd();
+                            tbrMdnsManager.discoverServices();
+                        } else {
+                            hideLoading();
+                            showError(getString(R.string.error_title), getString(R.string.error_no_preferred_creds), false);
+                        }
                     }
                 })
                 .addOnFailureListener(e -> {
@@ -240,11 +306,20 @@ public class ThreadConfigActivity extends AppCompatActivity {
 
                             for (WiFiAccessPoint network : threadNetworkList) {
 
-                                if (preferredCredentials.getNetworkName().equals(network.getWifiName())) {
+                                if (!TextUtils.isEmpty(threadNetworkName)) {
+                                    if (threadNetworkName.equals(network.getWifiName())) {
 
-                                    Log.d(TAG, "Thread Network available : " + network.getWifiName());
-                                    isNetworkAvailable = true;
-                                    break;
+                                        Log.d(TAG, "Thread Network available : " + network.getWifiName());
+                                        isNetworkAvailable = true;
+                                        break;
+                                    }
+                                } else {
+                                    if (preferredCredentials.getNetworkName().equals(network.getWifiName())) {
+
+                                        Log.d(TAG, "Thread Network available : " + network.getWifiName());
+                                        isNetworkAvailable = true;
+                                        break;
+                                    }
                                 }
                             }
 
@@ -252,7 +327,14 @@ public class ThreadConfigActivity extends AppCompatActivity {
 
                                 hideLoading();
                                 txtNextBtn.setText(R.string.btn_next);
-                                String str = "Available Thread Network : " + preferredCredentials.getNetworkName() + "\n"
+                                String networkName = "";
+                                if (!TextUtils.isEmpty(threadNetworkName)) {
+                                    networkName = threadNetworkName;
+                                } else {
+                                    networkName = preferredCredentials.getNetworkName();
+                                }
+
+                                String str = "Available Thread Network : " + networkName + "\n"
                                         + "Do you want to proceed ?";
                                 tvProgress.setText(str);
 
@@ -284,6 +366,21 @@ public class ThreadConfigActivity extends AppCompatActivity {
         });
     }
 
+    private boolean isTbrAvailable() {
+
+        for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
+
+            EspNode node = entry.getValue();
+            Service tbrService = NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_TBR);
+
+            if (tbrService != null && node.isOnline()) {
+                tbrNodeId = node.getNodeId();
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void sendActiveDataset(String activeDataset) {
 
         hideLoading();
@@ -304,6 +401,15 @@ public class ThreadConfigActivity extends AppCompatActivity {
         @Override
         public void run() {
             hideLoading();
+        }
+    };
+
+    private Runnable stopTbrDiscoveryTask = new Runnable() {
+
+        @Override
+        public void run() {
+            hideLoading();
+            showError(getString(R.string.error_title), getString(R.string.error_no_preferred_creds), false);
         }
     };
 

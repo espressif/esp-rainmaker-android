@@ -79,6 +79,7 @@ class AppConstants {
         const val SERVICE_TYPE_LOCAL_CONTROL = "esp.service.local_control"
         const val SERVICE_TYPE_SYSTEM = "esp.service.system"
         const val SERVICE_TYPE_MATTER_CONTROLLER = "esp.service.matter-controller"
+        const val SERVICE_TYPE_TBR = "esp.service.thread-br"
 
         // Param Types
         const val PARAM_TYPE_NAME = "esp.param.name"
@@ -129,6 +130,11 @@ class AppConstants {
         const val PARAM_BASE_URL = "BaseURL"
         const val PARAM_USER_TOKEN = "UserToken"
         const val PARAM_RMAKER_GROUP_ID = "RMakerGroupID"
+        const val PARAM_BORDER_AGENT_ID = "Border Agent ID"
+        const val PARAM_ACTIVE_DATASET = "Active Dataset"
+        const val PARAM_PENDING_DATASET = "Pending Dataset"
+        const val PARAM_DEVICE_ROLE = "Device Role"
+        const val PARAM_THREAD_CMD = "Thread Command"
 
         // Transport types
         const val TRANSPORT_SOFTAP = "softap"
@@ -211,9 +217,11 @@ class AppConstants {
         const val NOTIFICATION_TABLE = "notification_table"
 
         const val MDNS_SERVICE_TYPE = "_esp_local_ctrl._tcp."
+        const val MDNS_TBR_SERVICE_TYPE = "_meshcop._udp."
         const val MDNS_MATTER_SERVICE_TYPE = "_matter._tcp."
         const val LOCAL_CONTROL_ENDPOINT = "esp_local_ctrl/control"
         const val LOCAL_SESSION_ENDPOINT = "esp_local_ctrl/session"
+        const val MDNS_ATTR_NETWORK_NAME = "nn"
 
         const val CURRENT_VERSION = "v1"
         const val PATH_SEPARATOR = "/"
@@ -410,6 +418,7 @@ class AppConstants {
         const val KEY_SHARED_TO = "shared_to"
         const val KEY_SELF_REMOVAL = "self_removal"
         const val KEY_NODE = "NODE"
+        const val KEY_TBR_SERVICE = "TBRService"
 
         const val KEY_OPERATION = "operation"
         const val KEY_OPERATION_ADD = "add"
@@ -466,6 +475,7 @@ class AppConstants {
         const val KEY_OTA_JOB_ID = "ota_job_id"
         const val KEY_OTA_DETAILS = "ota_details"
         const val KEY_OTA_AVAILABLE = "ota_available"
+        const val KEY_TBR_ACTIVITY_REASON = "tbr_activity_reason"
 
         const val KEY_GROUP_NAMES = "group_names"
         const val KEY_GROUP_IDS = "group_ids"

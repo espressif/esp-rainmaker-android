@@ -274,6 +274,7 @@
     <string name="btn_disagree">Disagree</string>
     <string name="btn_allow">Allow</string>
     <string name="btn_alexa_deny">Deny</string>
+    <string name="btn_merge">Merge</string>
 
     <!--Screen titles-->
     <string name="title_activity_devices">Devices</string>

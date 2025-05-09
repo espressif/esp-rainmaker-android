@@ -89,7 +89,7 @@ public class JsonDataParser {
             } else {
                 param.setLabelValue(deviceJson.optString(paramName));
             }
-            
+
         } else if (AppConstants.UI_TYPE_DROP_DOWN.equalsIgnoreCase(param.getUiType())) {
 
             String labelValue = "";
@@ -398,7 +398,7 @@ public class JsonDataParser {
         JSONObject systemServiceJson = paramsJson.optJSONObject(AppConstants.KEY_SYSTEM);
         JSONObject controllerServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CONTROLLER);
         JSONObject ctlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CTL);
-
+        JSONObject tbrServiceJson = paramsJson.optJSONObject(AppConstants.KEY_TBR_SERVICE);
         int scheduleCnt = 0, sceneCnt = 0;
 
         if (devices != null) {
@@ -807,6 +807,29 @@ public class JsonDataParser {
                                     String value = ctlServiceJson.optString(controllerParam.getName());
                                     controllerParam.setLabelValue(value);
                                 }
+                            }
+                        }
+                    }
+                } else if (AppConstants.SERVICE_TYPE_TBR.equals(service.getType()) && tbrServiceJson != null) {
+
+                    // TBR service
+                    ArrayList<Param> tbrParams = service.getParams();
+                    if (tbrParams != null) {
+
+                        for (Param param : tbrParams) {
+
+                            String type = param.getParamType();
+                            boolean isSupportedType = (!TextUtils.isEmpty(type)) && (AppConstants.PARAM_TYPE_BORDER_AGENT_ID.equals(type)
+                                    || AppConstants.PARAM_TYPE_ACTIVE_DATASET.equals(type)
+                                    || AppConstants.PARAM_TYPE_PENDING_DATASET.equals(type));
+
+                            if (isSupportedType) {
+                                param.setLabelValue(tbrServiceJson.optString(param.getName()));
+                            } else if (!TextUtils.isEmpty(type) && AppConstants.PARAM_TYPE_DEVICE_ROLE.equals(type)) {
+                                int value = tbrServiceJson.optInt(param.getName());
+                                String labelValue = String.valueOf(value);
+                                param.setLabelValue(labelValue);
+                                param.setValue(value);
                             }
                         }
                     }

@@ -21,6 +21,7 @@ import com.espressif.AppConstants
 import com.espressif.AppConstants.Companion.SystemMode.COOL
 import com.espressif.AppConstants.Companion.SystemMode.HEAT
 import com.espressif.AppConstants.Companion.SystemMode.OFF
+import com.espressif.EspApplication
 import com.espressif.ui.models.Device
 import com.espressif.ui.models.EspNode
 import com.espressif.ui.models.Param
@@ -420,6 +421,41 @@ class NodeUtils {
                 AppConstants.MATTER_DEVICE_TEMP_SENSOR -> return "Temperature Sensor"
                 AppConstants.MATTER_DEVICE_AC -> return "AC"
                 AppConstants.MATTER_DEVICE_DOOR_LOCK -> return "Door Lock"
+            }
+            return ""
+        }
+
+        fun getTbrServiceParamName(
+            nodeId: String,
+            paramType: String,
+            espApp: EspApplication
+        ): String {
+            val threadBrService =
+                getService(espApp.nodeMap[nodeId]!!, AppConstants.SERVICE_TYPE_TBR)
+            if (threadBrService != null) {
+                for (p in threadBrService.params) {
+                    if (p.paramType == paramType) {
+                        return p.name
+                    }
+                }
+            }
+            return ""
+        }
+
+        fun getActiveDatasetFromTbrService(threadBrService: Service): String {
+            for (p in threadBrService.params) {
+                if (p.paramType == AppConstants.PARAM_TYPE_ACTIVE_DATASET) {
+                    return p.labelValue
+                }
+            }
+            return ""
+        }
+
+        fun getBorderAgentIdFromTbrService(threadBrService: Service): String {
+            for (p in threadBrService.params) {
+                if (p.paramType == AppConstants.PARAM_TYPE_BORDER_AGENT_ID) {
+                    return p.labelValue
+                }
             }
             return ""
         }

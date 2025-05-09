@@ -52,8 +52,12 @@ import com.espressif.ui.adapters.AttrParamAdapter
 import com.espressif.ui.adapters.ParamAdapter
 import com.espressif.ui.models.Device
 import com.espressif.ui.models.Param
+import com.espressif.ui.models.Service
 import com.espressif.ui.models.UpdateEvent
-import com.espressif.utils.NodeUtils
+import com.espressif.utils.NodeUtils.Companion.getService
+import com.google.android.gms.threadnetwork.ThreadBorderAgent
+import com.google.android.gms.threadnetwork.ThreadNetwork
+import com.google.android.gms.threadnetwork.ThreadNetworkCredentials
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.JsonObject
 import kotlinx.coroutines.launch
@@ -172,7 +176,7 @@ class EspDeviceActivity : AppCompatActivity() {
                 Log.d(TAG, "RainMaker device type")
             }
 
-            val controllerService = NodeUtils.getService(
+            val controllerService = getService(
                 espApp!!.nodeMap[device!!.nodeId]!!,
                 AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
             )
@@ -368,7 +372,7 @@ class EspDeviceActivity : AppCompatActivity() {
 
                 // Get service name
                 var serviceName = AppConstants.KEY_MATTER_CTL
-                val service = NodeUtils.getService(
+                val service = getService(
                     espApp?.nodeMap?.get(nodeId)!!,
                     AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
                 )
@@ -424,6 +428,7 @@ class EspDeviceActivity : AppCompatActivity() {
         binding.espDeviceLayout.tvTbrSetup.setOnClickListener(View.OnClickListener {
             val intent = Intent(this, ThreadBRActivity::class.java)
             intent.putExtra(AppConstants.KEY_NODE_ID, nodeId)
+            intent.putExtra(AppConstants.KEY_TBR_ACTIVITY_REASON, ThreadBRActivity.TBR_SETUP)
             startActivity(intent)
         })
 
@@ -461,6 +466,71 @@ class EspDeviceActivity : AppCompatActivity() {
         } else {
             binding.espDeviceLayout.rlThreadBr.visibility = View.GONE
         }
+
+        val tbrService: Service? =
+            getService(espApp!!.nodeMap[nodeId]!!, AppConstants.SERVICE_TYPE_TBR)
+        if (tbrService != null) {
+            binding.espDeviceLayout.rlUpdateThreadDataset.visibility = View.VISIBLE
+            binding.espDeviceLayout.rlMergeThreadDataset.visibility = View.VISIBLE
+
+            binding.espDeviceLayout.btnUpdateDataset.setOnClickListener {
+                var activeDataset = ""
+                for (p in tbrService.params) {
+                    if (AppConstants.PARAM_TYPE_ACTIVE_DATASET == p.paramType) {
+                        activeDataset = p.labelValue
+                    }
+                }
+
+                if (TextUtils.isEmpty(activeDataset)) {
+                    val intent = Intent(this@EspDeviceActivity, ThreadBRActivity::class.java)
+                    intent.putExtra(AppConstants.KEY_NODE_ID, nodeId)
+                    intent.putExtra(
+                        AppConstants.KEY_TBR_ACTIVITY_REASON,
+                        ThreadBRActivity.UPDATE_DATASET
+                    )
+                    startActivity(intent)
+                } else {
+                    Toast.makeText(
+                        this@EspDeviceActivity,
+                        "Thread active dataset is already created.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+
+            binding.espDeviceLayout.btnMergeDataset.setOnClickListener {
+                val intent = Intent(this@EspDeviceActivity, ThreadBRActivity::class.java)
+                intent.putExtra(AppConstants.KEY_NODE_ID, nodeId)
+                intent.putExtra(
+                    AppConstants.KEY_TBR_ACTIVITY_REASON,
+                    ThreadBRActivity.MERGE_DATASET
+                )
+                startActivity(intent)
+            }
+        } else {
+            binding.espDeviceLayout.rlUpdateThreadDataset.visibility = View.GONE
+            binding.espDeviceLayout.rlMergeThreadDataset.visibility = View.GONE
+        }
+    }
+
+    private fun addCredentials(
+        borderAgentId: String,
+        credentialsToBeAdded: ThreadNetworkCredentials
+    ) {
+        val threadBorderAgent = ThreadBorderAgent.newBuilder(borderAgentId.dsToByteArray()).build()
+
+        ThreadNetwork.getClient(this)
+            .addCredentials(threadBorderAgent, credentialsToBeAdded)
+            .addOnSuccessListener {
+                Log.d(TAG, "Credentials added.")
+            }
+            .addOnFailureListener { e: Exception ->
+                Log.e(TAG, "ERROR: [${e}]")
+            }
+    }
+
+    private fun String.dsToByteArray(): ByteArray {
+        return chunked(2).map { it.toInt(16).toByte() }.toByteArray()
     }
 
     private fun setToolbar() {
