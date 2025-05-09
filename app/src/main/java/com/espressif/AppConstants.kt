@@ -100,6 +100,17 @@ class AppConstants {
         const val PARAM_TYPE_AC_MODE = "esp.param.ac-mode"
         const val PARAM_TYPE_SETPOINT_TEMPERATURE = "esp.param.setpoint_temperature"
         const val PARAM_TYPE_SPEED = "esp.param.speed"
+        const val PARAM_TYPE_BORDER_AGENT_ID = "esp.param.tbr-border-agent-id"
+        const val PARAM_TYPE_ACTIVE_DATASET = "esp.param.tbr-active-dataset"
+        const val PARAM_TYPE_PENDING_DATASET = "esp.param.tbr-pending-dataset"
+        const val PARAM_TYPE_DEVICE_ROLE = "esp.param.tbr-device-role"
+        const val PARAM_TYPE_TBR_CMD = "esp.param.tbr-cmd"
+        const val PARAM_TYPE_BASE_URL = "esp.param.base-url"
+        const val PARAM_TYPE_USER_TOKEN = "esp.param.user-token"
+        const val PARAM_TYPE_RMAKER_GROUP_ID = "esp.param.rmaker-group-id"
+        const val PARAM_TYPE_MATTER_NODE_ID = "esp.param.matter-node-id"
+        const val PARAM_TYPE_MATTER_CTL_CMD = "esp.param.matter-ctl-cmd"
+        const val PARAM_TYPE_MATTER_CTL_STATUS = "esp.param.matter-ctl-status"
 
         // Param names
         const val PARAM_NAME = "Name"
@@ -113,6 +124,9 @@ class AppConstants {
         const val PARAM_HEATING_POINT = "Heat-Temperature"
         const val PARAM_LOCAL_TEMPERATURE = "Local Temperature"
         const val PARAM_SPEED = "Speed"
+        const val PARAM_BASE_URL = "BaseURL"
+        const val PARAM_USER_TOKEN = "UserToken"
+        const val PARAM_RMAKER_GROUP_ID = "RMakerGroupID"
 
         // Transport types
         const val TRANSPORT_SOFTAP = "softap"
@@ -286,6 +300,7 @@ class AppConstants {
         const val KEY_TRIGGERS = "triggers"
         const val KEY_BOUNDS = "bounds"
         const val KEY_SELECTED_DEVICES = "selected_devices"
+        const val KEY_MATTER_CTL = "MatterCTL"
 
         const val KEY_SUPPORTED_VERSIONS = "supported_versions"
         const val KEY_ADDITIONAL_INFO = "additional_info"
@@ -488,6 +503,7 @@ class AppConstants {
         const val KEY_THREAD_DATASET = "thread_dataset"
         const val KEY_DEPENDENCIES = "dependencies"
         const val KEY_IS_RAINMAKER_NODE = "is_rainmaker_node"
+        const val KEY_IS_CTRL_SERVICE = "isCtrlService"
 
         const val CERT_BEGIN = "-----BEGIN CERTIFICATE REQUEST-----"
         const val CERT_END = "-----END CERTIFICATE REQUEST-----"

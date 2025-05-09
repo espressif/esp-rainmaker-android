@@ -493,6 +493,7 @@
     <string name="fw_update_success">Firmware update is successful.</string>
     <string name="fw_update_check">Click below to check for firmware update.</string>
     <string name="dialog_msg_matter_controller">Matter Controller needs access to your RainMaker account to fetch all nodes under the account. Proceed?</string>
+    <string name="dialog_msg_controller">Controller needs access to your RainMaker account to fetch all nodes under the account. Proceed?</string>
     <string name="tbr_setup_done">Thread border router setup is done.</string>
     <string name="was_shared_by">was shared by</string>
     <string name="group">Group</string>

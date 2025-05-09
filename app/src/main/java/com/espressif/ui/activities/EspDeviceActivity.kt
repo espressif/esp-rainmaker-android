@@ -40,6 +40,7 @@ import com.espressif.cloudapi.CloudException
 import com.espressif.matter.ControllerClusterHelper
 import com.espressif.matter.ControllerLoginActivity
 import com.espressif.matter.DoorLockClusterHelper
+import com.espressif.matter.GroupSelectionActivity
 import com.espressif.matter.ThreadBRActivity
 import com.espressif.rainmaker.BuildConfig
 import com.espressif.rainmaker.R
@@ -49,7 +50,9 @@ import com.espressif.ui.adapters.ParamAdapter
 import com.espressif.ui.models.Device
 import com.espressif.ui.models.Param
 import com.espressif.ui.models.UpdateEvent
+import com.espressif.utils.NodeUtils
 import com.google.android.material.snackbar.Snackbar
+import com.google.gson.JsonObject
 import kotlinx.coroutines.launch
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -91,6 +94,7 @@ class EspDeviceActivity : AppCompatActivity() {
     private var timeStampOfStatus: Long = 0
     private var isControllerClusterAvailable = false
     private var isTbrClusterAvailable: Boolean = false
+    private var isCtlAvailable = false
     private var lastUpdateRequestTime: Long = 0
     private var isNetworkAvailable = true
     private var shouldGetParams = true
@@ -163,6 +167,12 @@ class EspDeviceActivity : AppCompatActivity() {
             } else {
                 Log.d(TAG, "RainMaker device type")
             }
+
+            val controllerService = NodeUtils.getService(
+                espApp!!.nodeMap[device!!.nodeId]!!,
+                AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
+            )
+            isCtlAvailable = controllerService != null
 
             setParamList(device!!.params)
             initViews()
@@ -331,27 +341,63 @@ class EspDeviceActivity : AppCompatActivity() {
         binding.espDeviceLayout.swipeContainer.setOnRefreshListener(OnRefreshListener { getNodeDetails() })
 
         binding.espDeviceLayout.btnUpdate.setOnClickListener(View.OnClickListener {
-            val id = BigInteger(matterNodeId, 16)
-            val deviceId = id.toLong()
-            if (espApp!!.chipClientMap.containsKey(matterNodeId)) {
-                val espClusterHelper = ControllerClusterHelper(
-                    espApp!!.chipClientMap[matterNodeId]!!,
-                    espApp!!
+
+            if (isCtlAvailable) {
+                val serviceParamJson = JsonObject()
+                serviceParamJson.addProperty("MTCtlCMD", 2)
+
+                // Get service name
+                var serviceName = AppConstants.KEY_MATTER_CTL
+                val service = NodeUtils.getService(
+                    espApp?.nodeMap?.get(nodeId)!!,
+                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
                 )
-                espClusterHelper.sendUpdateDeviceListEventAsync(
-                    deviceId,
-                    AppConstants.ENDPOINT_0,
-                    AppConstants.CONTROLLER_CLUSTER_ID_HEX
-                )
+                if (service != null && !TextUtils.isEmpty(service.name)) {
+                    serviceName = service.name
+                }
+
+                val body = JsonObject()
+                body.add(serviceName, serviceParamJson)
+
+                val networkApiManager = NetworkApiManager(espApp)
+                networkApiManager.updateParamValue(nodeId, body, object : ApiResponseListener {
+                    override fun onSuccess(data: Bundle?) {
+                    }
+
+                    override fun onResponseFailure(exception: java.lang.Exception) {
+                    }
+
+                    override fun onNetworkFailure(exception: java.lang.Exception) {
+                    }
+                })
+            } else {
+                val id = BigInteger(matterNodeId, 16)
+                val deviceId = id.toLong()
+                if (espApp!!.chipClientMap.containsKey(matterNodeId)) {
+                    val espClusterHelper = ControllerClusterHelper(
+                        espApp!!.chipClientMap[matterNodeId]!!,
+                        espApp!!
+                    )
+                    espClusterHelper.sendUpdateDeviceListEventAsync(
+                        deviceId,
+                        AppConstants.ENDPOINT_0,
+                        AppConstants.CONTROLLER_CLUSTER_ID_HEX
+                    )
+                }
             }
         })
 
         binding.espDeviceLayout.tvControllerLogin.setOnClickListener(View.OnClickListener {
-            val intent = Intent(
+            var intent = Intent(
                 this,
                 ControllerLoginActivity::class.java
             )
+
+            if (isCtlAvailable) {
+                intent = Intent(this, GroupSelectionActivity::class.java)
+            }
             intent.putExtra(AppConstants.KEY_NODE_ID, nodeId)
+            intent.putExtra(AppConstants.KEY_IS_CTRL_SERVICE, isCtlAvailable)
             startActivity(intent)
         })
 
@@ -361,7 +407,7 @@ class EspDeviceActivity : AppCompatActivity() {
             startActivity(intent)
         })
 
-        if (isControllerClusterAvailable) {
+        if (isControllerClusterAvailable || isCtlAvailable) {
             binding.espDeviceLayout.rlControllerLogin.visibility = View.VISIBLE
             binding.espDeviceLayout.rlMatterController.visibility = View.VISIBLE
         } else {

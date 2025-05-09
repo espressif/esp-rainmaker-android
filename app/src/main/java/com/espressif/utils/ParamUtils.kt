@@ -15,6 +15,7 @@
 package com.espressif.utils
 
 import com.espressif.AppConstants
+import com.espressif.EspApplication
 import com.espressif.ui.models.Param
 
 class ParamUtils {
@@ -75,6 +76,23 @@ class ParamUtils {
                 }
             }
             return null
+        }
+
+        fun getParamNameForService(
+            nodeId: String,
+            serviceType: String,
+            paramType: String,
+            espApp: EspApplication
+        ): String {
+            val service = NodeUtils.getService(espApp.nodeMap[nodeId]!!, serviceType)
+            if (service != null) {
+                for (p in service.params) {
+                    if (p.paramType == paramType) {
+                        return p.name
+                    }
+                }
+            }
+            return ""
         }
 
         fun addToggleParam(
