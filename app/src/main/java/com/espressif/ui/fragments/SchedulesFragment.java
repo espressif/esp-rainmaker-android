@@ -231,7 +231,9 @@ public class SchedulesFragment extends Fragment {
 
                 if (entry.getValue() != null) {
                     scheduleService = NodeUtils.Companion.getService(entry.getValue(), AppConstants.SERVICE_TYPE_SCHEDULE);
-                    break;
+                    if (scheduleService != null) {
+                        break;
+                    }
                 }
             }
 

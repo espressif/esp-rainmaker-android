@@ -222,7 +222,9 @@ public class ScenesFragment extends Fragment {
 
                 if (entry.getValue() != null) {
                     sceneService = NodeUtils.Companion.getService(entry.getValue(), AppConstants.SERVICE_TYPE_SCENES);
-                    break;
+                    if (sceneService != null) {
+                        break;
+                    }
                 }
             }
 
