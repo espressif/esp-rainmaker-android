@@ -4903,6 +4903,55 @@ public class ApiManager {
         });
     }
 
+    public void assumeRole(String idToken, String nodeId, ApiResponseListener listener) {
+
+        Log.d(TAG, "Assume role");
+        String url = getBaseUrl() + AppConstants.URL_ASSUME_ROLE;
+
+        JsonObject body = new JsonObject();
+        body.addProperty("user_role", "videostream");
+
+        if (!TextUtils.isEmpty(nodeId)) {
+            JsonArray nodeIdsArr = new JsonArray();
+            nodeIdsArr.add(nodeId);
+            body.add("node_ids", nodeIdsArr);
+        }
+
+        apiInterface.assumeRole(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Assume role  : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        JSONObject assumeRoleJson = new JSONObject(jsonResponse);
+                        Bundle data = new Bundle();
+                        data.putString("access_key", assumeRoleJson.optString("access_key"));
+                        data.putString("secret_key", assumeRoleJson.optString("secret_key"));
+                        data.putString("session_token", assumeRoleJson.optString("session_token"));
+                        listener.onSuccess(data);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to call assume role");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Failed to call assume role"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Failed to convert group to fabric"));
+            }
+        });
+    }
+
     private void processError(String jsonErrResponse, ApiResponseListener listener, String errMsg) {
 
         Log.e(TAG, "Error Response : " + jsonErrResponse);

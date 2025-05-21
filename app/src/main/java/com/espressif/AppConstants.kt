@@ -59,6 +59,7 @@ class AppConstants {
         const val ESP_DEVICE_OTHER = "esp.device.other"
         const val ESP_DEVICE_MATTER_CONTROLLER = "esp.device.matter-controller"
         const val ESP_DEVICE_THREAD_BR = "esp.device.thread-br"
+        const val ESP_DEVICE_CAMERA = "esp.device.camera"
 
         const val MATTER_DEVICE_ON_OFF_LIGHT = 256
         const val MATTER_DEVICE_DIMMABLE_LIGHT = 257
@@ -115,6 +116,7 @@ class AppConstants {
         const val PARAM_TYPE_MATTER_NODE_ID = "esp.param.matter-node-id"
         const val PARAM_TYPE_MATTER_CTL_CMD = "esp.param.matter-ctl-cmd"
         const val PARAM_TYPE_MATTER_CTL_STATUS = "esp.param.matter-ctl-status"
+        const val PARAM_TYPE_CHANNEL = "esp.param.channel"
 
         // Param names
         const val PARAM_NAME = "Name"
@@ -278,6 +280,8 @@ class AppConstants {
         const val URL_USER_MAPPING_INITIATE = "/user/nodes/mapping/initiate"
         const val URL_USER_MAPPING_VERIFY = "/user/nodes/mapping/verify"
 
+        const val URL_ASSUME_ROLE = "/user/assume_role"
+        
         // Alexa account linking constants
         const val ALEXA_API_ENDPOINTS_URL = "https://api.amazonalexa.com/v1/alexaApiEndpoint"
         const val ALEXA_REFRESH_TOKEN_URL = "https://api.amazon.com/auth/o2/token"
