@@ -144,6 +144,14 @@ public interface ApiInterface {
     @POST
     Call<ResponseBody> verifyClaiming(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonObject body);
 
+    // Mapping initiate
+    @POST
+    Call<ResponseBody> initiateMapping(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonObject body);
+
+    // Verify user node mapping
+    @POST
+    Call<ResponseBody> verifyUserNodeMapping(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonObject body);
+
     // Feature : Node Grouping
 
     // Create group

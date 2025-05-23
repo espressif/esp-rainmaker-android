@@ -146,9 +146,13 @@ class AppConstants {
         const val CAPABILITY_THREAD_SCAN = "thread_scan"
         const val CAPABILITY_THREAD_PROV = "thread_prov"
 
+        /* RainMaker Extra Capabilities */
+        const val CAPABILITY_CHALLENGE_RESP = "ch_resp"
+
         // Device End point names
         const val HANDLER_RM_USER_MAPPING = "cloud_user_assoc"
         const val HANDLER_RM_CLAIM = "rmaker_claim"
+        const val HANDLER_RM_CH_RESP = "ch_resp"
 
         /* Notification related constants */
 
@@ -245,6 +249,8 @@ class AppConstants {
 
         const val URL_USER_NODE_GROUP_SHARING = "/user/node_group/sharing"
         const val URL_USER_NODE_GROUP_SHARING_REQUESTS = "/user/node_group/sharing/requests"
+        const val URL_USER_MAPPING_INITIATE = "/user/nodes/mapping/initiate"
+        const val URL_USER_MAPPING_VERIFY = "/user/nodes/mapping/verify"
 
         // Alexa account linking constants
         const val ALEXA_API_ENDPOINTS_URL = "https://api.amazonalexa.com/v1/alexaApiEndpoint"
@@ -561,5 +567,8 @@ class AppConstants {
         const val KEY_TIMEOUT = "timeout"
         const val KEY_DATA = "data"
         const val URL_USER_NODES_CMD = "/user/nodes/cmd"
+
+        /* Keys used in API calls and responses */
+        const val KEY_CHALLENGE_RESP = "challenge_response"
     }
 }

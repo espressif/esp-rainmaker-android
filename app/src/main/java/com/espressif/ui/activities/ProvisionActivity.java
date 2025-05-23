@@ -35,6 +35,7 @@ import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
+import com.espressif.provisioning.ESPDevice;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.ProvisionListener;
 import com.espressif.provisioning.listeners.ResponseListener;
@@ -46,17 +47,27 @@ import com.espressif.ui.models.UpdateEvent;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.JsonObject;
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.TimeZone;
 import java.util.UUID;
 
 import rainmaker.EspRmakerUserMapping;
+import rmaker_misc.EspRmakerChalResp.CmdCRPayload;
+import rmaker_misc.EspRmakerChalResp.RMakerMiscMsgType;
+import rmaker_misc.EspRmakerChalResp.RMakerMiscPayload;
+import rmaker_misc.EspRmakerChalResp.RMakerMiscStatus;
+import rmaker_misc.EspRmakerChalResp.RespCRPayload;
 
 public class ProvisionActivity extends AppCompatActivity {
 
@@ -64,6 +75,7 @@ public class ProvisionActivity extends AppCompatActivity {
 
     private static final long ADD_DEVICE_REQ_TIME = 5000;
     private static final long NODE_STATUS_REQ_TIME = 35000;
+    private static final long WIFI_CONNECT_TIMEOUT = 15000; // 15 seconds timeout
 
     private ImageView tick1, tick2, tick3, tick4, tick5;
     private ContentLoadingProgressBar progress1, progress2, progress3, progress4, progress5;
@@ -82,6 +94,8 @@ public class ProvisionActivity extends AppCompatActivity {
     private Handler handler;
     private ESPProvisionManager provisionManager;
     private boolean isProvisioningCompleted = false;
+    private boolean isChallengeResponseFlow = false;
+    private Handler wifiConnectHandler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,6 +112,7 @@ public class ProvisionActivity extends AppCompatActivity {
         handler = new Handler();
         apiManager = ApiManager.getInstance(getApplicationContext());
         initViews();
+        checkDeviceCapabilities();
 
         Log.d(TAG, "Selected AP - " + ssidValue);
         EventBus.getDefault().register(this);
@@ -114,6 +129,7 @@ public class ProvisionActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
 
+        wifiConnectHandler.removeCallbacks(wifiConnectTimeoutTask);
         apiManager.cancelRequestStatusPollingTask();
         handler.removeCallbacks(getNodeStatusTask);
         handler.removeCallbacks(nodeStatusReqFailed);
@@ -128,16 +144,20 @@ public class ProvisionActivity extends AppCompatActivity {
         switch (event.getEventType()) {
 
             case EVENT_DEVICE_ADDED:
-                doStep5();
+                if (!isChallengeResponseFlow) {
+                    doStep5();
+                }
                 break;
 
             case EVENT_ADD_DEVICE_TIME_OUT:
-                tick4.setImageResource(R.drawable.ic_error);
-                tick4.setVisibility(View.VISIBLE);
-                progress4.setVisibility(View.GONE);
-                tvErrAtStep4.setVisibility(View.VISIBLE);
-                tvErrAtStep4.setText(R.string.error_prov_step_4);
-                tvProvError.setVisibility(View.VISIBLE);
+                if (!isChallengeResponseFlow) {
+                    tick4.setImageResource(R.drawable.ic_error);
+                    tick4.setVisibility(View.VISIBLE);
+                    progress4.setVisibility(View.GONE);
+                    tvErrAtStep4.setVisibility(View.VISIBLE);
+                    tvErrAtStep4.setText(R.string.error_prov_step_4);
+                    tvProvError.setVisibility(View.VISIBLE);
+                }
                 break;
         }
     }
@@ -211,12 +231,56 @@ public class ProvisionActivity extends AppCompatActivity {
         }
     }
 
+    private void checkDeviceCapabilities() {
+
+        ESPDevice espDevice = provisionManager.getEspDevice();
+        if (espDevice != null && espDevice.getTransportType().equals(ESPConstants.TransportType.TRANSPORT_BLE)) {
+            String versionInfo = espDevice.getVersionInfo();
+            ArrayList<String> rmakerExtraCaps = new ArrayList<>();
+
+            try {
+                JSONObject jsonObject = new JSONObject(versionInfo);
+                JSONObject rmakerExtraInfo = jsonObject.optJSONObject("rmaker_extra");
+
+                /* Check rmaker_extra capabilities */
+                if (rmakerExtraInfo != null) {
+                    JSONArray extraCapabilities = rmakerExtraInfo.optJSONArray("cap");
+                    if (extraCapabilities != null) {
+                        for (int i = 0, len = extraCapabilities.length(); i < len; i++) {
+                            rmakerExtraCaps.add(extraCapabilities.optString(i));
+                        }
+                    }
+                }
+                isChallengeResponseFlow = rmakerExtraCaps.contains(AppConstants.CAPABILITY_CHALLENGE_RESP);
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+                Log.e(TAG, "Version Info JSON not available.");
+                finish();
+            }
+        }
+    }
+
     private void doStep1() {
 
         tick1.setVisibility(View.GONE);
         progress1.setVisibility(View.VISIBLE);
 
-        associateDevice();
+        if (isChallengeResponseFlow) {
+            // Update UI for challenge-response flow
+            tvProvStep1.setText(R.string.confirming_node_association);
+            View step3View = findViewById(R.id.layout_configuring_wifi_creds);
+            View step4View = findViewById(R.id.layout_confirming_node_association);
+            if (step3View != null) {
+                step3View.setVisibility(View.GONE);
+            }
+            if (step4View != null) {
+                step4View.setVisibility(View.GONE);
+            }
+            verifyNodeAssociation();
+        } else {
+            associateDevice();
+        }
     }
 
     private void doStep2() {
@@ -235,13 +299,22 @@ public class ProvisionActivity extends AppCompatActivity {
         } else {
             tick2.setImageResource(R.drawable.ic_alert);
         }
-
         tick2.setVisibility(View.VISIBLE);
         progress2.setVisibility(View.GONE);
-        tick3.setVisibility(View.GONE);
-        progress3.setVisibility(View.VISIBLE);
 
-        handler.postDelayed(addDeviceTask, ADD_DEVICE_REQ_TIME);
+        if (!isChallengeResponseFlow) {
+            tick3.setVisibility(View.GONE);
+            progress3.setVisibility(View.VISIBLE);
+            handler.postDelayed(addDeviceTask, ADD_DEVICE_REQ_TIME);
+        } else {
+            hideLoading();
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    doStep5();
+                }
+            }, 500);
+        }
     }
 
     private void doStep4() {
@@ -265,6 +338,7 @@ public class ProvisionActivity extends AppCompatActivity {
         progress5.setVisibility(View.VISIBLE);
         handler.postDelayed(nodeStatusReqFailed, NODE_STATUS_REQ_TIME);
 
+        // Try to get node details even if local control failed
         apiManager.getNodeDetails(receivedNodeId, new ApiResponseListener() {
 
             @Override
@@ -276,12 +350,14 @@ public class ProvisionActivity extends AppCompatActivity {
             @Override
             public void onResponseFailure(Exception exception) {
                 Log.e(TAG, "Get node details - failure");
+                // Even if we fail to get details, proceed with status check
                 handler.postDelayed(getNodeStatusTask, 1000);
             }
 
             @Override
             public void onNetworkFailure(Exception exception) {
                 Log.e(TAG, "Get node details - failure");
+                // Even if we fail to get details, proceed with status check
                 handler.postDelayed(getNodeStatusTask, 1000);
             }
         });
@@ -329,12 +405,11 @@ public class ProvisionActivity extends AppCompatActivity {
 
                 @Override
                 public void wifiConfigApplied() {
-                    Log.d(TAG, "Thread Config Applied");
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            doStep2();
-                        }
+                    Log.d(TAG, "WiFi Config Applied");
+                    runOnUiThread(() -> {
+                        doStep2();
+                        // Start WiFi connection confirmation timeout
+                        wifiConnectHandler.postDelayed(wifiConnectTimeoutTask, WIFI_CONNECT_TIMEOUT);
                     });
                 }
 
@@ -346,6 +421,7 @@ public class ProvisionActivity extends AppCompatActivity {
                         @Override
                         public void run() {
 
+                            Log.e(TAG, "WiFi Config Apply failed");
                             tick1.setImageResource(R.drawable.ic_error);
                             tick1.setVisibility(View.VISIBLE);
                             progress1.setVisibility(View.GONE);
@@ -385,22 +461,19 @@ public class ProvisionActivity extends AppCompatActivity {
 
                 @Override
                 public void deviceProvisioningSuccess() {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            isProvisioningCompleted = true;
-                            doStep3(true);
-                        }
+                    runOnUiThread(() -> {
+                        wifiConnectHandler.removeCallbacks(wifiConnectTimeoutTask);
+                        isProvisioningCompleted = true;
+                        doStep3(true);
                     });
                 }
 
                 @Override
                 public void onProvisioningFailed(Exception e) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            doStep3(false);
-                        }
+                    runOnUiThread(() -> {
+                        Log.e(TAG, "Device Provisioning Failed");
+                        wifiConnectHandler.removeCallbacks(wifiConnectTimeoutTask);
+                        doStep3(false);
                     });
                 }
             });
@@ -544,9 +617,140 @@ public class ProvisionActivity extends AppCompatActivity {
         hideLoading();
     }
 
+    private void verifyNodeAssociation() {
+
+        apiManager.initiateMapping(new ApiResponseListener() {
+
+            @Override
+            public void onSuccess(Bundle data) {
+                try {
+                    String jsonResponse = data.getString(AppConstants.KEY_RESPONSE);
+                    JSONObject jsonObject = new JSONObject(jsonResponse);
+                    String challenge = jsonObject.optString(AppConstants.KEY_CHALLENGE);
+                    String requestId = jsonObject.optString(AppConstants.KEY_REQUEST_ID);
+                    Log.d(TAG, "Got challenge: " + challenge + ", request_id: " + requestId);
+
+                    /* Send challenge to device using proto */
+                    byte[] challengeBytes = challenge.getBytes(StandardCharsets.UTF_8);
+
+                    CmdCRPayload cmdPayload = CmdCRPayload.newBuilder()
+                            .setPayload(ByteString.copyFrom(challengeBytes))
+                            .build();
+
+                    RMakerMiscPayload payload = RMakerMiscPayload.newBuilder()
+                            .setMsg(RMakerMiscMsgType.TypeCmdChallengeResponse)
+                            .setStatus(RMakerMiscStatus.Success)
+                            .setCmdChallengeResponsePayload(cmdPayload)
+                            .build();
+
+                    provisionManager.getEspDevice().sendDataToCustomEndPoint(AppConstants.HANDLER_RM_CH_RESP, payload.toByteArray(), new ResponseListener() {
+                        @Override
+                        public void onSuccess(byte[] returnData) {
+                            if (returnData != null) {
+                                try {
+                                    RMakerMiscPayload response = RMakerMiscPayload.parseFrom(returnData);
+                                    if (response.getStatus() == RMakerMiscStatus.Success) {
+                                        RespCRPayload respPayload = response.getRespChallengeResponsePayload();
+                                        ByteString signedChallenge = respPayload.getPayload();
+                                        String nodeId = respPayload.getNodeId();
+                                        receivedNodeId = nodeId;
+
+                                        /* Call verify mapping API */
+                                        byte[] bytes = signedChallenge.toByteArray();
+
+                                        if (bytes.length != 256) {
+                                            showMappingError();
+                                            return;
+                                        }
+
+                                        /* Convert bytes to hex string */
+                                        StringBuilder hexString = new StringBuilder(512);
+                                        for (byte b : bytes) {
+                                            hexString.append(String.format("%02x", b & 0xFF));
+                                        }
+                                        String challengeResponse = hexString.toString();
+
+                                        JsonObject body = new JsonObject();
+                                        body.addProperty(AppConstants.KEY_REQUEST_ID, requestId);
+                                        body.addProperty(AppConstants.KEY_NODE_ID, nodeId);
+                                        body.addProperty(AppConstants.KEY_CHALLENGE_RESP, challengeResponse);
+
+                                        apiManager.verifyUserNodeMapping(requestId, nodeId, challengeResponse, new ApiResponseListener() {
+                                            @Override
+                                            public void onSuccess(Bundle data) {
+                                                runOnUiThread(() -> {
+                                                    provision();
+                                                });
+                                            }
+
+                                            @Override
+                                            public void onResponseFailure(Exception e) {
+                                                showMappingError();
+                                            }
+
+                                            @Override
+                                            public void onNetworkFailure(Exception e) {
+                                                showMappingError();
+                                            }
+                                        });
+                                    } else {
+                                        showMappingError();
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    showMappingError();
+                                }
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            e.printStackTrace();
+                            showMappingError();
+                        }
+                    });
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    showMappingError();
+                }
+            }
+
+            @Override
+            public void onResponseFailure(Exception e) {
+                showMappingError();
+            }
+
+            @Override
+            public void onNetworkFailure(Exception e) {
+                showMappingError();
+            }
+        });
+    }
+
+    private void showMappingError() {
+        runOnUiThread(() -> {
+            tick1.setImageResource(R.drawable.ic_error);
+            tick1.setVisibility(View.VISIBLE);
+            progress1.setVisibility(View.GONE);
+            tvErrAtStep1.setVisibility(View.VISIBLE);
+            tvErrAtStep1.setText(R.string.error_node_association);
+            tvProvError.setVisibility(View.VISIBLE);
+            tvProvError.setText(R.string.error_node_association_msg);
+            hideLoading();
+        });
+    }
+
     private void associateDevice() {
 
         Log.d(TAG, "Associate device");
+
+        if (isChallengeResponseFlow) {
+            Log.d(TAG, "Challenge response was already done, skipping cloud user association");
+            doStep4();
+            return;
+        }
+
+        /* Proceed with traditional cloud user association if challenge response was not done */
         final String secretKey = UUID.randomUUID().toString();
 
         EspRmakerUserMapping.CmdSetUserMapping deviceSecretRequest = EspRmakerUserMapping.CmdSetUserMapping.newBuilder()
@@ -853,6 +1057,22 @@ public class ProvisionActivity extends AppCompatActivity {
         }
     };
 
+    private Runnable wifiConnectTimeoutTask = new Runnable() {
+        @Override
+        public void run() {
+            Log.e(TAG, "WiFi connection confirmation timed out");
+            runOnUiThread(() -> {
+                tick2.setImageResource(R.drawable.ic_error);
+                tick2.setVisibility(View.VISIBLE);
+                progress2.setVisibility(View.GONE);
+                tvErrAtStep2.setVisibility(View.VISIBLE);
+                tvErrAtStep2.setText(R.string.error_wifi_connection_failed);
+                tvProvError.setVisibility(View.VISIBLE);
+                hideLoading();
+            });
+        }
+    };
+
     private void showLoading() {
 
         btnOk.setEnabled(false);
@@ -882,5 +1102,14 @@ public class ProvisionActivity extends AppCompatActivity {
             }
         });
         builder.show();
+    }
+
+    /* Helper method to print bytes in hex */
+    private String bytesToHex(byte[] bytes, int offset, int length) {
+        StringBuilder result = new StringBuilder();
+        for (int i = offset; i < offset + length && i < bytes.length; i++) {
+            result.append(String.format("%02x", bytes[i]));
+        }
+        return result.toString();
     }
 }

@@ -606,4 +606,10 @@
     <string name="error_cmd_timeout_positive">超时值必须为正数</string>
     <string name="error_cmd_timeout_invalid">无效的超时值</string>
 
+    <!-- Challenge-Response based user-node mapping -->
+    <string name="confirming_node_association">确认节点关联</string>
+    <string name="error_node_association">节点关联失败</string>
+    <string name="error_node_association_msg">无法验证节点关联。请重置您的设备并重试。</string>
+    <string name="error_wifi_connection_failed">无法确认 WiFi 连接。请检查您的设备是否已成功连接到网络。</string>
+
 </resources>

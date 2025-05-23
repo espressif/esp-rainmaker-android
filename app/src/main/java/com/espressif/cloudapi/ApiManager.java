@@ -2632,6 +2632,91 @@ public class ApiManager {
         });
     }
 
+    public void initiateMapping(final ApiResponseListener listener) {
+
+        Log.d(TAG, "Initiate Mapping...");
+        String url = getBaseUrl() + AppConstants.URL_USER_MAPPING_INITIATE;
+
+        JsonObject body = new JsonObject();
+        body.addProperty("timeout", 360);
+
+        apiInterface.initiateMapping(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Mapping initiate response code: " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.d(TAG, "Mapping initiate response: " + jsonResponse);
+                        Bundle data = new Bundle();
+                        data.putString(AppConstants.KEY_RESPONSE, jsonResponse);
+                        listener.onSuccess(data);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Mapping initiate failed");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Mapping initiate failed"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Mapping initiate failed"));
+            }
+        });
+    }
+
+    public void verifyUserNodeMapping(String requestId, String nodeId, String challengeResponse, final ApiResponseListener listener) {
+        Log.d(TAG, "Verify User Node Mapping...");
+        Log.d(TAG, "Challenge response length: " + (challengeResponse != null ? challengeResponse.length() : 0));
+
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_REQ_ID, requestId);
+        body.addProperty(AppConstants.KEY_NODE_ID, nodeId);
+        body.addProperty(AppConstants.KEY_CHALLENGE_RESP, challengeResponse);
+
+        apiInterface.verifyUserNodeMapping(getBaseUrl() + AppConstants.URL_USER_MAPPING_VERIFY, accessToken, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Verify mapping response code: " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+
+                        String jsonResponse = response.body().string();
+                        Log.d(TAG, "Verify mapping response: " + jsonResponse);
+                        Bundle data = new Bundle();
+                        data.putString(AppConstants.KEY_RESPONSE, jsonResponse);
+                        listener.onSuccess(data);
+
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Verify mapping failed");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(new RuntimeException("Verify mapping failed"));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new RuntimeException("Verify mapping failed"));
+            }
+        });
+    }
+
     public void verifyClaiming(JsonObject body, final ApiResponseListener listener) {
 
         Log.d(TAG, "Verifying Claiming...");
