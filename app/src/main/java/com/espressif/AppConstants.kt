@@ -487,6 +487,7 @@ class AppConstants {
         const val KEY_THREAD_SCAN_AVAILABLE = "thread_scan_available"
         const val KEY_THREAD_DATASET = "thread_dataset"
         const val KEY_DEPENDENCIES = "dependencies"
+        const val KEY_IS_RAINMAKER_NODE = "is_rainmaker_node"
 
         const val CERT_BEGIN = "-----BEGIN CERTIFICATE REQUEST-----"
         const val CERT_END = "-----END CERTIFICATE REQUEST-----"

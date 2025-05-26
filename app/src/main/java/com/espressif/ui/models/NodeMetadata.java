@@ -27,7 +27,6 @@ public class NodeMetadata implements Parcelable {
     private String groupId;
     private String productId;
     private String vendorId;
-    private boolean isRainMaker;
     private String serversData;
     private ArrayList<String> endpointsData;
 
@@ -41,7 +40,6 @@ public class NodeMetadata implements Parcelable {
         groupId = in.readString();
         productId = in.readString();
         vendorId = in.readString();
-        isRainMaker = in.readByte() != 0;
         serversData = in.readString();
         endpointsData = in.createStringArrayList();
     }
@@ -106,14 +104,6 @@ public class NodeMetadata implements Parcelable {
         this.vendorId = vendorId;
     }
 
-    public boolean isRainMaker() {
-        return isRainMaker;
-    }
-
-    public void setRainMaker(boolean rainMaker) {
-        isRainMaker = rainMaker;
-    }
-
     public String getServersData() {
         return serversData;
     }
@@ -143,7 +133,6 @@ public class NodeMetadata implements Parcelable {
         dest.writeString(groupId);
         dest.writeString(productId);
         dest.writeString(vendorId);
-        dest.writeByte((byte) (isRainMaker ? 1 : 0));
         dest.writeString(serversData);
         dest.writeStringList(endpointsData);
     }

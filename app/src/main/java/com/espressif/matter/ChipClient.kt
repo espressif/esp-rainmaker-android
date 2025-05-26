@@ -610,21 +610,6 @@ class ChipClient constructor(
 
                                     body.addProperty(AppConstants.KEY_RAINMAKER_NODE_ID, rmNodeId)
                                     body.addProperty(AppConstants.KEY_CHALLENGE, challenge)
-
-                                    if (isControllerClusterAvailable) {
-
-                                        Log.d(TAG, "Controller cluster available")
-                                        val sharedPreferences =
-                                            context.getSharedPreferences(
-                                                AppConstants.ESP_PREFERENCES,
-                                                Context.MODE_PRIVATE
-                                            )
-                                        val editor = sharedPreferences.edit()
-                                        editor.putBoolean(rmNodeId, true)
-                                        val key = "ctrl_setup_$rmNodeId"
-                                        editor.putBoolean(key, false)
-                                        editor.apply()
-                                    }
                                 } else {
                                     // Nothing to do
                                 }
@@ -637,10 +622,34 @@ class ChipClient constructor(
                                 body.addProperty(AppConstants.KEY_STATUS, "success")
                                 body.add(AppConstants.KEY_METADATA, matterMetadataJson)
 
-                                var description: String? =
-                                    ApiManager.getInstance(context)
-                                        .confirmMatterNode(body, groupId)
-                                Log.d(TAG, "Confirming matter node, response : $description")
+                                val responseData: Bundle? =
+                                    ApiManager.getInstance(context).confirmMatterNode(body, groupId)
+                                var isRainMaker: Boolean = isRmClusterAvailable
+
+                                responseData.let {
+                                    isRainMaker =
+                                        it?.getBoolean(AppConstants.KEY_IS_RAINMAKER_NODE, false)
+                                            ?: false
+                                    val status: String? =
+                                        it?.getString(AppConstants.KEY_STATUS)
+                                    val description: String? =
+                                        it?.getString(AppConstants.KEY_DESCRIPTION)
+                                }
+
+                                if (isControllerClusterAvailable && isRainMaker) {
+
+                                    Log.d(TAG, "Controller cluster available")
+                                    val sharedPreferences =
+                                        context.getSharedPreferences(
+                                            AppConstants.ESP_PREFERENCES,
+                                            Context.MODE_PRIVATE
+                                        )
+                                    val editor = sharedPreferences.edit()
+                                    editor.putBoolean(rmNodeId, true)
+                                    val key = "ctrl_setup_$rmNodeId"
+                                    editor.putBoolean(key, false)
+                                    editor.apply()
+                                }
 
                                 var aclClusterHelper = AccessControlClusterHelper(this@ChipClient)
                                 var aclAttr: MutableList<ChipStructs.AccessControlClusterAccessControlEntryStruct>? =

@@ -972,7 +972,6 @@ public class ApiManager {
                                             NodeMetadata metadata = new NodeMetadata();
                                             metadata.setDeviceName(matterMetadataJson.optString(AppConstants.KEY_DEVICENAME));
                                             metadata.setGroupId(matterMetadataJson.optString(AppConstants.KEY_GROUP_ID));
-                                            metadata.setRainMaker(matterMetadataJson.optBoolean(AppConstants.KEY_IS_RAINMAKER));
                                             metadata.setServersData(matterMetadataJson.optString(AppConstants.KEY_SERVERS_DATA));
                                             espNode.setNodeMetadata(metadata);
                                         }
@@ -3142,10 +3141,10 @@ public class ApiManager {
         }
     }
 
-    public @Nullable String confirmMatterNode(@NotNull JsonObject body, String groupId) {
+    public @Nullable Bundle confirmMatterNode(@NotNull JsonObject body, String groupId) {
         Log.d(TAG, "Confirming matter node ===========================");
         String url = getBaseUrl() + AppConstants.URL_USER_NODE_GROUP;
-        String result = "";
+        Bundle result = new Bundle();
         try {
             Response<ResponseBody> response = apiInterface.confirmPureMatterNode(url, accessToken, groupId, body).execute();
 
@@ -3156,17 +3155,19 @@ public class ApiManager {
                 Log.d(TAG, "Confirming matter node, Response : " + jsonResponse);
 
                 JSONObject jsonObject = new JSONObject(jsonResponse);
-                result = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+                String status = jsonObject.optString(AppConstants.KEY_STATUS);
+                String description = jsonObject.optString(AppConstants.KEY_DESCRIPTION);
+                boolean isRainMakerNode = jsonObject.optBoolean(AppConstants.KEY_IS_RAINMAKER_NODE);
+                result.putString(AppConstants.KEY_STATUS, status);
+                result.putString(AppConstants.KEY_DESCRIPTION, description);
+                result.putBoolean(AppConstants.KEY_IS_RAINMAKER_NODE, isRainMakerNode);
             } else {
                 Log.e(TAG, "Failed to confirm matter node");
             }
-
         } catch (IOException e) {
             e.printStackTrace();
-            throw new RuntimeException(e);
         } catch (JSONException e) {
             e.printStackTrace();
-            throw new RuntimeException(e);
         }
         return result;
     }
