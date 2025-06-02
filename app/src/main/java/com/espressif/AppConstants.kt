@@ -57,6 +57,8 @@ class AppConstants {
         const val ESP_DEVICE_DOORBELL = "esp.device.doorbell"
         const val ESP_DEVICE_SECURITY_PANEL = "esp.device.security-panel"
         const val ESP_DEVICE_OTHER = "esp.device.other"
+        const val ESP_DEVICE_MATTER_CONTROLLER = "esp.device.matter-controller"
+        const val ESP_DEVICE_THREAD_BR = "esp.device.thread-br"
 
         const val MATTER_DEVICE_ON_OFF_LIGHT = 256
         const val MATTER_DEVICE_DIMMABLE_LIGHT = 257

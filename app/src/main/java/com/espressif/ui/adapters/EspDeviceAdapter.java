@@ -560,10 +560,11 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
                 Log.d("TAG", "isMatterCtrlSetupDone : " + isMatterCtrlSetupDone);
 
                 Service controllerService = NodeUtils.Companion.getService(espApp.nodeMap.get(device.getNodeId()), AppConstants.SERVICE_TYPE_MATTER_CONTROLLER);
-                boolean isController = controllerService != null;
+                boolean isCtlServiceAvailable = controllerService != null;
                 boolean hasUserToken = false;
+                boolean matterNodeIdParamAvailable = false;
 
-                if (isController) {
+                if (isCtlServiceAvailable) {
                     ArrayList<Param> params = controllerService.getParams();
 
                     if (params != null && !params.isEmpty()) {
@@ -573,7 +574,9 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
                                 if (userToken != null && !userToken.isEmpty()) {
                                     hasUserToken = true;
                                 }
-                                break;
+                            }
+                            if (AppConstants.PARAM_TYPE_MATTER_NODE_ID.equals(param.getParamType())) {
+                                matterNodeIdParamAvailable = true;
                             }
                         }
                     }
@@ -581,7 +584,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
 
                 if (isMatterController && !isMatterCtrlSetupDone) {
                     controllerNeedsAccessWarning(rmNodeId, R.string.dialog_msg_matter_controller, false);
-                } else if (isController && !hasUserToken) {
+                } else if (isCtlServiceAvailable && matterNodeIdParamAvailable && !hasUserToken) {
                     controllerNeedsAccessWarning(rmNodeId, R.string.dialog_msg_controller, true);
                 } else {
                     Intent intent = new Intent(context, EspDeviceActivity.class);

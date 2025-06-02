@@ -547,6 +547,12 @@ public class Utils {
                 case AppConstants.ESP_DEVICE_SECURITY_PANEL:
                     ivDevice.setImageResource(R.drawable.ic_device_security_panel);
                     break;
+                case AppConstants.ESP_DEVICE_MATTER_CONTROLLER:
+                    ivDevice.setImageResource(R.drawable.ic_device_matter_controller);
+                    break;
+                case AppConstants.ESP_DEVICE_THREAD_BR:
+                    ivDevice.setImageResource(R.drawable.ic_device_thread_br);
+                    break;
                 case AppConstants.ESP_DEVICE_OTHER:
                 case AppConstants.ESP_DEVICE_SENSOR:
                 default:
