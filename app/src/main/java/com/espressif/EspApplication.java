@@ -216,20 +216,45 @@ public class EspApplication extends Application {
                 appState = newState;
                 EventBus.getDefault().post(new UpdateEvent(UpdateEventType.EVENT_STATE_CHANGE_UPDATE));
                 startLocalDeviceDiscovery();
+                ArrayList<String> nodeIdCtrlDevices = new ArrayList<>();
+
                 for (Map.Entry<String, String> entry : matterRmNodeIdMap.entrySet()) {
                     String nodeId = entry.getKey();
                     String matterNodeId = entry.getValue();
-                    ChipClientHelper clientHelper = new ChipClientHelper(this);
-                    if (!chipClientMap.containsKey(matterNodeId)) {
-                        clientHelper.initChipClientInBackground(matterNodeId);
-                    } else {
-                        try {
-                            if (nodeMap.get(nodeId) != null) {
-                                clientHelper.getCurrentValues(nodeId, matterNodeId, nodeMap.get(nodeId));
+                    boolean hasCtrlService = false;
+
+                    if (nodeMap.get(nodeId) != null) {
+                        EspNode node = nodeMap.get(nodeId);
+                        Service ctrlService = NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER);
+                        if (ctrlService != null) {
+                            for (Param p : ctrlService.getParams()) {
+                                if (AppConstants.PARAM_TYPE_MATTER_NODE_ID.equals(p.getParamType())) {
+                                    hasCtrlService = true;
+                                    nodeIdCtrlDevices.add(nodeId);
+                                }
                             }
-                        } catch (ExecutionException e) {
-                            e.printStackTrace();
                         }
+                    }
+
+                    if (!hasCtrlService) {
+                        ChipClientHelper clientHelper = new ChipClientHelper(this);
+                        if (!chipClientMap.containsKey(matterNodeId)) {
+                            clientHelper.initChipClientInBackground(matterNodeId);
+                        } else {
+                            try {
+                                if (nodeMap.get(nodeId) != null) {
+                                    clientHelper.getCurrentValues(nodeId, matterNodeId, nodeMap.get(nodeId));
+                                }
+                            } catch (ExecutionException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+
+                if (!nodeIdCtrlDevices.isEmpty()) {
+                    for (String nodeId : nodeIdCtrlDevices) {
+                        matterRmNodeIdMap.remove(nodeId);
                     }
                 }
                 break;

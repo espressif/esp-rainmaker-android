@@ -42,6 +42,7 @@ import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.local_control.EspLocalDevice;
 import com.espressif.matter.ControllerLoginActivity;
+import com.espressif.matter.GroupSelectionActivity;
 import com.espressif.matter.OnOffClusterHelper;
 import com.espressif.matter.RemoteControlApiHelper;
 import com.espressif.rainmaker.R;
@@ -103,7 +104,11 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
 
         // Set device name according to device type if it is empty.
         if (TextUtils.isEmpty(deviceName)) {
-            deviceName = setDeviceNameFromType(device.getDeviceType());
+            if (!TextUtils.isEmpty(device.getUserVisibleName())) {
+                deviceName = device.getUserVisibleName();
+            } else {
+                deviceName = setDeviceNameFromType(device.getDeviceType());
+            }
         }
 
         deviceVh.tvDeviceName.setText(deviceName);
@@ -554,8 +559,30 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
                 Log.d("TAG", "isMatterController : " + isMatterController);
                 Log.d("TAG", "isMatterCtrlSetupDone : " + isMatterCtrlSetupDone);
 
+                Service controllerService = NodeUtils.Companion.getService(espApp.nodeMap.get(device.getNodeId()), AppConstants.SERVICE_TYPE_MATTER_CONTROLLER);
+                boolean isController = controllerService != null;
+                boolean hasUserToken = false;
+
+                if (isController) {
+                    ArrayList<Param> params = controllerService.getParams();
+
+                    if (params != null && !params.isEmpty()) {
+                        for (Param param : params) {
+                            if (AppConstants.PARAM_TYPE_USER_TOKEN.equals(param.getParamType())) {
+                                String userToken = param.getLabelValue();
+                                if (userToken != null && !userToken.isEmpty()) {
+                                    hasUserToken = true;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 if (isMatterController && !isMatterCtrlSetupDone) {
-                    controllerNeedsAccessWarning(rmNodeId);
+                    controllerNeedsAccessWarning(rmNodeId, R.string.dialog_msg_matter_controller, false);
+                } else if (isController && !hasUserToken) {
+                    controllerNeedsAccessWarning(rmNodeId, R.string.dialog_msg_controller, true);
                 } else {
                     Intent intent = new Intent(context, EspDeviceActivity.class);
                     intent.putExtra(AppConstants.KEY_ESP_DEVICE, device);
@@ -575,11 +602,11 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
         notifyDataSetChanged();
     }
 
-    private void controllerNeedsAccessWarning(String rmNodeId) {
+    private void controllerNeedsAccessWarning(String rmNodeId, int strResId, boolean isCtrlService) {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setCancelable(false);
-        builder.setMessage(R.string.dialog_msg_matter_controller);
+        builder.setCancelable(true);
+        builder.setMessage(strResId);
 
         // Set up the buttons
         builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
@@ -588,7 +615,11 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
                 Intent intent = new Intent(context, ControllerLoginActivity.class);
+                if (isCtrlService) {
+                    intent = new Intent(context, GroupSelectionActivity.class);
+                }
                 intent.putExtra(AppConstants.KEY_NODE_ID, rmNodeId);
+                intent.putExtra(AppConstants.KEY_IS_CTRL_SERVICE, isCtrlService);
                 context.startActivity(intent);
             }
         });

@@ -72,7 +72,7 @@ android {
         minSdkVersion 27
         targetSdkVersion 35
         versionCode 160
-        versionName "3.7.1 - ${getGitHash()}"
+        versionName "3.8.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""

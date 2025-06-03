@@ -16,6 +16,7 @@ package com.espressif.matter
 
 import android.app.Activity
 import android.content.ComponentName
+import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import android.util.Log
@@ -56,13 +57,16 @@ class GroupSelectionActivity : AppCompatActivity() {
     private lateinit var commissionDeviceLauncher: ActivityResultLauncher<IntentSenderRequest>
     // CODELAB SECTION END
 
+    private var isCtrlService = false
+    private lateinit var espApp: EspApplication
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityGroupsSelectionBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
         setToolbar()
-        setup()
+        espApp = applicationContext as EspApplication
         init()
     }
 
@@ -81,6 +85,11 @@ class GroupSelectionActivity : AppCompatActivity() {
         binding.rlNoGroup.visibility = View.GONE
         binding.rvGroupList.visibility = View.GONE
         binding.layoutProgress.visibility = View.GONE
+        isCtrlService = intent.getBooleanExtra(AppConstants.KEY_IS_CTRL_SERVICE, false)
+
+        if (!isCtrlService) {
+            setup()
+        }
 
         groupAdapter = GroupSelectionAdapter(this, groups)
         binding.rvGroupList.layoutManager = LinearLayoutManager(this)
@@ -97,7 +106,6 @@ class GroupSelectionActivity : AppCompatActivity() {
 
     private fun createFabric() {
         showLoading()
-        var espApp = applicationContext as EspApplication
 
         espApp.createHomeFabric(object : ApiResponseListener {
             override fun onSuccess(data: Bundle?) {
@@ -204,6 +212,16 @@ class GroupSelectionActivity : AppCompatActivity() {
     }
 
     public fun commissionDevice() {
+
+        if (isCtrlService) {
+            var intent = Intent(this, ControllerLoginActivity::class.java)
+            intent.putExtras(getIntent())
+            intent.putExtra(AppConstants.KEY_GROUP_ID, espApp.mGroupId)
+            startActivity(intent)
+            finish()
+            return
+        }
+
         var payload: String? = intent.getStringExtra(AppConstants.KEY_ON_BOARD_PAYLOAD)
         Log.d(TAG, "OnboardPayload : $payload")
         var commissionDeviceRequest: CommissioningRequest

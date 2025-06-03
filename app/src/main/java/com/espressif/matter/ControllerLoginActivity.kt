@@ -25,6 +25,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import com.espressif.AppConstants
 import com.espressif.EspApplication
+import com.espressif.NetworkApiManager
 import com.espressif.cloudapi.ApiManager
 import com.espressif.cloudapi.ApiResponseListener
 import com.espressif.cloudapi.CloudException
@@ -33,6 +34,9 @@ import com.espressif.rainmaker.R
 import com.espressif.rainmaker.databinding.ActivityControllerLoginBinding
 import com.espressif.ui.Utils
 import com.espressif.ui.models.UpdateEvent
+import com.espressif.utils.NodeUtils.Companion.getService
+import com.espressif.utils.ParamUtils
+import com.google.gson.JsonObject
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -49,6 +53,7 @@ class ControllerLoginActivity : AppCompatActivity() {
     private var email: String? = null
     private var password: String? = null
     private var nodeId: String? = null
+    private var isCtrlService = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,9 +82,8 @@ class ControllerLoginActivity : AppCompatActivity() {
                 override fun onSuccess(data: Bundle?) {
                     Log.d(TAG, "Received success in OAuth")
                     if (data != null) {
-                        var refreshToken: String =
+                        val refreshToken: String =
                             data.getString(AppConstants.KEY_REFRESH_TOKEN, "")
-                        Log.d(TAG, "Refresh token : ${refreshToken}")
                         sendRefreshToken(refreshToken)
                     }
                 }
@@ -143,6 +147,7 @@ class ControllerLoginActivity : AppCompatActivity() {
     private fun init() {
 
         nodeId = intent.getStringExtra(AppConstants.KEY_NODE_ID)
+        isCtrlService = intent.getBooleanExtra(AppConstants.KEY_IS_CTRL_SERVICE, false)
         binding.btnLogin.textBtn.text = getString(R.string.btn_login)
         binding.btnLogin.layoutBtn.setOnClickListener { signInUser() }
 
@@ -194,8 +199,7 @@ class ControllerLoginActivity : AppCompatActivity() {
         apiManager.controllerLogin(email, password, object : ApiResponseListener {
             override fun onSuccess(data: Bundle?) {
                 if (data != null) {
-                    var refreshToken: String = data.getString(AppConstants.KEY_REFRESH_TOKEN, "")
-                    Log.d(TAG, "Refresh token : ${refreshToken}")
+                    val refreshToken: String = data.getString(AppConstants.KEY_REFRESH_TOKEN, "")
                     sendRefreshToken(refreshToken)
                 }
             }
@@ -233,32 +237,99 @@ class ControllerLoginActivity : AppCompatActivity() {
 
     private fun sendRefreshToken(token: String) {
 
-        var espApp = applicationContext as EspApplication
+        val espApp = applicationContext as EspApplication
 
-        val matterNodeId = espApp.matterRmNodeIdMap.get(nodeId)
-        val id = matterNodeId?.let { BigInteger(it, 16) }
-        val deviceId = id?.toLong()
-        Log.d(TAG, "Device id : $deviceId")
+        if (isCtrlService) {
+            val serviceParamJson = JsonObject()
 
-        if (espApp.chipClientMap.get(matterNodeId) != null) {
-            val clustersHelper =
-                ControllerClusterHelper(espApp.chipClientMap.get(matterNodeId)!!, this)
+            var baseUrlParamName = AppConstants.PARAM_BASE_URL
+            var userTokenParamName = AppConstants.PARAM_USER_TOKEN
+            var rmGroupIdParamName = AppConstants.PARAM_RMAKER_GROUP_ID
 
-            if (deviceId != null) {
-                nodeId?.let {
-                    clustersHelper.sendTokenToDeviceAsync(
-                        it,
-                        deviceId, AppConstants.ENDPOINT_0,
-                        AppConstants.CONTROLLER_CLUSTER_ID_HEX, token
-                    )
+            nodeId?.let {
+                baseUrlParamName = ParamUtils.getParamNameForService(
+                    it,
+                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER,
+                    AppConstants.PARAM_TYPE_BASE_URL,
+                    espApp
+                )
+                userTokenParamName = ParamUtils.getParamNameForService(
+                    it,
+                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER,
+                    AppConstants.PARAM_TYPE_USER_TOKEN,
+                    espApp
+                )
+                rmGroupIdParamName = ParamUtils.getParamNameForService(
+                    it,
+                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER,
+                    AppConstants.PARAM_TYPE_RMAKER_GROUP_ID,
+                    espApp
+                )
+            }
+
+            serviceParamJson.addProperty(baseUrlParamName, EspApplication.BASE_URL)
+            serviceParamJson.addProperty(userTokenParamName, token)
+            serviceParamJson.addProperty(
+                rmGroupIdParamName,
+                intent.getStringExtra(AppConstants.KEY_GROUP_ID)
+            )
+
+            // Get service name
+            var serviceName = AppConstants.KEY_MATTER_CTL
+            if (espApp.nodeMap[nodeId] != null) {
+                val service = getService(
+                    espApp.nodeMap[nodeId]!!,
+                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
+                )
+                if (service != null && !TextUtils.isEmpty(service.name)) {
+                    serviceName = service.name
                 }
             }
 
-            val sharedPreferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, MODE_PRIVATE)
-            val editor = sharedPreferences.edit()
-            val key = "ctrl_setup_$nodeId"
-            editor.putBoolean(key, true)
-            editor.apply()
+            val body = JsonObject()
+            body.add(serviceName, serviceParamJson)
+
+            val networkApiManager = NetworkApiManager(espApp)
+            networkApiManager.updateParamValue(nodeId, body, object : ApiResponseListener {
+                override fun onSuccess(data: Bundle?) {
+                    hideLoading()
+                    finish()
+                }
+
+                override fun onResponseFailure(exception: java.lang.Exception) {
+                }
+
+                override fun onNetworkFailure(exception: java.lang.Exception) {
+                }
+            })
+        } else {
+
+            val matterNodeId = espApp.matterRmNodeIdMap[nodeId]
+            val id = matterNodeId?.let { BigInteger(it, 16) }
+            val deviceId = id?.toLong()
+            Log.d(TAG, "Device id : $deviceId")
+
+            if (espApp.chipClientMap[matterNodeId] != null) {
+                val clustersHelper =
+                    ControllerClusterHelper(espApp.chipClientMap[matterNodeId]!!, this)
+
+                if (deviceId != null) {
+                    nodeId?.let {
+                        clustersHelper.sendTokenToDeviceAsync(
+                            it,
+                            deviceId, AppConstants.ENDPOINT_0,
+                            AppConstants.CONTROLLER_CLUSTER_ID_HEX, token
+                        )
+                    }
+                }
+
+                val sharedPreferences =
+                    getSharedPreferences(AppConstants.ESP_PREFERENCES, MODE_PRIVATE)
+                val editor = sharedPreferences.edit()
+                val key = "ctrl_setup_$nodeId"
+                editor.putBoolean(key, true)
+                editor.apply()
+            }
         }
     }
 

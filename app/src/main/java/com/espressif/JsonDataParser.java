@@ -397,6 +397,8 @@ public class JsonDataParser {
         JSONObject localControlJson = paramsJson.optJSONObject(AppConstants.KEY_LOCAL_CONTROL);
         JSONObject systemServiceJson = paramsJson.optJSONObject(AppConstants.KEY_SYSTEM);
         JSONObject controllerServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CONTROLLER);
+        JSONObject ctlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CTL);
+
         int scheduleCnt = 0, sceneCnt = 0;
 
         if (devices != null) {
@@ -749,7 +751,8 @@ public class JsonDataParser {
                             }
                         }
                     }
-                } else if (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && controllerServiceJson != null) {
+                } else if ((AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && controllerServiceJson != null)
+                        || (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && ctlServiceJson != null)) {
 
                     // Matter controller service
                     ArrayList<Param> controllerParams = service.getParams();
@@ -796,6 +799,14 @@ public class JsonDataParser {
                                 }
                                 setRemoteDeviceParamValues(espAppContext, nodeId, node, controllerDataVersion);
                                 break;
+
+                            } else if (!TextUtils.isEmpty(type) &&
+                                    (AppConstants.PARAM_TYPE_BASE_URL.equals(type) || AppConstants.PARAM_TYPE_USER_TOKEN.equals(type)
+                                            || AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type))) {
+                                if (!TextUtils.isEmpty(ctlServiceJson.optString(controllerParam.getName()))) {
+                                    String value = ctlServiceJson.optString(controllerParam.getName());
+                                    controllerParam.setLabelValue(value);
+                                }
                             }
                         }
                     }

@@ -1106,6 +1106,7 @@ public class ApiManager {
                                             JSONObject timeJson = paramsJson.optJSONObject(AppConstants.KEY_TIME);
                                             JSONObject localControlJson = paramsJson.optJSONObject(AppConstants.KEY_LOCAL_CONTROL);
                                             JSONObject controllerJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CONTROLLER);
+                                            JSONObject ctlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CTL);
 
                                             // If node is available on local network then ignore param values received from cloud.
                                             if (!espApp.localDeviceMap.containsKey(nodeId) && devices != null) {
@@ -1481,8 +1482,36 @@ public class ApiManager {
                                                         }
                                                     }
                                                 }
-                                            } else {
-                                                Log.e(TAG, "Matter controller JSON is not available");
+                                            }
+
+                                            // Client only controller
+                                            if (ctlServiceJson == null || services == null) return;
+
+                                            for (Service service : services) {
+
+                                                if (!AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()))
+                                                    continue;
+
+                                                ArrayList<Param> controllerParams = service.getParams();
+                                                if (controllerParams == null) continue;
+
+                                                for (Param controllerParam : controllerParams) {
+
+                                                    String type = controllerParam.getParamType();
+                                                    if (TextUtils.isEmpty(type)) continue;
+
+                                                    boolean isSupportedType = AppConstants.PARAM_TYPE_BASE_URL.equals(type)
+                                                            || AppConstants.PARAM_TYPE_USER_TOKEN.equals(type)
+                                                            || AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type);
+
+                                                    if (!isSupportedType) continue;
+
+                                                    String name = controllerParam.getName();
+                                                    if (!TextUtils.isEmpty(name)) {
+                                                        String value = ctlServiceJson.optString(name);
+                                                        controllerParam.setLabelValue(value);
+                                                    }
+                                                }
                                             }
                                         }
                                     }

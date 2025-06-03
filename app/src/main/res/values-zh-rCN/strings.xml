@@ -612,4 +612,6 @@
     <string name="error_node_association_msg">无法验证节点关联。请重置您的设备并重试。</string>
     <string name="error_wifi_connection_failed">无法确认 WiFi 连接。请检查您的设备是否已成功连接到网络。</string>
 
+    <string name="dialog_msg_controller">控制器需要访问您的 RainMaker 帐户才能获取该帐户下的所有节点。继续吗？</string>
+
 </resources>
