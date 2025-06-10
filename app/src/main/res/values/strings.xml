@@ -423,7 +423,7 @@
     <string name="error_scene_activate_partial">Failed to activate scene for</string>
 
     <!--Other Strings-->
-    <string name="user_agreement">By proceeding, I confirm that I am 18+ yrs of age and I have read and agree to the Privacy Policy and Terms of Use.</string>
+    <string name="user_agreement">By proceeding, I confirm that I am 18+ years of age and I have read and agree to the Privacy Policy and Terms of Use.</string>
     <string name="login_with">Login with</string>
     <string name="use_email_id">or use your email id</string>
     <string name="forgot_password">Forgot password?</string>
@@ -614,5 +614,7 @@
     <string name="error_node_association">Node Association Failed</string>
     <string name="error_node_association_msg">Failed to verify node association. Please reset your device and try again.</string>
     <string name="error_wifi_connection_failed">Failed to confirm WiFi connection. Please check if your device is connected to the network successfully.</string>
-    
+
+    <string name="controller_unauthorised">Controller (Unauthorised)</string>
+
 </resources>

@@ -17,6 +17,9 @@ package com.espressif.ui.activities
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.StyleSpan
 import android.text.TextUtils
 import android.util.Log
 import android.view.Menu
@@ -61,6 +64,7 @@ import java.math.BigInteger
 import java.text.SimpleDateFormat
 import java.util.Arrays
 import java.util.Calendar
+import android.graphics.Typeface
 
 class EspDeviceActivity : AppCompatActivity() {
 
@@ -173,6 +177,22 @@ class EspDeviceActivity : AppCompatActivity() {
                 AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
             )
             isCtlAvailable = controllerService != null
+            var matterNodeIdParamAvailable = false
+
+            if (isCtlAvailable) {
+                val params = controllerService!!.params
+
+                if (params != null && !params.isEmpty()) {
+                    for (param in params) {
+                        if (AppConstants.PARAM_TYPE_MATTER_NODE_ID == param.paramType) {
+                            matterNodeIdParamAvailable = true
+                        }
+                    }
+                }
+            }
+            if (!matterNodeIdParamAvailable) {
+                isCtlAvailable = false
+            }
 
             setParamList(device!!.params)
             initViews()
@@ -407,8 +427,29 @@ class EspDeviceActivity : AppCompatActivity() {
             startActivity(intent)
         })
 
-        if (isControllerClusterAvailable || isCtlAvailable) {
-            binding.espDeviceLayout.rlControllerLogin.visibility = View.VISIBLE
+        if (isControllerClusterAvailable) {
+            if (AppConstants.NODE_TYPE_PURE_MATTER != nodeType) {
+                binding.espDeviceLayout.rlControllerLogin.visibility = View.VISIBLE
+                binding.espDeviceLayout.rlMatterController.visibility = View.VISIBLE
+            } else {
+                binding.espDeviceLayout.rlControllerLogin.visibility = View.GONE
+                binding.espDeviceLayout.rlMatterController.visibility = View.VISIBLE
+                binding.espDeviceLayout.rlMatterController.isEnabled = false
+                binding.espDeviceLayout.btnUpdate.isEnabled = false
+                binding.espDeviceLayout.btnUpdate.alpha = 0.7f
+                val fullText = "Controller (Unauthorised)"
+                val spannable = SpannableString(fullText)
+                val startIndex = fullText.indexOf(" (Unauthorised)")
+                spannable.setSpan(
+                    StyleSpan(Typeface.ITALIC),
+                    startIndex,
+                    fullText.length,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                binding.espDeviceLayout.tvControllerLabel.text = spannable
+            }
+        } else if (isCtlAvailable) {
+            binding.espDeviceLayout.rlControllerLogin.visibility = View.GONE
             binding.espDeviceLayout.rlMatterController.visibility = View.VISIBLE
         } else {
             binding.espDeviceLayout.rlControllerLogin.visibility = View.GONE

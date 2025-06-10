@@ -1485,31 +1485,31 @@ public class ApiManager {
                                             }
 
                                             // Client only controller
-                                            if (ctlServiceJson == null || services == null) return;
+                                            if (ctlServiceJson != null && services != null) {
 
-                                            for (Service service : services) {
+                                                for (Service service : services) {
 
-                                                if (!AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()))
-                                                    continue;
+                                                    if (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType())) {
 
-                                                ArrayList<Param> controllerParams = service.getParams();
-                                                if (controllerParams == null) continue;
+                                                        ArrayList<Param> controllerParams = service.getParams();
 
-                                                for (Param controllerParam : controllerParams) {
+                                                        if (controllerParams != null) {
 
-                                                    String type = controllerParam.getParamType();
-                                                    if (TextUtils.isEmpty(type)) continue;
+                                                            for (Param controllerParam : controllerParams) {
 
-                                                    boolean isSupportedType = AppConstants.PARAM_TYPE_BASE_URL.equals(type)
-                                                            || AppConstants.PARAM_TYPE_USER_TOKEN.equals(type)
-                                                            || AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type);
+                                                                String type = controllerParam.getParamType();
+                                                                boolean isSupportedType = (!TextUtils.isEmpty(type)) && (AppConstants.PARAM_TYPE_BASE_URL.equals(type)
+                                                                        || AppConstants.PARAM_TYPE_USER_TOKEN.equals(type)
+                                                                        || AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type));
 
-                                                    if (!isSupportedType) continue;
-
-                                                    String name = controllerParam.getName();
-                                                    if (!TextUtils.isEmpty(name)) {
-                                                        String value = ctlServiceJson.optString(name);
-                                                        controllerParam.setLabelValue(value);
+                                                                if (isSupportedType) {
+                                                                    if (!TextUtils.isEmpty(ctlServiceJson.optString(controllerParam.getName()))) {
+                                                                        String value = ctlServiceJson.optString(controllerParam.getName());
+                                                                        controllerParam.setLabelValue(value);
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
