@@ -615,5 +615,6 @@
     <string name="dialog_msg_controller">控制器需要访问您的 RainMaker 帐户才能获取该帐户下的所有节点。继续吗？</string>
 
     <string name="controller_unauthorised">Controller (Unauthorised)</string>
+    <string name="btn_merge">合併</string>
 
 </resources>
