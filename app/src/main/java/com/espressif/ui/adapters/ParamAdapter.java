@@ -181,6 +181,10 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         if (holder.getItemViewType() == VIEW_TYPE_PARAM) {
 
             final ParamViewHolder paramViewHolder = (ParamViewHolder) holder;
+            
+            // Reset all ViewHolder states to prevent recycling issues
+            resetViewHolderState(paramViewHolder);
+            
             String dataType = param.getDataType();
 
             if (AppConstants.UI_TYPE_SLIDER.equalsIgnoreCase(param.getUiType())) {
@@ -337,6 +341,53 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
         } else if (holder.getItemViewType() == VIEW_TYPE_HUE) {
             displayHueCircle((HueViewHolder) holder, param);
+        }
+    }
+
+    private void resetViewHolderState(ParamViewHolder paramViewHolder) {
+        // Reset all UI components to prevent ViewHolder recycling issues
+        
+        // Hide all layouts initially
+        paramViewHolder.rlUiTypeSlider.setVisibility(View.GONE);
+        paramViewHolder.rlUiTypeSwitch.setVisibility(View.GONE);
+        paramViewHolder.rlUiTypeLabel.setVisibility(View.GONE);
+        paramViewHolder.rlPalette.setVisibility(View.GONE);
+        paramViewHolder.rlUiTypeDropDown.setVisibility(View.GONE);
+        paramViewHolder.rlUiTypeTrigger.setVisibility(View.GONE);
+        
+        // Clear slider listeners and reset configurations
+        if (paramViewHolder.intSlider != null) {
+            paramViewHolder.intSlider.setOnSeekChangeListener(null);
+            paramViewHolder.intSlider.setVisibility(View.GONE);
+        }
+        if (paramViewHolder.floatSlider != null) {
+            paramViewHolder.floatSlider.setOnSeekChangeListener(null);
+            paramViewHolder.floatSlider.setVisibility(View.GONE);
+        }
+        
+        // Clear switch listener
+        if (paramViewHolder.toggleSwitch != null) {
+            paramViewHolder.toggleSwitch.setOnCheckedChangeListener(null);
+        }
+        
+        // Clear spinner listener
+        if (paramViewHolder.spinner != null) {
+            paramViewHolder.spinner.setOnItemSelectedListener(null);
+        }
+        
+        // Clear button listeners
+        if (paramViewHolder.btnEdit != null) {
+            paramViewHolder.btnEdit.setOnClickListener(null);
+        }
+
+        // Clear trigger button listener
+        if (paramViewHolder.btnTrigger != null) {
+            paramViewHolder.btnTrigger.setOnButtonClickListener(null);
+        }
+        
+        // Clear palette listener
+        if (paramViewHolder.paletteBar != null) {
+            paramViewHolder.paletteBar.setListener(null);
         }
     }
 
@@ -540,12 +591,8 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     private void displaySlider(final ParamViewHolder paramViewHolder, final Param param, final int position) {
 
+        // Show slider layout (ViewHolder state was already reset in onBindViewHolder)
         paramViewHolder.rlUiTypeSlider.setVisibility(View.VISIBLE);
-        paramViewHolder.rlUiTypeSwitch.setVisibility(View.GONE);
-        paramViewHolder.rlUiTypeLabel.setVisibility(View.GONE);
-        paramViewHolder.rlPalette.setVisibility(View.GONE);
-        paramViewHolder.rlUiTypeDropDown.setVisibility(View.GONE);
-        paramViewHolder.rlUiTypeTrigger.setVisibility(View.GONE);
 
         double sliderValue = param.getValue();
         paramViewHolder.tvSliderName.setText(param.getName());
@@ -553,11 +600,13 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         float min = param.getMinBounds();
         String dataType = param.getDataType();
         EspApplication espApp = (EspApplication) context.getApplicationContext();
+        
+        Log.d(TAG, "displaySlider: param=" + param.getName() + ", min=" + min + ", max=" + max + ", value=" + sliderValue);
 
         if (AppConstants.PARAM_TYPE_CCT.equals(param.getParamType())) {
 
-            paramViewHolder.ivSliderStart.setImageResource(R.drawable.ic_cct_low);
-            paramViewHolder.ivSliderEnd.setImageResource(R.drawable.ic_cct_high);
+            paramViewHolder.ivSliderStart.setImageResource(R.drawable.ic_cct_low);  // Warm white (2700K)
+            paramViewHolder.ivSliderEnd.setImageResource(R.drawable.ic_cct_high);   // Cool white (6500K)
             paramViewHolder.ivSliderStart.setVisibility(View.VISIBLE);
             paramViewHolder.ivSliderEnd.setVisibility(View.VISIBLE);
 
@@ -585,9 +634,32 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             paramViewHolder.intSlider.setVisibility(View.VISIBLE);
             paramViewHolder.floatSlider.setVisibility(View.GONE);
 
-            paramViewHolder.intSlider.setMax(max);
+            // Force slider configuration to prevent ViewHolder recycling issues
+            // Set configuration multiple times to ensure it sticks
             paramViewHolder.intSlider.setMin(min);
+            paramViewHolder.intSlider.setMax(max);
             paramViewHolder.intSlider.setTickCount(2);
+            
+            // Force a second configuration to overcome any caching issues
+            paramViewHolder.intSlider.post(new Runnable() {
+                @Override
+                public void run() {
+                    paramViewHolder.intSlider.setMin(min);
+                    paramViewHolder.intSlider.setMax(max);
+                    
+                    // Verify the values were set correctly
+                    float actualMin = paramViewHolder.intSlider.getMin();
+                    float actualMax = paramViewHolder.intSlider.getMax();
+                    
+                    Log.d(TAG, "Post-delayed Slider config for " + param.getName() + " - Expected min:" + min + " max:" + max + 
+                              " | Actual min:" + actualMin + " max:" + actualMax);
+                    
+                    if (Math.abs(actualMin - min) > 0.1f || Math.abs(actualMax - max) > 0.1f) {
+                        Log.e(TAG, "SLIDER CONFIGURATION MISMATCH for " + param.getName() + 
+                                   " - This is the recycling bug!");
+                    }
+                }
+            });
 
             if (sliderValue < min) {
 
@@ -600,6 +672,10 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             } else {
                 paramViewHolder.intSlider.setProgress((int) sliderValue);
             }
+            
+            // Verify progress was set correctly
+            int actualProgress = paramViewHolder.intSlider.getProgress();
+            Log.d(TAG, "Slider progress for " + param.getName() + " - Expected:" + (int)sliderValue + " Actual:" + actualProgress);
 
             if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
@@ -691,6 +767,12 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                                                     ColorControlClusterHelper espClusterHelper = new ColorControlClusterHelper(espApp.chipClientMap.get(matterNodeId));
                                                     espClusterHelper.setSaturationValueAsync(deviceId, AppConstants.ENDPOINT_1, lastProgressValue);
                                                 }
+                                            } else if (AppConstants.PARAM_TYPE_CCT.equals(paramType)) {
+
+                                                // CCT value is in Kelvin from UI, convert to mireds for device
+                                                ColorControlClusterHelper espClusterHelper = new ColorControlClusterHelper(espApp.chipClientMap.get(matterNodeId));
+                                                espClusterHelper.setCCTValueFromKelvinAsync(deviceId, AppConstants.ENDPOINT_1, lastProgressValue);
+
                                             } else if (AppConstants.PARAM_TYPE_SETPOINT_TEMPERATURE.equals(paramType)) {
 
                                                 params.get(position).setValue(lastProgressValue);
@@ -804,9 +886,32 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             paramViewHolder.intSlider.setVisibility(View.GONE);
             paramViewHolder.floatSlider.setVisibility(View.VISIBLE);
 
-            paramViewHolder.floatSlider.setMax(max);
+            // Force slider configuration to prevent ViewHolder recycling issues
+            // Set configuration multiple times to ensure it sticks
             paramViewHolder.floatSlider.setMin(min);
+            paramViewHolder.floatSlider.setMax(max);
             paramViewHolder.floatSlider.setTickCount(2);
+            
+            // Force a second configuration to overcome any caching issues
+            paramViewHolder.floatSlider.post(new Runnable() {
+                @Override
+                public void run() {
+                    paramViewHolder.floatSlider.setMin(min);
+                    paramViewHolder.floatSlider.setMax(max);
+                    
+                    // Verify the values were set correctly
+                    float actualMin = paramViewHolder.floatSlider.getMin();
+                    float actualMax = paramViewHolder.floatSlider.getMax();
+                    
+                    Log.d(TAG, "Post-delayed Float Slider config for " + param.getName() + " - Expected min:" + min + " max:" + max + 
+                              " | Actual min:" + actualMin + " max:" + actualMax);
+                    
+                    if (Math.abs(actualMin - min) > 0.1f || Math.abs(actualMax - max) > 0.1f) {
+                        Log.e(TAG, "FLOAT SLIDER CONFIGURATION MISMATCH for " + param.getName() + 
+                                   " - This is the recycling bug!");
+                    }
+                }
+            });
 
             if (sliderValue < min) {
 
@@ -819,6 +924,10 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             } else {
                 paramViewHolder.floatSlider.setProgress((float) sliderValue);
             }
+            
+            // Verify progress was set correctly
+            float actualProgress = paramViewHolder.floatSlider.getProgressFloat();
+            Log.d(TAG, "Float Slider progress for " + param.getName() + " - Expected:" + sliderValue + " Actual:" + actualProgress);
 
             if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 

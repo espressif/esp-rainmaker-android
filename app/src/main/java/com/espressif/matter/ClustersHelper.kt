@@ -21,10 +21,10 @@ import chip.devicecontroller.ChipClusters
 import chip.devicecontroller.ChipClusters.BasicInformationCluster
 import chip.devicecontroller.ChipStructs
 import chip.devicecontroller.model.ChipAttributePath
-import matter.tlv.AnonymousTag
-import matter.tlv.TlvWriter
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
+import matter.tlv.AnonymousTag
+import matter.tlv.TlvWriter
 import java.util.concurrent.CompletableFuture
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -38,8 +38,10 @@ data class DeviceMatterInfo(
     val endpoint: Int,
     val types: List<Long>,
     val serverClusters: List<Any>,
-    val clientClusters: List<Any>
+    val clientClusters: List<Any>,
+    val clusterAttributes: Map<String, List<Long>> = mapOf() // Map of clusterId to list of attribute IDs
 )
+
 
 /** Class to facilitate access to Clusters functionality. */
 class ClustersHelper constructor(private val chipClient: ChipClient) {
@@ -51,19 +53,86 @@ class ClustersHelper constructor(private val chipClient: ChipClient) {
     // -----------------------------------------------------------------------------------------------
     // Convenience functions
 
+    /** Fetches attribute IDs for a given cluster */
+    private suspend fun fetchClusterAttributes(
+        devicePtr: Long,
+        endpoint: Int,
+        clusterId: Long
+    ): List<Long> {
+        return try {
+            suspendCoroutine { continuation ->
+                getBasicClusterForDevice(devicePtr, endpoint)
+                    .readAttributeListAttribute(
+                        object :
+                            ChipClusters.ApplicationBasicCluster.AttributeListAttributeCallback {
+                            override fun onSuccess(values: MutableList<Long>) {
+                                continuation.resume(values)
+                            }
+
+                            override fun onError(ex: Exception) {
+                                Log.e(
+                                    TAG,
+                                    "Error fetching attributes for cluster $clusterId: ${ex.message}"
+                                )
+                                continuation.resume(emptyList())
+                            }
+                        })
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching attributes for cluster $clusterId: ${e.message}")
+            emptyList()
+        }
+    }
+
+    /**
+     * Reads the attribute list for a given cluster using the AttributeList attribute (0xFFFB).
+     */
+    private suspend fun readClusterAttributeList(
+        devicePtr: Long,
+        endpoint: Int,
+        clusterId: Long
+    ): List<Long> {
+        return try {
+            val attributePath = ChipAttributePath.newInstance(endpoint, clusterId, 0xFFFBL)
+            val attributeStates = chipClient.readAttributes(devicePtr, listOf(attributePath))
+            val attributeState = attributeStates[attributePath]
+
+            if (attributeState?.value is List<*>) {
+                val attributeList = attributeState.value as List<*>
+                attributeList.mapNotNull {
+                    when (it) {
+                        is Long -> it
+                        is Int -> it.toLong()
+                        else -> null
+                    }
+                }
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            Log.w(
+                TAG,
+                "Failed to read attribute list for cluster 0x${clusterId.toString(16)}: ${e.message}"
+            )
+            emptyList()
+        }
+    }
+
     /** Fetches MatterDeviceInfo for each endpoint supported by the device. */
     suspend fun fetchDeviceMatterInfo(nodeId: Long): List<DeviceMatterInfo> {
         Log.d(TAG, "fetchDeviceMatterInfo(): nodeId [${nodeId}]")
+
         val matterDeviceInfoList = arrayListOf<DeviceMatterInfo>()
-        val connectedDevicePtr =
-            try {
-                chipClient.getConnectedDevicePointer(nodeId)
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "Can't get connectedDevicePointer.")
-                e.printStackTrace()
-                return emptyList()
-            }
+        val connectedDevicePtr = try {
+            chipClient.getConnectedDevicePointer(nodeId)
+        } catch (e: IllegalStateException) {
+            Log.e(TAG, "Can't get connectedDevicePointer.")
+            e.printStackTrace()
+            return emptyList()
+        }
+
         fetchDeviceMatterInfo(nodeId, connectedDevicePtr, 0, matterDeviceInfoList)
+
         return matterDeviceInfoList
     }
 
@@ -93,17 +162,31 @@ class ClustersHelper constructor(private val chipClient: ChipClient) {
         // ServerListAttribute
         val serverListAttribute =
             readDescriptorClusterServerListAttribute(connectedDevicePtr, endpointInt)
-        val serverClusters = arrayListOf<Any>()
+        val serverClusters = arrayListOf<Long>()
         serverListAttribute.forEach { serverClusters.add(it) }
 
         // ClientListAttribute
         val clientListAttribute =
             readDescriptorClusterClientListAttribute(connectedDevicePtr, endpointInt)
-        val clientClusters = arrayListOf<Any>()
+        val clientClusters = arrayListOf<Long>()
         clientListAttribute.forEach { clientClusters.add(it) }
 
+        // Fetch attributes for each server cluster
+        val clusterAttributes = mutableMapOf<String, List<Long>>()
+        serverClusters.forEach { clusterId ->
+            val attributes = readClusterAttributeList(
+                connectedDevicePtr,
+                endpointInt,
+                clusterId.toString().toLong()
+            )
+            if (attributes.isNotEmpty()) {
+                clusterAttributes[clusterId.toString()] = attributes
+            }
+        }
+
         // Build the DeviceMatterInfo
-        val deviceMatterInfo = DeviceMatterInfo(endpointInt, types, serverClusters, clientClusters)
+        val deviceMatterInfo =
+            DeviceMatterInfo(endpointInt, types, serverClusters, clientClusters, clusterAttributes)
         matterDeviceInfoList.add(deviceMatterInfo)
 
         // Recursive call for the parts supported by the endpoint.
@@ -118,6 +201,51 @@ class ClustersHelper constructor(private val chipClient: ChipClient) {
             Log.d(TAG, "Processing part [$part]")
             fetchDeviceMatterInfo(nodeId, connectedDevicePtr, endpointInt, matterDeviceInfoList)
         }
+    }
+
+    /**
+     * Reads multiple attributes in a single batch call for better performance.
+     */
+    private suspend fun readAttributesBatch(
+        devicePtr: Long,
+        endpoint: Int,
+        clusterId: Long,
+        attributeIds: List<Long>
+    ): Map<Long, Any?> {
+        val attributeValues = mutableMapOf<Long, Any?>()
+
+        try {
+            val attributePaths = attributeIds.map { attributeId ->
+                ChipAttributePath.newInstance(endpoint, clusterId, attributeId)
+            }
+
+            val attributeStates = chipClient.readAttributes(devicePtr, attributePaths)
+
+            for ((path, state) in attributeStates) {
+                val value = state.value ?: "Unhandled"
+                attributeValues[path.attributeId.id] = value
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to read attribute batch: ${e.message}")
+            throw e
+        }
+
+        return attributeValues
+    }
+
+    /**
+     * Reads a single attribute value.
+     */
+    private suspend fun readSingleAttribute(
+        devicePtr: Long,
+        endpoint: Int,
+        clusterId: Long,
+        attributeId: Long
+    ): Any? {
+        val attributePath = ChipAttributePath.newInstance(endpoint, clusterId, attributeId)
+        val attributeStates = chipClient.readAttributes(devicePtr, listOf(attributePath))
+        val attributeState = attributeStates[attributePath]
+        return attributeState?.value ?: "Unhandled"
     }
 
     // -----------------------------------------------------------------------------------------------

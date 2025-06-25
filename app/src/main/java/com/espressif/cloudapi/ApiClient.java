@@ -19,6 +19,8 @@ import android.content.Context;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.rainmaker.R;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -114,9 +116,13 @@ public class ApiClient {
             e.printStackTrace();
         }
 
+        Gson gson = new GsonBuilder()
+                .serializeNulls()
+                .create();
+
         retrofitClient = new Retrofit.Builder()
                 .baseUrl(EspApplication.BASE_URL + AppConstants.PATH_SEPARATOR + AppConstants.CURRENT_VERSION + AppConstants.PATH_SEPARATOR)
-                .addConverterFactory(GsonConverterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create(gson))
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .client(okHttpClient)
                 .build();

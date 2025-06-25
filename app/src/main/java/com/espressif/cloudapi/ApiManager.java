@@ -112,6 +112,19 @@ public class ApiManager {
 
     private static ApiManager apiManager;
 
+    /**
+     * Helper class to hold the result of cluster processing
+     */
+    private static class ClusterProcessingResult {
+        public final ArrayList<Long> clusterIds;
+        public final HashMap<String, ArrayList<Long>> attributes;
+
+        public ClusterProcessingResult(ArrayList<Long> clusterIds, HashMap<String, ArrayList<Long>> attributes) {
+            this.clusterIds = clusterIds;
+            this.attributes = attributes;
+        }
+    }
+
     public static ApiManager getInstance(Context context) {
 
         if (apiManager == null) {
@@ -128,6 +141,53 @@ public class ApiManager {
         apiInterface = ApiClient.getClient(context).create(ApiInterface.class);
         sharedPreferences = context.getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
         getTokenAndUserId();
+    }
+
+    /**
+     * Common method to process both server and client clusters
+     *
+     * @param clustersJson    JSON object containing cluster information
+     * @param storeAttributes whether to store attributes (true for server clusters, false for client clusters)
+     * @return ClusterProcessingResult containing cluster IDs and attributes
+     */
+    private ClusterProcessingResult processClusters(JSONObject clustersJson, boolean storeAttributes) {
+        ArrayList<Long> clusterIds = new ArrayList<>();
+        HashMap<String, ArrayList<Long>> clusterAttributes = new HashMap<>();
+
+        if (clustersJson == null) {
+            return new ClusterProcessingResult(clusterIds, clusterAttributes);
+        }
+
+        Iterator<String> clustersIterator = clustersJson.keys();
+
+        while (clustersIterator.hasNext()) {
+            String clusterId = clustersIterator.next();
+            long clusterIdLong = Long.parseLong(clusterId.replace("0x", ""), 16);
+            clusterIds.add(clusterIdLong);
+
+            // Get attributes if available and if we need to store them
+            if (storeAttributes) {
+                JSONObject clusterJson = clustersJson.optJSONObject(clusterId);
+                if (clusterJson != null) {
+                    JSONArray attributesArray = clusterJson.optJSONArray("attributes");
+                    if (attributesArray != null) {
+                        ArrayList<Long> attributeIds = new ArrayList<>();
+                        for (int i = 0; i < attributesArray.length(); i++) {
+                            try {
+                                String attrId = attributesArray.getString(i);
+                                // Use Long.decode which handles "0x" prefix properly
+                                attributeIds.add(Long.decode(attrId));
+                            } catch (Exception e) {
+                                Log.e(TAG, "Error parsing attribute ID: " + e.getMessage());
+                            }
+                        }
+                        clusterAttributes.put(clusterId, attributeIds);
+                    }
+                }
+            }
+        }
+
+        return new ClusterProcessingResult(clusterIds, clusterAttributes);
     }
 
     public void login(final String userName, String password, final ApiResponseListener listener) {
@@ -1009,40 +1069,87 @@ public class ApiManager {
 
                                                 MatterDeviceInfo matterDeviceInfo = new MatterDeviceInfo();
                                                 matterDeviceInfo.setDeviceType(String.valueOf(matterMetadataJson.optDouble(AppConstants.KEY_DEVICETYPE)));
-                                                JSONObject serverClustersJson = matterMetadataJson.optJSONObject(AppConstants.KEY_SERVERS_DATA);
-                                                JSONObject clientClustersJson = matterMetadataJson.optJSONObject(AppConstants.KEY_CLIENTS_DATA);
 
-                                                if (serverClustersJson != null) {
+                                                // Check if it's new format with endpoints
+                                                JSONObject endpointsJson = matterMetadataJson.optJSONObject("endpoints");
+                                                JSONObject serverClustersJson = null;
+                                                JSONObject clientClustersJson = null;
+                                                HashMap<String, ArrayList<Long>> serverClusters = new HashMap<>();
+                                                HashMap<String, ArrayList<Long>> clientClusters = new HashMap<>();
 
-                                                    Iterator<String> serverClustersIt = serverClustersJson.keys();
-                                                    HashMap<String, ArrayList<Long>> serverClusters = new HashMap<>();
+                                                if (endpointsJson != null) {
+                                                    // New format with endpoints
+                                                    Iterator<String> endpointKeys = endpointsJson.keys();
 
-                                                    while (serverClustersIt.hasNext()) {
+                                                    while (endpointKeys.hasNext()) {
 
-                                                        String endpointId = serverClustersIt.next();
-                                                        JSONArray clusterArrayJson = serverClustersJson.optJSONArray(endpointId);
-                                                        ArrayList<Long> serverClusterIds = new Gson().fromJson(clusterArrayJson.toString(), new TypeToken<List<Long>>() {
-                                                        }.getType());
-                                                        serverClusters.put(endpointId, serverClusterIds);
+                                                        String endpointHex = endpointKeys.next();
+                                                        // Convert hex endpoint to decimal
+                                                        int endpointDecimal = Integer.parseInt(endpointHex.replace("0x", ""), 16);
+                                                        Log.d(TAG, "Processing endpoint : " + endpointHex + " (decimal: " + endpointDecimal + ")");
+
+                                                        JSONObject endpointJson = endpointsJson.optJSONObject(endpointHex);
+                                                        if (endpointJson != null) {
+                                                            JSONObject clustersJson = endpointJson.optJSONObject("clusters");
+
+                                                            if (clustersJson != null) {
+                                                                serverClustersJson = clustersJson.optJSONObject("servers");
+                                                                clientClustersJson = clustersJson.optJSONObject("clients");
+
+                                                                // Process server clusters for this endpoint
+                                                                if (serverClustersJson != null) {
+                                                                    ClusterProcessingResult serverResult = processClusters(serverClustersJson, true);
+                                                                    matterDeviceInfo.setServerClusterAttributes(serverResult.attributes);
+                                                                    serverClusters.put(String.valueOf(endpointDecimal), serverResult.clusterIds);
+                                                                }
+
+                                                                // Process client clusters for this endpoint
+                                                                if (clientClustersJson != null) {
+                                                                    ClusterProcessingResult clientResult = processClusters(clientClustersJson, false);
+                                                                    // TODO: Store client attributes for future use if needed
+                                                                    clientClusters.put(String.valueOf(endpointDecimal), clientResult.clusterIds);
+                                                                }
+                                                            }
+                                                        }
                                                     }
                                                     matterDeviceInfo.setServerClusters(serverClusters);
-                                                }
+                                                    matterDeviceInfo.setClientClusters(clientClusters);
 
-                                                if (clientClustersJson != null) {
+                                                } else {
+                                                    // Old format
+                                                    serverClustersJson = matterMetadataJson.optJSONObject(AppConstants.KEY_SERVERS_DATA);
+                                                    clientClustersJson = matterMetadataJson.optJSONObject(AppConstants.KEY_CLIENTS_DATA);
 
-                                                    Iterator<String> clientClustersIt = clientClustersJson.keys();
-                                                    HashMap<String, ArrayList<Long>> clientClusters = new HashMap<>();
+                                                    // Old format - clusters are in array
+                                                    ArrayList<Long> serverClusterIds, clientClusterIds;
 
-                                                    while (clientClustersIt.hasNext()) {
+                                                    if (serverClustersJson != null) {
+                                                        Iterator<String> serverClustersIt = serverClustersJson.keys();
+                                                        while (serverClustersIt.hasNext()) {
 
-                                                        String endpointId = clientClustersIt.next();
-                                                        JSONArray clusterArrayJson = serverClustersJson.optJSONArray(endpointId);
-                                                        ArrayList<Long> clientClusterIds = new Gson().fromJson(clusterArrayJson.toString(), new TypeToken<List<Long>>() {
-                                                        }.getType());
-                                                        clientClusters.put(endpointId, clientClusterIds);
+                                                            String endpointId = serverClustersIt.next();
+                                                            JSONArray clusterArrayJson = serverClustersJson.optJSONArray(endpointId);
+                                                            serverClusterIds = new Gson().fromJson(clusterArrayJson.toString(), new TypeToken<List<Long>>() {
+                                                            }.getType());
+                                                            serverClusters.put(endpointId, serverClusterIds);
+                                                        }
+                                                    }
+                                                    matterDeviceInfo.setServerClusters(serverClusters);
+
+                                                    if (clientClustersJson != null) {
+                                                        Iterator<String> clientClustersIt = clientClustersJson.keys();
+                                                        while (clientClustersIt.hasNext()) {
+
+                                                            String endpointId = clientClustersIt.next();
+                                                            JSONArray clusterArrayJson = serverClustersJson.optJSONArray(endpointId);
+                                                            clientClusterIds = new Gson().fromJson(clusterArrayJson.toString(), new TypeToken<List<Long>>() {
+                                                            }.getType());
+                                                            clientClusters.put(endpointId, clientClusterIds);
+                                                        }
                                                     }
                                                     matterDeviceInfo.setClientClusters(clientClusters);
                                                 }
+
                                                 device.setMatterDeviceInfo(matterDeviceInfo);
 
                                                 if (nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
@@ -1054,7 +1161,8 @@ public class ApiManager {
                                                         properties.add(AppConstants.KEY_PROPERTY_READ);
 
                                                         ArrayList<Long> clusters = matterDeviceInfo.getServerClusters().get(String.valueOf(AppConstants.ENDPOINT_1));
-                                                        espNode = NodeUtils.Companion.addParamsForMatterClusters(espNode, clusters, type);
+                                                        boolean isAttributesSupported = endpointsJson != null;
+                                                        espNode = NodeUtils.Companion.addParamsForMatterClusters(espNode, clusters, type, isAttributesSupported);
                                                     }
                                                 }
                                             }

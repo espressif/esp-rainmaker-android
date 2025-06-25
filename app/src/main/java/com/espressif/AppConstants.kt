@@ -120,6 +120,7 @@ class AppConstants {
         const val PARAM_POWER = "Power"
         const val PARAM_BRIGHTNESS = "Brightness"
         const val PARAM_HUE = "Hue"
+        const val PARAM_CCT = "CCT"
         const val PARAM_SATURATION = "Saturation"
         const val PARAM_TEMPERATURE = "Temperature"
         const val PARAM_SYSTEM_MODE = "System Mode"
