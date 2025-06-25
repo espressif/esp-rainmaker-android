@@ -97,6 +97,10 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                                 espApp.fetchDeviceMatterInfo(matterNodeId, nodeId)
                                 val node: EspNode? = espApp.nodeMap.get(nodeId)
                                 if (node != null) {
+                                    if (node.devices == null || node.devices.isEmpty()) {
+                                        Log.e(TAG, "Matter device list is empty for node $nodeId (matterNodeId : $matterNodeId)");
+                                        continue
+                                    }
                                     if (node.devices[0] == null || node.devices[0].params == null) {
                                         addParamsForMatterDevice(nodeId, matterNodeId, node)
                                     }
