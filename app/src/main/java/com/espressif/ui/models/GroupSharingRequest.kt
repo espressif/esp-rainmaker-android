@@ -1,4 +1,4 @@
-// Copyright 2020 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2025 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.espressif.ui.models;
+package com.espressif.ui.models
 
-import okhttp3.ResponseBody;
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 
-public class ApiResponse {
-
-    public String nodeId;
-    public ResponseBody responseBody;
-    public boolean isSuccessful;
-    public Throwable throwable;
-}
+@Parcelize
+data class GroupSharingRequest(
+    var reqId: String,
+    var reqStatus: String? = null,
+    var userName: ArrayList<String>? = null,
+    var primaryUserName: ArrayList<String>? = null,
+    var reqTime: Long = 0L,
+    var group_ids: ArrayList<String>? = null,
+    var group_names: ArrayList<String>? = null,
+    var metadata: String? = null
+) : Parcelable

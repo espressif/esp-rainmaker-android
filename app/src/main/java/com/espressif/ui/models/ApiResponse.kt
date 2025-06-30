@@ -1,4 +1,4 @@
-// Copyright 2020 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2025 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,30 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.espressif.ui.models;
+package com.espressif.ui.models
 
-import android.os.Bundle;
+import okhttp3.ResponseBody
 
-import com.espressif.AppConstants.Companion.UpdateEventType;
-
-public class UpdateEvent {
-
-    private UpdateEventType eventType;
-    private Bundle data;
-
-    public Bundle getData() {
-        return data;
-    }
-
-    public void setData(Bundle data) {
-        this.data = data;
-    }
-
-    public UpdateEvent(UpdateEventType type) {
-        eventType = type;
-    }
-
-    public UpdateEventType getEventType() {
-        return eventType;
-    }
-}
+data class ApiResponse(
+    var nodeId: String? = null,
+    var responseBody: ResponseBody? = null,
+    var isSuccessful: Boolean = false,
+    var throwable: Throwable? = null
+)

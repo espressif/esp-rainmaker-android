@@ -70,7 +70,6 @@ object AppUpdateHelper {
 
                     InstallStatus.FAILED -> {
                         // Handle the failure
-                        Log.e(TAG, "Update installation failed")
                         clearResources()
                     }
 

@@ -528,10 +528,7 @@ public class BLEProvisionLanding extends AppCompatActivity {
             }
 
             if (!deviceExists) {
-                BleDevice bleDevice = new BleDevice();
-                bleDevice.setName(scanResult.getScanRecord().getDeviceName());
-                bleDevice.setBluetoothDevice(device);
-
+                BleDevice bleDevice = new BleDevice(scanResult.getScanRecord().getDeviceName(), device);
                 rvBleDevices.setVisibility(View.VISIBLE);
                 bluetoothDevices.put(device, serviceUuid);
                 deviceList.add(bleDevice);

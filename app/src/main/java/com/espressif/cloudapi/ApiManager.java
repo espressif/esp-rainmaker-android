@@ -3060,10 +3060,7 @@ public class ApiManager {
                                 @Override
                                 public ApiResponse apply(ResponseBody responseBody) throws Exception {
 
-                                    ApiResponse apiResponse = new ApiResponse();
-                                    apiResponse.responseBody = responseBody;
-                                    apiResponse.isSuccessful = true;
-                                    apiResponse.nodeId = groupId;
+                                    ApiResponse apiResponse = new ApiResponse(groupId, responseBody, true, null);
                                     setFabricGroupDetails(responseBody.string());
                                     return apiResponse;
                                 }
@@ -3073,10 +3070,7 @@ public class ApiManager {
                                 @Override
                                 public ApiResponse apply(Throwable throwable) throws Exception {
 
-                                    ApiResponse apiResponse = new ApiResponse();
-                                    apiResponse.isSuccessful = false;
-                                    apiResponse.throwable = throwable;
-                                    apiResponse.nodeId = groupId;
+                                    ApiResponse apiResponse = new ApiResponse(groupId, null, false, throwable);
                                     return apiResponse;
                                 }
                             }));
@@ -3099,7 +3093,7 @@ public class ApiManager {
                     @Override
                     public void accept(ApiResponse apiResponse) throws Exception {
 
-                        Log.d(TAG, "Response : Node id " + apiResponse.nodeId + ", isSuccessful : " + apiResponse.isSuccessful);
+                        Log.d(TAG, "Response : Node id " + apiResponse.getNodeId() + ", isSuccessful : " + apiResponse.isSuccessful());
                         responses.add(apiResponse);
                     }
                 }, new Consumer<Throwable>() {
@@ -3226,10 +3220,7 @@ public class ApiManager {
                                 @Override
                                 public ApiResponse apply(ResponseBody responseBody) throws Exception {
 
-                                    ApiResponse apiResponse = new ApiResponse();
-                                    apiResponse.responseBody = responseBody;
-                                    apiResponse.isSuccessful = true;
-                                    apiResponse.nodeId = groupId;
+                                    ApiResponse apiResponse = new ApiResponse(groupId, responseBody, true, null);
 
                                     String jsonResponse = responseBody.string();
                                     Log.d(TAG, "Get user NOC response : " + jsonResponse);
@@ -3253,10 +3244,7 @@ public class ApiManager {
                                 @Override
                                 public ApiResponse apply(Throwable throwable) throws Exception {
 
-                                    ApiResponse apiResponse = new ApiResponse();
-                                    apiResponse.isSuccessful = false;
-                                    apiResponse.throwable = throwable;
-                                    apiResponse.nodeId = groupId;
+                                    ApiResponse apiResponse = new ApiResponse(groupId, null, false, throwable);
                                     return apiResponse;
                                 }
                             }));
@@ -3279,7 +3267,7 @@ public class ApiManager {
                     @Override
                     public void accept(ApiResponse apiResponse) throws Exception {
 
-                        Log.d(TAG, "Response : Node id " + apiResponse.nodeId + ", isSuccessful : " + apiResponse.isSuccessful);
+                        Log.d(TAG, "Response : Node id " + apiResponse.getNodeId() + ", isSuccessful : " + apiResponse.isSuccessful());
                         responses.add(apiResponse);
                     }
                 }, new Consumer<Throwable>() {
@@ -3370,11 +3358,12 @@ public class ApiManager {
                                         if (TextUtils.isEmpty(reqId)) {
                                             continue;
                                         }
-                                        SharingRequest sharingReq = new SharingRequest(reqId);
-                                        sharingReq.setReqStatus(nodeJson.optString(AppConstants.KEY_REQ_STATUS));
-                                        sharingReq.setReqTime(nodeJson.optLong(AppConstants.KEY_REQ_TIME, 0));
-                                        sharingReq.setUserName(nodeJson.optString(AppConstants.KEY_USER_NAME));
-                                        sharingReq.setPrimaryUserName(nodeJson.optString(AppConstants.KEY_PRIMARY_USER_NAME));
+                                        SharingRequest sharingReq = new SharingRequest(reqId,
+                                                nodeJson.optString(AppConstants.KEY_USER_NAME),
+                                                nodeJson.optString(AppConstants.KEY_REQ_STATUS),
+                                                nodeJson.optString(AppConstants.KEY_PRIMARY_USER_NAME),
+                                                nodeJson.optLong(AppConstants.KEY_REQ_TIME, 0),
+                                                null, null);
                                         sharingReq.setReqTime(nodeJson.optLong(AppConstants.KEY_REQ_TIMESTAMP));
                                         JSONObject metadataJson = nodeJson.optJSONObject(AppConstants.KEY_METADATA);
                                         if (metadataJson != null) {
@@ -3731,11 +3720,14 @@ public class ApiManager {
                                             continue;
                                         }
 
-                                        GroupSharingRequest grpSharingRequest = new GroupSharingRequest(reqId);
-                                        grpSharingRequest.setReqStatus(groupJson.optString(AppConstants.KEY_REQ_STATUS));
-                                        grpSharingRequest.setReqTime(groupJson.optLong(AppConstants.KEY_REQ_TIME, 0));
-                                        grpSharingRequest.setPrimaryUserName(new ArrayList<>(Collections.singletonList(groupJson.optString(AppConstants.KEY_PRIMARY_USER_NAME))));
-                                        grpSharingRequest.setUserName(new ArrayList<>(Collections.singletonList(groupJson.optString(AppConstants.KEY_USER_NAME))));
+                                        GroupSharingRequest grpSharingRequest = new GroupSharingRequest(reqId,
+                                                groupJson.optString(AppConstants.KEY_REQ_STATUS),
+                                                new ArrayList<>(Collections.singletonList(groupJson.optString(AppConstants.KEY_USER_NAME))),
+                                                new ArrayList<>(Collections.singletonList(groupJson.optString(AppConstants.KEY_PRIMARY_USER_NAME))),
+                                                groupJson.optLong(AppConstants.KEY_REQ_TIME, 0),
+                                                null,
+                                                null,
+                                                null);
                                         JSONArray grpIdListJson = groupJson.optJSONArray(AppConstants.KEY_GROUP_IDS);
                                         JSONArray grpNamesJson = groupJson.optJSONArray(AppConstants.KEY_GROUP_NAMES);
                                         ArrayList<String> groupIds = new ArrayList<>();
@@ -4140,7 +4132,7 @@ public class ApiManager {
                                                         if (valueJson != null) {
                                                             long ts = valueJson.optLong("ts");
                                                             float value = (float) valueJson.optDouble("val");
-                                                            tsData.add(new TsData(ts, value));
+                                                            tsData.add(new TsData(ts, (double) value));
                                                         }
                                                     }
                                                 }
@@ -4577,13 +4569,14 @@ public class ApiManager {
                         Log.d(TAG, "Response : " + jsonResponse);
 
                         JSONObject jsonObject = new JSONObject(jsonResponse);
-                        EspOtaUpdate espOtaUpdate = new EspOtaUpdate(nodeId);
-                        espOtaUpdate.setOtaAvailable(jsonObject.optBoolean(AppConstants.KEY_OTA_AVAILABLE, false));
-                        espOtaUpdate.setStatus(jsonObject.optString(AppConstants.KEY_STATUS));
-                        espOtaUpdate.setOtaJobID(jsonObject.optString(AppConstants.KEY_OTA_JOB_ID));
-                        espOtaUpdate.setOtaStatusDescription(jsonObject.optString(AppConstants.KEY_DESCRIPTION));
-                        espOtaUpdate.setFwVersion(jsonObject.optString(AppConstants.KEY_FW_VERSION));
-                        espOtaUpdate.setFileSize(jsonObject.optInt("file_size", 0));
+                        EspOtaUpdate espOtaUpdate = new EspOtaUpdate(nodeId,
+                                jsonObject.optBoolean(AppConstants.KEY_OTA_AVAILABLE, false),
+                                jsonObject.optString(AppConstants.KEY_STATUS),
+                                jsonObject.optString(AppConstants.KEY_OTA_JOB_ID),
+                                jsonObject.optString(AppConstants.KEY_DESCRIPTION),
+                                jsonObject.optString(AppConstants.KEY_FW_VERSION),
+                                jsonObject.optInt("file_size", 0),
+                                null, 0);
                         espApp.otaUpdateInfo = espOtaUpdate;
                         Bundle data = new Bundle();
                         data.putParcelable(AppConstants.KEY_OTA_DETAILS, espOtaUpdate);
