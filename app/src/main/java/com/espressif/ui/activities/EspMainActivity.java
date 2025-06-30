@@ -73,6 +73,7 @@ import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
 import com.espressif.ui.models.UpdateEvent;
+import com.espressif.utils.AppUpdateHelper;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.snackbar.Snackbar;
@@ -91,6 +92,7 @@ public class EspMainActivity extends AppCompatActivity {
 
     private static final int REQUEST_LOCATION = 1;
     private static final int REQUEST_NOTIFICATION_PERMISSION = 2;
+    private static final int REQUEST_APP_UPDATE = 500;
 
     private CollapsingToolbarLayout collapsingToolbarLayout;
     private Toolbar appbar;
@@ -154,6 +156,11 @@ public class EspMainActivity extends AppCompatActivity {
         }
         getSupportedVersions();
         espApp.registerDeviceToken();
+
+        if (Utils.isPlayServicesAvailable(getApplicationContext())) {
+            // Check for app updates
+            AppUpdateHelper.INSTANCE.checkForUpdates(this, false);
+        }
     }
 
     @Override
@@ -161,6 +168,11 @@ public class EspMainActivity extends AppCompatActivity {
         super.onResume();
         EventBus.getDefault().register(this);
         getNodes();
+
+        if (Utils.isPlayServicesAvailable(getApplicationContext())) {
+            // Resume any pending updates
+            AppUpdateHelper.INSTANCE.resumeUpdate(this);
+        }
     }
 
     @Override
@@ -175,6 +187,11 @@ public class EspMainActivity extends AppCompatActivity {
             updateListenerArrayList.clear();
         }
         espApp.stopLocalDeviceDiscovery();
+
+        if (Utils.isPlayServicesAvailable(getApplicationContext())) {
+            // Clean up update resources
+            AppUpdateHelper.INSTANCE.clearResources();
+        }
         super.onDestroy();
     }
 
@@ -289,6 +306,10 @@ public class EspMainActivity extends AppCompatActivity {
                         goToAddDeviceActivity();
                     }
                 }
+                break;
+
+            case AppUpdateHelper.REQUEST_APP_UPDATE:
+                AppUpdateHelper.INSTANCE.handleUpdateResult(this, resultCode);
                 break;
         }
     }
