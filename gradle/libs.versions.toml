@@ -32,7 +32,7 @@ playServicesBase = "18.6.0"
 playServicesHome = "16.0.0"
 playServicesThreadnetwork = "16.2.1"
 
-espIdfProvisioningAndroid = "lib-2.2.5"
+espIdfProvisioningAndroid = "lib-2.3.0"
 codeScanner = "2.1.2"
 mpandroidchart = "v3.1.0"
 tapholdupbutton = "0.1.2"
@@ -47,6 +47,8 @@ jwtdecode = "2.0.2"
 bcpkixJdk15to18 = "1.72"
 
 appUpdateKtx = "2.1.0"
+
+cameraCore = "1.4.2"
 
 wechatSdkAndroidWithoutMta = "6.8.0"
 
@@ -116,6 +118,11 @@ bcprov-jdk15to18 = { group = "org.bouncycastle", name = "bcprov-jdk15to18", vers
 
 app-update = { module = "com.google.android.play:app-update", version.ref = "appUpdateKtx" }
 app-update-ktx = { module = "com.google.android.play:app-update-ktx", version.ref = "appUpdateKtx" }
+
+camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCore" }
+camera-core = { module = "androidx.camera:camera-core", version.ref = "cameraCore" }
+camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "cameraCore" }
+camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraCore" }
 
 wechat-sdk-android-without-mta = { group = "com.tencent.mm.opensdk", name = "wechat-sdk-android-without-mta", version.ref = "wechatSdkAndroidWithoutMta" }
 
