@@ -38,7 +38,7 @@ class ParamUtils {
                 val p = paramItr.next() as Param
 
                 if ((p.paramType != null && p.paramType == AppConstants.PARAM_TYPE_NAME)
-                    || (!p.properties.contains(AppConstants.KEY_PROPERTY_WRITE)
+                    || ((p.properties != null && !p.properties.contains(AppConstants.KEY_PROPERTY_WRITE))
                             || !p.isDynamicParam)
                 ) {
                     paramItr.remove()
