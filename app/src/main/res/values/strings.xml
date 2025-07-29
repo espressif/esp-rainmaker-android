@@ -272,8 +272,6 @@
     <string name="btn_try_again">Try Again</string>
     <string name="btn_agree">Agree</string>
     <string name="btn_disagree">Disagree</string>
-    <string name="btn_allow">Allow</string>
-    <string name="btn_alexa_deny">Deny</string>
     <string name="btn_merge">Merge</string>
 
     <!--Screen titles-->
@@ -329,7 +327,6 @@
     <string name="dialog_title_forgot_password_failed">Forgot password failed</string>
     <string name="dialog_title_delete_user_success">Your account has been deleted successfully!</string>
     <string name="dialog_title_delete_user_failed">Delete account failed</string>
-    <string name="dialog_title_new_version_available">New Version is available!</string>
     <string name="dialog_title_network_info">Enter Network Information</string>
     <string name="dialog_title_add_name">Add Name</string>
     <string name="dialog_msg_for_gps">Location services are disabled. Please enable them to continue</string>
@@ -617,5 +614,12 @@
     <string name="error_wifi_connection_failed">Failed to confirm WiFi connection. Please check if your device is connected to the network successfully.</string>
 
     <string name="controller_unauthorised">Controller (Unauthorised)</string>
+
+    <string name="dialog_title_new_version_available">New Version Available!</string>
+    <string name="update_message">A new version of the app is available. Would you like to update now?</string>
+    <string name="update_downloaded_message">Update has been downloaded. Restart the app to complete installation.</string>
+    <string name="btn_restart">Restart</string>
+    <string name="btn_allow">Allow</string>
+    <string name="btn_alexa_deny">Deny</string>
 
 </resources>

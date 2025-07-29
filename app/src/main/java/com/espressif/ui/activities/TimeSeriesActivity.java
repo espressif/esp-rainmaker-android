@@ -316,7 +316,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
 
         @Override
         public void onClick(View v) {
-            Log.e(TAG, "Previous button clicked");
+            Log.d(TAG, "Previous button clicked");
             myEndTime = myStartTime - 1;
             Calendar calendar = com.espressif.ui.Utils.getCalendarForTimeZone(timeZone);
             calendar.setTime(new Date(myEndTime * 1000));
@@ -344,8 +344,8 @@ public class TimeSeriesActivity extends AppCompatActivity {
             calendar.set(Calendar.MILLISECOND, 0);
             long startTime = calendar.getTimeInMillis();
             myStartTime = TimeUnit.SECONDS.convert(startTime, TimeUnit.MILLISECONDS);
-            Log.e(TAG, "Start time : " + dateFormatter.format(new Date(myStartTime * 1000)));
-            Log.e(TAG, "End time : " + dateFormatter.format(new Date(myEndTime * 1000)));
+            Log.d(TAG, "Start time : " + dateFormatter.format(new Date(myStartTime * 1000)));
+            Log.d(TAG, "End time : " + dateFormatter.format(new Date(myEndTime * 1000)));
             setNextBtnVisibility();
             changeChart(aggregateType, chartInterval);
         }
@@ -394,8 +394,8 @@ public class TimeSeriesActivity extends AppCompatActivity {
 
             long endTime = calendar.getTimeInMillis();
             myEndTime = TimeUnit.SECONDS.convert(endTime, TimeUnit.MILLISECONDS);
-            Log.e(TAG, "Start time : " + dateFormatter.format(new Date(myStartTime * 1000)));
-            Log.e(TAG, "End time : " + dateFormatter.format(new Date(myEndTime * 1000)));
+            Log.d(TAG, "Start time : " + dateFormatter.format(new Date(myStartTime * 1000)));
+            Log.d(TAG, "End time : " + dateFormatter.format(new Date(myEndTime * 1000)));
             setNextBtnVisibility();
             changeChart(aggregateType, chartInterval);
         }
@@ -404,7 +404,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
     private void changeChart(String newAgrType, int newChartType) {
 
         showLoading();
-        Log.e(TAG, "Change chart");
+        Log.d(TAG, "Change chart");
         boolean isChartTypeChange = false;
         if (chartInterval != newChartType) {
             isChartTypeChange = true;
@@ -459,7 +459,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
 
             @Override
             public void onSuccess(Bundle data) {
-                Log.e(TAG, "Get TS DATA SUCCESS");
+                Log.d(TAG, "Get TS DATA SUCCESS");
                 hideLoading();
                 updateChart();
             }
@@ -510,8 +510,8 @@ public class TimeSeriesActivity extends AppCompatActivity {
         myStartTime = TimeUnit.SECONDS.convert(startTime, TimeUnit.MILLISECONDS);
         String startDateInString = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss").format(new Date(myStartTime * 1000));
         String endDateInString = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss").format(new Date(myEndTime * 1000));
-        Log.e(TAG, "============= Start date : " + startDateInString);
-        Log.e(TAG, "============= End date : " + endDateInString);
+        Log.d(TAG, "============= Start date : " + startDateInString);
+        Log.d(TAG, "============= End date : " + endDateInString);
     }
 
     private void getTsData(String aggregate, String timeInterval, long startTime, long endTime,
@@ -557,7 +557,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
         SimpleDateFormat sdf = new SimpleDateFormat("dd-MMM-yy hh:mm aaa");
         SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
         float min = Integer.MAX_VALUE, max = Integer.MIN_VALUE;
-        Log.e(TAG, "TS DATA size : " + tsData.size());
+        Log.d(TAG, "TS DATA size : " + tsData.size());
 
         if (tsData != null && tsData.size() > 0) {
 
@@ -586,7 +586,10 @@ public class TimeSeriesActivity extends AppCompatActivity {
 
                                 if (tsDataMap.containsKey(timeStamp)) {
                                     TsData dataPoint = tsDataMap.get(timeStamp);
-                                    float y = (float) dataPoint.getValue();
+                                    float y = 0;
+                                    if (dataPoint != null && dataPoint.getValue() != null) {
+                                        y = dataPoint.getValue().floatValue();
+                                    }
                                     if (y < min) {
                                         min = y;
                                     }
@@ -615,7 +618,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
                                 long timeStamp = TimeUnit.HOURS.convert(dataPoint.getTimeStamp(), TimeUnit.SECONDS);
                                 tsDataMap.put(timeStamp, dataPoint);
                             }
-                            Log.e(TAG, "tsDataMap size : " + tsDataMap.size());
+                            Log.d(TAG, "tsDataMap size : " + tsDataMap.size());
 
                             int hours = 24;
                             for (int i = 1; i < (hours + 1); i++) {
@@ -626,7 +629,10 @@ public class TimeSeriesActivity extends AppCompatActivity {
 
                                 if (tsDataMap.containsKey(timeStamp)) {
                                     TsData dataPoint = tsDataMap.get(timeStamp);
-                                    float y = (float) dataPoint.getValue();
+                                    float y = 0;
+                                    if (dataPoint != null && dataPoint.getValue() != null) {
+                                        y = dataPoint.getValue().floatValue();
+                                    }
                                     if (y < min) {
                                         min = y;
                                     }
@@ -637,7 +643,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
                                     String markerText = sdf.format(new Date(TimeUnit.MILLISECONDS.convert(dataPoint.getTimeStamp(), TimeUnit.SECONDS)));
                                     BarEntry barEntry1 = new BarEntry(i, y); // start always from x=1 for the first bar
                                     Entry lineEntry1 = new Entry(i, y);
-                                    Log.e(TAG, "Bar entry for time : " + timeStr + " and y : " + y);
+                                    Log.d(TAG, "Bar entry for time : " + timeStr + " and y : " + y);
                                     barEntry1.setData(markerText);
                                     lineEntry1.setData(markerText);
                                     barEntries.add(barEntry1);
@@ -673,7 +679,10 @@ public class TimeSeriesActivity extends AppCompatActivity {
 
                                 if (tsDataMap.containsKey(timeStamp)) {
                                     TsData dataPoint = tsDataMap.get(timeStamp);
-                                    float y = (float) dataPoint.getValue();
+                                    float y = 0;
+                                    if (dataPoint != null && dataPoint.getValue() != null) {
+                                        y = dataPoint.getValue().floatValue();
+                                    }
                                     if (y < min) {
                                         min = y;
                                     }
@@ -716,9 +725,12 @@ public class TimeSeriesActivity extends AppCompatActivity {
                                 Date tsDate = new Date(dataPoint.getTimeStamp() * 1000);
 
                                 if ((tsDate.after(startDate) && tsDate.before(endDate)) || tsDate.equals(startDate)) {
-                                    Log.e(TAG, "======= Entry added for date : " + tsDate);
+                                    Log.d(TAG, "======= Entry added for date : " + tsDate);
 
-                                    float y = (float) dataPoint.getValue();
+                                    float y = 0;
+                                    if (dataPoint.getValue() != null) {
+                                        y = dataPoint.getValue().floatValue();
+                                    }
                                     if (y < min) {
                                         min = y;
                                     }
@@ -733,7 +745,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
                                     lineEntry.setData(markerText);
                                     barEntries.add(barEntry);
                                     lineEntries.add(lineEntry);
-                                    Log.e(TAG, "Adding entry for day ==== : " + weekStartDay);
+                                    Log.d(TAG, "Adding entry for day ==== : " + weekStartDay);
                                     itr.remove();
                                     break;
                                 }
@@ -767,7 +779,10 @@ public class TimeSeriesActivity extends AppCompatActivity {
 
                                 if (tsDataMap.containsKey(timeStamp)) {
                                     TsData dataPoint = tsDataMap.get(timeStamp);
-                                    float y = (float) dataPoint.getValue();
+                                    float y = 0;
+                                    if (dataPoint != null && dataPoint.getValue() != null) {
+                                        y = dataPoint.getValue().floatValue();
+                                    }
                                     if (y < min) {
                                         min = y;
                                     }
@@ -814,9 +829,12 @@ public class TimeSeriesActivity extends AppCompatActivity {
 
                                 if ((tsDate.after(startDate) && tsDate.before(endDate)) || tsDate.equals(startDate)) {
 
-                                    Log.e(TAG, "Entry added for date : " + tsDate);
+                                    Log.d(TAG, "Entry added for date : " + tsDate);
 
-                                    float y = (float) dataPoint.getValue();
+                                    float y = 0;
+                                    if (dataPoint.getValue() != null) {
+                                        y = dataPoint.getValue().floatValue();
+                                    }
                                     if (y < min) {
                                         min = y;
                                     }
@@ -870,7 +888,10 @@ public class TimeSeriesActivity extends AppCompatActivity {
                             Log.d(TAG, "======= TS date For calculation : " + tsDate);
 
                             if ((tsDate.after(startDate) && tsDate.before(endDate)) || tsDate.equals(startDate)) {
-                                float y = (float) dataPoint.getValue();
+                                float y = 0;
+                                if (dataPoint.getValue() != null) {
+                                    y = dataPoint.getValue().floatValue();
+                                }
                                 if (y < min) {
                                     min = y;
                                 }
@@ -964,7 +985,7 @@ public class TimeSeriesActivity extends AppCompatActivity {
 
     private void displayBarChart() {
 
-        Log.e(TAG, "Display BarChart, Total entries , : " + barEntries.size());
+        Log.d(TAG, "Display BarChart, Total entries , : " + barEntries.size());
 
         XAxis xAxis = binding.barChart.getXAxis();
         configureXAxis(xAxis);

@@ -3,6 +3,7 @@ plugins {
     id 'com.google.protobuf'
     id 'com.google.gms.google-services'
     id 'kotlin-android'
+    id 'kotlin-parcelize'
     id 'org.jetbrains.kotlin.android'
     id "dagger.hilt.android.plugin"
     id "org.jetbrains.kotlin.kapt"
@@ -308,6 +309,10 @@ dependencies {
     //crypto
     implementation libs.bcpkix.jdk15to18
     implementation libs.bcprov.jdk15to18
+
+    // Play Core library for in-app updates
+    implementation libs.app.update
+    implementation libs.app.update.ktx
 
     implementation libs.wechat.sdk.android.without.mta
 

@@ -138,7 +138,7 @@ public class FwUpdateActivity extends AppCompatActivity {
                 if (data != null) {
 
                     otaUpdate = data.getParcelable(AppConstants.KEY_OTA_DETAILS);
-                    isUpdateAvailable = otaUpdate.isOtaAvailable();
+                    isUpdateAvailable = otaUpdate.getOtaAvailable();
 
                     if (isUpdateAvailable) {
                         showLoadingForGetUpdateStatus();

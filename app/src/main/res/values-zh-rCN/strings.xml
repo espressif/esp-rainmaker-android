@@ -326,7 +326,6 @@
     <string name="dialog_title_forgot_password_failed">忘记密码失败</string>
     <string name="dialog_title_delete_user_success">您的账户已成功删除！</string>
     <string name="dialog_title_delete_user_failed">删除账户失败</string>
-    <string name="dialog_title_new_version_available">有新版本可用！</string>
     <string name="dialog_title_network_info">输入网络信息</string>
     <string name="dialog_title_add_name">添加名称</string>
     <string name="dialog_msg_for_gps">定位服务已禁用。请启用以继续</string>
@@ -615,6 +614,13 @@
     <string name="dialog_msg_controller">控制器需要访问您的 RainMaker 帐户才能获取该帐户下的所有节点。继续吗？</string>
 
     <string name="controller_unauthorised">Controller (Unauthorised)</string>
-    <string name="btn_merge">合并</string>
+    <string name="btn_merge">合併</string>
+
+    <string name="dialog_title_new_version_available">New Version Available!</string>
+    <string name="update_message">A new version of the app is available. Would you like to update now?</string>
+    <string name="update_downloaded_message">Update has been downloaded. Restart the app to complete installation.</string>
+    <string name="btn_restart">Restart</string>
+    <string name="btn_allow">Allow</string>
+    <string name="btn_alexa_deny">Deny</string>
 
 </resources>

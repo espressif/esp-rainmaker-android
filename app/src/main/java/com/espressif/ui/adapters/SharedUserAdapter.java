@@ -276,8 +276,7 @@ public class SharedUserAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                         public void onSuccess(Bundle data) {
                             if (data != null) {
                                 String reqId = data.getString(AppConstants.KEY_REQ_ID);
-                                SharingRequest request = new SharingRequest(reqId);
-                                request.setUserName(finalUserName);
+                                SharingRequest request = new SharingRequest(reqId, finalUserName);
                                 long timestampInSec = TimeUnit.SECONDS.convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
                                 request.setReqTime(timestampInSec);
                                 ((NodeDetailsActivity) context).addPendingRequest(request);

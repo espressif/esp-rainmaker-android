@@ -46,6 +46,8 @@ jwtdecode = "2.0.2"
 
 bcpkixJdk15to18 = "1.72"
 
+appUpdateKtx = "2.1.0"
+
 wechatSdkAndroidWithoutMta = "6.8.0"
 
 junit = "4.13.2"
@@ -111,6 +113,9 @@ jwtdecode = { group = "com.auth0.android", name = "jwtdecode", version.ref = "jw
 
 bcpkix-jdk15to18 = { group = "org.bouncycastle", name = "bcpkix-jdk15to18", version.ref = "bcpkixJdk15to18" }
 bcprov-jdk15to18 = { group = "org.bouncycastle", name = "bcprov-jdk15to18", version.ref = "bcpkixJdk15to18" }
+
+app-update = { module = "com.google.android.play:app-update", version.ref = "appUpdateKtx" }
+app-update-ktx = { module = "com.google.android.play:app-update-ktx", version.ref = "appUpdateKtx" }
 
 wechat-sdk-android-without-mta = { group = "com.tencent.mm.opensdk", name = "wechat-sdk-android-without-mta", version.ref = "wechatSdkAndroidWithoutMta" }
 

@@ -135,7 +135,7 @@ class OnOffClusterHelper constructor(private val chipClient: ChipClient) {
         }
     }
 
-    // To call fetchDeviceMatterInfo function from Java
+    // To call function from Java
 
     fun getDeviceStateOnOffClusterAsync(
         deviceId: Long,
