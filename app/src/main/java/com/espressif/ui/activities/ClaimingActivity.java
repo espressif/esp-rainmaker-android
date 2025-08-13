@@ -269,7 +269,7 @@ public class ClaimingActivity extends AppCompatActivity {
 
     private void sendClaimInitRequest(String data) {
 
-        Log.e(TAG, "Claim Init Request");
+        Log.d(TAG, "Claim Init Request");
         ByteString byteString = ByteString.copyFromUtf8(data);
         EspRmakerClaim.PayloadBuf payloadBuf = EspRmakerClaim.PayloadBuf.newBuilder()
                 .setOffset(0)
@@ -288,7 +288,7 @@ public class ClaimingActivity extends AppCompatActivity {
             @Override
             public void onSuccess(byte[] returnData) {
 
-                Log.e(TAG, "Successfully sent claiming init command");
+                Log.d(TAG, "Successfully sent claiming init command");
                 getCSRFromDevice(returnData);
             }
 
@@ -455,15 +455,22 @@ public class ClaimingActivity extends AppCompatActivity {
 
                 if ((offset + dataCount) >= certificateData.length()) {
 
-                    Log.e(TAG, "Certificate Sent to device successfully.");
+                    Log.d(TAG, "Certificate Sent to device successfully.");
                     ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
 
-                    if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN)) {
-                        goToWiFiScanActivity();
+                    if (deviceCaps != null) {
+                        if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN)) {
+                            goToWiFiScanActivity();
+                        } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_SCAN)) {
+                            goToThreadConfigActivity(true);
+                        } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_PROV)) {
+                            goToThreadConfigActivity(false);
+                        } else {
+                            goToWiFiConfigActivity();
+                        }
                     } else {
                         goToWiFiConfigActivity();
                     }
-
                 } else {
                     int newOffset = offset + dataCount;
                     sendCertificateToDevice(newOffset);
@@ -606,7 +613,7 @@ public class ClaimingActivity extends AppCompatActivity {
 
                 if (data != null) {
                     certificateData = data.getString(AppConstants.KEY_CLAIM_VERIFY_RESPONSE);
-                    Log.e(TAG, "Data send to cloud for verify");
+                    Log.d(TAG, "Data send to cloud for verify");
                     sendCertificateToDevice(0);
                 }
             }
@@ -659,6 +666,14 @@ public class ClaimingActivity extends AppCompatActivity {
         wifiListIntent.putExtras(getIntent());
         wifiListIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
         startActivity(wifiListIntent);
+    }
+
+    private void goToThreadConfigActivity(boolean scanCapAvailable) {
+        finish();
+        Intent threadConfigIntent = new Intent(getApplicationContext(), ThreadConfigActivity.class);
+        threadConfigIntent.putExtras(getIntent());
+        threadConfigIntent.putExtra(AppConstants.KEY_THREAD_SCAN_AVAILABLE, scanCapAvailable);
+        startActivity(threadConfigIntent);
     }
 
     private void goToWiFiConfigActivity() {
