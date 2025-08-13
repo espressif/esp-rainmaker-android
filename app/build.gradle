@@ -314,9 +314,13 @@ dependencies {
     implementation libs.bcpkix.jdk15to18
     implementation libs.bcprov.jdk15to18
 
-    // Play Core library for in-app updates
+    // Google Play Core library for in-app updates
     implementation libs.app.update
     implementation libs.app.update.ktx
+
+    // Google Play In-App Review
+    implementation libs.review
+    implementation libs.review.ktx
 
     // CameraX
     implementation libs.camera.core

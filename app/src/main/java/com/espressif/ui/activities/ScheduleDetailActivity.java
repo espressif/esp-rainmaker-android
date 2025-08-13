@@ -55,6 +55,7 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
+import com.espressif.utils.InAppReviewManager;
 import com.espressif.utils.NodeUtils;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
@@ -946,6 +947,9 @@ public class ScheduleDetailActivity extends AppCompatActivity {
                                 public void onSuccess(Bundle data) {
                                     if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
                                         Toast.makeText(ScheduleDetailActivity.this, R.string.msg_schedule_added, Toast.LENGTH_LONG).show();
+                                        // Request in-app review for first successful schedule creation
+                                        InAppReviewManager.Companion.getInstance(ScheduleDetailActivity.this)
+                                            .requestReviewForFirstSchedule(ScheduleDetailActivity.this);
                                     } else {
                                         Toast.makeText(ScheduleDetailActivity.this, R.string.msg_schedule_updated, Toast.LENGTH_LONG).show();
                                     }
@@ -980,6 +984,9 @@ public class ScheduleDetailActivity extends AppCompatActivity {
                         } else {
                             if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
                                 Toast.makeText(ScheduleDetailActivity.this, R.string.msg_schedule_added, Toast.LENGTH_LONG).show();
+                                // Request in-app review for first successful schedule creation
+                                InAppReviewManager.Companion.getInstance(ScheduleDetailActivity.this)
+                                    .requestReviewForFirstSchedule(ScheduleDetailActivity.this);
                             } else {
                                 Toast.makeText(ScheduleDetailActivity.this, R.string.msg_schedule_updated, Toast.LENGTH_LONG).show();
                             }

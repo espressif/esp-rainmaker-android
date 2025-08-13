@@ -54,6 +54,7 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Service;
+import com.espressif.utils.InAppReviewManager;
 import com.espressif.utils.NodeUtils;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
@@ -757,6 +758,9 @@ public class SceneDetailActivity extends AppCompatActivity {
                     } else {
                         if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
                             Toast.makeText(SceneDetailActivity.this, R.string.msg_scene_added, Toast.LENGTH_LONG).show();
+                            // Request in-app review for first successful scene creation
+                            InAppReviewManager.Companion.getInstance(SceneDetailActivity.this)
+                                .requestReviewForFirstScene(SceneDetailActivity.this);
                         } else {
                             Toast.makeText(SceneDetailActivity.this, R.string.msg_scene_updated, Toast.LENGTH_LONG).show();
                         }

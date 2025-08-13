@@ -47,6 +47,7 @@ jwtdecode = "2.0.2"
 bcpkixJdk15to18 = "1.72"
 
 appUpdateKtx = "2.1.0"
+review = "2.0.2"
 
 cameraCore = "1.5.1"
 
@@ -120,6 +121,9 @@ bcprov-jdk15to18 = { group = "org.bouncycastle", name = "bcprov-jdk15to18", vers
 
 app-update = { module = "com.google.android.play:app-update", version.ref = "appUpdateKtx" }
 app-update-ktx = { module = "com.google.android.play:app-update-ktx", version.ref = "appUpdateKtx" }
+
+review = { module = "com.google.android.play:review", version.ref = "review" }
+review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "review" }
 
 camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCore" }
 camera-core = { module = "androidx.camera:camera-core", version.ref = "cameraCore" }
