@@ -108,6 +108,7 @@ class EspDeviceActivity : AppCompatActivity() {
     private var isControllerClusterAvailable = false
     private var isTbrClusterAvailable: Boolean = false
     private var isCtlAvailable = false
+    private var isRmakerCtlAvailable = false
     private var lastUpdateRequestTime: Long = 0
     private var isNetworkAvailable = true
     private var shouldGetParams = true
@@ -188,10 +189,16 @@ class EspDeviceActivity : AppCompatActivity() {
             }
 
             val controllerService = getService(
-                espApp!!.nodeMap[device!!.nodeId]!!,
+                espApp!!.nodeMap[nodeId]!!,
                 AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
             )
             isCtlAvailable = controllerService != null
+
+            val rmakerControllerService = getService(
+                espApp!!.nodeMap[nodeId]!!,
+                AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER
+            )
+            isRmakerCtlAvailable = rmakerControllerService != null
             var matterNodeIdParamAvailable = false
 
             if (isCtlAvailable) {
@@ -429,6 +436,18 @@ class EspDeviceActivity : AppCompatActivity() {
             }
         })
 
+        binding.espDeviceLayout.btnUpdateRmaker.setOnClickListener(View.OnClickListener {
+            if (isRmakerCtlAvailable) {
+                val intent = Intent(
+                    this@EspDeviceActivity,
+                    ControllerLoginActivity::class.java
+                )
+                intent.putExtra(AppConstants.KEY_NODE_ID, nodeId)
+                intent.putExtra("is_rmaker_controller", true)
+                startActivity(intent)
+            }
+        })
+
         binding.espDeviceLayout.tvControllerLogin.setOnClickListener(View.OnClickListener {
             var intent = Intent(
                 this,
@@ -477,6 +496,12 @@ class EspDeviceActivity : AppCompatActivity() {
         } else {
             binding.espDeviceLayout.rlControllerLogin.visibility = View.GONE
             binding.espDeviceLayout.rlMatterController.visibility = View.GONE
+        }
+
+        if (isRmakerCtlAvailable) {
+            binding.espDeviceLayout.rlRmakerController.visibility = View.VISIBLE
+        } else {
+            binding.espDeviceLayout.rlRmakerController.visibility = View.GONE
         }
 
         if (isTbrClusterAvailable) {

@@ -79,6 +79,7 @@ class AppConstants {
         const val SERVICE_TYPE_LOCAL_CONTROL = "esp.service.local_control"
         const val SERVICE_TYPE_SYSTEM = "esp.service.system"
         const val SERVICE_TYPE_MATTER_CONTROLLER = "esp.service.matter-controller"
+        const val SERVICE_TYPE_RMAKER_CONTROLLER = "esp.service.rmaker-user-auth"
         const val SERVICE_TYPE_TBR = "esp.service.thread-br"
 
         // Param Types
@@ -312,6 +313,7 @@ class AppConstants {
         const val KEY_BOUNDS = "bounds"
         const val KEY_SELECTED_DEVICES = "selected_devices"
         const val KEY_MATTER_CTL = "MatterCTL"
+        const val KEY_RMAKER_CTL = "RmakerCTL"
 
         const val KEY_SUPPORTED_VERSIONS = "supported_versions"
         const val KEY_ADDITIONAL_INFO = "additional_info"

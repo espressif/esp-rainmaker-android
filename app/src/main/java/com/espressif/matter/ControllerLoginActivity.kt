@@ -54,6 +54,7 @@ class ControllerLoginActivity : AppCompatActivity() {
     private var password: String? = null
     private var nodeId: String? = null
     private var isCtrlService = false
+    private var isRmakerController = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -138,7 +139,7 @@ class ControllerLoginActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbarLayout.toolbar)
         supportActionBar!!.setDisplayHomeAsUpEnabled(true)
         supportActionBar!!.setDisplayShowHomeEnabled(true)
-        binding.toolbarLayout.toolbar.title = "Matter Controller Setup"
+        binding.toolbarLayout.toolbar.title = "Controller Setup"
         binding.toolbarLayout.toolbar.navigationIcon =
             AppCompatResources.getDrawable(this, R.drawable.ic_arrow_left)
         binding.toolbarLayout.toolbar.setNavigationOnClickListener { finish() }
@@ -148,6 +149,7 @@ class ControllerLoginActivity : AppCompatActivity() {
 
         nodeId = intent.getStringExtra(AppConstants.KEY_NODE_ID)
         isCtrlService = intent.getBooleanExtra(AppConstants.KEY_IS_CTRL_SERVICE, false)
+        isRmakerController = intent.getBooleanExtra("is_rmaker_controller", false)
         binding.btnLogin.textBtn.text = getString(R.string.btn_login)
         binding.btnLogin.layoutBtn.setOnClickListener { signInUser() }
 
@@ -285,6 +287,58 @@ class ControllerLoginActivity : AppCompatActivity() {
                     serviceName = service.name
                 }
             }
+
+            val body = JsonObject()
+            body.add(serviceName, serviceParamJson)
+
+            val networkApiManager = NetworkApiManager(espApp)
+            networkApiManager.updateParamValue(nodeId, body, object : ApiResponseListener {
+                override fun onSuccess(data: Bundle?) {
+                    hideLoading()
+                    finish()
+                }
+
+                override fun onResponseFailure(exception: java.lang.Exception) {
+                }
+
+                override fun onNetworkFailure(exception: java.lang.Exception) {
+                }
+            })
+        } else if (isRmakerController) {
+            val serviceParamJson = JsonObject()
+
+            // Get service name
+            var serviceName = AppConstants.KEY_RMAKER_CTL
+            if (espApp.nodeMap[nodeId] != null) {
+                val service = getService(
+                    espApp.nodeMap[nodeId]!!,
+                    AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER
+                )
+                if (service != null && !TextUtils.isEmpty(service.name)) {
+                    serviceName = service.name
+                }
+            }
+
+            var baseUrlParamName = AppConstants.PARAM_BASE_URL
+            var userTokenParamName = AppConstants.PARAM_USER_TOKEN
+
+            nodeId?.let {
+                baseUrlParamName = ParamUtils.getParamNameForService(
+                    it,
+                    AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER,
+                    AppConstants.PARAM_TYPE_BASE_URL,
+                    espApp
+                )
+                userTokenParamName = ParamUtils.getParamNameForService(
+                    it,
+                    AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER,
+                    AppConstants.PARAM_TYPE_USER_TOKEN,
+                    espApp
+                )
+            }
+
+            serviceParamJson.addProperty(baseUrlParamName, EspApplication.BASE_URL)
+            serviceParamJson.addProperty(userTokenParamName, token)
 
             val body = JsonObject()
             body.add(serviceName, serviceParamJson)

@@ -398,6 +398,7 @@ public class JsonDataParser {
         JSONObject systemServiceJson = paramsJson.optJSONObject(AppConstants.KEY_SYSTEM);
         JSONObject controllerServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CONTROLLER);
         JSONObject ctlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CTL);
+        JSONObject rmCtrlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_RMAKER_CTL);
         JSONObject tbrServiceJson = paramsJson.optJSONObject(AppConstants.KEY_TBR_SERVICE);
         int scheduleCnt = 0, sceneCnt = 0;
 
@@ -752,7 +753,8 @@ public class JsonDataParser {
                         }
                     }
                 } else if ((AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && controllerServiceJson != null)
-                        || (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && ctlServiceJson != null)) {
+                        || (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && ctlServiceJson != null)
+                        || (AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER.equals(service.getType()) && rmCtrlServiceJson != null)) {
 
                     // Matter controller service
                     ArrayList<Param> controllerParams = service.getParams();
@@ -805,6 +807,9 @@ public class JsonDataParser {
                                             || AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type))) {
                                 if (!TextUtils.isEmpty(ctlServiceJson.optString(controllerParam.getName()))) {
                                     String value = ctlServiceJson.optString(controllerParam.getName());
+                                    controllerParam.setLabelValue(value);
+                                } else if (!TextUtils.isEmpty(rmCtrlServiceJson.optString(controllerParam.getName()))) {
+                                    String value = rmCtrlServiceJson.optString(controllerParam.getName());
                                     controllerParam.setLabelValue(value);
                                 }
                             }
