@@ -814,9 +814,16 @@ class AddDeviceActivity : AppCompatActivity() {
             Log.d(TAG, "Version Info JSON not available.")
         }
 
-        if (rmakerCaps.size > 0 && rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM)) {
+        var hasClaimCap = false
+        var hasCameraClaimCap = false
+        if (rmakerCaps.isNotEmpty()) {
+            hasClaimCap = rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM)
+            hasCameraClaimCap = rmakerCaps.contains(AppConstants.CAPABILITY_CAMERA_CLAIM)
+        }
+
+        if (hasClaimCap || hasCameraClaimCap) {
             if (espDevice!!.transportType == ESPConstants.TransportType.TRANSPORT_BLE) {
-                goToClaimingActivity()
+                goToClaimingActivity(hasCameraClaimCap)
             } else {
                 alertForClaimingNotSupported()
             }
@@ -972,10 +979,11 @@ class AddDeviceActivity : AppCompatActivity() {
         startActivity(threadConfigIntent)
     }
 
-    private fun goToClaimingActivity() {
+    private fun goToClaimingActivity(isCameraClaim: Boolean) {
         finish()
         val claimingIntent = Intent(applicationContext, ClaimingActivity::class.java)
         claimingIntent.putExtra(AppConstants.KEY_SSID, connectedNetwork)
+        claimingIntent.putExtra(AppConstants.KEY_IS_CAMERA_CLAIM, isCameraClaim)
         startActivity(claimingIntent)
     }
 

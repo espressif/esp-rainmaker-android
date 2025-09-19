@@ -467,10 +467,16 @@ public class BLEProvisionLanding extends AppCompatActivity {
             Log.d(TAG, "Version Info JSON not available.");
         }
 
+        boolean hasClaimCap = false, hasCameraClaimCap = false;
+        if (!rmakerCaps.isEmpty()) {
+            hasClaimCap = rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM);
+            hasCameraClaimCap = rmakerCaps.contains(AppConstants.CAPABILITY_CAMERA_CLAIM);
+        }
+
         if (deviceCaps != null && !deviceCaps.contains(AppConstants.CAPABILITY_NO_POP) && AppConstants.SEC_TYPE_0 != securityType) {
             goToPopActivity();
-        } else if (rmakerCaps.size() > 0 && rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM)) {
-            goToClaimingActivity();
+        } else if (hasClaimCap || hasCameraClaimCap) {
+            goToClaimingActivity(hasCameraClaimCap);
         } else if (deviceCaps != null) {
             if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN)) {
                 goToWifiScanListActivity();
@@ -670,10 +676,11 @@ public class BLEProvisionLanding extends AppCompatActivity {
         startActivity(threadConfigIntent);
     }
 
-    private void goToClaimingActivity() {
+    private void goToClaimingActivity(boolean isCameraClaim) {
         finish();
         Intent claimingIntent = new Intent(getApplicationContext(), ClaimingActivity.class);
         claimingIntent.putExtras(getIntent());
+        claimingIntent.putExtra(AppConstants.KEY_IS_CAMERA_CLAIM, isCameraClaim);
         startActivity(claimingIntent);
     }
 }
