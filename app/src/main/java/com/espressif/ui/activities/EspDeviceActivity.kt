@@ -15,12 +15,13 @@
 package com.espressif.ui.activities
 
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
 import android.text.SpannableString
 import android.text.Spanned
-import android.text.style.StyleSpan
 import android.text.TextUtils
+import android.text.style.StyleSpan
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
@@ -34,6 +35,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener
+import chip.devicecontroller.ReportCallback
+import chip.devicecontroller.model.ChipAttributePath
+import chip.devicecontroller.model.ChipEventPath
+import chip.devicecontroller.model.NodeState
 import com.espressif.AppConstants
 import com.espressif.AppConstants.Companion.UpdateEventType
 import com.espressif.EspApplication
@@ -44,6 +49,7 @@ import com.espressif.matter.ControllerClusterHelper
 import com.espressif.matter.ControllerLoginActivity
 import com.espressif.matter.DoorLockClusterHelper
 import com.espressif.matter.GroupSelectionActivity
+import com.espressif.matter.SubscriptionHelper
 import com.espressif.matter.ThreadBRActivity
 import com.espressif.rainmaker.BuildConfig
 import com.espressif.rainmaker.R
@@ -68,7 +74,6 @@ import java.math.BigInteger
 import java.text.SimpleDateFormat
 import java.util.Arrays
 import java.util.Calendar
-import android.graphics.Typeface
 
 class EspDeviceActivity : AppCompatActivity() {
 
@@ -107,6 +112,12 @@ class EspDeviceActivity : AppCompatActivity() {
     private var isNetworkAvailable = true
     private var shouldGetParams = true
     private var isUpdateView = true
+    
+    // Matter subscription related variables
+    private var subscriptionHelper: SubscriptionHelper? = null
+    private var matterSubscriptionActive = false
+    private var lastMatterUpdateTime = 0L
+    private val MATTER_UPDATE_THROTTLE_MS = 100L // Throttle updates to max once per 100ms
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -150,16 +161,16 @@ class EspDeviceActivity : AppCompatActivity() {
                 ) {
                     val deviceMatterInfo = espApp!!.matterDeviceInfoMap[matterNodeId]
 
-                    if (deviceMatterInfo != null && !deviceMatterInfo.isEmpty()) {
+                    if (!deviceMatterInfo.isNullOrEmpty()) {
                         for ((endpoint, _, serverClusters) in deviceMatterInfo) {
-                            if (endpoint == 0 && serverClusters != null && !serverClusters.isEmpty()) {
+                            if (endpoint == 0 && serverClusters.isNotEmpty()) {
                                 for (serverCluster in serverClusters) {
                                     val id = serverCluster as Long
                                     if (id == AppConstants.CONTROLLER_CLUSTER_ID) {
                                         isControllerClusterAvailable = true
                                     }
                                 }
-                            } else if (endpoint == 1 && serverClusters != null && !serverClusters.isEmpty()) {
+                            } else if (endpoint == 1 && serverClusters.isNotEmpty()) {
                                 for (serverCluster in serverClusters) {
                                     val id = serverCluster as Long
                                     if (id == AppConstants.THREAD_BR_MANAGEMENT_CLUSTER_ID) {
@@ -211,16 +222,23 @@ class EspDeviceActivity : AppCompatActivity() {
         super.onResume()
         getNodeDetails()
         EventBus.getDefault().register(this)
+        
+        // Setup Matter subscriptions if device is MATTER_LOCAL
+        if (nodeStatus == AppConstants.NODE_STATUS_MATTER_LOCAL) {
+            setupMatterSubscriptions()
+        }
     }
 
     override fun onPause() {
         super.onPause()
         stopUpdateValueTask()
+        stopMatterSubscriptions()
         EventBus.getDefault().unregister(this)
     }
 
     override fun onDestroy() {
         stopUpdateValueTask()
+        stopMatterSubscriptions()
         super.onDestroy()
     }
 
@@ -265,7 +283,7 @@ class EspDeviceActivity : AppCompatActivity() {
                         handler!!.removeCallbacks(updateViewTask)
                         handler!!.post(updateViewTask)
                     }
-                } else {
+                } else if (nodeStatus != AppConstants.NODE_STATUS_MATTER_LOCAL) {
                     updateUi()
                 }
             }
@@ -356,10 +374,10 @@ class EspDeviceActivity : AppCompatActivity() {
         linearLayoutManager1.orientation = RecyclerView.VERTICAL
         binding.espDeviceLayout.rvStaticParamList.setLayoutManager(linearLayoutManager1)
 
-        paramAdapter = ParamAdapter(this, device, paramList)
+        paramAdapter = ParamAdapter(this, device, paramList ?: ArrayList())
         binding.espDeviceLayout.rvDynamicParamList.setAdapter(paramAdapter)
 
-        attrAdapter = AttrParamAdapter(this, device, attributeList)
+        attrAdapter = AttrParamAdapter(this, device, attributeList ?: ArrayList())
         binding.espDeviceLayout.rvStaticParamList.setAdapter(attrAdapter)
 
         binding.espDeviceLayout.swipeContainer.setOnRefreshListener(OnRefreshListener { getNodeDetails() })
@@ -975,5 +993,469 @@ class EspDeviceActivity : AppCompatActivity() {
         binding.espDeviceLayout.paramsParentLayout.setAlpha(1f)
         binding.rlProgress.visibility = View.GONE
         window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+    }
+
+    // Matter Subscription Methods
+    private fun setupMatterSubscriptions() {
+        if (matterSubscriptionActive || matterNodeId.isNullOrEmpty() || !espApp!!.chipClientMap.containsKey(
+                matterNodeId
+            )
+        ) {
+            Log.d(TAG, "Cannot setup Matter subscriptions - already active or device not available")
+            return
+        }
+
+        Log.d(TAG, "Setting up Matter subscriptions for device: $matterNodeId")
+        
+        lifecycleScope.launch {
+            try {
+                val chipClient = espApp!!.chipClientMap[matterNodeId]!!
+                subscriptionHelper = SubscriptionHelper(chipClient)
+                
+                val deviceId = BigInteger(matterNodeId, 16).toLong()
+                val connectedDevicePtr = chipClient.getConnectedDevicePointer(deviceId)
+                
+                // Create subscriptions based on device type
+                val subscriptions = subscriptionHelper!!.createSubscriptionsForDevice(
+                    device?.deviceType ?: "esp.device.switch",
+                    AppConstants.ENDPOINT_1.toLong()
+                )
+
+                Log.d(
+                    TAG,
+                    "Created ${subscriptions.size} subscriptions for device type: ${device?.deviceType}"
+                )
+
+                // Setup subscription callbacks
+                val reportCallback = createMatterReportCallback()
+                val subscriptionEstablishedCallback =
+                    SubscriptionHelper.SubscriptionEstablishedCallbackForDevice(deviceId)
+                val resubscriptionAttemptCallback =
+                    SubscriptionHelper.ResubscriptionAttemptCallbackForDevice(deviceId)
+
+                // Start subscriptions
+                subscriptionHelper!!.subscribeToMultipleAttributes(
+                    connectedDevicePtr,
+                    subscriptions,
+                    subscriptionEstablishedCallback,
+                    resubscriptionAttemptCallback,
+                    reportCallback
+                )
+                
+                matterSubscriptionActive = true
+                Log.d(TAG, "Matter subscriptions setup completed successfully")
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to setup Matter subscriptions", e)
+                matterSubscriptionActive = false
+            }
+        }
+    }
+    
+    private fun stopMatterSubscriptions() {
+        if (!matterSubscriptionActive) {
+            return
+        }
+        
+        Log.d(TAG, "Stopping Matter subscriptions")
+        matterSubscriptionActive = false
+        subscriptionHelper = null
+    }
+    
+    private fun createMatterReportCallback(): ReportCallback {
+        return object : ReportCallback {
+
+            override fun onError(
+                attributePath: ChipAttributePath?,
+                eventPath: ChipEventPath?,
+                e: java.lang.Exception
+            ) {
+                Log.e(TAG, "Matter subscription error", e)
+            }
+
+            override fun onReport(nodeState: NodeState) {
+                Log.d(TAG, "Matter subscription report received for node: ${nodeId}")
+
+                try {
+                    for ((endpointId, endpoint) in nodeState.endpointStates) {
+                        for ((clusterId, cluster) in endpoint.clusterStates) {
+                            for ((attributeId, attribute) in cluster.attributeStates) {
+                                Log.d(
+                                    TAG,
+                                    "Attribute update - Endpoint: $endpointId, Cluster: $clusterId, Attribute: $attributeId, Value: ${attribute.value}"
+                                )
+
+                                // Update UI based on cluster and attribute with throttling
+                                val currentTime = System.currentTimeMillis()
+                                if (currentTime - lastMatterUpdateTime > MATTER_UPDATE_THROTTLE_MS) {
+                                    lastMatterUpdateTime = currentTime
+                                    runOnUiThread {
+                                        updateParameterFromMatterAttribute(
+                                            clusterId,
+                                            attributeId,
+                                            attribute.value
+                                        )
+                                    }
+                                } else {
+                                    Log.d(
+                                        TAG,
+                                        "Throttling Matter update for cluster $clusterId attribute $attributeId"
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error processing Matter subscription report", e)
+                }
+            }
+
+            override fun onDone() {
+                Log.d(TAG, "Matter subscription done")
+            }
+        }
+    }
+
+    private fun updateParameterFromMatterAttribute(
+        clusterId: Long,
+        attributeId: Long,
+        value: Any?
+    ) {
+        if (paramList == null || value == null) {
+            return
+        }
+
+        Log.d(
+            TAG,
+            "Updating parameter from Matter attribute - Cluster: $clusterId, Attribute: $attributeId, Value: $value"
+        )
+
+        try {
+            var paramUpdated = false
+
+            when (clusterId) {
+                6L -> { // OnOff Cluster
+                    if (attributeId == 0L) { // OnOff attribute
+                        for (param in paramList!!) {
+                            if (param.paramType == AppConstants.PARAM_TYPE_POWER || param.name.equals(
+                                    "Power",
+                                    true
+                                )
+                            ) {
+                                val boolValue = value as? Boolean ?: false
+                                param.switchStatus = boolValue
+                                param.labelValue = if (boolValue) "true" else "false"
+                                paramUpdated = true
+                                break
+                            }
+                        }
+                    }
+                }
+
+                8L -> { // Level Control Cluster
+                    if (attributeId == 0L) { // CurrentLevel attribute
+                        for (param in paramList!!) {
+                            if (param.paramType == AppConstants.PARAM_TYPE_BRIGHTNESS || param.name.equals(
+                                    "Brightness",
+                                    true
+                                )
+                            ) {
+                                val intValue = value as? Int ?: 0
+                                val percentage =
+                                    (intValue * 100) / 254 // Convert from 0-254 to 0-100
+                                param.value = percentage.toDouble()
+                                param.labelValue = percentage.toString()
+                                paramUpdated = true
+                                break
+                            }
+                        }
+                    }
+                }
+
+                768L -> { // Color Control Cluster
+                    when (attributeId) {
+                        0L -> { // CurrentHue attribute
+                            for (param in paramList!!) {
+                                if (param.paramType == AppConstants.PARAM_TYPE_HUE || param.name.equals(
+                                        "Hue",
+                                        true
+                                    )
+                                ) {
+                                    val intValue = value as? Int ?: 0
+                                    val hueValue =
+                                        (intValue * 360) / 254 // Convert from 0-254 to 0-360
+                                    param.value = hueValue.toDouble()
+                                    param.labelValue = hueValue.toString()
+                                    paramUpdated = true
+                                    break
+                                }
+                            }
+                        }
+
+                        1L -> { // CurrentSaturation attribute
+                            for (param in paramList!!) {
+                                if (param.paramType == AppConstants.PARAM_TYPE_SATURATION || param.name.equals(
+                                        "Saturation",
+                                        true
+                                    )
+                                ) {
+                                    val intValue = value as? Int ?: 0
+                                    val percentage =
+                                        (intValue * 100) / 254 // Convert from 0-254 to 0-100
+                                    param.value = percentage.toDouble()
+                                    param.labelValue = percentage.toString()
+                                    paramUpdated = true
+                                    break
+                                }
+                            }
+                        }
+
+                        7L -> { // ColorTemperature attribute
+                            for (param in paramList!!) {
+                                if (param.paramType == AppConstants.PARAM_TYPE_CCT || param.name.equals(
+                                        AppConstants.PARAM_CCT,
+                                        true
+                                    )
+                                ) {
+                                    val miredsValue = value as? Int ?: 0
+                                    // Convert mireds to Kelvin: K = 1,000,000 / M
+                                    val kelvinValue = if (miredsValue > 0) {
+                                        1000000 / miredsValue
+                                    } else {
+                                        0
+                                    }
+
+                                    // Clamp Kelvin value between 2000K and 7000K
+                                    val clampedKelvin = kelvinValue.coerceIn(2000, 7000)
+
+                                    Log.d(
+                                        TAG,
+                                        "CCT: Mireds=$miredsValue, Raw Kelvin=$kelvinValue, Clamped Kelvin=$clampedKelvin"
+                                    )
+
+                                    // Store the clamped Kelvin value
+                                    param.value = clampedKelvin.toDouble()
+                                    param.labelValue = clampedKelvin.toString()
+                                    paramUpdated = true
+                                    break
+                                }
+                            }
+                        }
+                    }
+                }
+
+                1026L -> { // Temperature Measurement Cluster
+                    if (attributeId == 0L) { // MeasuredValue attribute
+                        for (param in paramList!!) {
+                            if (param.paramType == AppConstants.PARAM_TYPE_TEMPERATURE || param.name.equals(
+                                    "Temperature",
+                                    true
+                                )
+                            ) {
+                                val intValue = value as? Int ?: 0
+                                val temperatureValue =
+                                    intValue / 100.0 // Convert from centi-degrees to degrees
+                                param.value = temperatureValue
+                                param.labelValue = String.format("%.1f", temperatureValue)
+                                paramUpdated = true
+                                break
+                            }
+                        }
+                    }
+                }
+
+//                257L -> { // Door Lock Cluster
+//                    if (attributeId == 0L) { // LockState attribute
+//                        for (param in paramList!!) {
+//                            if (param.paramType == AppConstants.PARAM_TYPE_LOCK_STATE || param.name.equals("Lock", true)) {
+//                                val intValue = value as? Int ?: 0
+//                                val isLocked = intValue == 1
+//                                param.setSwitchStatus(!isLocked) // UI shows unlocked state as true
+//                                param.labelValue = if (isLocked) "Locked" else "Unlocked"
+//                                paramUpdated = true
+//                                break
+//                            }
+//                        }
+//                    }
+//                }
+
+                513L -> { // Thermostat Cluster
+                    when (attributeId) {
+                        0L -> { // LocalTemperature attribute
+                            for (param in paramList!!) {
+                                if (param.paramType == AppConstants.PARAM_TYPE_TEMPERATURE || param.name.equals(
+                                        "Temperature",
+                                        true
+                                    )
+                                ) {
+                                    val intValue = value as? Int ?: 0
+                                    val temperatureValue = intValue / 100.0
+                                    param.value = temperatureValue
+                                    param.labelValue = String.format("%.1f", temperatureValue)
+                                    paramUpdated = true
+                                    break
+                                }
+                            }
+                        }
+
+                        17L -> { // OccupiedCoolingSetpoint
+                            for (param in paramList!!) {
+                                if (param.name.equals(AppConstants.PARAM_COOLING_POINT, true)) {
+                                    val intValue = value as? Int ?: 0
+                                    val temperatureValue = intValue / 100.0
+                                    param.value = temperatureValue
+                                    param.labelValue = String.format("%.1f", temperatureValue)
+                                    paramUpdated = true
+                                    break
+                                }
+                            }
+                        }
+
+                        18L -> { // OccupiedHeatingSetpoint
+                            for (param in paramList!!) {
+                                if (param.name.equals(AppConstants.PARAM_HEATING_POINT, true)) {
+                                    val intValue = value as? Int ?: 0
+                                    val temperatureValue = intValue / 100.0
+                                    param.value = temperatureValue
+                                    param.labelValue = String.format("%.1f", temperatureValue)
+                                    paramUpdated = true
+                                    break
+                                }
+                            }
+                        }
+
+                        28L -> { // SystemMode
+                            for (param in paramList!!) {
+                                if (param.name.equals(AppConstants.PARAM_SYSTEM_MODE, true)) {
+                                    val intValue = value as? Int ?: 0
+                                    param.value = intValue.toDouble()
+                                    param.labelValue = when (intValue) {
+                                        0 -> "Off"
+                                        1 -> "Auto"
+                                        3 -> "Cool"
+                                        4 -> "Heat"
+                                        else -> "Unknown"
+                                    }
+                                    paramUpdated = true
+                                    break
+                                }
+                            }
+                        }
+                    }
+                }
+
+                514L -> { // Fan Control Cluster
+                    if (attributeId == 0L) { // FanMode attribute
+                        for (param in paramList!!) {
+                            if (param.paramType == AppConstants.PARAM_TYPE_SPEED || param.name.equals(
+                                    "Speed",
+                                    true
+                                )
+                            ) {
+                                val intValue = value as? Int ?: 0
+                                param.value = intValue.toDouble()
+                                param.labelValue = intValue.toString()
+                                paramUpdated = true
+                                break
+                            }
+                        }
+                    }
+                }
+
+                else -> {
+                    Log.d(TAG, "Unhandled cluster ID: $clusterId for attribute: $attributeId")
+                }
+            }
+
+            if (paramUpdated) {
+                Log.d(TAG, "Parameter updated from Matter subscription - refreshing UI")
+                // Find the specific parameter position and update only that item
+                val paramPosition = findParameterPosition(clusterId, attributeId)
+                if (paramPosition >= 0) {
+                    paramAdapter?.notifyItemChanged(paramPosition)
+                } else {
+                    // Fallback to full refresh if position not found
+                    paramAdapter?.notifyDataSetChanged()
+                }
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating parameter from Matter attribute", e)
+        }
+    }
+
+    private fun findParameterPosition(clusterId: Long, attributeId: Long): Int {
+        if (paramList == null) return -1
+
+        for (i in paramList!!.indices) {
+            val param = paramList!![i]
+
+            // Map cluster/attribute to param types for position finding
+            val matches = when (clusterId) {
+                6L -> if (attributeId == 0L) param.paramType == AppConstants.PARAM_TYPE_POWER || param.name.equals(
+                    "Power",
+                    true
+                ) else false
+
+                8L -> if (attributeId == 0L) param.paramType == AppConstants.PARAM_TYPE_BRIGHTNESS || param.name.equals(
+                    "Brightness",
+                    true
+                ) else false
+
+                768L -> when (attributeId) {
+                    0L -> param.paramType == AppConstants.PARAM_TYPE_HUE || param.name.equals(
+                        AppConstants.PARAM_HUE,
+                        true
+                    )
+
+                    1L -> param.paramType == AppConstants.PARAM_TYPE_SATURATION || param.name.equals(
+                        AppConstants.PARAM_SATURATION,
+                        true
+                    )
+
+                    7L -> param.paramType == AppConstants.PARAM_TYPE_CCT || param.name.equals(
+                        AppConstants.PARAM_CCT,
+                        true
+                    )
+
+                    else -> false
+                }
+
+                1026L -> if (attributeId == 0L) param.paramType == AppConstants.PARAM_TYPE_TEMPERATURE || param.name.equals(
+                    "Temperature",
+                    true
+                ) else false
+
+                513L -> when (attributeId) {
+                    0L -> param.paramType == AppConstants.PARAM_TYPE_TEMPERATURE || param.name.equals(
+                        "Temperature",
+                        true
+                    )
+
+                    17L -> param.name.equals(AppConstants.PARAM_COOLING_POINT, true)
+                    18L -> param.name.equals(AppConstants.PARAM_HEATING_POINT, true)
+                    28L -> param.name.equals(AppConstants.PARAM_SYSTEM_MODE, true)
+                    else -> false
+                }
+
+                514L -> if (attributeId == 0L) param.paramType == AppConstants.PARAM_TYPE_SPEED || param.name.equals(
+                    "Speed",
+                    true
+                ) else false
+
+                else -> false
+            }
+
+            if (matches) {
+                Log.d(
+                    TAG,
+                    "Found parameter ${param.name} at position $i for cluster $clusterId attribute $attributeId"
+                )
+                return i
+            }
+        }
+
+        Log.d(TAG, "Parameter not found for cluster $clusterId attribute $attributeId")
+        return -1
     }
 }

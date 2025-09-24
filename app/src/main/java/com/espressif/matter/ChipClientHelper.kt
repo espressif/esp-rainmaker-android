@@ -97,13 +97,7 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                                 espApp.fetchDeviceMatterInfo(matterNodeId, nodeId)
                                 val node: EspNode? = espApp.nodeMap.get(nodeId)
                                 if (node != null) {
-                                    if (node.devices == null || node.devices.isEmpty()) {
-                                        Log.e(TAG, "Matter device list is empty for node $nodeId (matterNodeId : $matterNodeId)");
-                                        continue
-                                    }
-                                    if (node.devices[0] == null || node.devices[0].params == null) {
-                                        addParamsForMatterDevice(nodeId, matterNodeId, node)
-                                    }
+                                    addParamsForMatterDevice(nodeId, matterNodeId, node)
                                     getCurrentValues(nodeId, matterNodeId, node)
                                 }
                                 Log.d(TAG, "Init and fetch cluster info done for the device")
@@ -115,8 +109,8 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
-            var updateEvent = UpdateEvent(UpdateEventType.EVENT_MATTER_DEVICE_CONNECTIVITY)
-            var data = Bundle()
+            val updateEvent = UpdateEvent(UpdateEventType.EVENT_MATTER_DEVICE_CONNECTIVITY)
+            val data = Bundle()
             data.putString(AppConstants.KEY_MATTER_NODE_ID, matterNodeId)
             updateEvent.data = data
             EventBus.getDefault().post(updateEvent)
@@ -135,16 +129,16 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
         if (espApp.matterDeviceInfoMap.containsKey(matterNodeId)) {
 
             val matterDeviceInfo: MutableList<DeviceMatterInfo>? =
-                espApp.matterDeviceInfoMap.get(matterNodeId)
+                espApp.matterDeviceInfoMap[matterNodeId]
 
             if (matterDeviceInfo != null) {
-                for ((endpoint, types, serverClusters, clientClusters) in matterDeviceInfo) {
-                    Log.d(TAG, "Endpoint : $endpoint")
-                    Log.d(TAG, "Server Clusters : $serverClusters")
-                    Log.d(TAG, "Client Clusters : $clientClusters")
-                    Log.d(TAG, "Types : $types")
+                for (info in matterDeviceInfo) {
+                    Log.d(TAG, "Endpoint : ${info.endpoint}")
+                    Log.d(TAG, "Server Clusters : ${info.serverClusters}")
+                    Log.d(TAG, "Client Clusters : ${info.clientClusters}")
+                    Log.d(TAG, "Types : ${info.types}")
 
-                    if (endpoint == AppConstants.ENDPOINT_1) {
+                    if (info.endpoint == AppConstants.ENDPOINT_1) {
                         var deviceType = ""
                         var devices = node.devices
 
@@ -159,16 +153,18 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                         properties.add(AppConstants.KEY_PROPERTY_WRITE)
                         properties.add(AppConstants.KEY_PROPERTY_READ)
 
-                        val clusters: List<Long> = serverClusters.mapNotNull {
-                            (it as? Number)?.toLong() // Safely cast to Number and then to Long
-                        }
-                        val espNode = NodeUtils.addParamsForMatterClusters(node, clusters, types[0])
-                        espApp.nodeMap.put(nodeId, espNode)
+                        val clusters: List<Long> = info.serverClusters as List<Long>
+                        // Use the enhanced method that considers actual attributes for better parameter creation
+                        val espNode = NodeUtils.addParamsForMatterClustersWithAttributes(
+                            node,
+                            clusters,
+                            info.types[0],
+                            matterDeviceInfo
+                        )
+                        espApp.nodeMap[nodeId] = espNode
 
                         if (TextUtils.isEmpty(deviceType)) {
-                            for (cluster in clientClusters) {
-                                val clusterId = cluster as Long
-
+                            for (clusterId in info.clientClusters) {
                                 if (clusterId == ChipClusters.OnOffCluster.CLUSTER_ID) {
                                     Log.d(TAG, "Found On Off Cluster in client clusters")
 
@@ -199,7 +195,7 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                                     device.params = params
                                 }
                             }
-                            espApp.nodeMap.put(nodeId, node)
+                            espApp.nodeMap[nodeId] = node
                         }
                     }
                 }

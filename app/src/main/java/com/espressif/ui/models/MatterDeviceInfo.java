@@ -27,6 +27,7 @@ public class MatterDeviceInfo implements Parcelable {
     private String deviceType;
     private HashMap<String, ArrayList<Long>> serverClusters;
     private HashMap<String, ArrayList<Long>> clientClusters;
+    private HashMap<String, ArrayList<Long>> serverClusterAttributes; // Map of clusterId -> attributeIds
 
     public MatterDeviceInfo() {
     }
@@ -55,6 +56,14 @@ public class MatterDeviceInfo implements Parcelable {
         this.clientClusters = clientClusters;
     }
 
+    public HashMap<String, ArrayList<Long>> getServerClusterAttributes() {
+        return serverClusterAttributes;
+    }
+
+    public void setServerClusterAttributes(HashMap<String, ArrayList<Long>> serverClusterAttributes) {
+        this.serverClusterAttributes = serverClusterAttributes;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -65,12 +74,14 @@ public class MatterDeviceInfo implements Parcelable {
         dest.writeString(deviceType);
         dest.writeSerializable(serverClusters);
         dest.writeSerializable(clientClusters);
+        dest.writeSerializable(serverClusterAttributes);
     }
 
     public MatterDeviceInfo(Parcel in) {
         deviceType = in.readString();
         serverClusters = (HashMap<String, ArrayList<Long>>) in.readSerializable();
         clientClusters = (HashMap<String, ArrayList<Long>>) in.readSerializable();
+        serverClusterAttributes = (HashMap<String, ArrayList<Long>>) in.readSerializable();
     }
 
     public static final Creator<MatterDeviceInfo> CREATOR = new Creator<MatterDeviceInfo>() {

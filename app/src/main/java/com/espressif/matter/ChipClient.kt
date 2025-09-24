@@ -29,6 +29,7 @@ import com.espressif.cloudapi.ApiManager
 import com.espressif.ui.Utils
 import com.espressif.utils.NodeUtils
 import com.google.gson.JsonArray
+import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -454,18 +455,19 @@ class ChipClient constructor(
                                 val metadataJson = JsonObject()
                                 val body = JsonObject()
                                 var deviceName = ""
+                                var endpointsJson = JsonObject()
 
                                 if (deviceMatterInfo != null && deviceMatterInfo.isNotEmpty()) {
                                     try {
-                                        var endpointsArray = JsonArray()
-                                        var serversDataJson = JsonObject()
-                                        var clientsDataJson = JsonObject()
-
                                         for (info in deviceMatterInfo) {
                                             Log.d(TAG, "Endpoint : ${info.endpoint}")
                                             Log.d(TAG, "Server Clusters : ${info.serverClusters}")
                                             Log.d(TAG, "Client Clusters : ${info.clientClusters}")
                                             Log.d(TAG, "Types : ${info.types}")
+                                            Log.d(
+                                                TAG,
+                                                "Cluster Attributes : ${info.clusterAttributes}"
+                                            )
 
                                             if (info.types != null && info.types.isNotEmpty()) {
                                                 metadataJson.addProperty(
@@ -481,37 +483,98 @@ class ChipClient constructor(
                                                 }
                                             }
 
-                                            endpointsArray.add(info.endpoint)
+                                            // Create endpoint object
+                                            val endpointJson = JsonObject()
 
-                                            if (info.serverClusters != null && info.serverClusters.isNotEmpty()) {
-                                                var serverClustersArr = JsonArray()
+                                            // Create clusters object
+                                            val clustersJson = JsonObject()
+
+                                            // Create servers object for clusters
+                                            val serversJson = JsonObject()
+                                            if (info.serverClusters.isNotEmpty()) {
                                                 for (serverCluster in info.serverClusters) {
-                                                    serverClustersArr.add(
+                                                    val clusterJson = JsonObject()
+                                                    val clusterId = "0x${
                                                         serverCluster.toString().toInt()
-                                                    )
+                                                            .toString(16)
+                                                    }"
+
+                                                    // Add attributes for this cluster if available
+                                                    if (info.clusterAttributes.containsKey(
+                                                            serverCluster.toString()
+                                                        )
+                                                    ) {
+                                                        val attributesArr = JsonArray()
+                                                        for (attributeId in info.clusterAttributes[serverCluster.toString()]!!) {
+                                                            attributesArr.add(
+                                                                "0x${
+                                                                    attributeId.toString().toInt()
+                                                                        .toString(16)
+                                                                }"
+                                                            )
+                                                        }
+                                                        clusterJson.add("attributes", attributesArr)
+                                                    } else {
+                                                        clusterJson.add("attributes", null)
+                                                    }
+
+                                                    serversJson.add(clusterId, clusterJson)
                                                 }
-                                                serversDataJson.add(
-                                                    info.endpoint.toString(),
-                                                    serverClustersArr
-                                                )
                                             }
 
-                                            if (info.clientClusters != null && info.clientClusters.isNotEmpty()) {
-                                                var clientClustersArr = JsonArray()
+                                            // Create clients object for clusters
+                                            val clientsJson = JsonObject()
+                                            if (info.clientClusters.isNotEmpty()) {
                                                 for (clientCluster in info.clientClusters) {
-                                                    clientClustersArr.add(
+                                                    val clusterJson = JsonObject()
+                                                    val clusterId = "0x${
                                                         clientCluster.toString().toInt()
-                                                    )
+                                                            .toString(16)
+                                                    }"
+
+                                                    // Add attributes for this cluster if available
+                                                    if (info.clusterAttributes.containsKey(
+                                                            clientCluster.toString()
+                                                        )
+                                                    ) {
+                                                        val attributesArr = JsonArray()
+                                                        for (attributeId in info.clusterAttributes[clientCluster.toString()]!!) {
+                                                            attributesArr.add(
+                                                                "0x${
+                                                                    attributeId.toString().toInt()
+                                                                        .toString(16)
+                                                                }"
+                                                            )
+                                                        }
+                                                        clusterJson.add("attributes", attributesArr)
+                                                    } else {
+                                                        clusterJson.add("attributes", null)
+                                                    }
+
+                                                    clientsJson.add(clusterId, clusterJson)
                                                 }
-                                                clientsDataJson.add(
-                                                    info.endpoint.toString(),
-                                                    clientClustersArr
-                                                )
                                             }
+
+                                            // Add servers and clients to clusters
+                                            if (serversJson.size() > 0) {
+                                                clustersJson.add("servers", serversJson)
+                                            }
+                                            if (clientsJson.size() > 0) {
+                                                clustersJson.add("clients", clientsJson)
+                                            }
+
+                                            // Add clusters to endpoint
+                                            endpointJson.add("clusters", clustersJson)
+
+                                            // Add the endpoint object to endpoints
+                                            endpointsJson.add(
+                                                "0x${info.endpoint.toString(16)}",
+                                                endpointJson
+                                            )
 
                                             if (info.endpoint == 0) {
                                                 for (serverCluster in info.serverClusters) {
-                                                    var clusterId: Long = serverCluster as Long
+                                                    val clusterId: Long = serverCluster as Long
                                                     if (clusterId == AppConstants.RM_CLUSTER_ID) {
                                                         Log.d(TAG, "RainMaker Cluster Available")
                                                         isRmClusterAvailable = true
@@ -540,19 +603,28 @@ class ChipClient constructor(
                                             deviceName
                                         )
                                         metadataJson.addProperty(AppConstants.KEY_GROUP_ID, groupId)
-                                        metadataJson.add("endpointsData", endpointsArray)
 
-                                        if (serversDataJson.size() > 0) {
-                                            metadataJson.add("serversData", serversDataJson)
-                                        }
-                                        if (clientsDataJson.size() > 0) {
-                                            metadataJson.add("clientsData", clientsDataJson)
-                                        }
+                                        // Add endpoints object to metadata
+                                        metadataJson.add(AppConstants.KEY_ENDPOINTS, endpointsJson)
+
+                                        metadataJson.add(
+                                            AppConstants.KEY_ENDPOINTS_DATA,
+                                            JsonNull.INSTANCE
+                                        )
+                                        metadataJson.add(
+                                            AppConstants.KEY_SERVERS_DATA,
+                                            JsonNull.INSTANCE
+                                        )
+                                        metadataJson.add(
+                                            AppConstants.KEY_CLIENTS_DATA,
+                                            JsonNull.INSTANCE
+                                        )
+                                        metadataJson.add("attributesData", JsonNull.INSTANCE)
 
                                     } catch (e: ExecutionException) {
-                                        throw RuntimeException(e)
+                                        e.printStackTrace()
                                     } catch (e: InterruptedException) {
-                                        throw RuntimeException(e)
+                                        e.printStackTrace()
                                     }
                                 }
 
@@ -904,13 +976,18 @@ class ChipClient constructor(
                         if (nodeState != null) {
                             Log.d(TAG, "Node state : ${nodeState.toString()}")
                             for (path in attributePaths) {
-                                var endpoint: Int = path.endpointId.id.toInt()
-                                Log.d(TAG, "endpoint : ${endpoint}")
-                                states[path] =
-                                    nodeState!!
-                                        .getEndpointState(endpoint)!!
-                                        .getClusterState(path.clusterId.id)!!
-                                        .getAttributeState(path.attributeId.id)!!
+                                val endpoint: Int = path.endpointId.id.toInt()
+                                try {
+                                    states[path] =
+                                        nodeState
+                                            .getEndpointState(endpoint)!!
+                                            .getClusterState(path.clusterId.id)!!
+                                            .getAttributeState(path.attributeId.id)!!
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Exception : " + e.message)
+                                    e.printStackTrace()
+                                }
+
                             }
                         }
                         continuation.resume(states)
@@ -926,7 +1003,7 @@ class ChipClient constructor(
             )
         }
     }
-    
+
     /** Wrapper around [ChipDeviceController.invoke] */
     suspend fun invoke(
         devicePtr: Long,

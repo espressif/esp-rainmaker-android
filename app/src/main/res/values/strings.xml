@@ -273,6 +273,7 @@
     <string name="btn_agree">Agree</string>
     <string name="btn_disagree">Disagree</string>
     <string name="btn_merge">Merge</string>
+    <string name="btn_not_now">Not now</string>
 
     <!--Screen titles-->
     <string name="title_activity_devices">Devices</string>

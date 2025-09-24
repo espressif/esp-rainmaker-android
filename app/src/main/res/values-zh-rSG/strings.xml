@@ -622,5 +622,6 @@
     <string name="btn_restart">Restart</string>
     <string name="btn_allow">Allow</string>
     <string name="btn_alexa_deny">Deny</string>
+    <string name="btn_not_now">Not now</string>
 
 </resources>

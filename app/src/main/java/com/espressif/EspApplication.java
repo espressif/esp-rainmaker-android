@@ -1269,4 +1269,16 @@ public class EspApplication extends Application {
         nodeMap.remove(nodeId);
         localDeviceMap.remove(nodeId);
     }
+
+    /**
+     * Helper method to get attribute value from a cluster.
+     * Returns null if cluster or attribute doesn't exist.
+     */
+    private Object getClusterAttributeValue(Map<Long, Map<Long, Object>> clusters, long clusterId, long attributeId) {
+        Map<Long, Object> clusterAttributes = clusters.get(clusterId);
+        if (clusterAttributes != null) {
+            return clusterAttributes.get(attributeId);
+        }
+        return null;
+    }
 }
