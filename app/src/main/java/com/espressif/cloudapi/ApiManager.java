@@ -1220,6 +1220,7 @@ public class ApiManager {
                                             JSONObject localControlJson = paramsJson.optJSONObject(AppConstants.KEY_LOCAL_CONTROL);
                                             JSONObject controllerJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CONTROLLER);
                                             JSONObject ctlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CTL);
+                                            JSONObject rmCtrlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_RMAKER_CTL);
 
                                             // If node is available on local network then ignore param values received from cloud.
                                             if (!espApp.localDeviceMap.containsKey(nodeId) && devices != null) {
@@ -1618,6 +1619,35 @@ public class ApiManager {
                                                                 if (isSupportedType) {
                                                                     if (!TextUtils.isEmpty(ctlServiceJson.optString(controllerParam.getName()))) {
                                                                         String value = ctlServiceJson.optString(controllerParam.getName());
+                                                                        controllerParam.setLabelValue(value);
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // RainMaker Controller service
+                                            if (rmCtrlServiceJson != null && services != null) {
+
+                                                for (Service service : services) {
+
+                                                    if (AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER.equals(service.getType())) {
+
+                                                        ArrayList<Param> controllerParams = service.getParams();
+
+                                                        if (controllerParams != null) {
+
+                                                            for (Param controllerParam : controllerParams) {
+
+                                                                String type = controllerParam.getParamType();
+                                                                boolean isSupportedType = (!TextUtils.isEmpty(type)) && (AppConstants.PARAM_TYPE_BASE_URL.equals(type)
+                                                                        || AppConstants.PARAM_TYPE_USER_TOKEN.equals(type));
+
+                                                                if (isSupportedType) {
+                                                                    if (!TextUtils.isEmpty(rmCtrlServiceJson.optString(controllerParam.getName()))) {
+                                                                        String value = rmCtrlServiceJson.optString(controllerParam.getName());
                                                                         controllerParam.setLabelValue(value);
                                                                     }
                                                                 }

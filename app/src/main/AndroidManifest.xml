@@ -318,7 +318,7 @@
 
         <activity
             android:name="com.espressif.matter.ControllerLoginActivity"
-            android:label="Matter Controller Setup"
+            android:label="Controller Setup"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
 
