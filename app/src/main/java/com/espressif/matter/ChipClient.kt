@@ -32,9 +32,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import matter.tlv.AnonymousTag
 import matter.tlv.TlvWriter
 import org.bouncycastle.asn1.DERBitString
@@ -83,6 +81,9 @@ class ChipClient constructor(
     var rmNodeId: String? = null
     var challenge: String? = null
     var tempDeviceId: Long? = null
+
+    // Create a proper coroutine scope for this ChipClient instance
+    private val chipClientScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     // Lazily instantiate [ChipDeviceController] and hold a reference to it.
     val chipDeviceController: ChipDeviceController by lazy {
@@ -196,55 +197,66 @@ class ChipClient constructor(
         ) {
 
             Log.d(TAG, "======================== Received callback for CSR =======================")
+            var nodeNoc = ""
+            chipClientScope.launch {
+                try {
+                    withTimeout(30000) { // 30 second timeout
 
-            var nodeNoc: String = ""
-            CoroutineScope(Dispatchers.IO).launch {
+                        if (csrInfo != null) {
 
-                if (csrInfo != null) {
+                            val tempCsr = Base64.getEncoder().encodeToString(csrInfo.csr)
+                            var finalCSR = AppConstants.CERT_BEGIN + "\n" +
+                                    tempCsr + "\n" + AppConstants.CERT_END
 
-                    val tempCsr = Base64.getEncoder().encodeToString(csrInfo.csr)
-                    var finalCSR = AppConstants.CERT_BEGIN + "\n" +
-                            tempCsr + "\n" + AppConstants.CERT_END
+                            val body = JsonObject()
+                            body.addProperty(
+                                AppConstants.KEY_OPERATION,
+                                AppConstants.KEY_OPERATION_ADD
+                            )
+                            body.addProperty(AppConstants.KEY_CSR_TYPE, "node")
 
-                    val body = JsonObject()
-                    body.addProperty(AppConstants.KEY_OPERATION, AppConstants.KEY_OPERATION_ADD)
-                    body.addProperty(AppConstants.KEY_CSR_TYPE, "node")
+                            val csrReqJson = JsonObject()
+                            csrReqJson.addProperty(AppConstants.KEY_GROUP_ID, groupId)
+                            csrReqJson.addProperty(AppConstants.KEY_CSR, finalCSR)
 
-                    val csrReqJson = JsonObject()
-                    csrReqJson.addProperty(AppConstants.KEY_GROUP_ID, groupId)
-                    csrReqJson.addProperty(AppConstants.KEY_CSR, finalCSR)
+                            var csrReqJsonArr = JsonArray()
+                            csrReqJsonArr.add(csrReqJson)
 
-                    var csrReqJsonArr = JsonArray()
-                    csrReqJsonArr.add(csrReqJson)
+                            body.add(AppConstants.KEY_CSR_REQUESTS, csrReqJsonArr)
 
-                    body.add(AppConstants.KEY_CSR_REQUESTS, csrReqJsonArr)
+                            var bundleData: Bundle =
+                                ApiManager.getInstance(context).getNodeNoc(body)
+                            nodeNoc = bundleData.getString("node_noc", "")
+                            requestId = bundleData.getString(AppConstants.KEY_REQ_ID, "")
+                            matterNodeId = bundleData.getString(AppConstants.KEY_MATTER_NODE_ID, "")
 
-                    var bundleData: Bundle = ApiManager.getInstance(context).getNodeNoc(body)
-                    nodeNoc = bundleData.getString("node_noc", "")
-                    requestId = bundleData.getString(AppConstants.KEY_REQ_ID, "")
-                    matterNodeId = bundleData.getString(AppConstants.KEY_MATTER_NODE_ID, "")
+                            Log.d(
+                                TAG,
+                                "Matter node id ::: >>>>> ${matterNodeId} and request id ::: >>>>>  ${requestId}"
+                            )
 
-                    Log.d(
-                        TAG,
-                        "Matter node id ::: >>>>> ${matterNodeId} and request id ::: >>>>>  ${requestId}"
-                    )
+                            nodeNoc = nodeNoc.replace("-----BEGIN CERTIFICATE-----", "")
+                            nodeNoc = nodeNoc.replace("-----END CERTIFICATE-----", "")
+                            nodeNoc = nodeNoc.replace("\n", "")
+                            Log.d(TAG, "Calling onNOCChainGeneration with node NOC")
 
-                    nodeNoc = nodeNoc.replace("-----BEGIN CERTIFICATE-----", "")
-                    nodeNoc = nodeNoc.replace("-----END CERTIFICATE-----", "")
-                    nodeNoc = nodeNoc.replace("\n", "")
-                    Log.d(TAG, "Calling onNOCChainGeneration with node NOC")
-
-                    val chain = arrayOf(decode(nodeNoc), decode(rootCa))
-                    val err = chipDeviceController.onNOCChainGeneration(
-                        ControllerParams.newBuilder()
-                            .setRootCertificate(chain[1].encoded)
-                            .setIntermediateCertificate(chain[1].encoded)
-                            .setOperationalCertificate(chain[0].encoded)
-                            .setOperationalCertificate(decode(nodeNoc).encoded)
-                            .setIpk(ipkEpochKey)
-                            .build()
-                    )
-                    Log.e(TAG, "NOCChainGenerated Error $err")
+                            val chain = arrayOf(decode(nodeNoc), decode(rootCa))
+                            val err = chipDeviceController.onNOCChainGeneration(
+                                ControllerParams.newBuilder()
+                                    .setRootCertificate(chain[1].encoded)
+                                    .setIntermediateCertificate(chain[1].encoded)
+                                    .setOperationalCertificate(chain[0].encoded)
+                                    .setOperationalCertificate(decode(nodeNoc).encoded)
+                                    .setIpk(ipkEpochKey)
+                                    .build()
+                            )
+                            Log.e(TAG, "NOCChainGenerated Error $err")
+                        }
+                    }
+                } catch (e: TimeoutCancellationException) {
+                    Log.e(TAG, "NOC chain generation timed out after 30 seconds")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in NOC chain generation: ${e.message}", e)
                 }
             }
         }
@@ -440,336 +452,396 @@ class ChipClient constructor(
                             )
                         } else {
 
-                            CoroutineScope(Dispatchers.IO).launch {
+                            chipClientScope.launch {
+                                try {
+                                    withTimeout(60000) { // 60 second timeout for commissioning operations
 
-                                val id = BigInteger(matterNodeId, 16)
-                                val deviceNodeId = id.toLong()
-                                val devicePtr = awaitGetConnectedDevicePointer(deviceNodeId)
-                                Log.d(TAG, "=============== Commissioning Complete ===============")
-
-                                val clustersHelper = ClustersHelper(this@ChipClient)
-                                val deviceMatterInfo =
-                                    clustersHelper.fetchDeviceMatterInfo(deviceNodeId)
-                                var isRmClusterAvailable = false
-                                var isControllerClusterAvailable = false
-                                val metadataJson = JsonObject()
-                                val body = JsonObject()
-                                var deviceName = ""
-                                var endpointsJson = JsonObject()
-
-                                if (deviceMatterInfo != null && deviceMatterInfo.isNotEmpty()) {
-                                    try {
-                                        for (info in deviceMatterInfo) {
-                                            Log.d(TAG, "Endpoint : ${info.endpoint}")
-                                            Log.d(TAG, "Server Clusters : ${info.serverClusters}")
-                                            Log.d(TAG, "Client Clusters : ${info.clientClusters}")
-                                            Log.d(TAG, "Types : ${info.types}")
-                                            Log.d(
-                                                TAG,
-                                                "Cluster Attributes : ${info.clusterAttributes}"
-                                            )
-
-                                            if (info.types != null && info.types.isNotEmpty()) {
-                                                metadataJson.addProperty(
-                                                    "deviceType",
-                                                    info.types[0].toInt()
-                                                )
-
-                                                if (TextUtils.isEmpty(deviceName)) {
-                                                    deviceName =
-                                                        NodeUtils.getDefaultNameForMatterDevice(
-                                                            info.types[0].toInt()
-                                                        )
-                                                }
-                                            }
-
-                                            // Create endpoint object
-                                            val endpointJson = JsonObject()
-
-                                            // Create clusters object
-                                            val clustersJson = JsonObject()
-
-                                            // Create servers object for clusters
-                                            val serversJson = JsonObject()
-                                            if (info.serverClusters.isNotEmpty()) {
-                                                for (serverCluster in info.serverClusters) {
-                                                    val clusterJson = JsonObject()
-                                                    val clusterId = "0x${
-                                                        serverCluster.toString().toInt()
-                                                            .toString(16)
-                                                    }"
-
-                                                    // Add attributes for this cluster if available
-                                                    if (info.clusterAttributes.containsKey(
-                                                            serverCluster.toString()
-                                                        )
-                                                    ) {
-                                                        val attributesArr = JsonArray()
-                                                        for (attributeId in info.clusterAttributes[serverCluster.toString()]!!) {
-                                                            attributesArr.add(
-                                                                "0x${
-                                                                    attributeId.toString().toInt()
-                                                                        .toString(16)
-                                                                }"
-                                                            )
-                                                        }
-                                                        clusterJson.add("attributes", attributesArr)
-                                                    } else {
-                                                        clusterJson.add("attributes", null)
-                                                    }
-
-                                                    serversJson.add(clusterId, clusterJson)
-                                                }
-                                            }
-
-                                            // Create clients object for clusters
-                                            val clientsJson = JsonObject()
-                                            if (info.clientClusters.isNotEmpty()) {
-                                                for (clientCluster in info.clientClusters) {
-                                                    val clusterJson = JsonObject()
-                                                    val clusterId = "0x${
-                                                        clientCluster.toString().toInt()
-                                                            .toString(16)
-                                                    }"
-
-                                                    // Add attributes for this cluster if available
-                                                    if (info.clusterAttributes.containsKey(
-                                                            clientCluster.toString()
-                                                        )
-                                                    ) {
-                                                        val attributesArr = JsonArray()
-                                                        for (attributeId in info.clusterAttributes[clientCluster.toString()]!!) {
-                                                            attributesArr.add(
-                                                                "0x${
-                                                                    attributeId.toString().toInt()
-                                                                        .toString(16)
-                                                                }"
-                                                            )
-                                                        }
-                                                        clusterJson.add("attributes", attributesArr)
-                                                    } else {
-                                                        clusterJson.add("attributes", null)
-                                                    }
-
-                                                    clientsJson.add(clusterId, clusterJson)
-                                                }
-                                            }
-
-                                            // Add servers and clients to clusters
-                                            if (serversJson.size() > 0) {
-                                                clustersJson.add("servers", serversJson)
-                                            }
-                                            if (clientsJson.size() > 0) {
-                                                clustersJson.add("clients", clientsJson)
-                                            }
-
-                                            // Add clusters to endpoint
-                                            endpointJson.add("clusters", clustersJson)
-
-                                            // Add the endpoint object to endpoints
-                                            endpointsJson.add(
-                                                "0x${info.endpoint.toString(16)}",
-                                                endpointJson
-                                            )
-
-                                            if (info.endpoint == 0) {
-                                                for (serverCluster in info.serverClusters) {
-                                                    val clusterId: Long = serverCluster as Long
-                                                    if (clusterId == AppConstants.RM_CLUSTER_ID) {
-                                                        Log.d(TAG, "RainMaker Cluster Available")
-                                                        isRmClusterAvailable = true
-                                                    }
-
-                                                    if (clusterId == AppConstants.CONTROLLER_CLUSTER_ID) {
-                                                        isControllerClusterAvailable = true
-                                                        deviceName =
-                                                            AppConstants.DEVICE_NAME_MATTER_CONTROLLER
-                                                    }
-
-                                                    if (clusterId == AppConstants.THREAD_BR_MANAGEMENT_CLUSTER_ID) {
-                                                        deviceName =
-                                                            AppConstants.DEVICE_NAME_THREAD_BR
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        metadataJson.addProperty(
-                                            AppConstants.KEY_IS_RAINMAKER,
-                                            isRmClusterAvailable
-                                        )
-                                        metadataJson.addProperty(
-                                            AppConstants.KEY_DEVICENAME,
-                                            deviceName
-                                        )
-                                        metadataJson.addProperty(AppConstants.KEY_GROUP_ID, groupId)
-
-                                        // Add endpoints object to metadata
-                                        metadataJson.add(AppConstants.KEY_ENDPOINTS, endpointsJson)
-
-                                        metadataJson.add(
-                                            AppConstants.KEY_ENDPOINTS_DATA,
-                                            JsonNull.INSTANCE
-                                        )
-                                        metadataJson.add(
-                                            AppConstants.KEY_SERVERS_DATA,
-                                            JsonNull.INSTANCE
-                                        )
-                                        metadataJson.add(
-                                            AppConstants.KEY_CLIENTS_DATA,
-                                            JsonNull.INSTANCE
-                                        )
-                                        metadataJson.add("attributesData", JsonNull.INSTANCE)
-
-                                    } catch (e: ExecutionException) {
-                                        e.printStackTrace()
-                                    } catch (e: InterruptedException) {
-                                        e.printStackTrace()
-                                    }
-                                }
-
-                                if (isRmClusterAvailable) {
-
-                                    // Read RM node Id
-                                    val rmNodeIdAttributePath =
-                                        ChipAttributePath.newInstance(
-                                            0x0,
-                                            AppConstants.RM_CLUSTER_ID_HEX,
-                                            0x1L
-                                        )
-                                    val rmNodeIdData =
-                                        readAttribute(devicePtr, rmNodeIdAttributePath)
-                                    Log.d(TAG, "RainMaker Node Id : ${rmNodeIdData?.value}")
-                                    rmNodeId = rmNodeIdData?.value as String?
-
-                                    // Write Matter Node Id
-                                    if (matterNodeId != null) {
-                                        val tlvWriter = TlvWriter()
-                                        tlvWriter.put(AnonymousTag, matterNodeId!!)
-
-                                        val attributePath3 =
-                                            ChipAttributePath.newInstance(
-                                                0x0,
-                                                AppConstants.RM_CLUSTER_ID_HEX,
-                                                0x3L
-                                            )
-                                        val matterNodeIdData =
-                                            writeAttribute(
-                                                devicePtr,
-                                                attributePath3,
-                                                tlvWriter.getEncoded()
-                                            )
+                                        val id = BigInteger(matterNodeId, 16)
+                                        val deviceNodeId = id.toLong()
+                                        val devicePtr = awaitGetConnectedDevicePointer(deviceNodeId)
                                         Log.d(
                                             TAG,
-                                            "Write matter node id, response : $matterNodeIdData"
+                                            "=============== Commissioning Complete ==============="
                                         )
-                                    }
 
-                                    // Read challenge response
-                                    val challengeAttributePath =
-                                        ChipAttributePath.newInstance(
-                                            0x0,
-                                            AppConstants.RM_CLUSTER_ID_HEX,
-                                            0x2L
-                                        )
-                                    val challengeData: AttributeState? =
-                                        readAttribute(devicePtr, challengeAttributePath)
-                                    Log.d(TAG, "Challenge Data : ${challengeData.toString()}")
-                                    if (challengeData != null) {
-                                        Log.d(TAG, "Challenge Data : ${challengeData.value}")
-                                        challenge = challengeData?.value as String?
-                                    }
+                                        val clustersHelper = ClustersHelper(this@ChipClient)
+                                        val deviceMatterInfo =
+                                            clustersHelper.fetchDeviceMatterInfo(deviceNodeId)
+                                        var isRmClusterAvailable = false
+                                        var isControllerClusterAvailable = false
+                                        val metadataJson = JsonObject()
+                                        val body = JsonObject()
+                                        var deviceName = ""
+                                        var endpointsJson = JsonObject()
 
-                                    body.addProperty(AppConstants.KEY_RAINMAKER_NODE_ID, rmNodeId)
-                                    body.addProperty(AppConstants.KEY_CHALLENGE, challenge)
-                                } else {
-                                    // Nothing to do
-                                }
+                                        if (deviceMatterInfo != null && deviceMatterInfo.isNotEmpty()) {
+                                            try {
+                                                for (info in deviceMatterInfo) {
+                                                    Log.d(TAG, "Endpoint : ${info.endpoint}")
+                                                    Log.d(
+                                                        TAG,
+                                                        "Server Clusters : ${info.serverClusters}"
+                                                    )
+                                                    Log.d(
+                                                        TAG,
+                                                        "Client Clusters : ${info.clientClusters}"
+                                                    )
+                                                    Log.d(TAG, "Types : ${info.types}")
+                                                    Log.d(
+                                                        TAG,
+                                                        "Cluster Attributes : ${info.clusterAttributes}"
+                                                    )
 
-                                val matterMetadataJson = JsonObject()
-                                matterMetadataJson.add(AppConstants.KEY_MATTER, metadataJson)
-                                Log.d(TAG, "Metadata Json : $matterMetadataJson")
+                                                    if (info.types != null && info.types.isNotEmpty()) {
+                                                        metadataJson.addProperty(
+                                                            "deviceType",
+                                                            info.types[0].toInt()
+                                                        )
 
-                                body.addProperty(AppConstants.KEY_REQ_ID, requestId)
-                                body.addProperty(AppConstants.KEY_STATUS, "success")
-                                body.add(AppConstants.KEY_METADATA, matterMetadataJson)
+                                                        if (TextUtils.isEmpty(deviceName)) {
+                                                            deviceName =
+                                                                NodeUtils.getDefaultNameForMatterDevice(
+                                                                    info.types[0].toInt()
+                                                                )
+                                                        }
+                                                    }
 
-                                val responseData: Bundle? =
-                                    ApiManager.getInstance(context).confirmMatterNode(body, groupId)
-                                var isRainMaker: Boolean = isRmClusterAvailable
+                                                    // Create endpoint object
+                                                    val endpointJson = JsonObject()
 
-                                responseData.let {
-                                    isRainMaker =
-                                        it?.getBoolean(AppConstants.KEY_IS_RAINMAKER_NODE, false)
-                                            ?: false
-                                    val status: String? =
-                                        it?.getString(AppConstants.KEY_STATUS)
-                                    val description: String? =
-                                        it?.getString(AppConstants.KEY_DESCRIPTION)
-                                }
+                                                    // Create clusters object
+                                                    val clustersJson = JsonObject()
 
-                                if (isControllerClusterAvailable && isRainMaker) {
+                                                    // Create servers object for clusters
+                                                    val serversJson = JsonObject()
+                                                    if (info.serverClusters.isNotEmpty()) {
+                                                        for (serverCluster in info.serverClusters) {
+                                                            val clusterJson = JsonObject()
+                                                            val clusterId = "0x${
+                                                                serverCluster.toString().toInt()
+                                                                    .toString(16)
+                                                            }"
 
-                                    Log.d(TAG, "Controller cluster available")
-                                    val sharedPreferences =
-                                        context.getSharedPreferences(
-                                            AppConstants.ESP_PREFERENCES,
-                                            Context.MODE_PRIVATE
-                                        )
-                                    val editor = sharedPreferences.edit()
-                                    editor.putBoolean(rmNodeId, true)
-                                    val key = "ctrl_setup_$rmNodeId"
-                                    editor.putBoolean(key, false)
-                                    editor.apply()
-                                }
+                                                            // Add attributes for this cluster if available
+                                                            if (info.clusterAttributes.containsKey(
+                                                                    serverCluster.toString()
+                                                                )
+                                                            ) {
+                                                                val attributesArr = JsonArray()
+                                                                for (attributeId in info.clusterAttributes[serverCluster.toString()]!!) {
+                                                                    attributesArr.add(
+                                                                        "0x${
+                                                                            attributeId.toString()
+                                                                                .toInt()
+                                                                                .toString(16)
+                                                                        }"
+                                                                    )
+                                                                }
+                                                                clusterJson.add(
+                                                                    "attributes",
+                                                                    attributesArr
+                                                                )
+                                                            } else {
+                                                                clusterJson.add("attributes", null)
+                                                            }
 
-                                var aclClusterHelper = AccessControlClusterHelper(this@ChipClient)
-                                var aclAttr: MutableList<ChipStructs.AccessControlClusterAccessControlEntryStruct>? =
-                                    null
+                                                            serversJson.add(clusterId, clusterJson)
+                                                        }
+                                                    }
 
-                                Log.d(TAG, "Reading ACL Attributes")
-                                aclAttr = aclClusterHelper.readAclAttributeAsync(
-                                    deviceNodeId,
-                                    AppConstants.ENDPOINT_0
-                                ).get()
-                                Log.d(TAG, "ACL attributes : $aclAttr")
+                                                    // Create clients object for clusters
+                                                    val clientsJson = JsonObject()
+                                                    if (info.clientClusters.isNotEmpty()) {
+                                                        for (clientCluster in info.clientClusters) {
+                                                            val clusterJson = JsonObject()
+                                                            val clusterId = "0x${
+                                                                clientCluster.toString().toInt()
+                                                                    .toString(16)
+                                                            }"
 
-                                var entries: java.util.ArrayList<ChipStructs.AccessControlClusterAccessControlEntryStruct> =
-                                    java.util.ArrayList<ChipStructs.AccessControlClusterAccessControlEntryStruct>()
+                                                            // Add attributes for this cluster if available
+                                                            if (info.clusterAttributes.containsKey(
+                                                                    clientCluster.toString()
+                                                                )
+                                                            ) {
+                                                                val attributesArr = JsonArray()
+                                                                for (attributeId in info.clusterAttributes[clientCluster.toString()]!!) {
+                                                                    attributesArr.add(
+                                                                        "0x${
+                                                                            attributeId.toString()
+                                                                                .toInt()
+                                                                                .toString(16)
+                                                                        }"
+                                                                    )
+                                                                }
+                                                                clusterJson.add(
+                                                                    "attributes",
+                                                                    attributesArr
+                                                                )
+                                                            } else {
+                                                                clusterJson.add("attributes", null)
+                                                            }
 
-                                val it = aclAttr?.listIterator()
-                                var fabricIndex = 0
-                                var authMode = 0
-                                if (it != null) {
-                                    for (entry in it) {
-                                        entries.add(entry)
-                                        if (entry.privilege == AppConstants.PRIVILEGE_ADMIN) {
-                                            fabricIndex = entry.fabricIndex
-                                            authMode = entry.authMode
+                                                            clientsJson.add(clusterId, clusterJson)
+                                                        }
+                                                    }
+
+                                                    // Add servers and clients to clusters
+                                                    if (serversJson.size() > 0) {
+                                                        clustersJson.add("servers", serversJson)
+                                                    }
+                                                    if (clientsJson.size() > 0) {
+                                                        clustersJson.add("clients", clientsJson)
+                                                    }
+
+                                                    // Add clusters to endpoint
+                                                    endpointJson.add("clusters", clustersJson)
+
+                                                    // Add the endpoint object to endpoints
+                                                    endpointsJson.add(
+                                                        "0x${info.endpoint.toString(16)}",
+                                                        endpointJson
+                                                    )
+
+                                                    if (info.endpoint == 0) {
+                                                        for (serverCluster in info.serverClusters) {
+                                                            val clusterId: Long =
+                                                                serverCluster as Long
+                                                            if (clusterId == AppConstants.RM_CLUSTER_ID) {
+                                                                Log.d(
+                                                                    TAG,
+                                                                    "RainMaker Cluster Available"
+                                                                )
+                                                                isRmClusterAvailable = true
+                                                            }
+
+                                                            if (clusterId == AppConstants.CONTROLLER_CLUSTER_ID) {
+                                                                isControllerClusterAvailable = true
+                                                                deviceName =
+                                                                    AppConstants.DEVICE_NAME_MATTER_CONTROLLER
+                                                            }
+
+                                                            if (clusterId == AppConstants.THREAD_BR_MANAGEMENT_CLUSTER_ID) {
+                                                                deviceName =
+                                                                    AppConstants.DEVICE_NAME_THREAD_BR
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                metadataJson.addProperty(
+                                                    AppConstants.KEY_IS_RAINMAKER,
+                                                    isRmClusterAvailable
+                                                )
+                                                metadataJson.addProperty(
+                                                    AppConstants.KEY_DEVICENAME,
+                                                    deviceName
+                                                )
+                                                metadataJson.addProperty(
+                                                    AppConstants.KEY_GROUP_ID,
+                                                    groupId
+                                                )
+
+                                                // Add endpoints object to metadata
+                                                metadataJson.add(
+                                                    AppConstants.KEY_ENDPOINTS,
+                                                    endpointsJson
+                                                )
+
+                                                metadataJson.add(
+                                                    AppConstants.KEY_ENDPOINTS_DATA,
+                                                    JsonNull.INSTANCE
+                                                )
+                                                metadataJson.add(
+                                                    AppConstants.KEY_SERVERS_DATA,
+                                                    JsonNull.INSTANCE
+                                                )
+                                                metadataJson.add(
+                                                    AppConstants.KEY_CLIENTS_DATA,
+                                                    JsonNull.INSTANCE
+                                                )
+                                                metadataJson.add(
+                                                    "attributesData",
+                                                    JsonNull.INSTANCE
+                                                )
+
+                                            } catch (e: ExecutionException) {
+                                                e.printStackTrace()
+                                            } catch (e: InterruptedException) {
+                                                e.printStackTrace()
+                                            }
                                         }
+
+                                        if (isRmClusterAvailable) {
+
+                                            // Read RM node Id
+                                            val rmNodeIdAttributePath =
+                                                ChipAttributePath.newInstance(
+                                                    0x0,
+                                                    AppConstants.RM_CLUSTER_ID_HEX,
+                                                    0x1L
+                                                )
+                                            val rmNodeIdData =
+                                                readAttribute(devicePtr, rmNodeIdAttributePath)
+                                            Log.d(TAG, "RainMaker Node Id : ${rmNodeIdData?.value}")
+                                            rmNodeId = rmNodeIdData?.value as String?
+
+                                            // Write Matter Node Id
+                                            if (matterNodeId != null) {
+                                                val tlvWriter = TlvWriter()
+                                                tlvWriter.put(AnonymousTag, matterNodeId!!)
+
+                                                val attributePath3 =
+                                                    ChipAttributePath.newInstance(
+                                                        0x0,
+                                                        AppConstants.RM_CLUSTER_ID_HEX,
+                                                        0x3L
+                                                    )
+                                                val matterNodeIdData =
+                                                    writeAttribute(
+                                                        devicePtr,
+                                                        attributePath3,
+                                                        tlvWriter.getEncoded()
+                                                    )
+                                                Log.d(
+                                                    TAG,
+                                                    "Write matter node id, response : $matterNodeIdData"
+                                                )
+                                            }
+
+                                            // Read challenge response
+                                            val challengeAttributePath =
+                                                ChipAttributePath.newInstance(
+                                                    0x0,
+                                                    AppConstants.RM_CLUSTER_ID_HEX,
+                                                    0x2L
+                                                )
+                                            val challengeData: AttributeState? =
+                                                readAttribute(devicePtr, challengeAttributePath)
+                                            Log.d(
+                                                TAG,
+                                                "Challenge Data : ${challengeData.toString()}"
+                                            )
+                                            if (challengeData != null) {
+                                                Log.d(
+                                                    TAG,
+                                                    "Challenge Data : ${challengeData.value}"
+                                                )
+                                                challenge = challengeData?.value as String?
+                                            }
+
+                                            body.addProperty(
+                                                AppConstants.KEY_RAINMAKER_NODE_ID,
+                                                rmNodeId
+                                            )
+                                            body.addProperty(AppConstants.KEY_CHALLENGE, challenge)
+                                        } else {
+                                            // Nothing to do
+                                        }
+
+                                        val matterMetadataJson = JsonObject()
+                                        matterMetadataJson.add(
+                                            AppConstants.KEY_MATTER,
+                                            metadataJson
+                                        )
+                                        Log.d(TAG, "Metadata Json : $matterMetadataJson")
+
+                                        body.addProperty(AppConstants.KEY_REQ_ID, requestId)
+                                        body.addProperty(AppConstants.KEY_STATUS, "success")
+                                        body.add(AppConstants.KEY_METADATA, matterMetadataJson)
+
+                                        val responseData: Bundle? =
+                                            ApiManager.getInstance(context)
+                                                .confirmMatterNode(body, groupId)
+                                        var isRainMaker: Boolean = isRmClusterAvailable
+
+                                        responseData.let {
+                                            isRainMaker =
+                                                it?.getBoolean(
+                                                    AppConstants.KEY_IS_RAINMAKER_NODE,
+                                                    false
+                                                )
+                                                    ?: false
+                                            val status: String? =
+                                                it?.getString(AppConstants.KEY_STATUS)
+                                            val description: String? =
+                                                it?.getString(AppConstants.KEY_DESCRIPTION)
+                                        }
+
+                                        if (isControllerClusterAvailable && isRainMaker) {
+
+                                            Log.d(TAG, "Controller cluster available")
+                                            val sharedPreferences =
+                                                context.getSharedPreferences(
+                                                    AppConstants.ESP_PREFERENCES,
+                                                    Context.MODE_PRIVATE
+                                                )
+                                            val editor = sharedPreferences.edit()
+                                            editor.putBoolean(rmNodeId, true)
+                                            val key = "ctrl_setup_$rmNodeId"
+                                            editor.putBoolean(key, false)
+                                            editor.apply()
+                                        }
+
+                                        var aclClusterHelper =
+                                            AccessControlClusterHelper(this@ChipClient)
+                                        var aclAttr: MutableList<ChipStructs.AccessControlClusterAccessControlEntryStruct>? =
+                                            null
+
+                                        Log.d(TAG, "Reading ACL Attributes")
+                                        aclAttr = aclClusterHelper.readAclAttributeAsync(
+                                            deviceNodeId,
+                                            AppConstants.ENDPOINT_0
+                                        ).get()
+                                        Log.d(TAG, "ACL attributes : $aclAttr")
+
+                                        var entries: java.util.ArrayList<ChipStructs.AccessControlClusterAccessControlEntryStruct> =
+                                            java.util.ArrayList<ChipStructs.AccessControlClusterAccessControlEntryStruct>()
+
+                                        val it = aclAttr?.listIterator()
+                                        var fabricIndex = 0
+                                        var authMode = 0
+                                        if (it != null) {
+                                            for (entry in it) {
+                                                entries.add(entry)
+                                                if (entry.privilege == AppConstants.PRIVILEGE_ADMIN) {
+                                                    fabricIndex = entry.fabricIndex
+                                                    authMode = entry.authMode
+                                                }
+                                            }
+                                        }
+
+                                        var subjects: ArrayList<Long> = ArrayList<Long>()
+                                        subjects.add(Utils.getCatId(groupCatIdOperate))
+
+                                        var entry =
+                                            ChipStructs.AccessControlClusterAccessControlEntryStruct(
+                                                AppConstants.PRIVILEGE_OPERATE,
+                                                authMode, subjects,
+                                                null,
+                                                fabricIndex
+                                            )
+
+                                        entries.add(entry)
+
+                                        aclClusterHelper.writeAclAttributeAsync(
+                                            deviceNodeId,
+                                            AppConstants.ENDPOINT_0,
+                                            entries
+                                        ).get()
+
+                                        continuation.resume(Unit)
                                     }
-                                }
-
-                                var subjects: ArrayList<Long> = ArrayList<Long>()
-                                subjects.add(Utils.getCatId(groupCatIdOperate))
-
-                                var entry =
-                                    ChipStructs.AccessControlClusterAccessControlEntryStruct(
-                                        AppConstants.PRIVILEGE_OPERATE,
-                                        authMode, subjects,
-                                        null,
-                                        fabricIndex
+                                } catch (e: TimeoutCancellationException) {
+                                    Log.e(
+                                        TAG,
+                                        "Commissioning operations timed out after 60 seconds"
                                     )
-
-                                entries.add(entry)
-
-                                aclClusterHelper.writeAclAttributeAsync(
-                                    deviceNodeId,
-                                    AppConstants.ENDPOINT_0,
-                                    entries
-                                ).get()
-
-                                continuation.resume(Unit)
+                                    continuation.resumeWithException(e)
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Error in commissioning operations: ${e.message}", e)
+                                    continuation.resumeWithException(e)
+                                }
                             }
                         }
                     }
@@ -788,7 +860,10 @@ class ChipClient constructor(
                     ) {
                     }
                 })
-            chipDeviceController.commissionDevice(deviceId, networkCredentials)
+            val params: CommissionParameters = CommissionParameters.Builder()
+                .setNetworkCredentials(networkCredentials)
+                .build()
+            chipDeviceController.commissionDevice(deviceId, params)
         }
     }
 
@@ -1034,5 +1109,14 @@ class ChipClient constructor(
                 invokeCallback, devicePtr, invokeElement, timedRequestTimeoutMs, imTimeoutMs
             )
         }
+    }
+
+    /**
+     * Cleanup method to cancel all running coroutines and free resources
+     * Call this when the ChipClient is no longer needed
+     */
+    fun cleanup() {
+        Log.d(TAG, "Cleaning up ChipClient and cancelling all coroutines")
+        chipClientScope.cancel()
     }
 }
