@@ -374,4 +374,8 @@ public interface ApiInterface {
     Call<ResponseBody> getCommandResponseStatus(
             @Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
             @Query(AppConstants.KEY_REQUEST_ID) String requestId);
+
+    @POST
+    Call<ResponseBody> assumeRole(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                  @Body JsonObject body);
 }

@@ -14,7 +14,11 @@
 
 package com.espressif.ui.activities
 
+import android.Manifest
 import android.content.Intent
+
+import android.content.pm.PackageManager
+
 import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
@@ -31,18 +35,25 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener
+
 import chip.devicecontroller.ReportCallback
 import chip.devicecontroller.model.ChipAttributePath
 import chip.devicecontroller.model.ChipEventPath
 import chip.devicecontroller.model.NodeState
+
+import com.auth0.android.jwt.JWT
+
 import com.espressif.AppConstants
 import com.espressif.AppConstants.Companion.UpdateEventType
 import com.espressif.EspApplication
 import com.espressif.NetworkApiManager
+import com.espressif.cloudapi.ApiManager
 import com.espressif.cloudapi.ApiResponseListener
 import com.espressif.cloudapi.CloudException
 import com.espressif.matter.ControllerClusterHelper
@@ -61,6 +72,8 @@ import com.espressif.ui.models.Param
 import com.espressif.ui.models.Service
 import com.espressif.ui.models.UpdateEvent
 import com.espressif.utils.NodeUtils.Companion.getService
+import com.espressif.webrtc.IoTCredentialsProvider
+import com.espressif.webrtc.WebRtcConstants
 import com.google.android.gms.threadnetwork.ThreadBorderAgent
 import com.google.android.gms.threadnetwork.ThreadNetwork
 import com.google.android.gms.threadnetwork.ThreadNetworkCredentials
@@ -113,7 +126,7 @@ class EspDeviceActivity : AppCompatActivity() {
     private var isNetworkAvailable = true
     private var shouldGetParams = true
     private var isUpdateView = true
-    
+
     // Matter subscription related variables
     private var subscriptionHelper: SubscriptionHelper? = null
     private var matterSubscriptionActive = false
@@ -227,12 +240,30 @@ class EspDeviceActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        EspApplication.region = ""
+        paramAdapter?.updateVideoStreamingState()
+        paramAdapter?.notifyDataSetChanged()
         getNodeDetails()
         EventBus.getDefault().register(this)
-        
+
         // Setup Matter subscriptions if device is MATTER_LOCAL
         if (nodeStatus == AppConstants.NODE_STATUS_MATTER_LOCAL) {
             setupMatterSubscriptions()
+        }
+
+        if (AppConstants.ESP_DEVICE_CAMERA == device?.deviceType && (ContextCompat.checkSelfPermission(
+                this, Manifest.permission.CAMERA
+            ) != PackageManager.PERMISSION_GRANTED
+                    || ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED)
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO),
+                9393
+            )
         }
     }
 
@@ -594,52 +625,152 @@ class EspDeviceActivity : AppCompatActivity() {
     private fun getNodeDetails() {
         stopUpdateValueTask()
 
-        networkApiManager!!.getNodeDetails(nodeId, object : ApiResponseListener {
-            override fun onSuccess(data: Bundle?) {
-                runOnUiThread {
+        networkApiManager!!.getNodeDetails(
+            nodeId, object : ApiResponseListener {
+                override fun onSuccess(data: Bundle?) {
+                    runOnUiThread {
+                        isNetworkAvailable = true
+                        updateUi()
+                        if (AppConstants.ESP_DEVICE_CAMERA == device?.deviceType) {
+
+                            val apiManager = ApiManager.getInstance(applicationContext)
+                            val appPreferences =
+                                getSharedPreferences(AppConstants.ESP_PREFERENCES, MODE_PRIVATE)
+                            val idToken: String =
+                                appPreferences.getString(AppConstants.KEY_ID_TOKEN, "").toString()
+
+                            apiManager.assumeRole(idToken, nodeId, object : ApiResponseListener {
+                                override fun onSuccess(data: Bundle?) {
+                                    runOnUiThread {
+                                        if (data != null) {
+                                            val accessKey = data.getString("access_key")
+                                            val secretKey = data.getString("secret_key")
+                                            val sessionToken = data.getString("session_token")
+                                            Log.d(
+                                                TAG,
+                                                "Successfully received credentials from assume role"
+                                            )
+
+                                            // Set up a custom credentials provider with the credentials
+                                            val credentialsProvider = IoTCredentialsProvider(
+                                                accessKey,
+                                                secretKey,
+                                                sessionToken
+                                            )
+
+                                            // Override the credentials provider in WebRtcConstants
+                                            WebRtcConstants.setCredentialsProvider(
+                                                credentialsProvider
+                                            )
+
+                                            // Parse ID token to get region from iss field
+                                            try {
+                                                val jwt = JWT(idToken)
+                                                val issuer = jwt.getClaim("iss").asString()
+                                                // Extract region from issuer URL
+                                                // Supports multiple patterns:
+                                                // 1. https://cognito-idp.us-east-1.amazonaws.com/...
+                                                // 2. https://esp-rainmaker-oauth-*-dev.s3.us-east-1.amazonaws.com
+                                                // 3. https://esp-rainmaker-oauth-*-dev.s3.cn-north-1.amazonaws.com.cn
+                                                val regex =
+                                                    "(?:cognito-idp\\.|\\bs3\\.)([^.]+)\\.amazonaws\\.com(?:\\.cn)?".toRegex()
+                                                val matchResult = issuer?.let { regex.find(it) }
+                                                if (matchResult != null) {
+                                                    val region = matchResult.groupValues[1]
+                                                    Log.d(
+                                                        TAG,
+                                                        "Extracted region from token: $region"
+                                                    )
+                                                    EspApplication.region = region
+                                                    paramAdapter?.updateVideoStreamingState()
+                                                } else {
+                                                    Log.e(
+                                                        TAG,
+                                                        "Failed to extract region from issuer: $issuer"
+                                                    )
+                                                }
+                                            } catch (e: Exception) {
+                                                Log.e(TAG, "Error parsing ID token", e)
+                                            }
+                                        }
+                                        paramAdapter?.notifyDataSetChanged()
+                                        startUpdateValueTask()
+                                        hideLoading()
+                                        snackbar!!.dismiss()
+                                        binding.espDeviceLayout.swipeContainer.isRefreshing = false
+                                    }
+                                }
+
+                                override fun onResponseFailure(exception: Exception) {
+                                    runOnUiThread {
+                                        exception.printStackTrace()
+                                        EspApplication.region = ""
+                                        paramAdapter?.updateVideoStreamingState()
+                                        startUpdateValueTask()
+                                        hideLoading()
+                                        snackbar!!.dismiss()
+                                        binding.espDeviceLayout.swipeContainer.isRefreshing = false
+                                    }
+                                }
+
+                                override fun onNetworkFailure(exception: Exception) {
+                                    runOnUiThread {
+                                        exception.printStackTrace()
+                                        EspApplication.region = ""
+                                        paramAdapter?.updateVideoStreamingState()
+                                        startUpdateValueTask()
+                                        hideLoading()
+                                        snackbar!!.dismiss()
+                                        binding.espDeviceLayout.swipeContainer.isRefreshing = false
+                                    }
+                                }
+                            })
+                        }
+                    }
+                }
+
+                override fun onResponseFailure(exception: java.lang.Exception) {
                     isNetworkAvailable = true
                     hideLoading()
                     snackbar!!.dismiss()
                     binding.espDeviceLayout.swipeContainer.isRefreshing = false
+                    if (exception is CloudException) {
+                        Toast.makeText(
+                            this@EspDeviceActivity,
+                            exception.message,
+                            Toast.LENGTH_SHORT
+                        )
+                            .show()
+                    } else {
+                        Toast.makeText(
+                            this@EspDeviceActivity,
+                            "Failed to get node details",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                     updateUi()
-                    startUpdateValueTask()
                 }
-            }
 
-            override fun onResponseFailure(exception: java.lang.Exception) {
-                isNetworkAvailable = true
-                hideLoading()
-                snackbar!!.dismiss()
-                binding.espDeviceLayout.swipeContainer.isRefreshing = false
-                if (exception is CloudException) {
-                    Toast.makeText(this@EspDeviceActivity, exception.message, Toast.LENGTH_SHORT)
-                        .show()
-                } else {
-                    Toast.makeText(
-                        this@EspDeviceActivity,
-                        "Failed to get node details",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                override fun onNetworkFailure(exception: java.lang.Exception) {
+                    hideLoading()
+                    binding.espDeviceLayout.swipeContainer.isRefreshing = false
+                    if (exception is CloudException) {
+                        Toast.makeText(
+                            this@EspDeviceActivity,
+                            exception.message,
+                            Toast.LENGTH_SHORT
+                        )
+                            .show()
+                    } else {
+                        Toast.makeText(
+                            this@EspDeviceActivity,
+                            "Failed to get node details",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    updateUi()
                 }
-                updateUi()
-            }
-
-            override fun onNetworkFailure(exception: java.lang.Exception) {
-                hideLoading()
-                binding.espDeviceLayout.swipeContainer.isRefreshing = false
-                if (exception is CloudException) {
-                    Toast.makeText(this@EspDeviceActivity, exception.message, Toast.LENGTH_SHORT)
-                        .show()
-                } else {
-                    Toast.makeText(
-                        this@EspDeviceActivity,
-                        "Failed to get node details",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-                updateUi()
-            }
-        })
+            })
     }
 
     private fun getValues() {
@@ -689,7 +820,11 @@ class EspDeviceActivity : AppCompatActivity() {
                 hideLoading()
                 binding.espDeviceLayout.swipeContainer.isRefreshing = false
                 if (exception is CloudException) {
-                    Toast.makeText(this@EspDeviceActivity, exception.message, Toast.LENGTH_SHORT)
+                    Toast.makeText(
+                        this@EspDeviceActivity,
+                        exception.message,
+                        Toast.LENGTH_SHORT
+                    )
                         .show()
                 } else {
                     Toast.makeText(
@@ -706,7 +841,11 @@ class EspDeviceActivity : AppCompatActivity() {
                 hideLoading()
                 binding.espDeviceLayout.swipeContainer.isRefreshing = false
                 if (exception is CloudException) {
-                    Toast.makeText(this@EspDeviceActivity, exception.message, Toast.LENGTH_SHORT)
+                    Toast.makeText(
+                        this@EspDeviceActivity,
+                        exception.message,
+                        Toast.LENGTH_SHORT
+                    )
                         .show()
                 } else {
                     Toast.makeText(
@@ -802,7 +941,10 @@ class EspDeviceActivity : AppCompatActivity() {
                 val param = paramList[i]
                 if (param != null) {
                     val dataType = param.dataType
-                    if (AppConstants.UI_TYPE_PUSH_BTN_BIG.equals(param.uiType, ignoreCase = true)
+                    if (AppConstants.UI_TYPE_PUSH_BTN_BIG.equals(
+                            param.uiType,
+                            ignoreCase = true
+                        )
                         && (!TextUtils.isEmpty(dataType) && (dataType.equals(
                             "bool",
                             ignoreCase = true
@@ -1029,14 +1171,12 @@ class EspDeviceActivity : AppCompatActivity() {
             Log.d(TAG, "Cannot setup Matter subscriptions - already active or device not available")
             return
         }
-
         Log.d(TAG, "Setting up Matter subscriptions for device: $matterNodeId")
-        
+
         lifecycleScope.launch {
             try {
                 val chipClient = espApp!!.chipClientMap[matterNodeId]!!
                 subscriptionHelper = SubscriptionHelper(chipClient)
-                
                 val deviceId = BigInteger(matterNodeId, 16).toLong()
                 val connectedDevicePtr = chipClient.getConnectedDevicePointer(deviceId)
                 
@@ -1066,10 +1206,8 @@ class EspDeviceActivity : AppCompatActivity() {
                     resubscriptionAttemptCallback,
                     reportCallback
                 )
-                
                 matterSubscriptionActive = true
                 Log.d(TAG, "Matter subscriptions setup completed successfully")
-                
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to setup Matter subscriptions", e)
                 matterSubscriptionActive = false
@@ -1316,7 +1454,8 @@ class EspDeviceActivity : AppCompatActivity() {
                                     val intValue = value as? Int ?: 0
                                     val temperatureValue = intValue / 100.0
                                     param.value = temperatureValue
-                                    param.labelValue = String.format("%.1f", temperatureValue)
+                                    param.labelValue =
+                                        String.format("%.1f", temperatureValue)
                                     paramUpdated = true
                                     break
                                 }
@@ -1325,11 +1464,16 @@ class EspDeviceActivity : AppCompatActivity() {
 
                         17L -> { // OccupiedCoolingSetpoint
                             for (param in paramList!!) {
-                                if (param.name.equals(AppConstants.PARAM_COOLING_POINT, true)) {
+                                if (param.name.equals(
+                                        AppConstants.PARAM_COOLING_POINT,
+                                        true
+                                    )
+                                ) {
                                     val intValue = value as? Int ?: 0
                                     val temperatureValue = intValue / 100.0
                                     param.value = temperatureValue
-                                    param.labelValue = String.format("%.1f", temperatureValue)
+                                    param.labelValue =
+                                        String.format("%.1f", temperatureValue)
                                     paramUpdated = true
                                     break
                                 }
@@ -1338,11 +1482,16 @@ class EspDeviceActivity : AppCompatActivity() {
 
                         18L -> { // OccupiedHeatingSetpoint
                             for (param in paramList!!) {
-                                if (param.name.equals(AppConstants.PARAM_HEATING_POINT, true)) {
+                                if (param.name.equals(
+                                        AppConstants.PARAM_HEATING_POINT,
+                                        true
+                                    )
+                                ) {
                                     val intValue = value as? Int ?: 0
                                     val temperatureValue = intValue / 100.0
                                     param.value = temperatureValue
-                                    param.labelValue = String.format("%.1f", temperatureValue)
+                                    param.labelValue =
+                                        String.format("%.1f", temperatureValue)
                                     paramUpdated = true
                                     break
                                 }
@@ -1351,7 +1500,11 @@ class EspDeviceActivity : AppCompatActivity() {
 
                         28L -> { // SystemMode
                             for (param in paramList!!) {
-                                if (param.name.equals(AppConstants.PARAM_SYSTEM_MODE, true)) {
+                                if (param.name.equals(
+                                        AppConstants.PARAM_SYSTEM_MODE,
+                                        true
+                                    )
+                                ) {
                                     val intValue = value as? Int ?: 0
                                     param.value = intValue.toDouble()
                                     param.labelValue = when (intValue) {
@@ -1388,7 +1541,10 @@ class EspDeviceActivity : AppCompatActivity() {
                 }
 
                 else -> {
-                    Log.d(TAG, "Unhandled cluster ID: $clusterId for attribute: $attributeId")
+                    Log.d(
+                        TAG,
+                        "Unhandled cluster ID: $clusterId for attribute: $attributeId"
+                    )
                 }
             }
 

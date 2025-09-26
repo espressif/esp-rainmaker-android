@@ -65,6 +65,7 @@ import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
 import com.espressif.ui.activities.EspDeviceActivity;
 import com.espressif.ui.activities.TimeSeriesActivity;
+import com.espressif.ui.activities.WebRtcConfigActivity;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
@@ -400,6 +401,25 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         diffResult.dispatchUpdatesTo(this);
     }
 
+    private int getVideoStreamingParamPosition() {
+        for (int i = 0; i < params.size(); i++) {
+            Param param = params.get(i);
+            if (param.getParamType() != null && AppConstants.ESP_DEVICE_CAMERA.equals(device.getDeviceType())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public void updateVideoStreamingState() {
+        int position = getVideoStreamingParamPosition();
+        if (position != -1) {
+            Log.d(TAG, "Updating video streaming item at position: " + position +
+                    ", Region: " + EspApplication.region);
+            notifyItemChanged(position);
+        }
+    }
+
     private void displayPalette(ParamViewHolder paramViewHolder, final Param param) {
 
         paramViewHolder.rlUiTypeSlider.setVisibility(View.GONE);
@@ -650,13 +670,12 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     // Verify the values were set correctly
                     float actualMin = paramViewHolder.intSlider.getMin();
                     float actualMax = paramViewHolder.intSlider.getMax();
-                    
-                    Log.d(TAG, "Post-delayed Slider config for " + param.getName() + " - Expected min:" + min + " max:" + max + 
-                              " | Actual min:" + actualMin + " max:" + actualMax);
-                    
+                    Log.d(TAG, "Post-delayed Slider config for " + param.getName() + " - Expected min:" + min + " max:" + max +
+                            " | Actual min:" + actualMin + " max:" + actualMax);
+
                     if (Math.abs(actualMin - min) > 0.1f || Math.abs(actualMax - max) > 0.1f) {
-                        Log.e(TAG, "SLIDER CONFIGURATION MISMATCH for " + param.getName() + 
-                                   " - This is the recycling bug!");
+                        Log.e(TAG, "SLIDER CONFIGURATION MISMATCH for " + param.getName() +
+                                " - This is the recycling bug!");
                     }
                 }
             });
@@ -675,7 +694,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             
             // Verify progress was set correctly
             int actualProgress = paramViewHolder.intSlider.getProgress();
-            Log.d(TAG, "Slider progress for " + param.getName() + " - Expected:" + (int)sliderValue + " Actual:" + actualProgress);
+            Log.d(TAG, "Slider progress for " + param.getName() + " - Expected:" + (int) sliderValue + " Actual:" + actualProgress);
 
             if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
@@ -902,13 +921,12 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     // Verify the values were set correctly
                     float actualMin = paramViewHolder.floatSlider.getMin();
                     float actualMax = paramViewHolder.floatSlider.getMax();
-                    
-                    Log.d(TAG, "Post-delayed Float Slider config for " + param.getName() + " - Expected min:" + min + " max:" + max + 
-                              " | Actual min:" + actualMin + " max:" + actualMax);
-                    
+                    Log.d(TAG, "Post-delayed Float Slider config for " + param.getName() + " - Expected min:" + min + " max:" + max +
+                            " | Actual min:" + actualMin + " max:" + actualMax);
+
                     if (Math.abs(actualMin - min) > 0.1f || Math.abs(actualMax - max) > 0.1f) {
-                        Log.e(TAG, "FLOAT SLIDER CONFIGURATION MISMATCH for " + param.getName() + 
-                                   " - This is the recycling bug!");
+                        Log.e(TAG, "FLOAT SLIDER CONFIGURATION MISMATCH for " + param.getName() +
+                                " - This is the recycling bug!");
                     }
                 }
             });
@@ -1371,10 +1389,34 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             paramViewHolder.ivTsArrow.setVisibility(View.VISIBLE);
             paramViewHolder.ivTsArrow.setOnClickListener(v -> startTimeSeriesActivity(param, AppConstants.KEY_PROPERTY_TS_SIMPLE));
             paramViewHolder.itemView.setOnClickListener(v -> startTimeSeriesActivity(param, AppConstants.KEY_PROPERTY_TS_SIMPLE));
-            
+
+        } else if (AppConstants.PARAM_TYPE_CHANNEL.equals(param.getParamType())) {
+
+            paramViewHolder.tvLabelName.setVisibility(View.GONE);
+            paramViewHolder.tvLabelValue.setText("Video Streaming");
+
+            paramViewHolder.ivTsArrow.setVisibility(View.GONE);
+            paramViewHolder.ivTsArrow.setOnClickListener(null);
+            paramViewHolder.btnEdit.setVisibility(View.GONE);
+            paramViewHolder.btnStart.setVisibility(View.VISIBLE);
+
+            if (((EspDeviceActivity) context).isNodeOnline() && !TextUtils.isEmpty(EspApplication.region)) {
+
+                paramViewHolder.btnStart.setAlpha(1f);
+                paramViewHolder.itemView.setEnabled(true);
+                paramViewHolder.btnStart.setOnClickListener(v -> startViewerActivity(param.getLabelValue()));
+                paramViewHolder.itemView.setOnClickListener(v -> startViewerActivity(param.getLabelValue()));
+
+            } else {
+                paramViewHolder.btnStart.setAlpha(0.5f);
+                paramViewHolder.itemView.setEnabled(false);
+                paramViewHolder.btnStart.setOnClickListener(null);
+                paramViewHolder.itemView.setOnClickListener(null);
+            }
         } else {
             paramViewHolder.ivTsArrow.setVisibility(View.GONE);
             paramViewHolder.ivTsArrow.setOnClickListener(null);
+            paramViewHolder.btnStart.setVisibility(View.GONE);
         }
 
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE) && ((EspDeviceActivity) context).isNodeOnline()) {
@@ -1389,7 +1431,9 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 }
             });
         } else {
-            paramViewHolder.btnEdit.setVisibility(View.GONE);
+            if (!AppConstants.PARAM_TYPE_CHANNEL.equals(param.getParamType())) {
+                paramViewHolder.btnEdit.setVisibility(View.GONE);
+            }
         }
 
         if (AppConstants.PARAM_TYPE_TEMPERATURE.equals(param.getParamType())) {
@@ -1410,8 +1454,13 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
     }
 
-    private void displaySpinner(final ParamViewHolder paramViewHolder, final Param param,
-                                final int position) {
+    private void startViewerActivity(String channelName) {
+        Intent intent = new Intent(context, WebRtcConfigActivity.class);
+        EspApplication.channelName = "esp-v1-" + nodeId;
+        context.startActivity(intent);
+    }
+
+    private void displaySpinner(final ParamViewHolder paramViewHolder, final Param param, final int position) {
 
         paramViewHolder.rlUiTypeSlider.setVisibility(View.GONE);
         paramViewHolder.rlUiTypeSwitch.setVisibility(View.GONE);
@@ -2109,6 +2158,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         TapHoldUpButton btnTrigger;
         TextView tvMinHue, tvMaxHue;
         ImageView ivTsArrow;
+        TextView btnStart;
 
         public ParamViewHolder(View itemView) {
             super(itemView);
@@ -2142,6 +2192,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             tvMinHue = itemView.findViewById(R.id.tv_palette_start);
             tvMaxHue = itemView.findViewById(R.id.tv_palette_end);
             ivTsArrow = itemView.findViewById(R.id.iv_ts_arrow);
+            btnStart = itemView.findViewById(R.id.btn_start);
         }
     }
 

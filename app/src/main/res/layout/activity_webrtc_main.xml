@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="9">
+
+        <org.webrtc.SurfaceViewRenderer
+            android:id="@+id/remote_view"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="center" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_fps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="left"
+                android:background="#ffffff"
+                android:padding="7dp"
+                android:shadowColor="@android:color/black"
+                android:text="fps: 0"
+                android:textColor="#A20B3E"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/tv_resolution"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="#ffffff"
+                android:padding="5dp"
+                android:shadowColor="@android:color/black"
+                android:text="1920 x 1080"
+                android:textColor="#A20B3E"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+        <org.webrtc.SurfaceViewRenderer
+            android:id="@+id/local_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:visibility="invisible" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical">
+
+            <androidx.core.widget.ContentLoadingProgressBar
+                android:id="@+id/progress_loader"
+                style="?android:attr/progressBarStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:theme="@style/AppTheme.PurpleAccent"
+                android:visibility="visible" />
+
+            <TextView
+                android:id="@+id/tv_loading"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:visibility="visible" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+</LinearLayout>

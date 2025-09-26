@@ -129,6 +129,8 @@ public class EspApplication extends Application {
     public String mGroupId, mFabricId, mRootCa, mIpk, groupCatIdOperate;
     public static boolean loggedInUsingWeChat = false;
 
+    public static String channelName = "", region = "";
+
     public enum AppState {
         NO_USER_LOGIN,
         GETTING_DATA,

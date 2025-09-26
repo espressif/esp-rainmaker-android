@@ -73,7 +73,7 @@ android {
         minSdkVersion 27
         targetSdkVersion 35
         versionCode 181
-        versionName "3.8.3 - ${getGitHash()}"
+        versionName "3.9.0 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -338,4 +338,21 @@ dependencies {
     kapt 'com.google.dagger:hilt-compiler:2.44.2'
 
     implementation 'org.jsoup:jsoup:1.15.4'
+
+    def aws_version = '2.73.0'
+    implementation("com.amazonaws:aws-android-sdk-kinesisvideo:$aws_version@aar") { transitive = true }
+    implementation("com.amazonaws:aws-android-sdk-kinesisvideo-signaling:$aws_version@aar") { transitive = true }
+    implementation("com.amazonaws:aws-android-sdk-kinesisvideo-webrtcstorage:$aws_version@aar") { transitive = true }
+    implementation("com.amazonaws:aws-android-sdk-mobile-client:$aws_version@aar") { transitive = true }
+    implementation("com.amazonaws:aws-android-sdk-auth-userpools:$aws_version@aar") { transitive = true }
+    implementation("com.amazonaws:aws-android-sdk-auth-ui:$aws_version@aar") { transitive = true }
+
+    implementation "io.getstream:stream-webrtc-android:1.1.2"
+    implementation 'org.apache.commons:commons-lang3:3.9'
+    implementation 'com.google.guava:guava:28.1-android'
+    implementation 'org.awaitility:awaitility:4.2.0'
+
+    implementation('org.glassfish.tyrus.bundles:tyrus-standalone-client:1.21') {
+        exclude module: 'javax.inject'
+    }
 }

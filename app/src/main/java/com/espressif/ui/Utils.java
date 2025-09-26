@@ -553,6 +553,9 @@ public class Utils {
                 case AppConstants.ESP_DEVICE_THREAD_BR:
                     ivDevice.setImageResource(R.drawable.ic_device_thread_br);
                     break;
+                case AppConstants.ESP_DEVICE_CAMERA:
+                    ivDevice.setImageResource(R.drawable.ic_device_camera);
+                    break;
                 case AppConstants.ESP_DEVICE_OTHER:
                 case AppConstants.ESP_DEVICE_SENSOR:
                 default:
