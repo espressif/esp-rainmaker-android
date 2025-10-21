@@ -25,6 +25,8 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.appcompat.app.AppCompatDelegate;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -131,6 +133,12 @@ public class EspApplication extends Application {
 
     public static String channelName = "", region = "";
 
+    // Theme constants
+    public static final String THEME_LIGHT = "light";
+    public static final String THEME_DARK = "dark";
+    public static final String THEME_SYSTEM = "system";
+    public static final String KEY_THEME_PREFERENCE = "theme_preference";
+
     public enum AppState {
         NO_USER_LOGIN,
         GETTING_DATA,
@@ -144,6 +152,9 @@ public class EspApplication extends Application {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "ESP Application is created");
+
+        initializeTheme();
+
         nodeMap = new HashMap<>();
         scheduleMap = new HashMap<>();
         sceneMap = new HashMap<>();
@@ -1282,5 +1293,51 @@ public class EspApplication extends Application {
             return clusterAttributes.get(attributeId);
         }
         return null;
+    }
+
+    /**
+     * Initialize theme based on user preference
+     */
+    private void initializeTheme() {
+        String themePreference = getThemePreference();
+        applyTheme(themePreference);
+    }
+
+    /**
+     * Get current theme preference from SharedPreferences
+     */
+    public String getThemePreference() {
+        SharedPreferences preferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
+        return preferences.getString(KEY_THEME_PREFERENCE, THEME_SYSTEM);
+    }
+
+    /**
+     * Save theme preference to SharedPreferences
+     */
+    public void setThemePreference(String theme) {
+        SharedPreferences preferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString(KEY_THEME_PREFERENCE, theme);
+        editor.apply();
+        applyTheme(theme);
+    }
+
+    /**
+     * Apply the selected theme
+     */
+    private void applyTheme(String theme) {
+        Log.d(TAG, "Applying theme: " + theme);
+        switch (theme) {
+            case THEME_LIGHT:
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                break;
+            case THEME_DARK:
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                break;
+            case THEME_SYSTEM:
+            default:
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+                break;
+        }
     }
 }

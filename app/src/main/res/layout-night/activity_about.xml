@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent">
+
+    <include
+        android:id="@+id/toolbar_layout"
+        layout="@layout/toolbar" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <ImageView
+            android:id="@+id/iv_app_logo"
+            android:layout_width="410dp"
+            android:layout_height="417dp"
+            android:src="@drawable/ic_esp_splash"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/iv_app_logo">
+
+            <TextView
+                android:id="@+id/tv_app_version_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:lineSpacingExtra="6sp"
+                android:text="@string/app_version"
+                android:textColor="@color/colorPrimaryDark"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/tv_app_version"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="@dimen/margin_8"
+                android:lineSpacingExtra="6sp"
+                android:textColor="@color/colorPrimaryDark"
+                android:textIsSelectable="true"
+                android:textSize="15sp" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="6dp">
+
+                <TextView
+                    android:id="@+id/tv_app_region_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:lineSpacingExtra="6sp"
+                    android:text="@string/app_region"
+                    android:textColor="@color/colorPrimaryDark"
+                    android:textSize="16sp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/tv_app_region"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="3dp"
+                    android:layout_marginTop="1dp"
+                    android:layout_marginBottom="1dp"
+                    android:lineSpacingExtra="5sp"
+                    android:textColor="@color/colorPrimaryDark"
+                    android:textSize="16sp"
+                    app:layout_constraintStart_toEndOf="@id/tv_app_region_label"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </LinearLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/layout_links"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/margin_32"
+            app:layout_constraintBottom_toTopOf="@id/tv_powered_by_esp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <TextView
+                android:id="@+id/tv_documentation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColorLink="@color/colorPrimary"
+                android:textSize="14sp"
+                app:layout_constraintEnd_toStartOf="@+id/tv_privacy"
+                app:layout_constraintHorizontal_chainStyle="spread_inside"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/tv_privacy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColorLink="@color/colorPrimary"
+                android:textSize="14sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/tv_terms_condition"
+                app:layout_constraintStart_toEndOf="@+id/tv_documentation"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/tv_terms_condition"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColorLink="@color/colorPrimary"
+                android:textSize="14sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/tv_privacy"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <TextView
+            android:id="@+id/tv_powered_by_esp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="@dimen/margin_32"
+            android:layout_marginBottom="@dimen/margin_32"
+            android:text="@string/powered_by_esp"
+            android:textColor="@color/colorPrimaryDark"
+            android:textSize="14sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

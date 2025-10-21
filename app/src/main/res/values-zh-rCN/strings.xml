@@ -316,6 +316,7 @@
     <string name="title_activity_tbr">Thread 边界路由器</string>
     <string name="title_activity_group_sharing_requests">群组共享</string>
     <string name="title_activity_group_detail">群组详情</string>
+    <string name="title_activity_preferences">偏好设置</string>
 
     <!--Dialog texts-->
     <string name="dialog_title_login_failed">登录失败</string>
@@ -498,6 +499,7 @@
     <string name="checkbox_grant_full_access_primary">授予完全访问权限</string>
     <string name="matter_fabric_yes">是</string>
     <string name="matter_fabric_no">否</string>
+    <string name="preferences">偏好设置</string>
 
     <string name="linked_with_alexa">已与亚马逊 Alexa 连接</string>
     <string name="alexa_link_str">现在您可以通过 Alexa 启用的音箱使用语音命令控制您的智能家居设备。</string>

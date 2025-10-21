@@ -15,6 +15,7 @@
 package com.espressif.ui.adapters;
 
 import android.app.Activity;
+import android.content.DialogInterface;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -123,6 +124,11 @@ public class ParamSelectionAdapter extends RecyclerView.Adapter<ParamSelectionAd
     }
 
     private void displayBooleanDialog(Param param) {
+        // Check if activity is still valid before showing dialog
+        if (context.isFinishing() || context.isDestroyed()) {
+            return;
+        }
+        
         LayoutInflater inflater = context.getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.dialog_param_boolean, null);
 
@@ -144,14 +150,22 @@ public class ParamSelectionAdapter extends RecyclerView.Adapter<ParamSelectionAd
                 param.setSwitchStatus(isChecked);
                 param.setSelected(true);
                 eventSelectionListener.onEventSelected(eventDevice, param, condition);
-                alertDialog.dismiss();
+                if (alertDialog.isShowing()) {
+                    alertDialog.dismiss();
+                }
             }
         });
+
 
         alertDialog.show();
     }
 
     private void displaySliderDialog(Param param) {
+        // Check if activity is still valid before showing dialog
+        if (context.isFinishing() || context.isDestroyed()) {
+            return;
+        }
+        
         LayoutInflater inflater = context.getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.dialog_param_slider, null);
 
@@ -208,6 +222,11 @@ public class ParamSelectionAdapter extends RecyclerView.Adapter<ParamSelectionAd
     }
 
     private void displayIntDialog(Param param) {
+        // Check if activity is still valid before showing dialog
+        if (context.isFinishing() || context.isDestroyed()) {
+            return;
+        }
+        
         LayoutInflater inflater = context.getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.dialog_param_int, null);
 
@@ -249,6 +268,11 @@ public class ParamSelectionAdapter extends RecyclerView.Adapter<ParamSelectionAd
     }
 
     private void displayStringDialog(Param param) {
+        // Check if activity is still valid before showing dialog
+        if (context.isFinishing() || context.isDestroyed()) {
+            return;
+        }
+        
         LayoutInflater inflater = context.getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.dialog_param_string, null);
 

@@ -80,7 +80,8 @@ public class EventDeviceAdapter extends RecyclerView.Adapter<EventDeviceAdapter.
 
     private void showBottomSheetDialog(Device selectedDevice) {
 
-        ParamSelectionFragment paramSelectionFragment = new ParamSelectionFragment(context, automation, selectedDevice, eventSelectionListener);
+        ParamSelectionFragment paramSelectionFragment = ParamSelectionFragment.newInstance(automation, selectedDevice);
+        paramSelectionFragment.setEventSelectionListener(eventSelectionListener);
         paramSelectionFragment.show(context.getSupportFragmentManager(), paramSelectionFragment.getTag());
     }
 
