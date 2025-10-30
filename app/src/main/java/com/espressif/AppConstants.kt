@@ -550,6 +550,8 @@ class AppConstants {
         const val COMMAND_UPDATE_USER_NOC = 3L
         const val COMMAND_UPDATE_DEVICE_LIST = 4L
 
+        const val TIMED_INVOKE_TIMEOUT_MS = 5000
+
         const val CAT_ID_PREFIX = "FFFFFFFD"
         const val CONTROLLER_DATA_VERSION = "1.0.1"
 

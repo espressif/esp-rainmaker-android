@@ -15,7 +15,7 @@ Here are the steps to compile.
 ```
 $ git clone https://github.com/project-chip/connectedhomeip.git 
 $ cd connectedhomeip 
-$ git checkout 577b3f2be0e526643c124071de64f2e810982c87
+$ git checkout f5389c21ebd5a3b754ae6db4206e1c3d0f8c9e39
 $ git submodule update --init --recursive
 ```
 
@@ -37,11 +37,11 @@ In case you want to define your own new cluster, define your  `sample-mei-cluste
 
 Some modifications will be required to add your cluster support.
 
-1. Add `load "../src/app/zap-templates/zcl/data-model/chip/sample-mei-cluster.xml";` into scripts/rules.matterlint file.
+1. Add `load "src/app/zap-templates/zcl/data-model/chip/sample-mei-cluster.xml";` into `.matterlint` file.
 
-   **`scripts/rules.matterlint`**
+   **`.matterlint`**
 
-   ![scripts/rules.matterlint](cluster_doc_image1.png)
+   ![.matterlint](cluster_doc_image1.png)
 
 2. **`src/app/zap-templates/zcl/zcl.json`**  is also used by the ZAP GUI. It alternatively draws from this list the set of available clusters when a device is being created. Make sure you also define your cluster here.
 

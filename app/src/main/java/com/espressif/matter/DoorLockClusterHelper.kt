@@ -19,6 +19,7 @@ import android.util.Log
 import chip.devicecontroller.ChipClusters
 import chip.devicecontroller.ChipClusters.DoorLockCluster.SetCredentialResponseCallback
 import chip.devicecontroller.ChipStructs.DoorLockClusterCredentialStruct
+import com.espressif.AppConstants
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
 import java.nio.charset.StandardCharsets
@@ -67,7 +68,7 @@ class DoorLockClusterHelper constructor(private val chipClient: ChipClient) {
                     1,
                     0,
                     0,
-                    5000
+                    AppConstants.TIMED_INVOKE_TIMEOUT_MS
                 )
         }
     }
@@ -114,7 +115,7 @@ class DoorLockClusterHelper constructor(private val chipClient: ChipClient) {
                     1,
                     null,
                     null,
-                    5000
+                    AppConstants.TIMED_INVOKE_TIMEOUT_MS
                 )
         }
     }
@@ -231,7 +232,7 @@ class DoorLockClusterHelper constructor(private val chipClient: ChipClient) {
                             Log.e(TAG, "Unlock door command failure")
                             continuation.resumeWithException(ex)
                         }
-                    }, stringToOptionalByteArray(pincode), 5000
+                    }, stringToOptionalByteArray(pincode), AppConstants.TIMED_INVOKE_TIMEOUT_MS
                 )
         }
     }
