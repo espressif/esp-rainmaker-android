@@ -117,7 +117,7 @@ class ThreadBRClusterHelper constructor(
                         Log.e(TAG, "setDataset command failure")
                         continuation.resumeWithException(error)
                     }
-                }, datasetStr, breadcrumb)
+                }, datasetStr, breadcrumb, AppConstants.TIMED_INVOKE_TIMEOUT_MS)
         }
     }
 
@@ -159,7 +159,7 @@ class ThreadBRClusterHelper constructor(
                         Log.e(TAG, "Pending dataset send command failure")
                         continuation.resumeWithException(error)
                     }
-                }, datasetStr)
+                }, datasetStr, AppConstants.TIMED_INVOKE_TIMEOUT_MS)
         }
     }
 

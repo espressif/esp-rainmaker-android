@@ -90,6 +90,7 @@ class ChipClient constructor(
         ChipDeviceController.loadJni()
         AndroidChipPlatform(
             AndroidBleManager(),
+            AndroidNfcCommissioningManager(),
             PreferencesKeyValueStoreManager(context),
             PreferencesConfigurationManager(context),
             NsdManagerServiceResolver(context),
