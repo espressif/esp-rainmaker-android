@@ -3,11 +3,13 @@ package com.espressif.ui.activities;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.util.Base64;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,11 +17,13 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.amazonaws.auth.AWSCredentials;
@@ -92,6 +96,10 @@ public class WebRtcActivity extends AppCompatActivity {
     private static final boolean ENABLE_INTEL_VP8_ENCODER = true;
     private static final boolean ENABLE_H264_HIGH_PROFILE = true;
 
+    // Feature toggles
+    private static final boolean ENABLE_DATA_CHANNEL = false;
+    private static final boolean ENABLE_AUDIO = false;
+
     private static volatile SignalingServiceWebSocketClient client;
     private PeerConnectionFactory peerConnectionFactory;
 
@@ -117,6 +125,32 @@ public class WebRtcActivity extends AppCompatActivity {
     private boolean gotException = false;
 
     private String recipientClientId;
+
+    // Simple FPS tracking for diagnostics
+    private long lastFramesDropped = 0;
+    private long lastStatsTime = 0;
+
+    // Stream duration tracking
+    private long streamStartTime = 0;
+    private boolean isStreamActive = false;
+
+    // Detailed stats for long press display
+    private float currentFps = 0;
+    private float receivedFps = 0;
+    private float droppedFps = 0;
+    private long totalFramesDropped = 0;
+    private long totalBytesReceived = 0;
+    private long totalPacketsReceived = 0;
+    private long totalPacketsLost = 0;
+    private double jitterMs = 0;
+    private String videoCodec = "N/A";
+    private int currentFrameWidth = 0;
+    private int currentFrameHeight = 0;
+
+    // Stats dialog update handler
+    private android.os.Handler statsUpdateHandler = null;
+    private Runnable statsUpdateRunnable = null;
+    private LinearLayout statsContainer = null;
 
     private int mNotificationId = 0;
 
@@ -377,6 +411,11 @@ public class WebRtcActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        // Show stream duration if stream was active
+        if (isStreamActive) {
+            showStreamEndedWithDuration("Stream ended");
+        }
+
         Thread.setDefaultUncaughtExceptionHandler(null);
         printStatsExecutor.shutdownNow();
 
@@ -398,19 +437,21 @@ public class WebRtcActivity extends AppCompatActivity {
             localPeer = null;
         }
 
-        if (videoSource != null) {
-            videoSource.dispose();
-            videoSource = null;
-        }
+        // DISABLED: Video source not created since phone doesn't send video
+        // if (videoSource != null) {
+        //     videoSource.dispose();
+        //     videoSource = null;
+        // }
 
-        if (videoCapturer != null) {
-            try {
-                videoCapturer.stopCapture();
-            } catch (InterruptedException e) {
-                Log.e(TAG, "Failed to stop webrtc video capture. ", e);
-            }
-            videoCapturer = null;
-        }
+        // DISABLED: Video capturer not created since phone doesn't send video
+        // if (videoCapturer != null) {
+        //     try {
+        //         videoCapturer.stopCapture();
+        //     } catch (InterruptedException e) {
+        //         Log.e(TAG, "Failed to stop webrtc video capture. ", e);
+        //     }
+        //     videoCapturer = null;
+        // }
 
         if (localView != null) {
             localView.release();
@@ -457,6 +498,13 @@ public class WebRtcActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        // Make status bar and navigation bar transparent with dark content
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
 
         final Intent intent = getIntent();
         mChannelArn = intent.getStringExtra(WebRtcConstants.KEY_CHANNEL_ARN);
@@ -539,31 +587,35 @@ public class WebRtcActivity extends AppCompatActivity {
         // Enable Google WebRTC debug logs
         Logging.enableLogToDebugOutput(Logging.Severity.LS_INFO);
 
-        videoCapturer = createVideoCapturer();
+        // DISABLED: Phone should only receive video, not send it to ESP device
+        // videoCapturer = createVideoCapturer();
 
-        // Local video view
+        // Local video view (hidden since we're not sending video)
         localView = findViewById(R.id.local_view);
-        localView.init(rootEglBase.getEglBaseContext(), null);
-        localView.setEnableHardwareScaler(true);
+        localView.setVisibility(View.GONE); // Hide local preview since we're not capturing
 
-
-        videoSource = peerConnectionFactory.createVideoSource(false);
-        SurfaceTextureHelper surfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext());
-        videoCapturer.initialize(surfaceTextureHelper, this.getApplicationContext(), videoSource.getCapturerObserver());
-
-        localVideoTrack = peerConnectionFactory.createVideoTrack(VideoTrackID, videoSource);
-        localVideoTrack.addSink(localView);
+        // DISABLED: No need to create video source or track for sending
+        // videoSource = peerConnectionFactory.createVideoSource(false);
+        // SurfaceTextureHelper surfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext());
+        // videoCapturer.initialize(surfaceTextureHelper, this.getApplicationContext(), videoSource.getCapturerObserver());
+        // localVideoTrack = peerConnectionFactory.createVideoTrack(VideoTrackID, videoSource);
+        // localVideoTrack.addSink(localView);
 
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         originalAudioMode = audioManager.getMode();
         originalSpeakerphoneOn = audioManager.isSpeakerphoneOn();
 
-        // Start capturing video
-        videoCapturer.startCapture(VIDEO_SIZE_WIDTH, VIDEO_SIZE_HEIGHT, VIDEO_FPS);
-        localVideoTrack.setEnabled(true);
+        // DISABLED: Not capturing or sending video from phone
+        // videoCapturer.startCapture(VIDEO_SIZE_WIDTH, VIDEO_SIZE_HEIGHT, VIDEO_FPS);
+        // localVideoTrack.setEnabled(true);
+
+        Log.i(TAG, "📱 PHONE VIDEO SENDING DISABLED - Only receiving video from ESP device");
 
         remoteView = findViewById(R.id.remote_view);
         remoteView.init(rootEglBase.getEglBaseContext(), null);
+
+        // Setup long press listener for detailed stats
+        setupLongPressForStats();
     }
 
     private VideoCapturer createVideoCapturer() {
@@ -602,12 +654,25 @@ public class WebRtcActivity extends AppCompatActivity {
 
         final PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(peerIceServers);
 
+        // Basic configuration
         rtcConfig.bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE;
         rtcConfig.sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN;
         rtcConfig.continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY;
         rtcConfig.keyType = PeerConnection.KeyType.ECDSA;
         rtcConfig.rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE;
         rtcConfig.tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.ENABLED;
+
+        // Network stability improvements for handling jittery connections
+        rtcConfig.iceConnectionReceivingTimeout = 10000;  // 10 sec (default 5 sec) - more patient with unstable networks
+        rtcConfig.iceBackupCandidatePairPingInterval = 5000;  // 5 sec - backup path checking
+        rtcConfig.iceCandidatePoolSize = 4;  // More ICE candidates for backup paths
+        rtcConfig.enableDscp = true;  // Enable DSCP marking for QoS
+        rtcConfig.suspendBelowMinBitrate = false;  // Keep trying even at low bitrates
+
+        Log.i(TAG, "Creating PeerConnection with network stability improvements:");
+        Log.i(TAG, "  - ICE receiving timeout: " + rtcConfig.iceConnectionReceivingTimeout + "ms");
+        Log.i(TAG, "  - ICE backup ping interval: " + rtcConfig.iceBackupCandidatePairPingInterval + "ms");
+        Log.i(TAG, "  - ICE candidate pool size: " + rtcConfig.iceCandidatePoolSize);
 
         // Step 8. Create RTCPeerConnection.
         //         The RTCPeerConnection is the primary interface for WebRTC communications in the Web.
@@ -638,8 +703,16 @@ public class WebRtcActivity extends AppCompatActivity {
             public void onIceConnectionChange(final PeerConnection.IceConnectionState iceConnectionState) {
                 super.onIceConnectionChange(iceConnectionState);
                 if (iceConnectionState == PeerConnection.IceConnectionState.FAILED) {
-                    runOnUiThread(() -> Toast.makeText(getApplicationContext(), "Connection to peer failed!", Toast.LENGTH_LONG).show());
+                    showStreamEndedWithDuration("Connection to peer failed!");
+                } else if (iceConnectionState == PeerConnection.IceConnectionState.DISCONNECTED) {
+                    showStreamEndedWithDuration("Disconnected from peer");
                 } else if (iceConnectionState == PeerConnection.IceConnectionState.CONNECTED) {
+                    // Start stream duration tracking
+                    if (!isStreamActive) {
+                        streamStartTime = System.currentTimeMillis();
+                        isStreamActive = true;
+                        Log.i(TAG, "📺 Stream started - duration tracking began");
+                    }
                     runOnUiThread(() -> Toast.makeText(getApplicationContext(), "Connected to peer!", Toast.LENGTH_LONG).show());
                     runOnUiThread(() -> {
                         progressLoader.setVisibility(View.GONE);
@@ -650,6 +723,11 @@ public class WebRtcActivity extends AppCompatActivity {
             @Override
             public void onDataChannel(final DataChannel dataChannel) {
                 super.onDataChannel(dataChannel);
+
+                if (!ENABLE_DATA_CHANNEL) {
+                    Log.d(TAG, "Data channel received but support is disabled");
+                    return;
+                }
 
                 dataChannel.registerObserver(new DataChannel.Observer() {
                     @Override
@@ -694,15 +772,60 @@ public class WebRtcActivity extends AppCompatActivity {
 
                             Map<String, Object> objectMap = entry.getValue().getMembers();
 
-                            for (Map.Entry<String, Object> object : objectMap.entrySet()) {
-                                Log.d(TAG, "object: Key : " + object.getKey());
-                                Log.d(TAG, "object: Value : " + object.getValue());
-                            }
-
-//                            Log.i(TAG, "fps: " + objectMap.get("framesPerSecond"));
+                            // Extract all relevant stats
                             Object tmp = objectMap.get("framesPerSecond");
                             Object width = objectMap.get("frameWidth");
                             Object height = objectMap.get("frameHeight");
+                            Object framesDropped = objectMap.get("framesDropped");
+                            Object bytesReceived = objectMap.get("bytesReceived");
+                            Object packetsReceived = objectMap.get("packetsReceived");
+                            Object packetsLost = objectMap.get("packetsLost");
+                            Object jitter = objectMap.get("jitter");
+                            Object codecId = objectMap.get("codecId");
+
+                            float calcCurrentFps = 0;
+                            if (tmp != null) {
+                                calcCurrentFps = Float.parseFloat(tmp.toString());
+                            } else {
+                                Log.d(TAG, "framesPerSecond field not found in WebRTC stats");
+                            }
+
+                            // Calculate dropped FPS (simple delta calculation)
+                            long currentFramesDropped = framesDropped != null ? Long.parseLong(framesDropped.toString()) : 0;
+
+                            float calcDroppedFps = 0;
+                            long currentTime = System.currentTimeMillis();
+                            if (lastStatsTime > 0 && currentTime > lastStatsTime) {
+                                float deltaSeconds = (currentTime - lastStatsTime) / 1000.0f;
+                                long deltaFramesDropped = currentFramesDropped - lastFramesDropped;
+                                if (deltaSeconds > 0 && deltaFramesDropped >= 0) {
+                                    calcDroppedFps = deltaFramesDropped / deltaSeconds;
+                                }
+                            }
+
+                            // Simple calculation: Received FPS = Rendered FPS + Dropped FPS
+                            float calcReceivedFps = calcCurrentFps + calcDroppedFps;
+
+                            // Update tracking variables
+                            lastFramesDropped = currentFramesDropped;
+                            lastStatsTime = currentTime;
+
+                            // Update member variables for detailed stats
+                            currentFps = calcCurrentFps;
+                            receivedFps = calcReceivedFps;
+                            droppedFps = calcDroppedFps;
+                            totalFramesDropped = currentFramesDropped;
+                            totalBytesReceived = bytesReceived != null ? Long.parseLong(bytesReceived.toString()) : 0;
+                            totalPacketsReceived = packetsReceived != null ? Long.parseLong(packetsReceived.toString()) : 0;
+                            totalPacketsLost = packetsLost != null ? Long.parseLong(packetsLost.toString()) : 0;
+                            jitterMs = jitter != null ? Double.parseDouble(jitter.toString()) * 1000 : 0;
+                            currentFrameWidth = width != null ? Integer.parseInt(width.toString()) : 0;
+                            currentFrameHeight = height != null ? Integer.parseInt(height.toString()) : 0;
+
+                            // Enhanced logging with all FPS metrics
+                            if (calcCurrentFps > 0 || calcDroppedFps > 0) {
+                                Log.d(TAG, String.format("WebRTC FPS: %.1f | Received FPS: %.1f | Dropped FPS: %.1f", calcCurrentFps, calcReceivedFps, calcDroppedFps));
+                            }
 
                             if (tmp != null) {
                                 final String fps = tmp.toString();
@@ -716,9 +839,21 @@ public class WebRtcActivity extends AppCompatActivity {
                                         TextView resolution = findViewById(R.id.tv_resolution);
                                         String resolutionStr = width + " x " + height;
                                         resolution.setText(resolutionStr);
+
+                                        // Position FPS overlay relative to video view
+                                        positionFpsOverlay();
                                     }
                                 });
 
+                            }
+                        }
+
+                        // Extract codec info from codec stats
+                        if (entry.getValue().getType().equals("codec")) {
+                            Map<String, Object> codecMap = entry.getValue().getMembers();
+                            Object mimeType = codecMap.get("mimeType");
+                            if (mimeType != null) {
+                                videoCodec = mimeType.toString();
                             }
                         }
                     }
@@ -726,7 +861,9 @@ public class WebRtcActivity extends AppCompatActivity {
             }, 0, 1, TimeUnit.SECONDS);
         }
 
-        addDataChannelToLocalPeer();
+        if (ENABLE_DATA_CHANNEL) {
+            addDataChannelToLocalPeer();
+        }
         addStreamToLocalPeer();
     }
 
@@ -752,17 +889,23 @@ public class WebRtcActivity extends AppCompatActivity {
     }
 
     private void addStreamToLocalPeer() {
+        // DISABLED: Phone doesn't send video to ESP device - only receives
+        Log.i(TAG, "📱 Skipping local video stream - phone is receiver only");
 
-        final MediaStream stream = peerConnectionFactory.createLocalMediaStream(LOCAL_MEDIA_STREAM_LABEL);
-
-        if (!stream.addTrack(localVideoTrack)) {
-            Log.e(TAG, "Add video track failed");
-        }
-
-        localPeer.addTrack(stream.videoTracks.get(0), Collections.singletonList(stream.getId()));
+        // DISABLED: No local video track to send
+        // final MediaStream stream = peerConnectionFactory.createLocalMediaStream(LOCAL_MEDIA_STREAM_LABEL);
+        // if (!stream.addTrack(localVideoTrack)) {
+        //     Log.e(TAG, "Add video track failed");
+        // }
+        // localPeer.addTrack(stream.videoTracks.get(0), Collections.singletonList(stream.getId()));
     }
 
     private void addDataChannelToLocalPeer() {
+        if (!ENABLE_DATA_CHANNEL) {
+            Log.d(TAG, "Data channel support disabled - skipping creation");
+            return;
+        }
+
         Log.d(TAG, "Data channel addDataChannelToLocalPeer");
         final DataChannel localDataChannel = localPeer.createDataChannel("data-channel-of-" + mClientId, new DataChannel.Init());
         localDataChannel.registerObserver(new DataChannel.Observer() {
@@ -799,7 +942,9 @@ public class WebRtcActivity extends AppCompatActivity {
         MediaConstraints sdpMediaConstraints = new MediaConstraints();
 
         sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"));
-//        sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
+        if (ENABLE_AUDIO) {
+            sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
+        }
 
         if (localPeer == null) {
 
@@ -833,7 +978,9 @@ public class WebRtcActivity extends AppCompatActivity {
         final MediaConstraints sdpMediaConstraints = new MediaConstraints();
 
         sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"));
-//        sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
+        if (ENABLE_AUDIO) {
+            sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
+        }
 
         localPeer.createAnswer(new KinesisVideoSdpObserver() {
 
@@ -862,17 +1009,66 @@ public class WebRtcActivity extends AppCompatActivity {
         }, sdpMediaConstraints);
     }
 
+    /**
+     * Show stream ended toast with total duration
+     */
+    private void showStreamEndedWithDuration(String reason) {
+        if (isStreamActive && streamStartTime > 0) {
+            long streamEndTime = System.currentTimeMillis();
+            long durationMs = streamEndTime - streamStartTime;
+            String durationText = formatStreamDuration(durationMs);
+
+            String message = reason + "\nStream duration: " + durationText;
+            Log.i(TAG, "📺 Stream ended - " + message.replace("\n", " - "));
+
+            runOnUiThread(() -> {
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+            });
+
+            // Reset stream tracking
+            isStreamActive = false;
+            streamStartTime = 0;
+        } else {
+            // No active stream to track
+            runOnUiThread(() -> {
+                Toast.makeText(getApplicationContext(), reason, Toast.LENGTH_LONG).show();
+            });
+        }
+    }
+
+    /**
+     * Format stream duration in a readable format
+     */
+    private String formatStreamDuration(long durationMs) {
+        long seconds = durationMs / 1000;
+        long minutes = seconds / 60;
+        long hours = minutes / 60;
+
+        seconds = seconds % 60;
+        minutes = minutes % 60;
+
+        if (hours > 0) {
+            return String.format("%d:%02d:%02d", hours, minutes, seconds);
+        } else if (minutes > 0) {
+            return String.format("%d:%02d", minutes, seconds);
+        } else {
+            return String.format("%d sec", seconds);
+        }
+    }
+
     private void addRemoteStreamToVideoView(MediaStream stream) {
 
         final VideoTrack remoteVideoTrack = stream.videoTracks != null && stream.videoTracks.size() > 0 ? stream.videoTracks.get(0) : null;
 
         AudioTrack remoteAudioTrack = stream.audioTracks != null && stream.audioTracks.size() > 0 ? stream.audioTracks.get(0) : null;
 
-        if (remoteAudioTrack != null) {
+        if (ENABLE_AUDIO && remoteAudioTrack != null) {
             remoteAudioTrack.setEnabled(true);
             Log.d(TAG, "remoteAudioTrack received: State=" + remoteAudioTrack.state().name());
             audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
             audioManager.setSpeakerphoneOn(true);
+        } else if (!ENABLE_AUDIO) {
+            Log.d(TAG, "Audio support disabled - skipping audio track setup");
         }
 
         if (remoteVideoTrack != null) {
@@ -882,6 +1078,9 @@ public class WebRtcActivity extends AppCompatActivity {
                     resizeLocalView();
                     remoteVideoTrack.addSink(remoteView);
                     resizeRemoteView();
+
+                    // Position FPS overlay after video is set up
+                    remoteView.postDelayed(() -> positionFpsOverlay(), 100);
                 } catch (Exception e) {
                     Log.e(TAG, "Error in setting remote video view" + e);
                 }
@@ -985,18 +1184,313 @@ public class WebRtcActivity extends AppCompatActivity {
         double display_ratio = (double) displayMetrics.widthPixels / displayMetrics.heightPixels;
         double scale = 1.0;
 
+        // Fill entire screen while maintaining aspect ratio
         if (fhd_ratio > display_ratio) {
             scale = fhd_ratio / display_ratio;
-            lp.height = (int) (displayMetrics.heightPixels * .9 / scale);
-            lp.width = (int) (displayMetrics.widthPixels * .9);
+            lp.height = (int) (displayMetrics.heightPixels / scale);
+            lp.width = displayMetrics.widthPixels;
         } else {
             scale = display_ratio / fhd_ratio;
-            lp.height = (int) (displayMetrics.heightPixels * .9);
-            lp.width = (int) (displayMetrics.widthPixels * .9 / scale);
+            lp.height = displayMetrics.heightPixels;
+            lp.width = (int) (displayMetrics.widthPixels / scale);
         }
         Log.i(TAG, "final, [wd: " + lp.width + ", ht: " + lp.height + "]");
         Log.i(TAG, "display, [wd: " + displayMetrics.widthPixels + ", ht: " + displayMetrics.heightPixels + "]");
         remoteView.setLayoutParams(lp);
         localView.bringToFront();
+    }
+
+    private void positionFpsOverlay() {
+        if (remoteView == null) {
+            return;
+        }
+
+        // Get the LinearLayout container that holds fps and resolution TextViews
+        LinearLayout fpsContainer = findViewById(R.id.fps_overlay_container);
+        if (fpsContainer == null) {
+            return;
+        }
+
+        // Wait for remoteView to have dimensions
+        remoteView.post(() -> {
+            // Get video view position relative to its parent (FrameLayout)
+            int videoLeft = remoteView.getLeft();
+            int videoTop = remoteView.getTop();
+            int videoRight = remoteView.getRight();
+            int videoBottom = remoteView.getBottom();
+            
+            int videoWidth = videoRight - videoLeft;
+            int videoHeight = videoBottom - videoTop;
+
+            if (videoWidth == 0 || videoHeight == 0) {
+                return;
+            }
+
+            // Get parent FrameLayout dimensions
+            FrameLayout parentFrame = (FrameLayout) remoteView.getParent();
+            int parentWidth = parentFrame.getWidth();
+            int parentHeight = parentFrame.getHeight();
+
+            // Position fps container at bottom-right of the video view with padding from video edges
+            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) fpsContainer.getLayoutParams();
+
+            // Convert 8dp padding to pixels
+            DisplayMetrics displayMetrics = new DisplayMetrics();
+            getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+            int padding = (int) (8 * displayMetrics.density);
+
+            // Calculate margins to position overlay at video bottom-right with padding
+            // rightMargin = distance from parent right edge to desired overlay right edge
+            // bottomMargin = distance from parent bottom edge to desired overlay bottom edge
+            int rightMargin = parentWidth - videoRight + padding;
+            int bottomMargin = parentHeight - videoBottom + padding;
+
+            params.gravity = android.view.Gravity.BOTTOM | android.view.Gravity.END;
+            params.rightMargin = rightMargin;
+            params.bottomMargin = bottomMargin;
+
+            fpsContainer.setLayoutParams(params);
+            Log.d(TAG, String.format("FPS overlay positioned relative to video: video bounds [%d,%d %dx%d], parent [%dx%d], margins [right=%d, bottom=%d]", 
+                videoLeft, videoTop, videoWidth, videoHeight, parentWidth, parentHeight, rightMargin, bottomMargin));
+        });
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void setupLongPressForStats() {
+        if (remoteView == null) {
+            return;
+        }
+
+        final GestureDetector gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public void onLongPress(MotionEvent e) {
+                showDetailedStats();
+            }
+
+            @Override
+            public boolean onDown(MotionEvent e) {
+                return true;
+            }
+        });
+
+        remoteView.setOnTouchListener((v, event) -> gestureDetector.onTouchEvent(event));
+    }
+
+    private void showDetailedStats() {
+        runOnUiThread(() -> {
+            // Create custom layout programmatically with wrap_content width
+            statsContainer = new LinearLayout(this);
+            statsContainer.setOrientation(LinearLayout.VERTICAL);
+            statsContainer.setBackgroundColor(Color.parseColor("#99000000")); // More transparent (60% opacity)
+            int padding = (int) (8 * getResources().getDisplayMetrics().density); // Minimal padding
+            statsContainer.setPadding(padding, padding, padding, padding);
+
+            // Title
+            TextView title = new TextView(this);
+            title.setText("Video Statistics");
+            title.setTextColor(Color.WHITE);
+            title.setTextSize(13); // Slightly smaller
+            title.setTypeface(null, android.graphics.Typeface.BOLD);
+            LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            titleParams.bottomMargin = (int) (8 * getResources().getDisplayMetrics().density); // Reduced margin
+            title.setLayoutParams(titleParams);
+            statsContainer.addView(title);
+
+            // Update stats content
+            updateStatsContent();
+
+            AlertDialog dialog = new AlertDialog.Builder(this)
+                    .setView(statsContainer)
+                    .create();
+
+            // Set up periodic updates
+            statsUpdateHandler = new android.os.Handler();
+            statsUpdateRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    if (dialog.isShowing()) {
+                        runOnUiThread(() -> updateStatsContent());
+                        statsUpdateHandler.postDelayed(this, 1000); // Update every second
+                    }
+                }
+            };
+            statsUpdateHandler.postDelayed(statsUpdateRunnable, 1000); // Start after 1 second
+
+            // Stop updates when dialog is dismissed
+            dialog.setOnDismissListener(dialogInterface -> {
+                if (statsUpdateHandler != null && statsUpdateRunnable != null) {
+                    statsUpdateHandler.removeCallbacks(statsUpdateRunnable);
+                    statsUpdateHandler = null;
+                    statsUpdateRunnable = null;
+                }
+                statsContainer = null;
+            });
+
+            dialog.show();
+
+            // Make dialog background transparent and position at top-left OF THE VIDEO
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+
+                // Measure the actual content size
+                statsContainer.measure(
+                        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                );
+
+                int contentWidth = statsContainer.getMeasuredWidth();
+                int contentHeight = statsContainer.getMeasuredHeight();
+
+                // Set window size to exactly match content
+                dialog.getWindow().setLayout(contentWidth, contentHeight);
+
+                // Get video view position on screen
+                int[] videoLocation = new int[2];
+                remoteView.getLocationInWindow(videoLocation);
+                int videoX = videoLocation[0];
+                int videoY = videoLocation[1];
+
+                // Position at top-left of video view with margin
+                android.view.WindowManager.LayoutParams wlp = dialog.getWindow().getAttributes();
+                wlp.gravity = android.view.Gravity.TOP | android.view.Gravity.START;
+
+                // Set position relative to video with symmetrical margins (16dp)
+                int margin = (int) (16 * getResources().getDisplayMetrics().density);
+                wlp.x = videoX + margin;  // Video left edge + margin
+                wlp.y = videoY + margin;  // Video top edge + margin
+
+                dialog.getWindow().setAttributes(wlp);
+            }
+        });
+
+        Log.i(TAG, "Detailed stats shown with auto-refresh every second");
+    }
+
+    private void updateStatsContent() {
+        if (statsContainer == null) {
+            return;
+        }
+
+        // Calculate bitrate
+        final long bitrate;
+        if (isStreamActive && streamStartTime > 0) {
+            long durationSeconds = (System.currentTimeMillis() - streamStartTime) / 1000;
+            if (durationSeconds > 0) {
+                bitrate = (totalBytesReceived * 8) / durationSeconds / 1000;
+            } else {
+                bitrate = 0;
+            }
+        } else {
+            bitrate = 0;
+        }
+
+        // Calculate packet loss percentage
+        final double packetLossPercent;
+        long totalPackets = totalPacketsReceived + totalPacketsLost;
+        if (totalPackets > 0) {
+            packetLossPercent = (totalPacketsLost * 100.0) / totalPackets;
+        } else {
+            packetLossPercent = 0;
+        }
+
+        // Format bytes to MB
+        final double bytesReceivedMB = totalBytesReceived / (1024.0 * 1024.0);
+
+        // Remove old stats sections (keep title)
+        while (statsContainer.getChildCount() > 1) {
+            statsContainer.removeViewAt(1);
+        }
+
+        // Video Stats Section
+        addStatsSection(statsContainer, "VIDEO",
+                new String[]{"Resolution", "Current FPS", "Received FPS", "Dropped FPS", "Frames Dropped", "Codec"},
+                new String[]{
+                        String.format("%d x %d", currentFrameWidth, currentFrameHeight),
+                        String.format("%.1f", currentFps),
+                        String.format("%.1f", receivedFps),
+                        String.format("%.1f", droppedFps),
+                        String.format("%d", totalFramesDropped),
+                        videoCodec
+                });
+
+        // Network Stats Section
+        addStatsSection(statsContainer, "NETWORK",
+                new String[]{"Bitrate", "Total Data", "Packets RX", "Packets Lost", "Loss %", "Jitter"},
+                new String[]{
+                        String.format("%d kbps", bitrate),
+                        String.format("%.2f MB", bytesReceivedMB),
+                        String.format("%d", totalPacketsReceived),
+                        String.format("%d", totalPacketsLost),
+                        String.format("%.2f%%", packetLossPercent),
+                        String.format("%.2f ms", jitterMs)
+                });
+    }
+
+    private void addStatsSection(LinearLayout container, String sectionTitle, String[] labels, String[] values) {
+        // Section title
+        TextView sectionTitleView = new TextView(this);
+        sectionTitleView.setText(sectionTitle);
+        sectionTitleView.setTextColor(Color.parseColor("#AAAAAA"));
+        sectionTitleView.setTextSize(10);
+        sectionTitleView.setTypeface(null, android.graphics.Typeface.BOLD);
+        LinearLayout.LayoutParams sectionTitleParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        sectionTitleParams.topMargin = (int) (4 * getResources().getDisplayMetrics().density); // Reduced
+        sectionTitleParams.bottomMargin = (int) (2 * getResources().getDisplayMetrics().density); // Reduced
+        sectionTitleView.setLayoutParams(sectionTitleParams);
+        container.addView(sectionTitleView);
+
+        // Create rows with two columns
+        int itemsPerRow = 2;
+        for (int i = 0; i < labels.length; i += itemsPerRow) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+
+            // First column
+            if (i < labels.length) {
+                addStatItem(row, labels[i], values[i]);
+            }
+
+            // Second column
+            if (i + 1 < labels.length) {
+                addStatItem(row, labels[i + 1], values[i + 1]);
+            }
+
+            container.addView(row);
+        }
+    }
+
+    private void addStatItem(LinearLayout row, String label, String value) {
+        LinearLayout item = new LinearLayout(this);
+        item.setOrientation(LinearLayout.VERTICAL);
+
+        // Fixed width for proper column alignment
+        int itemWidth = (int) (90 * getResources().getDisplayMetrics().density);
+        LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(
+                itemWidth,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        itemParams.rightMargin = (int) (6 * getResources().getDisplayMetrics().density);
+        item.setLayoutParams(itemParams);
+
+        TextView labelView = new TextView(this);
+        labelView.setText(label);
+        labelView.setTextColor(Color.parseColor("#BBBBBB"));
+        labelView.setTextSize(9);
+        item.addView(labelView);
+
+        TextView valueView = new TextView(this);
+        valueView.setText(value);
+        valueView.setTextColor(Color.WHITE);
+        valueView.setTextSize(11);
+        valueView.setTypeface(null, android.graphics.Typeface.BOLD);
+        item.addView(valueView);
+
+        row.addView(item);
     }
 }

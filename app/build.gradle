@@ -73,7 +73,7 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 27
         targetSdkVersion 35
-        versionCode 184
+        versionCode 186
         versionName "3.9.2 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -350,6 +350,7 @@ dependencies {
     implementation(libs.aws.android.sdk.auth.userpools) { transitive = true }
     implementation(libs.aws.android.sdk.auth.ui) { transitive = true }
 
+    // Stream.io WebRTC library (actively maintained, based on latest Google WebRTC)
     implementation "io.getstream:stream-webrtc-android:1.3.10"
     implementation 'org.apache.commons:commons-lang3:3.19.0'
     implementation 'com.google.guava:guava:28.1-android'

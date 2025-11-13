@@ -243,7 +243,13 @@ public class ProvisionLanding extends AppCompatActivity {
             Log.d(TAG, "Version Info JSON not available.");
         }
 
-        if (rmakerCaps.size() > 0 && rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM)) {
+        boolean hasClaimCap = false, hasCameraClaimCap = false;
+        if (!rmakerCaps.isEmpty()) {
+            hasClaimCap = rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM);
+            hasCameraClaimCap = rmakerCaps.contains(AppConstants.CAPABILITY_CAMERA_CLAIM);
+        }
+
+        if (hasClaimCap || hasCameraClaimCap) {
 
             // Claiming is not supported for SoftAP transport.
             alertForClaimingNotSupported();

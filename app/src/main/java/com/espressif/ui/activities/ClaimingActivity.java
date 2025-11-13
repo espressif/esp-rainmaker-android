@@ -64,6 +64,7 @@ public class ClaimingActivity extends AppCompatActivity {
     private StringBuilder csrData = new StringBuilder();
     private boolean isClaimingAborted = false, shouldSendClaimAbortReq = false;
     private boolean hasTriedAgain = false;
+    private boolean isCameraClaim = false;
 
     private Handler handler;
     private ApiManager apiManager;
@@ -79,6 +80,7 @@ public class ClaimingActivity extends AppCompatActivity {
         setContentView(view);
 
         hasTriedAgain = false;
+        isCameraClaim = getIntent().getBooleanExtra(AppConstants.KEY_IS_CAMERA_CLAIM, false);
         handler = new Handler();
         apiManager = ApiManager.getInstance(getApplicationContext());
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
@@ -538,6 +540,43 @@ public class ClaimingActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Check if the device is a camera device based on already parsed device information
+     * This leverages existing device capabilities and version info parsing
+     */
+    private boolean isCameraDevice() {
+        try {
+            // Check version info for camera-related device configuration (following existing pattern)
+            String versionInfo = provisionManager.getEspDevice().getVersionInfo();
+            if (versionInfo != null && (versionInfo.toLowerCase().contains("camera") ||
+                    versionInfo.toLowerCase().contains("stream") ||
+                    versionInfo.toLowerCase().contains("video"))) {
+                Log.d(TAG, "Camera device detected in version info");
+                return true;
+            }
+
+            // Check device capabilities for camera-related capabilities
+            ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
+            if (deviceCaps != null) {
+                for (String cap : deviceCaps) {
+                    if (cap != null && (cap.toLowerCase().contains("camera") ||
+                            cap.toLowerCase().contains("video") ||
+                            cap.toLowerCase().contains("stream"))) {
+                        Log.d(TAG, "Camera device detected by capability: " + cap);
+                        return true;
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error checking camera device type: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        Log.d(TAG, "Device is not detected as a camera device");
+        return false;
+    }
+
     private void sendDeviceInfoToCloud(String data) {
 
         if (isClaimingAborted) {
@@ -606,6 +645,13 @@ public class ClaimingActivity extends AppCompatActivity {
         }
         Gson gson = new Gson();
         JsonObject body = gson.fromJson(data, JsonObject.class);
+
+        // Add node_policies for camera_claim devices
+        if (isCameraClaim) {
+            body.addProperty("node_policies", "videostream");
+            Log.d(TAG, "Added node_policies: videostream for camera_claim device");
+        }
+
         apiManager.verifyClaiming(body, new ApiResponseListener() {
 
             @Override

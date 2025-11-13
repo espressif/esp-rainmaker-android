@@ -210,8 +210,14 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
                             Log.d(TAG, "Version Info JSON not available.");
                         }
 
-                        if (rmakerCaps.size() > 0 && rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM)) {
-                            goToClaimingActivity();
+                        boolean hasClaimCap = false, hasCameraClaimCap = false;
+                        if (!rmakerCaps.isEmpty()) {
+                            hasClaimCap = rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM);
+                            hasCameraClaimCap = rmakerCaps.contains(AppConstants.CAPABILITY_CAMERA_CLAIM);
+                        }
+                        
+                        if (hasClaimCap || hasCameraClaimCap) {
+                            goToClaimingActivity(hasCameraClaimCap);
                         } else {
                             if (deviceCaps != null) {
                                 if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN)) {
@@ -244,12 +250,13 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         });
     }
 
-    private void goToClaimingActivity() {
+    private void goToClaimingActivity(boolean isCameraClaim) {
 
         finish();
         Intent claimingIntent = new Intent(getApplicationContext(), ClaimingActivity.class);
         claimingIntent.putExtras(getIntent());
         claimingIntent.putExtra(AppConstants.KEY_SSID, getIntent().getStringExtra(AppConstants.KEY_SSID));
+        claimingIntent.putExtra(AppConstants.KEY_IS_CAMERA_CLAIM, isCameraClaim);
         startActivity(claimingIntent);
     }
 

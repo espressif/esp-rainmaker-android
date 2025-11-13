@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:layout_gravity="center"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="#1A1A1A">
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_weight="9">
 
         <org.webrtc.SurfaceViewRenderer
@@ -17,33 +18,40 @@
             android:layout_gravity="center" />
 
         <LinearLayout
+            android:id="@+id/fps_overlay_container"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:background="#99000000"
+            android:padding="8dp">
 
             <TextView
                 android:id="@+id/tv_fps"
-                android:layout_width="wrap_content"
+                android:layout_width="80dp"
                 android:layout_height="wrap_content"
-                android:layout_gravity="left"
-                android:background="#ffffff"
-                android:padding="7dp"
+                android:gravity="center"
                 android:shadowColor="@android:color/black"
-                android:text="fps: 0"
-                android:textColor="#A20B3E"
-                android:textSize="16sp" />
+                android:shadowDx="2"
+                android:shadowDy="2"
+                android:shadowRadius="4"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tv_resolution"
-                android:layout_width="wrap_content"
+                android:layout_width="80dp"
                 android:layout_height="wrap_content"
-                android:background="#ffffff"
-                android:padding="5dp"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
                 android:shadowColor="@android:color/black"
-                android:text="1920 x 1080"
-                android:textColor="#A20B3E"
-                android:textSize="14sp" />
+                android:shadowDx="2"
+                android:shadowDy="2"
+                android:shadowRadius="4"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold" />
 
         </LinearLayout>
 

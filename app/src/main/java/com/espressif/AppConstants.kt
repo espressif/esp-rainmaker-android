@@ -169,6 +169,7 @@ class AppConstants {
         const val CAPABILITY_WIFI_PROV = "wifi_prov"
         const val CAPABILITY_NO_POP = "no_pop"
         const val CAPABILITY_CLAIM = "claim"
+        const val CAPABILITY_CAMERA_CLAIM = "camera_claim"
         const val CAPABILITY_THREAD_SCAN = "thread_scan"
         const val CAPABILITY_THREAD_PROV = "thread_prov"
 
@@ -523,6 +524,7 @@ class AppConstants {
         const val KEY_DEPENDENCIES = "dependencies"
         const val KEY_IS_RAINMAKER_NODE = "is_rainmaker_node"
         const val KEY_IS_CTRL_SERVICE = "isCtrlService"
+        const val KEY_IS_CAMERA_CLAIM = "is_camera_claim"
 
         const val CERT_BEGIN = "-----BEGIN CERTIFICATE REQUEST-----"
         const val CERT_END = "-----END CERTIFICATE REQUEST-----"
