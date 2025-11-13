@@ -166,6 +166,8 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
 
         } else {
             binding.btnLoginWithWeChat.layoutBtn.visibility = View.GONE
+            binding.btnLoginWithApple.ivOauth.setImageResource(R.drawable.ic_apple_icon)
+            binding.btnLoginWithApple.textBtn.text = getString(R.string.btn_apple)
         }
 
         binding.btnLogin.textBtn.text = getString(R.string.btn_login)
@@ -182,6 +184,14 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
         binding.btnLoginWithGoogle.layoutBtn.setOnClickListener {
 //            showGoogleLoginLoading();
             val uriStr = BuildConfig.GOOGLE_URL
+            val uri = Uri.parse(uriStr)
+            val openURL = Intent(Intent.ACTION_VIEW, uri)
+            startActivity(openURL)
+        }
+
+        binding.btnLoginWithApple.layoutBtn.setOnClickListener {
+//            showGoogleLoginLoading();
+            val uriStr = BuildConfig.APPLE_URL
             val uri = Uri.parse(uriStr)
             val openURL = Intent(Intent.ACTION_VIEW, uri)
             startActivity(openURL)
