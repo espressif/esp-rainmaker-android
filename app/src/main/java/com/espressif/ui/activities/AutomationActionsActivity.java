@@ -41,6 +41,7 @@ import com.espressif.ui.adapters.AutomationActionAdapter;
 import com.espressif.ui.models.Action;
 import com.espressif.ui.models.Automation;
 import com.espressif.ui.models.Device;
+import com.espressif.utils.InAppReviewManager;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -253,6 +254,9 @@ public class AutomationActionsActivity extends AppCompatActivity {
             @Override
             public void onSuccess(Bundle data) {
                 Toast.makeText(AutomationActionsActivity.this, R.string.success_automation_create, Toast.LENGTH_LONG).show();
+                // Request in-app review for first successful automation creation
+                InAppReviewManager.Companion.getInstance(AutomationActionsActivity.this)
+                    .requestReviewForFirstAutomation(AutomationActionsActivity.this);
                 hideLoading();
                 Intent intent = new Intent(AutomationActionsActivity.this, EspMainActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);

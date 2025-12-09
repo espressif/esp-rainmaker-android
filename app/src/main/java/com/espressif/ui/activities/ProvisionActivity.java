@@ -44,6 +44,7 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Service;
 import com.espressif.ui.models.UpdateEvent;
+import com.espressif.utils.InAppReviewManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.JsonObject;
@@ -337,6 +338,10 @@ public class ProvisionActivity extends AppCompatActivity {
         tick5.setVisibility(View.GONE);
         progress5.setVisibility(View.VISIBLE);
         handler.postDelayed(nodeStatusReqFailed, NODE_STATUS_REQ_TIME);
+
+        // Track device addition for in-app review
+        InAppReviewManager.Companion.getInstance(ProvisionActivity.this)
+                .trackDeviceAddition(ProvisionActivity.this);
 
         // Try to get node details even if local control failed
         apiManager.getNodeDetails(receivedNodeId, new ApiResponseListener() {
