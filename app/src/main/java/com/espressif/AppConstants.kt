@@ -524,6 +524,7 @@ class AppConstants {
         const val KEY_DEPENDENCIES = "dependencies"
         const val KEY_IS_RAINMAKER_NODE = "is_rainmaker_node"
         const val KEY_IS_CTRL_SERVICE = "isCtrlService"
+        const val KEY_IS_RMAKER_CONTROLLER = "is_rmaker_controller"
         const val KEY_IS_CAMERA_CLAIM = "is_camera_claim"
 
         const val CERT_BEGIN = "-----BEGIN CERTIFICATE REQUEST-----"

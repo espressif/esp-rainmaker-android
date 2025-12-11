@@ -252,7 +252,7 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
 
             sceneParamVH.paletteBar.setListener(new PaletteBar.PaletteBarListener() {
                 @Override
-                public void onColorSelected(int colorHue,boolean isMoving) {
+                public void onColorSelected(int colorHue, boolean isMoving) {
                     param.setValue(colorHue);
                 }
             });
@@ -609,13 +609,13 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
             if (dataType.equalsIgnoreCase("int")
                     || dataType.equalsIgnoreCase("integer")) {
 
-                etAttribute.setInputType(InputType.TYPE_CLASS_NUMBER);
+                etAttribute.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED);
                 etAttribute.setText(String.valueOf((int) param.getValue()));
 
             } else if (dataType.equalsIgnoreCase("float")
                     || dataType.equalsIgnoreCase("double")) {
 
-                etAttribute.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                etAttribute.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
                 etAttribute.setText(String.valueOf(param.getValue()));
 
             } else if (dataType.equalsIgnoreCase("string")) {

@@ -391,29 +391,52 @@ public class JsonDataParser {
         String nodeId = node.getNodeId();
         ArrayList<Device> devices = node.getDevices();
         ArrayList<Service> services = node.getServices();
-        JSONObject scheduleJson = paramsJson.optJSONObject(AppConstants.KEY_SCHEDULE);
-        JSONObject sceneJson = paramsJson.optJSONObject(AppConstants.KEY_SCENES);
-        JSONObject timeJson = paramsJson.optJSONObject(AppConstants.KEY_TIME);
-        JSONObject localControlJson = paramsJson.optJSONObject(AppConstants.KEY_LOCAL_CONTROL);
-        JSONObject systemServiceJson = paramsJson.optJSONObject(AppConstants.KEY_SYSTEM);
-        JSONObject controllerServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CONTROLLER);
-        JSONObject ctlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CTL);
-        JSONObject rmCtrlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_RMAKER_CTL);
-        JSONObject tbrServiceJson = paramsJson.optJSONObject(AppConstants.KEY_TBR_SERVICE);
+        JSONObject scheduleJson = null, sceneJson = null;
+        JSONObject timeJson = null, localControlJson = null, systemServiceJson = null;
+        JSONObject controllerServiceJson = null, ctlServiceJson = null, rmCtrlServiceJson = null, tbrServiceJson = null;
+
+        if (services != null) {
+            for (Service service : services) {
+                if (service == null || TextUtils.isEmpty(service.getType())) {
+                    continue;
+                }
+                String serviceType = service.getType();
+                String serviceName = service.getName();
+
+                if (AppConstants.SERVICE_TYPE_SCHEDULE.equals(serviceType)) {
+                    scheduleJson = paramsJson.optJSONObject(serviceName);
+                } else if (AppConstants.SERVICE_TYPE_SCENES.equals(serviceType)) {
+                    sceneJson = paramsJson.optJSONObject(serviceName);
+                } else if (AppConstants.SERVICE_TYPE_TIME.equals(serviceType)) {
+                    timeJson = paramsJson.optJSONObject(serviceName);
+                } else if (AppConstants.SERVICE_TYPE_LOCAL_CONTROL.equals(serviceType)) {
+                    localControlJson = paramsJson.optJSONObject(serviceName);
+                } else if (AppConstants.SERVICE_TYPE_SYSTEM.equals(serviceType)) {
+                    systemServiceJson = paramsJson.optJSONObject(serviceName);
+                } else if (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(serviceType)) {
+                    controllerServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CONTROLLER);
+                    ctlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CTL);
+                } else if (AppConstants.SERVICE_TYPE_TBR.equals(serviceType)) {
+                    tbrServiceJson = paramsJson.optJSONObject(serviceName);
+                } else if (AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER.equals(serviceType)) {
+                    rmCtrlServiceJson = paramsJson.optJSONObject(serviceName);
+                }
+            }
+        }
+
         int scheduleCnt = 0, sceneCnt = 0;
 
         if (devices != null) {
-            for (int i = 0; i < devices.size(); i++) {
 
-                ArrayList<Param> params = devices.get(i).getParams();
-                String deviceName = devices.get(i).getDeviceName();
+            for (Device device : devices) {
+
+                ArrayList<Param> params = device.getParams();
+                String deviceName = device.getDeviceName();
                 JSONObject deviceJson = paramsJson.optJSONObject(deviceName);
 
                 if (deviceJson != null) {
 
-                    for (int j = 0; j < params.size(); j++) {
-
-                        Param param = params.get(j);
+                    for (Param param : params) {
                         String key = param.getName();
 
                         if (!param.isDynamicParam()) {
@@ -421,7 +444,7 @@ public class JsonDataParser {
                         }
 
                         if (deviceJson.has(key)) {
-                            setDeviceParamValue(deviceJson, devices.get(i), param);
+                            setDeviceParamValue(deviceJson, device, param);
                         }
                     }
                 } else {
@@ -485,80 +508,80 @@ public class JsonDataParser {
                             schedule.setActions(actions);
                         }
 
-                        for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
+                        if (devices != null) {
 
-                            Device d = new Device(devices.get(deviceIndex));
-                            ArrayList<Param> params = d.getParams();
-                            String deviceName = d.getDeviceName();
-                            JSONObject deviceAction = actionsSchJson.optJSONObject(deviceName);
+                            for (Device device : devices) {
 
-                            if (deviceAction != null) {
+                                Device d = new Device(device);
+                                ArrayList<Param> params = d.getParams();
+                                String deviceName = d.getDeviceName();
+                                JSONObject deviceAction = actionsSchJson.optJSONObject(deviceName);
 
-                                Action action = null;
-                                Device actionDevice = null;
-                                int actionIndex = -1;
+                                if (deviceAction != null) {
 
-                                for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
+                                    Action action = null;
+                                    Device actionDevice = null;
+                                    int actionIndex = -1;
 
-                                    Action a = actions.get(aIndex);
-                                    if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
-                                        action = actions.get(aIndex);
-                                        actionIndex = aIndex;
-                                    }
-                                }
+                                    for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
 
-                                if (action == null) {
-                                    action = new Action();
-                                    action.setNodeId(nodeId);
-
-                                    for (int k = 0; k < devices.size(); k++) {
-
-                                        if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
-                                            actionDevice = new Device(devices.get(k));
-                                            actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
-                                            break;
+                                        Action a = actions.get(aIndex);
+                                        if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
+                                            action = actions.get(aIndex);
+                                            actionIndex = aIndex;
                                         }
                                     }
 
-                                    if (actionDevice == null) {
-                                        actionDevice = new Device(nodeId);
+                                    if (action == null) {
+                                        action = new Action();
+                                        action.setNodeId(nodeId);
+
+                                        for (int k = 0; k < devices.size(); k++) {
+
+                                            if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
+                                                actionDevice = new Device(devices.get(k));
+                                                actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
+                                                break;
+                                            }
+                                        }
+
+                                        if (actionDevice == null) {
+                                            actionDevice = new Device(nodeId);
+                                        }
+                                        action.setDevice(actionDevice);
+                                    } else {
+                                        actionDevice = action.getDevice();
                                     }
-                                    action.setDevice(actionDevice);
-                                } else {
-                                    actionDevice = action.getDevice();
-                                }
 
-                                ArrayList<Param> actionParams = new ArrayList<>();
-                                if (params != null) {
-                                    actionParams = ParamUtils.Companion.filterActionParams(params);
-                                }
-                                actionDevice.setParams(actionParams);
-
-                                for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
-
-                                    Param p = actionParams.get(paramIndex);
-                                    String paramName = p.getName();
-
-                                    if (deviceAction.has(paramName)) {
-
-                                        p.setSelected(true);
-                                        setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
+                                    ArrayList<Param> actionParams = new ArrayList<>();
+                                    if (params != null) {
+                                        actionParams = ParamUtils.Companion.filterActionParams(params);
                                     }
-                                }
+                                    actionDevice.setParams(actionParams);
 
-                                for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+                                    for (Param p : actionParams) {
 
-                                    if (!actionParams.get(paramIndex).isSelected()) {
-                                        actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
+                                        String paramName = p.getName();
+
+                                        if (deviceAction.has(paramName)) {
+                                            p.setSelected(true);
+                                            setDeviceParamValue(deviceAction, device, p);
+                                        }
                                     }
-                                }
 
-                                if (actionIndex == -1) {
-                                    actions.add(action);
-                                } else {
-                                    actions.set(actionIndex, action);
+                                    for (Param p : actionParams) {
+                                        if (!p.isSelected()) {
+                                            actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
+                                        }
+                                    }
+
+                                    if (actionIndex == -1) {
+                                        actions.add(action);
+                                    } else {
+                                        actions.set(actionIndex, action);
+                                    }
+                                    schedule.setActions(actions);
                                 }
-                                schedule.setActions(actions);
                             }
                         }
                     }
@@ -612,80 +635,80 @@ public class JsonDataParser {
                             scene.setActions(actions);
                         }
 
-                        for (int deviceIndex = 0; deviceIndex < devices.size(); deviceIndex++) {
+                        if (devices != null) {
 
-                            Device d = new Device(devices.get(deviceIndex));
-                            ArrayList<Param> params = d.getParams();
-                            String deviceName = d.getDeviceName();
-                            JSONObject deviceAction = actionsSceneJson.optJSONObject(deviceName);
+                            for (Device device : devices) {
 
-                            if (deviceAction != null) {
+                                Device d = new Device(device);
+                                ArrayList<Param> params = d.getParams();
+                                String deviceName = d.getDeviceName();
+                                JSONObject deviceAction = actionsSceneJson.optJSONObject(deviceName);
 
-                                Action action = null;
-                                Device actionDevice = null;
-                                int actionIndex = -1;
+                                if (deviceAction != null) {
 
-                                for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
+                                    Action action = null;
+                                    Device actionDevice = null;
+                                    int actionIndex = -1;
 
-                                    Action a = actions.get(aIndex);
-                                    if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
-                                        action = actions.get(aIndex);
-                                        actionIndex = aIndex;
-                                    }
-                                }
+                                    for (int aIndex = 0; aIndex < actions.size(); aIndex++) {
 
-                                if (action == null) {
-                                    action = new Action();
-                                    action.setNodeId(nodeId);
-
-                                    for (int k = 0; k < devices.size(); k++) {
-
-                                        if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
-                                            actionDevice = new Device(devices.get(k));
-                                            actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
-                                            break;
+                                        Action a = actions.get(aIndex);
+                                        if (a.getDevice().getNodeId().equals(nodeId) && deviceName.equals(a.getDevice().getDeviceName())) {
+                                            action = actions.get(aIndex);
+                                            actionIndex = aIndex;
                                         }
                                     }
 
-                                    if (actionDevice == null) {
-                                        actionDevice = new Device(nodeId);
+                                    if (action == null) {
+                                        action = new Action();
+                                        action.setNodeId(nodeId);
+
+                                        for (int k = 0; k < devices.size(); k++) {
+
+                                            if (devices.get(k).getNodeId().equals(nodeId) && devices.get(k).getDeviceName().equals(deviceName)) {
+                                                actionDevice = new Device(devices.get(k));
+                                                actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_ALL);
+                                                break;
+                                            }
+                                        }
+
+                                        if (actionDevice == null) {
+                                            actionDevice = new Device(nodeId);
+                                        }
+                                        action.setDevice(actionDevice);
+                                    } else {
+                                        actionDevice = action.getDevice();
                                     }
-                                    action.setDevice(actionDevice);
-                                } else {
-                                    actionDevice = action.getDevice();
-                                }
 
-                                ArrayList<Param> actionParams = new ArrayList<>();
-                                if (params != null) {
-                                    actionParams = ParamUtils.Companion.filterActionParams(params);
-                                }
-                                actionDevice.setParams(actionParams);
-
-                                for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
-
-                                    Param p = actionParams.get(paramIndex);
-                                    String paramName = p.getName();
-
-                                    if (deviceAction.has(paramName)) {
-
-                                        p.setSelected(true);
-                                        setDeviceParamValue(deviceAction, devices.get(deviceIndex), p);
+                                    ArrayList<Param> actionParams = new ArrayList<>();
+                                    if (params != null) {
+                                        actionParams = ParamUtils.Companion.filterActionParams(params);
                                     }
-                                }
+                                    actionDevice.setParams(actionParams);
 
-                                for (int paramIndex = 0; paramIndex < actionParams.size(); paramIndex++) {
+                                    for (Param p : actionParams) {
 
-                                    if (!actionParams.get(paramIndex).isSelected()) {
-                                        actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
+                                        String paramName = p.getName();
+
+                                        if (deviceAction.has(paramName)) {
+                                            p.setSelected(true);
+                                            setDeviceParamValue(deviceAction, device, p);
+                                        }
                                     }
-                                }
 
-                                if (actionIndex == -1) {
-                                    actions.add(action);
-                                } else {
-                                    actions.set(actionIndex, action);
+                                    for (Param p : actionParams) {
+                                        if (!p.isSelected()) {
+                                            actionDevice.setSelectedState(AppConstants.ACTION_SELECTED_PARTIAL);
+                                        }
+                                    }
+
+                                    if (actionIndex == -1) {
+                                        actions.add(action);
+                                    } else {
+                                        actions.set(actionIndex, action);
+                                    }
+                                    scene.setActions(actions);
                                 }
-                                scene.setActions(actions);
                             }
                         }
                     }
@@ -752,13 +775,10 @@ public class JsonDataParser {
                             }
                         }
                     }
-                } else if ((AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && controllerServiceJson != null)
-                        || (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && ctlServiceJson != null)
-                        || (AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER.equals(service.getType()) && rmCtrlServiceJson != null)) {
+                } else if (AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER.equals(service.getType()) && rmCtrlServiceJson != null) {
 
-                    // Matter controller service
+                    // RainMaker controller service
                     ArrayList<Param> controllerParams = service.getParams();
-                    String controllerDataVersion = "";
 
                     if (controllerParams != null) {
 
@@ -766,51 +786,89 @@ public class JsonDataParser {
 
                             String type = controllerParam.getParamType();
 
-                            if (!TextUtils.isEmpty(type) && AppConstants.PARAM_TYPE_MATTER_CTRL_DATA_VERSION.equals(type)) {
-                                controllerDataVersion = controllerParam.getLabelValue();
-                                if (!TextUtils.isEmpty(controllerServiceJson.optString(controllerParam.getName()))) {
-                                    controllerDataVersion = controllerServiceJson.optString(controllerParam.getName());
-                                    controllerParam.setLabelValue(controllerDataVersion);
-                                }
-                                break;
-                            }
-                        }
-
-                        for (Param controllerParam : controllerParams) {
-
-                            String type = controllerParam.getParamType();
-
-                            if (!TextUtils.isEmpty(type) && AppConstants.PARAM_TYPE_MATTER_DEVICES.equals(type)) {
-
-                                JSONObject matterDevicesJson = controllerServiceJson.optJSONObject(controllerParam.getName());
-                                Iterator<String> keys = matterDevicesJson.keys();
-                                HashMap<String, String> matterDevices = new HashMap<>();
-
-                                while (keys.hasNext()) {
-                                    String matterDeviceId = keys.next();
-                                    JSONObject matterDeviceJson = matterDevicesJson.optJSONObject(matterDeviceId);
-
-                                    if (matterDeviceId != null && matterDeviceJson != null) {
-                                        String value = matterDeviceJson.toString();
-                                        matterDevices.put(matterDeviceId, value);
-                                    }
-                                }
-
-                                if (!matterDevices.isEmpty()) {
-                                    espAppContext.controllerDevices.put(nodeId, matterDevices);
-                                }
-                                setRemoteDeviceParamValues(espAppContext, nodeId, node, controllerDataVersion);
-                                break;
-
-                            } else if (!TextUtils.isEmpty(type) &&
+                            if (!TextUtils.isEmpty(type) &&
                                     (AppConstants.PARAM_TYPE_BASE_URL.equals(type) || AppConstants.PARAM_TYPE_USER_TOKEN.equals(type)
                                             || AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type))) {
-                                if (!TextUtils.isEmpty(ctlServiceJson.optString(controllerParam.getName()))) {
-                                    String value = ctlServiceJson.optString(controllerParam.getName());
-                                    controllerParam.setLabelValue(value);
-                                } else if (!TextUtils.isEmpty(rmCtrlServiceJson.optString(controllerParam.getName()))) {
+                                if (!TextUtils.isEmpty(rmCtrlServiceJson.optString(controllerParam.getName()))) {
                                     String value = rmCtrlServiceJson.optString(controllerParam.getName());
                                     controllerParam.setLabelValue(value);
+                                }
+                            }
+                        }
+                    }
+                } else if ((AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && controllerServiceJson != null)
+                        || (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && ctlServiceJson != null)) {
+
+                    // Matter controller service
+                    ArrayList<Param> controllerParams = service.getParams();
+                    String controllerDataVersion = "";
+
+                    if (controllerParams != null) {
+
+                        if (controllerServiceJson != null) {
+
+                            for (Param controllerParam : controllerParams) {
+
+                                String type = controllerParam.getParamType();
+
+                                if (!TextUtils.isEmpty(type) && AppConstants.PARAM_TYPE_MATTER_CTRL_DATA_VERSION.equals(type)) {
+                                    controllerDataVersion = controllerParam.getLabelValue();
+                                    if (!TextUtils.isEmpty(controllerServiceJson.optString(controllerParam.getName()))) {
+                                        controllerDataVersion = controllerServiceJson.optString(controllerParam.getName());
+                                        controllerParam.setLabelValue(controllerDataVersion);
+                                    }
+                                    break;
+                                }
+                            }
+
+                            for (Param controllerParam : controllerParams) {
+
+                                String type = controllerParam.getParamType();
+
+                                if (!TextUtils.isEmpty(type) && AppConstants.PARAM_TYPE_MATTER_DEVICES.equals(type)) {
+
+                                    JSONObject matterDevicesJson = controllerServiceJson.optJSONObject(controllerParam.getName());
+                                    Iterator<String> keys = matterDevicesJson.keys();
+                                    HashMap<String, String> matterDevices = new HashMap<>();
+
+                                    while (keys.hasNext()) {
+                                        String matterDeviceId = keys.next();
+                                        JSONObject matterDeviceJson = matterDevicesJson.optJSONObject(matterDeviceId);
+
+                                        if (matterDeviceId != null && matterDeviceJson != null) {
+                                            String value = matterDeviceJson.toString();
+                                            matterDevices.put(matterDeviceId, value);
+                                        }
+                                    }
+
+                                    if (!matterDevices.isEmpty()) {
+                                        espAppContext.controllerDevices.put(nodeId, matterDevices);
+                                    }
+                                    setRemoteDeviceParamValues(espAppContext, nodeId, node, controllerDataVersion);
+                                    break;
+
+                                } else if (!TextUtils.isEmpty(type) &&
+                                        (AppConstants.PARAM_TYPE_BASE_URL.equals(type) || AppConstants.PARAM_TYPE_USER_TOKEN.equals(type)
+                                                || AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type))) {
+                                    if (!TextUtils.isEmpty(controllerServiceJson.optString(controllerParam.getName()))) {
+                                        String value = controllerServiceJson.optString(controllerParam.getName());
+                                        controllerParam.setLabelValue(value);
+                                    }
+                                }
+                            }
+                        } else if (ctlServiceJson != null) {
+
+                            for (Param controllerParam : controllerParams) {
+
+                                String type = controllerParam.getParamType();
+
+                                if (!TextUtils.isEmpty(type) &&
+                                        (AppConstants.PARAM_TYPE_BASE_URL.equals(type) || AppConstants.PARAM_TYPE_USER_TOKEN.equals(type)
+                                                || AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type))) {
+                                    if (!TextUtils.isEmpty(ctlServiceJson.optString(controllerParam.getName()))) {
+                                        String value = ctlServiceJson.optString(controllerParam.getName());
+                                        controllerParam.setLabelValue(value);
+                                    }
                                 }
                             }
                         }

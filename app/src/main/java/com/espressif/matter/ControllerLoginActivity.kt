@@ -33,6 +33,7 @@ import com.espressif.rainmaker.BuildConfig
 import com.espressif.rainmaker.R
 import com.espressif.rainmaker.databinding.ActivityControllerLoginBinding
 import com.espressif.ui.Utils
+import com.espressif.ui.models.Service
 import com.espressif.ui.models.UpdateEvent
 import com.espressif.utils.NodeUtils.Companion.getService
 import com.espressif.utils.ParamUtils
@@ -50,6 +51,7 @@ class ControllerLoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityControllerLoginBinding
 
+    private lateinit var espApp: EspApplication
     private var email: String? = null
     private var password: String? = null
     private var nodeId: String? = null
@@ -61,6 +63,7 @@ class ControllerLoginActivity : AppCompatActivity() {
         binding = ActivityControllerLoginBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+        espApp = applicationContext as EspApplication
         setToolbar()
         init()
     }
@@ -128,7 +131,7 @@ class ControllerLoginActivity : AppCompatActivity() {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public fun onEvent(event: UpdateEvent) {
-        Log.d("TAG", "Update Event Received : " + event.eventType)
+        Log.d(TAG, "Update Event Received : " + event.eventType)
         if (event.eventType.equals(AppConstants.Companion.UpdateEventType.EVENT_CTRL_CONFIG_DONE)) {
             hideLoading()
             finish()
@@ -147,11 +150,17 @@ class ControllerLoginActivity : AppCompatActivity() {
 
     private fun init() {
 
+        val sharedPreferences =
+            espApp.getSharedPreferences(AppConstants.ESP_PREFERENCES, MODE_PRIVATE)
+        email = sharedPreferences?.getString(AppConstants.KEY_EMAIL, "") ?: ""
+        binding.etEmail.setText(email)
+
         nodeId = intent.getStringExtra(AppConstants.KEY_NODE_ID)
         isCtrlService = intent.getBooleanExtra(AppConstants.KEY_IS_CTRL_SERVICE, false)
-        isRmakerController = intent.getBooleanExtra("is_rmaker_controller", false)
+        isRmakerController = intent.getBooleanExtra(AppConstants.KEY_IS_RMAKER_CONTROLLER, false)
         binding.btnLogin.textBtn.text = getString(R.string.btn_login)
         binding.btnLogin.layoutBtn.setOnClickListener { signInUser() }
+        binding.btnCancel.setOnClickListener { finish() }
 
         binding.btnLoginWithGithub.layoutBtnGithub.setOnClickListener {
             val uriStr = BuildConfig.GITHUB_URL
@@ -239,42 +248,48 @@ class ControllerLoginActivity : AppCompatActivity() {
 
     private fun sendRefreshToken(token: String) {
 
-        val espApp = applicationContext as EspApplication
+        val networkApiManager = NetworkApiManager(espApp)
+        val serviceParamJson = JsonObject()
 
         if (isCtrlService) {
-            val serviceParamJson = JsonObject()
-
-            var baseUrlParamName = AppConstants.PARAM_BASE_URL
-            var userTokenParamName = AppConstants.PARAM_USER_TOKEN
-            var rmGroupIdParamName = AppConstants.PARAM_RMAKER_GROUP_ID
 
             nodeId?.let {
-                baseUrlParamName = ParamUtils.getParamNameForService(
-                    it,
-                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER,
-                    AppConstants.PARAM_TYPE_BASE_URL,
-                    espApp
-                )
-                userTokenParamName = ParamUtils.getParamNameForService(
-                    it,
-                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER,
-                    AppConstants.PARAM_TYPE_USER_TOKEN,
-                    espApp
-                )
-                rmGroupIdParamName = ParamUtils.getParamNameForService(
-                    it,
-                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER,
-                    AppConstants.PARAM_TYPE_RMAKER_GROUP_ID,
-                    espApp
-                )
-            }
 
-            serviceParamJson.addProperty(baseUrlParamName, EspApplication.BASE_URL)
-            serviceParamJson.addProperty(userTokenParamName, token)
-            serviceParamJson.addProperty(
-                rmGroupIdParamName,
-                intent.getStringExtra(AppConstants.KEY_GROUP_ID)
-            )
+                val service = getService(
+                    espApp.nodeMap[nodeId]!!,
+                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
+                )
+
+                if (service != null) {
+
+                    addParamIfAvailable(
+                        it,
+                        service,
+                        AppConstants.PARAM_TYPE_BASE_URL,
+                        AppConstants.PARAM_BASE_URL,
+                        EspApplication.BASE_URL,
+                        serviceParamJson
+                    )
+
+                    addParamIfAvailable(
+                        it,
+                        service,
+                        AppConstants.PARAM_TYPE_USER_TOKEN,
+                        AppConstants.PARAM_USER_TOKEN,
+                        token,
+                        serviceParamJson
+                    )
+
+                    addParamIfAvailable(
+                        it,
+                        service,
+                        AppConstants.PARAM_TYPE_RMAKER_GROUP_ID,
+                        AppConstants.PARAM_RMAKER_GROUP_ID,
+                        intent.getStringExtra(AppConstants.KEY_GROUP_ID),
+                        serviceParamJson
+                    )
+                }
+            }
 
             // Get service name
             var serviceName = AppConstants.KEY_MATTER_CTL
@@ -291,7 +306,6 @@ class ControllerLoginActivity : AppCompatActivity() {
             val body = JsonObject()
             body.add(serviceName, serviceParamJson)
 
-            val networkApiManager = NetworkApiManager(espApp)
             networkApiManager.updateParamValue(nodeId, body, object : ApiResponseListener {
                 override fun onSuccess(data: Bundle?) {
                     hideLoading()
@@ -305,7 +319,34 @@ class ControllerLoginActivity : AppCompatActivity() {
                 }
             })
         } else if (isRmakerController) {
-            val serviceParamJson = JsonObject()
+
+            val service = getService(
+                espApp.nodeMap[nodeId]!!,
+                AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER
+            )
+
+            if (service != null) {
+                nodeId?.let {
+
+                    addParamIfAvailable(
+                        it,
+                        service,
+                        AppConstants.PARAM_TYPE_BASE_URL,
+                        AppConstants.PARAM_BASE_URL,
+                        EspApplication.BASE_URL,
+                        serviceParamJson
+                    )
+
+                    addParamIfAvailable(
+                        it,
+                        service,
+                        AppConstants.PARAM_TYPE_USER_TOKEN,
+                        AppConstants.PARAM_USER_TOKEN,
+                        token,
+                        serviceParamJson
+                    )
+                }
+            }
 
             // Get service name
             var serviceName = AppConstants.KEY_RMAKER_CTL
@@ -319,31 +360,9 @@ class ControllerLoginActivity : AppCompatActivity() {
                 }
             }
 
-            var baseUrlParamName = AppConstants.PARAM_BASE_URL
-            var userTokenParamName = AppConstants.PARAM_USER_TOKEN
-
-            nodeId?.let {
-                baseUrlParamName = ParamUtils.getParamNameForService(
-                    it,
-                    AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER,
-                    AppConstants.PARAM_TYPE_BASE_URL,
-                    espApp
-                )
-                userTokenParamName = ParamUtils.getParamNameForService(
-                    it,
-                    AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER,
-                    AppConstants.PARAM_TYPE_USER_TOKEN,
-                    espApp
-                )
-            }
-
-            serviceParamJson.addProperty(baseUrlParamName, EspApplication.BASE_URL)
-            serviceParamJson.addProperty(userTokenParamName, token)
-
             val body = JsonObject()
             body.add(serviceName, serviceParamJson)
 
-            val networkApiManager = NetworkApiManager(espApp)
             networkApiManager.updateParamValue(nodeId, body, object : ApiResponseListener {
                 override fun onSuccess(data: Bundle?) {
                     hideLoading()
@@ -384,6 +403,28 @@ class ControllerLoginActivity : AppCompatActivity() {
                 editor.putBoolean(key, true)
                 editor.apply()
             }
+        }
+    }
+
+    private fun addParamIfAvailable(
+        nodeId: String,
+        service: Service,
+        paramType: String,
+        defaultParamName: String,
+        paramValue: String?,
+        serviceParamJson: JsonObject
+    ) {
+        if (ParamUtils.isParamAvailableInList(
+                service.params,
+                paramType
+            )
+        ) {
+            var paramName =
+                ParamUtils.getParamNameForService(nodeId, service.type, paramType, espApp)
+            if (paramName.isEmpty()) {
+                paramName = defaultParamName
+            }
+            serviceParamJson.addProperty(paramName, paramValue)
         }
     }
 

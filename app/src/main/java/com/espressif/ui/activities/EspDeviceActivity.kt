@@ -474,7 +474,7 @@ class EspDeviceActivity : AppCompatActivity() {
                     ControllerLoginActivity::class.java
                 )
                 intent.putExtra(AppConstants.KEY_NODE_ID, nodeId)
-                intent.putExtra("is_rmaker_controller", true)
+                intent.putExtra(AppConstants.KEY_IS_RMAKER_CONTROLLER, true)
                 startActivity(intent)
             }
         })

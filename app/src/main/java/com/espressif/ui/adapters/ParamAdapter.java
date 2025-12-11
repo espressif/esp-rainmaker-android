@@ -1736,13 +1736,13 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             if (dataType.equalsIgnoreCase("int")
                     || dataType.equalsIgnoreCase("integer")) {
 
-                etAttribute.setInputType(InputType.TYPE_CLASS_NUMBER);
+                etAttribute.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED);
                 etAttribute.setText(String.valueOf((int) param.getValue()));
 
             } else if (dataType.equalsIgnoreCase("float")
                     || dataType.equalsIgnoreCase("double")) {
 
-                etAttribute.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                etAttribute.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
                 etAttribute.setText(String.valueOf(param.getValue()));
 
             } else if (dataType.equalsIgnoreCase("string")) {
