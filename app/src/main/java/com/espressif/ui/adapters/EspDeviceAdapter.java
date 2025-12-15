@@ -33,6 +33,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.card.MaterialCardView;
 
 import com.aar.tapholdupbutton.TapHoldUpButton;
 import com.espressif.AppConstants;
@@ -501,6 +502,9 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             deviceVh.llOffline.setVisibility(View.INVISIBLE);
         }
 
+        // Set card background color for online devices in dark theme only
+        setCardBackgroundForDeviceStatus(deviceVh, node, nodeStatus);
+
         switch (nodeStatus) {
             case AppConstants.NODE_STATUS_MATTER_LOCAL:
                 if (!TextUtils.isEmpty(matterNodeId)) {
@@ -701,12 +705,38 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
         return name;
     }
 
+    /**
+     * Set card background color for device status (dark theme only)
+     */
+    private void setCardBackgroundForDeviceStatus(DeviceViewHolder deviceVh, EspNode node, int nodeStatus) {
+        // Check if we're in dark theme
+        int nightModeFlags = context.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+        boolean isDarkTheme = nightModeFlags == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        
+        if (isDarkTheme) {
+            // Only apply background color changes in dark theme
+            boolean isOnline = (node != null && node.isOnline()) || 
+                             nodeStatus == AppConstants.NODE_STATUS_MATTER_LOCAL ||
+                             nodeStatus == AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE;
+            
+            if (isOnline) {
+                // Online devices get a slightly lighter background
+                deviceVh.cardView.setCardBackgroundColor(context.getColor(R.color.device_online_background));
+            } else {
+                // Offline devices get the standard card background
+                deviceVh.cardView.setCardBackgroundColor(context.getColor(R.color.device_offline_background));
+            }
+        }
+        // In light theme, we don't change the background (let MaterialCardView handle it)
+    }
+
     static class DeviceViewHolder extends RecyclerView.ViewHolder {
 
         TextView tvDeviceName, tvStringValue, tvOffline;
         ImageView ivDevice, ivDeviceStatus, ivOffline, ivSecureLocal;
         RelativeLayout llOffline;
         TapHoldUpButton btnTrigger;
+        MaterialCardView cardView;
 
         public DeviceViewHolder(View itemView) {
             super(itemView);
@@ -720,6 +750,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             ivDeviceStatus = itemView.findViewById(R.id.iv_on_off);
             tvStringValue = itemView.findViewById(R.id.tv_string);
             btnTrigger = itemView.findViewById(R.id.btn_trigger);
+            cardView = (MaterialCardView) itemView;
         }
     }
 }

@@ -281,6 +281,11 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
+            android:name="com.espressif.ui.activities.PreferencesActivity"
+            android:label="@string/title_activity_preferences"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
             android:name="com.espressif.ui.activities.GroupShareActivity"
             android:label="@string/title_activity_group_sharing_requests"
             android:screenOrientation="portrait"
@@ -338,11 +343,13 @@
 
         <activity
             android:name="com.espressif.ui.activities.WebRtcConfigActivity"
+            android:configChanges="uiMode"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
 
         <activity
             android:name="com.espressif.ui.activities.WebRtcActivity"
+            android:configChanges="uiMode"
             android:screenOrientation="landscape"
             android:theme="@style/AppTheme.NoActionBar" />
 

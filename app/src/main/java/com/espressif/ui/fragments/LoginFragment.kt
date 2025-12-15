@@ -26,6 +26,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
 import androidx.fragment.app.Fragment
 
 import com.espressif.cloudapi.ApiManager
@@ -151,6 +153,7 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
             binding.btnLoginWithWeChat.textBtn.text = getString(R.string.btn_we_chat)
             binding.btnLoginWithGoogle.layoutBtn.visibility = View.GONE
             binding.btnLoginWithGithub.layoutBtnGithub.visibility = View.GONE
+            binding.btnLoginWithApple.layoutBtnApple.visibility = View.GONE
             binding.tvUseEmailId.visibility = View.GONE
             binding.etEmail.visibility = View.GONE
             binding.layoutPassword.visibility = View.GONE
@@ -166,8 +169,23 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
 
         } else {
             binding.btnLoginWithWeChat.layoutBtn.visibility = View.GONE
-            binding.btnLoginWithApple.ivOauth.setImageResource(R.drawable.ic_apple_icon)
-            binding.btnLoginWithApple.textBtn.text = getString(R.string.btn_apple)
+            
+            // Update constraint to position Apple button directly below Google button when WeChat is hidden
+            val appleButton = binding.btnLoginWithApple.root
+            val googleButton = binding.btnLoginWithGoogle.root
+            val parent = appleButton.parent as? ConstraintLayout
+            parent?.let { constraintLayout ->
+                val constraintSet = ConstraintSet()
+                constraintSet.clone(constraintLayout)
+                constraintSet.connect(
+                    appleButton.id,
+                    ConstraintSet.TOP,
+                    googleButton.id,
+                    ConstraintSet.BOTTOM,
+                    resources.getDimensionPixelSize(R.dimen.margin_16)
+                )
+                constraintSet.applyTo(constraintLayout)
+            }
         }
 
         binding.btnLogin.textBtn.text = getString(R.string.btn_login)
@@ -189,7 +207,7 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
             startActivity(openURL)
         }
 
-        binding.btnLoginWithApple.layoutBtn.setOnClickListener {
+        binding.btnLoginWithApple.layoutBtnApple.setOnClickListener {
 //            showGoogleLoginLoading();
             val uriStr = BuildConfig.APPLE_URL
             val uri = Uri.parse(uriStr)

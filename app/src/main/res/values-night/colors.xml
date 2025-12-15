@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#8864e4</color>
+    <color name="colorPrimaryDark">#ffffffff</color>
+    <color name="colorAccent">#8181a8</color>
+    <color name="blue">#0033CC</color>
+    <color name="orange">#FF9900</color>
+    <color name="color_esp_logo">#CA1627</color>
+
+    <color name="toolbar_items">#CBCBCB</color>
+    <color name="text_border_default">#303232</color>
+    <color name="text_border_selected">#4EA9DC</color>
+    <color name="alert">#AC1600</color>
+    <color name="button_default">#329AD6</color>
+    <color name="color_text_on">#4CAF50</color>
+    <color name="color_text_off">#CA1627</color>
+    <color name="color_err_text">#FF3B30</color>
+
+    <!-- Dark theme colors -->
+    <color name="color_border">#f2f1fc</color>
+    <color name="color_text">#f2f1fc</color>
+    <color name="color_background">#262222</color>
+    <color name="color_card_background">#3A3636</color>
+    <color name="color_input_background">#3A3636</color>
+    <color name="color_orange">#ff5207</color>
+    <color name="color_text_secondary">#8181a8</color>
+    <color name="color_remove">#ffeee6</color>
+    <color name="color_dark_gray">#555555</color>
+    <color name="color_light_gray">#BBBBBB</color>
+    <color name="toolbar_color">#211E1E</color>
+    <color name="splash_image_tint">#FFFFFF</color> <!-- White color for dark theme -->
+    <color name="transparent_color">#3A3636</color>
+    
+    <!-- Device status colors -->
+    <color name="device_online_background">#454141</color> <!-- Slightly lighter gray for online devices -->
+    <color name="device_offline_background">#3A3636</color> <!-- Standard card background for offline devices -->
+</resources>

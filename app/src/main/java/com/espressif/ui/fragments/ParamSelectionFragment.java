@@ -41,14 +41,32 @@ import java.util.ArrayList;
 
 public class ParamSelectionFragment extends BottomSheetDialogFragment implements EventSelectionListener {
 
+    private static final String ARG_DEVICE = "device";
+    private static final String ARG_AUTOMATION = "automation";
+    
     private Device eventDevice;
     private ArrayList<Param> params;
     private EspApplication espApp;
     private Automation automation;
     private EventSelectionListener eventSelectionListener;
 
-    public ParamSelectionFragment(AppCompatActivity context, Automation automation, Device device, EventSelectionListener listener) {
+    // Default constructor required for Fragment
+    public ParamSelectionFragment() {
+    }
 
+    // Factory method to create fragment with arguments
+    public static ParamSelectionFragment newInstance(Automation automation, Device device) {
+        ParamSelectionFragment fragment = new ParamSelectionFragment();
+        Bundle args = new Bundle();
+        args.putParcelable(ARG_AUTOMATION, automation);
+        args.putParcelable(ARG_DEVICE, device);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    // Deprecated constructor - kept for backward compatibility but should not be used
+    @Deprecated
+    public ParamSelectionFragment(AppCompatActivity context, Automation automation, Device device, EventSelectionListener listener) {
         this.automation = automation;
         this.eventDevice = device;
         this.eventSelectionListener = listener;
@@ -57,9 +75,29 @@ public class ParamSelectionFragment extends BottomSheetDialogFragment implements
         eventDevice.setParams(params);
     }
 
+    public void setEventSelectionListener(EventSelectionListener listener) {
+        this.eventSelectionListener = listener;
+    }
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Initialize from arguments if available
+        if (getArguments() != null) {
+            automation = getArguments().getParcelable(ARG_AUTOMATION);
+            eventDevice = getArguments().getParcelable(ARG_DEVICE);
+        }
+        
+        // Initialize EspApplication and params
+        if (getActivity() != null) {
+            espApp = (EspApplication) getActivity().getApplicationContext();
+        }
+        
+        if (eventDevice != null) {
+            this.params = Utils.getEventDeviceParams(eventDevice.getParams());
+            eventDevice.setParams(params);
+        }
     }
 
     @Nullable

@@ -316,6 +316,7 @@
     <string name="title_activity_tbr">Thread 边界路由器</string>
     <string name="title_activity_group_sharing_requests">群组共享</string>
     <string name="title_activity_group_detail">群组详情</string>
+    <string name="title_activity_preferences">偏好设置</string>
 
     <!--Dialog texts-->
     <string name="dialog_title_login_failed">登录失败</string>
@@ -521,6 +522,7 @@
     <string name="thread_prov_step_2">确认 Thread 连接</string>
     <string name="error_prov_thread_step_2">发送 Thread 凭据失败</string>
     <string name="error_prov_thread_step_2_">应用 Thread 凭据失败</string>
+    <string name="preferences">偏好设置</string>
 
     <string name="schedule_on_day">在</string>
     <string name="schedule_once">一次</string>

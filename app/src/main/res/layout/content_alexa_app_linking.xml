@@ -25,7 +25,7 @@
                 android:layout_width="216dp"
                 android:layout_height="102dp"
                 android:layout_marginTop="50dp"
-                android:src="@drawable/ic_alexa_vertical"
+                android:src="@drawable/ic_alexa_new"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -60,7 +60,7 @@
                 android:id="@+id/iv_alexa"
                 android:layout_width="100dp"
                 android:layout_height="100dp"
-                android:src="@drawable/ic_alexa"
+                android:src="@drawable/ic_alexa_new"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />

@@ -118,6 +118,7 @@ public class UserProfileFragment extends Fragment {
         }
 
         userInfoList.add(getString(R.string.title_activity_about));
+        userInfoList.add(getString(R.string.preferences));
         userInfoAdapter = new UserProfileAdapter(getActivity(), userInfoList, 0);
         rvUserInfo.setAdapter(userInfoAdapter);
     }
