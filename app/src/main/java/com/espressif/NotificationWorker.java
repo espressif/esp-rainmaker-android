@@ -18,6 +18,9 @@ import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
@@ -26,18 +29,23 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.work.Data;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.espressif.AppConstants.Companion.UpdateEventType;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.db.EspDatabase;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.activities.EspMainActivity;
 import com.espressif.ui.activities.FwUpdateActivity;
 import com.espressif.ui.activities.GroupShareActivity;
 import com.espressif.ui.activities.NotificationsActivity;
@@ -54,6 +62,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -81,6 +92,47 @@ public class NotificationWorker extends Worker {
         String title = data.getString(AppConstants.KEY_TITLE);
         String body = data.getString(AppConstants.KEY_BODY);
         String eventPayload = data.getString(AppConstants.KEY_EVENT_DATA_PAYLOAD);
+        String additionalInfo = data.getString(AppConstants.KEY_ADDITIONAL_INFO);
+
+        if (additionalInfo != null) {
+
+            try {
+                JSONObject additionalInfoJson = new JSONObject(additionalInfo);
+                String imageUrl = additionalInfoJson.optString("image");
+
+                if (imageUrl != null && !imageUrl.isEmpty()) {
+
+                    // Load image using Glide asynchronously
+                    Glide.with(getApplicationContext())
+                            .asBitmap()
+                            .load(imageUrl)
+                            .into(new CustomTarget<Bitmap>() {
+                                @Override
+                                public void onResourceReady(@NonNull Bitmap bitmap,
+                                                            @Nullable Transition<? super Bitmap> transition) {
+
+                                    sendNotificationWithImage(title, body, AppConstants.CHANNEL_ALERT, bitmap);
+                                }
+
+                                @Override
+                                public void onLoadCleared(@Nullable Drawable placeholder) {
+                                    // Not used
+                                }
+
+                                @Override
+                                public void onLoadFailed(@Nullable Drawable errorDrawable) {
+                                    // Show notification without image
+                                    sendNotificationWithImage(title, body, AppConstants.CHANNEL_ALERT, null);
+                                }
+                            });
+                } else {
+                    sendNotificationWithImage(title, body, AppConstants.CHANNEL_ALERT, null);
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            return Result.success();
+        }
 
         try {
             JSONObject eventDataJson = new JSONObject(eventPayload);
@@ -1018,6 +1070,75 @@ public class NotificationWorker extends Worker {
                 .build();
 
         notificationManager.notify(notificationId++, notification);
+    }
+
+    private void sendNotificationWithImage(String title, String messageBody, String channelId, Bitmap bitmap) {
+
+        Intent activityIntent = new Intent(espApp, EspMainActivity.class);
+        activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        PendingIntent contentIntent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            contentIntent = PendingIntent.getActivity(espApp,
+                    0 /* Request code */,
+                    activityIntent,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        } else {
+            contentIntent = PendingIntent.getActivity(espApp,
+                    0 /* Request code */,
+                    activityIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT);
+        }
+
+        Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        NotificationCompat.BigPictureStyle bigPictureStyle = null;
+
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(espApp, channelId)
+                .setSmallIcon(R.drawable.ic_notify_rainmaker)
+                .setColor(espApp.getColor(R.color.color_esp_logo))
+                .setContentTitle(title)
+                .setContentText(messageBody)
+                .setStyle(new NotificationCompat.BigTextStyle()
+                        .bigText(messageBody))
+                .setContentIntent(contentIntent)
+                .setShowWhen(true)
+                .setAutoCancel(true)
+                .setSound(defaultSoundUri)
+                .setPriority(NotificationCompat.PRIORITY_HIGH);
+
+        // Show BigPictureStyle only when bitmap is available
+        if (bitmap != null) {
+            bigPictureStyle =
+                    new NotificationCompat.BigPictureStyle()
+                            .bigPicture(bitmap)
+                            .bigLargeIcon((Bitmap) null);
+            notificationBuilder = notificationBuilder.setStyle(bigPictureStyle);
+        }
+
+        Notification notification = notificationBuilder.build();
+
+        notificationManager.notify(notificationId++, notification);
+    }
+
+    /**
+     * This method is used to get image from given URL.
+     * Note : This method can be used instead of Glide library.
+     *
+     * @param imageUrl Image URL
+     * @return Retuens bitmap of an image.
+     */
+    private Bitmap getBitmapFromUrl(String imageUrl) {
+        try {
+            URL url = new URL(imageUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setDoInput(true);
+            connection.connect();
+            InputStream input = connection.getInputStream();
+            return BitmapFactory.decodeStream(input);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private void sendOtaNotification(String title, String messageBody, String nodeId) {
