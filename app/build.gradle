@@ -75,8 +75,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 27
         targetSdkVersion 35
-        versionCode 190
-        versionName "3.10.0 - ${getGitHash()}"
+        versionCode 191
+        versionName "3.10.1 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -172,10 +172,13 @@ android {
                 "&redirect_uri=" + redirectUri + "&response_type=CODE&client_id=" + clientId
         def appleUrl = authUrl + "/authorize?identity_provider=" + appleIdentityProvider +
                 "&redirect_uri=" + redirectUri + "&response_type=CODE&client_id=" + clientId
+        def appleUrlForChina = chinaAuthUrl + "/authorize?identity_provider=" + appleIdentityProvider +
+                "&redirect_uri=" + redirectUri + "&response_type=CODE&client_id=" + chinaClientId
 
         buildConfigField "String", "GITHUB_URL", '"' + gitHubUrl + '"'
         buildConfigField "String", "GOOGLE_URL", '"' + googleUrl + '"'
         buildConfigField "String", "APPLE_URL", '"' + appleUrl + '"'
+        buildConfigField "String", "APPLE_URL_FOR_CHINA", '"' + appleUrlForChina + '"'
 
         buildConfigField "String", "DOCUMENTATION_URL", '"' + localProperties.getProperty("docUrl", defaultDocUrl) + '"'
         buildConfigField "String", "PRIVACY_URL", '"' + localProperties.getProperty("privacyUrl", defaultPrivacyUrl) + '"'
