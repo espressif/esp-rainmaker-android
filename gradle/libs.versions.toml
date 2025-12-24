@@ -55,6 +55,9 @@ awsAndroidSdkKinesisvideo = "2.81.1"
 
 wechatSdkAndroidWithoutMta = "6.8.0"
 
+jcore = "4.7.3"
+jpush = "5.4.2"
+
 junit = "4.13.2"
 runner = "1.6.2"
 espressoCore = "3.6.1"
@@ -138,6 +141,9 @@ aws-android-sdk-kinesisvideo-webrtcstorage = { module = "com.amazonaws:aws-andro
 aws-android-sdk-mobile-client = { module = "com.amazonaws:aws-android-sdk-mobile-client", version.ref = "awsAndroidSdkKinesisvideo" }
 
 wechat-sdk-android-without-mta = { group = "com.tencent.mm.opensdk", name = "wechat-sdk-android-without-mta", version.ref = "wechatSdkAndroidWithoutMta" }
+
+jcore = { group = "cn.jiguang.sdk", name = "jcore", version.ref = "jcore" }
+jpush = { group = "cn.jiguang.sdk", name = "jpush", version.ref = "jpush" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 runner = { group = "androidx.test", name = "runner", version.ref = "runner" }

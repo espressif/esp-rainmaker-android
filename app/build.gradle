@@ -56,6 +56,8 @@ def defaultChinaTermsOfUseUrl = "https://rainmaker.espressif.com/zh-hans/docs/te
 
 // Please configure WeChat App id to support WeChat login for China region
 def weChatIdForLogin = "your_we_chat_id"
+def defaultJPushAppKey = "your jpush app key" // put your default value here
+def defaultJPushChannel = "developer-default" // put your default value here
 
 def localProperties = new Properties()
 localProperties.load(new FileInputStream(rootProject.file("local.properties")))
@@ -73,8 +75,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 27
         targetSdkVersion 35
-        versionCode 190
-        versionName "3.10.0 - ${getGitHash()}"
+        versionCode 191
+        versionName "3.10.1 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""
@@ -126,6 +128,7 @@ android {
         buildConfigField "boolean", "isOtaSupported", localProperties.getProperty("isOtaSupported", "false")
         buildConfigField "boolean", "isMatterSupported", localProperties.getProperty("isMatterSupported", "false")
         buildConfigField "boolean", "isCommandResponseSupported", localProperties.getProperty("isCommandResponseSupported", "false")
+        buildConfigField "boolean", "isChinaRegion", localProperties.getProperty("isChinaRegion", "false")
 
         //---Enable Continuous Updates---//
         buildConfigField "boolean", "isContinuousUpdateEnable", localProperties.getProperty("isContinuousUpdateEnable", "true")
@@ -160,16 +163,22 @@ android {
         buildConfigField "String", "CHINA_PRIVACY_URL", '"' + localProperties.getProperty("chinaPrivacyUrl", defaultChinaPrivacyUrl) + '"'
         buildConfigField "String", "CHINA_TERMS_URL", '"' + localProperties.getProperty("chinaTermsOfUseUrl", defaultChinaTermsOfUseUrl) + '"'
 
+        def jpushAppKey = localProperties.getProperty("jpushAppKey", defaultJPushAppKey)
+        def jpushChannel = localProperties.getProperty("jpushChannel", defaultJPushChannel)
+
         def gitHubUrl = authUrl + "/authorize?identity_provider=" + gitHubIdentityProvider +
                 "&redirect_uri=" + redirectUri + "&response_type=CODE&client_id=" + clientId
         def googleUrl = authUrl + "/authorize?identity_provider=" + googleIdentityProvider +
                 "&redirect_uri=" + redirectUri + "&response_type=CODE&client_id=" + clientId
         def appleUrl = authUrl + "/authorize?identity_provider=" + appleIdentityProvider +
                 "&redirect_uri=" + redirectUri + "&response_type=CODE&client_id=" + clientId
+        def appleUrlForChina = chinaAuthUrl + "/authorize?identity_provider=" + appleIdentityProvider +
+                "&redirect_uri=" + redirectUri + "&response_type=CODE&client_id=" + chinaClientId
 
         buildConfigField "String", "GITHUB_URL", '"' + gitHubUrl + '"'
         buildConfigField "String", "GOOGLE_URL", '"' + googleUrl + '"'
         buildConfigField "String", "APPLE_URL", '"' + appleUrl + '"'
+        buildConfigField "String", "APPLE_URL_FOR_CHINA", '"' + appleUrlForChina + '"'
 
         buildConfigField "String", "DOCUMENTATION_URL", '"' + localProperties.getProperty("docUrl", defaultDocUrl) + '"'
         buildConfigField "String", "PRIVACY_URL", '"' + localProperties.getProperty("privacyUrl", defaultPrivacyUrl) + '"'
@@ -191,6 +200,17 @@ android {
         // Vendor Id for Matter
         def vendorId = localProperties.getProperty("vendorId", defaultVendorId)
         buildConfigField 'int', 'VENDOR_ID', String.valueOf(vendorId)
+
+        // Adding ABI filters for NDK
+        ndk {
+            abiFilters.addAll(["armeabi", "armeabi-v7a", "arm64-v8a"])
+        }
+
+        manifestPlaceholders = [
+                JPUSH_PKGNAME: "com.espressif.rainmaker",
+                JPUSH_APPKEY: jpushAppKey, // Replace with your JPush app key
+                JPUSH_CHANNEL: jpushChannel
+        ]
     }
 
     compileOptions {
@@ -329,6 +349,10 @@ dependencies {
     implementation libs.camera.view
 
     implementation libs.wechat.sdk.android.without.mta
+
+    // Aurora push
+    implementation libs.jpush
+    implementation libs.jcore
 
     testImplementation libs.junit
     androidTestImplementation libs.runner

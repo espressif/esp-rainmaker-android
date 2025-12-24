@@ -19,10 +19,18 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.text.Html
 import android.text.method.LinkMovementMethod
+import android.util.Log
+import android.view.ViewGroup
+import android.os.Build
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import cn.jpush.android.api.JPushInterface
 
 import com.espressif.rainmaker.BuildConfig
 import com.espressif.rainmaker.R
@@ -34,6 +42,7 @@ class ConsentActivity : AppCompatActivity() {
     private lateinit var binding: ActivityConsentBinding
 
     companion object {
+        private const val TAG = "ConsentActivity"
         const val ANCHOR_TAG_START: String = "<a href='"
         const val ANCHOR_TAG_END: String = "</a>"
         const val URL_TAG_END: String = "'>"
@@ -71,6 +80,12 @@ class ConsentActivity : AppCompatActivity() {
         binding.btnProceed.textBtn.setText(R.string.btn_proceed)
         binding.btnProceed.layoutBtn.setOnClickListener {
             if (binding.cbTermsCondition.isChecked) {
+
+                if (BuildConfig.isChinaRegion) {
+                    // After user agrees
+                    JPushInterface.setDebugMode(false)
+                    JPushInterface.init(this)
+                }
                 launchLoginScreen()
             } else {
                 displayConsentError()
@@ -92,7 +107,7 @@ class ConsentActivity : AppCompatActivity() {
         builder.setMessage(R.string.error_user_agreement)
         builder.setPositiveButton(
             R.string.btn_ok
-        ) { dialog, which -> dialog.dismiss() }
+        ) { dialog, _ -> dialog.dismiss() }
         val userDialog = builder.create()
         userDialog.show()
     }
@@ -118,17 +133,88 @@ class ConsentActivity : AppCompatActivity() {
         builder.setTitle(R.string.privacy_policy)
 
         val webView = WebView(this)
+        
+        // Configure WebView settings
+        val webSettings: WebSettings = webView.settings
+        webSettings.javaScriptEnabled = true
+        webSettings.domStorageEnabled = true
+        webSettings.loadWithOverviewMode = true
+        webSettings.useWideViewPort = true
+        webSettings.builtInZoomControls = true
+        webSettings.displayZoomControls = false
+        webSettings.setSupportZoom(true)
+        webSettings.cacheMode = WebSettings.LOAD_DEFAULT
+        webSettings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+        
+        // Set WebViewClient with proper error handling
+        webView.webViewClient = object : WebViewClient() {
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: WebResourceError?
+            ) {
+                super.onReceivedError(view, request, error)
+                Log.e(TAG, "WebView error: ${error?.description} (Code: ${error?.errorCode}) for URL: ${request?.url}")
+            }
+            
+            @Deprecated("Deprecated in Java")
+            override fun onReceivedError(
+                view: WebView?,
+                errorCode: Int,
+                description: String?,
+                failingUrl: String?
+            ) {
+                super.onReceivedError(view, errorCode, description, failingUrl)
+                Log.e(TAG, "WebView error: $description (Code: $errorCode) for URL: $failingUrl")
+            }
+            
+            override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                super.onPageStarted(view, url, favicon)
+                Log.d(TAG, "Page started loading: $url")
+            }
+            
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                Log.d(TAG, "Page finished loading: $url")
+            }
+            
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                // Allow WebView to handle navigation normally
+                return false
+            }
+        }
+        
+        // Set WebChromeClient for progress tracking
+        webView.webChromeClient = WebChromeClient()
+        
+        // Set explicit size for WebView in AlertDialog
+        val displayMetrics = resources.displayMetrics
+        val width = (displayMetrics.widthPixels * 0.9).toInt()
+        val height = (displayMetrics.heightPixels * 0.8).toInt()
+        
+        webView.layoutParams = ViewGroup.LayoutParams(
+            width,
+            height
+        )
+        
         builder.setView(webView)
-        webView.webViewClient = WebViewClient()
-        webView.loadUrl(url)
-
-        builder.setPositiveButton(R.string.btn_agree) { dialog, which -> dialog.dismiss() }
-        builder.setNegativeButton(R.string.btn_disagree) { dialog, which ->
+        
+        builder.setPositiveButton(R.string.btn_agree) { dialog, _ -> dialog.dismiss() }
+        builder.setNegativeButton(R.string.btn_disagree) { dialog, _ ->
             dialog.dismiss()
             finish()
         }
 
         val dialog = builder.create()
         dialog.show()
+        
+        // Adjust dialog window size for better WebView display
+        dialog.window?.setLayout(
+            width,
+            height
+        )
+        
+        // Load URL after dialog is shown to ensure WebView is properly initialized
+        webView.loadUrl(url)
     }
 }

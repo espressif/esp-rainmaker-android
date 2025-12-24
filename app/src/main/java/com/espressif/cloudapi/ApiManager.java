@@ -297,10 +297,14 @@ public class ApiManager {
 
         Log.d(TAG, "Get OAuth Token");
         String url = getTokenUrl();
+        String clientId = BuildConfig.CLIENT_ID;
+        if (BuildConfig.isChinaRegion) {
+            clientId = BuildConfig.CHINA_CLIENT_ID;
+        }
 
         try {
             apiInterface.oauthLogin(url, "application/x-www-form-urlencoded",
-                    "authorization_code", BuildConfig.CLIENT_ID, code,
+                    "authorization_code", clientId, code,
                     BuildConfig.REDIRECT_URI).enqueue(new Callback<ResponseBody>() {
 
                 @Override

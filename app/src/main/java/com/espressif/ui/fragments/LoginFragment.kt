@@ -153,7 +153,7 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
             binding.btnLoginWithWeChat.textBtn.text = getString(R.string.btn_we_chat)
             binding.btnLoginWithGoogle.layoutBtn.visibility = View.GONE
             binding.btnLoginWithGithub.layoutBtnGithub.visibility = View.GONE
-            binding.btnLoginWithApple.layoutBtnApple.visibility = View.GONE
+            binding.btnLoginWithApple.layoutBtnApple.visibility = View.VISIBLE
             binding.tvUseEmailId.visibility = View.GONE
             binding.etEmail.visibility = View.GONE
             binding.layoutPassword.visibility = View.GONE
@@ -209,7 +209,10 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
 
         binding.btnLoginWithApple.layoutBtnApple.setOnClickListener {
 //            showGoogleLoginLoading();
-            val uriStr = BuildConfig.APPLE_URL
+            var uriStr = BuildConfig.APPLE_URL
+            if (BuildConfig.isChinaRegion) {
+                uriStr = BuildConfig.APPLE_URL_FOR_CHINA
+            }
             val uri = Uri.parse(uriStr)
             val openURL = Intent(Intent.ACTION_VIEW, uri)
             startActivity(openURL)

@@ -19,3 +19,25 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+# Keep JPush classes
+-dontoptimize
+-dontpreverify
+
+-keep class * extends cn.jpush.android.service.JCommonService { *; }
+-dontwarn cn.jiguang.**
+-keep class cn.jiguang.** { *; }
+-keep class cn.jpush.** { *; }
+-keep class cn.jiguang.** { *; }
+-keep class cn.jiguang.android.** { *; }
+-keep class cn.jiguang.api.** { *; }
+-keep class cn.jiguang.net.** { *; }
+-dontwarn cn.jpush.**
+
+# Keep your Application class
+-keep class com.espressif.EspApplication { *; }
+
+# Keep custom annotations
+-keepattributes *Annotation*
+
+# Keep all classes in the `com.espressif.rainmaker` package
+-keep class com.espressif.rainmaker.** { *; }

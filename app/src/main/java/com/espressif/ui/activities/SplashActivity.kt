@@ -20,8 +20,10 @@ import android.os.Bundle
 import android.text.TextUtils
 import android.util.Log
 
+import cn.jpush.android.api.JPushInterface
 import com.espressif.AppConstants
 import com.espressif.EspApplication
+import com.espressif.rainmaker.BuildConfig
 import com.espressif.rainmaker.databinding.ActivitySplashBinding
 
 class SplashActivity : Activity() {
@@ -47,6 +49,12 @@ class SplashActivity : Activity() {
             // Launch startup screen
             launchStartupScreen()
         } else {
+
+            if (BuildConfig.isChinaRegion) {
+                // For already logged in users
+                JPushInterface.setDebugMode(false)
+                JPushInterface.init(this)
+            }
             // Launch home screen
             launchHomeScreen()
         }

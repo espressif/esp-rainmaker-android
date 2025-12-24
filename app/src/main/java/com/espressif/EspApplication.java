@@ -20,15 +20,15 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
-import androidx.appcompat.app.AppCompatDelegate;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatDelegate;
 
 import com.espressif.AppConstants.Companion.UpdateEventType;
 import com.espressif.cloudapi.ApiManager;
@@ -97,6 +97,7 @@ import java.util.concurrent.ExecutionException;
 import javax.security.auth.x500.X500Principal;
 
 import chip.devicecontroller.ChipClusters;
+import cn.jpush.android.api.JPushInterface;
 import dagger.hilt.android.HiltAndroidApp;
 
 @HiltAndroidApp
@@ -139,6 +140,13 @@ public class EspApplication extends Application {
     public static final String THEME_SYSTEM = "system";
     public static final String KEY_THEME_PREFERENCE = "theme_preference";
 
+    private static final int RETRY_INTERVAL_MS = 5000; // 5 seconds
+    private static final int MAX_RETRY_COUNT = 5; // Maximum number of retry attempts
+    private static final long MAX_RETRY_INTERVAL_MS = 60000; // Maximum retry interval (60 seconds)
+    private Handler handler;
+    private Runnable registrationIdRunnable;
+    private int auroraRegistrationRetryCount = 0;
+
     public enum AppState {
         NO_USER_LOGIN,
         GETTING_DATA,
@@ -180,9 +188,9 @@ public class EspApplication extends Application {
         } else {
             if (Utils.isPlayServicesAvailable(getApplicationContext())) {
                 FirebaseMessaging.getInstance().setAutoInitEnabled(false);
-                setupNotificationChannels();
             }
         }
+        setupNotificationChannels();
     }
 
     public AppState getAppState() {
@@ -929,43 +937,126 @@ public class EspApplication extends Application {
     }
 
     public void registerDeviceToken() {
+        if (BuildConfig.isChinaRegion) {
+            Log.d(TAG, "Using Aurora Push Services.");
 
-        if (!Utils.isPlayServicesAvailable(getApplicationContext())) {
-            Log.e(TAG, "Google Play Services not available.");
-            return;
-        }
-        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(new OnCompleteListener<String>() {
+            // Reset retry counter for a fresh registration attempt
+            auroraRegistrationRetryCount = 0;
 
-            @Override
-            public void onComplete(@NonNull Task<String> task) {
-                if (!task.isSuccessful()) {
-                    Log.d(TAG, "Fetching FCM registration token failed", task.getException());
-                    return;
-                }
-
-                // Get new FCM registration token
-                deviceToken = task.getResult();
-
-                // Log and toast
-                Log.e("FCM TOKEN  ", deviceToken);
-
-                if (!TextUtils.isEmpty(deviceToken)) {
-                    apiManager.registerDeviceToken(deviceToken, new ApiResponseListener() {
-                        @Override
-                        public void onSuccess(Bundle data) {
-                        }
-
-                        @Override
-                        public void onResponseFailure(Exception exception) {
-                        }
-
-                        @Override
-                        public void onNetworkFailure(Exception exception) {
-                        }
-                    });
-                }
+            if (handler == null) {
+                handler = new Handler(Looper.getMainLooper());
             }
-        });
+            if (registrationIdRunnable == null) {
+                registrationIdRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        String regId = JPushInterface.getRegistrationID(EspApplication.this);
+                        Log.d(TAG, "Attempt to get Aurora Push Registration ID: " + regId);
+
+                        if (!TextUtils.isEmpty(regId)) {
+                            deviceToken = regId;
+                            Log.d(TAG, "Aurora device token: " + deviceToken);
+
+                            apiManager.registerDeviceToken(deviceToken, new ApiResponseListener() {
+                                @Override
+                                public void onSuccess(Bundle data) {
+                                    Log.d(TAG, "Aurora device token registered successfully.");
+                                    handler.removeCallbacks(registrationIdRunnable);
+                                    auroraRegistrationRetryCount = 0; // Reset retry counter on success
+                                }
+
+                                @Override
+                                public void onResponseFailure(@NonNull Exception exception) {
+                                    if (auroraRegistrationRetryCount >= MAX_RETRY_COUNT) {
+                                        Log.e(TAG, "Failed to register Aurora device token after " + MAX_RETRY_COUNT + " attempts. Giving up.");
+                                        handler.removeCallbacks(registrationIdRunnable);
+                                        auroraRegistrationRetryCount = 0;
+                                        return;
+                                    }
+                                    auroraRegistrationRetryCount++;
+                                    long retryDelay = calculateExponentialBackoff(auroraRegistrationRetryCount);
+                                    Log.e(TAG, "Failed to register Aurora device token, retrying... (Attempt " + auroraRegistrationRetryCount + "/" + MAX_RETRY_COUNT + ", delay: " + retryDelay + "ms)");
+                                    handler.postDelayed(registrationIdRunnable, retryDelay);
+                                }
+
+                                @Override
+                                public void onNetworkFailure(@NonNull Exception exception) {
+                                    if (auroraRegistrationRetryCount >= MAX_RETRY_COUNT) {
+                                        Log.e(TAG, "Network failure while registering Aurora device token after " + MAX_RETRY_COUNT + " attempts. Giving up.");
+                                        handler.removeCallbacks(registrationIdRunnable);
+                                        auroraRegistrationRetryCount = 0;
+                                        return;
+                                    }
+                                    auroraRegistrationRetryCount++;
+                                    long retryDelay = calculateExponentialBackoff(auroraRegistrationRetryCount);
+                                    Log.e(TAG, "Network failure while registering Aurora device token, retrying... (Attempt " + auroraRegistrationRetryCount + "/" + MAX_RETRY_COUNT + ", delay: " + retryDelay + "ms)");
+                                    handler.postDelayed(registrationIdRunnable, retryDelay);
+                                }
+                            });
+                        } else {
+                            if (auroraRegistrationRetryCount >= MAX_RETRY_COUNT) {
+                                Log.e(TAG, "Failed to get Aurora Push Registration ID after " + MAX_RETRY_COUNT + " attempts. Giving up.");
+                                handler.removeCallbacks(registrationIdRunnable);
+                                auroraRegistrationRetryCount = 0;
+                                return;
+                            }
+                            auroraRegistrationRetryCount++;
+                            long retryDelay = calculateExponentialBackoff(auroraRegistrationRetryCount);
+                            Log.e(TAG, "Failed to get Aurora Push Registration ID, retrying... (Attempt " + auroraRegistrationRetryCount + "/" + MAX_RETRY_COUNT + ", delay: " + retryDelay + "ms)");
+                            handler.postDelayed(registrationIdRunnable, retryDelay);
+                        }
+                    }
+                };
+            }
+            handler.post(registrationIdRunnable);
+
+        } else {
+            FirebaseMessaging.getInstance().getToken().addOnCompleteListener(new OnCompleteListener<String>() {
+                @Override
+                public void onComplete(@NonNull Task<String> task) {
+                    if (!task.isSuccessful()) {
+                        Log.d(TAG, "Fetching FCM registration token failed", task.getException());
+                        return;
+                    }
+
+                    // Get new FCM registration token
+                    deviceToken = task.getResult();
+                    if (!TextUtils.isEmpty(deviceToken)) {
+                        apiManager.registerDeviceToken(deviceToken, new ApiResponseListener() {
+                            @Override
+                            public void onSuccess(Bundle data) {
+                            }
+
+                            @Override
+                            public void onResponseFailure(Exception exception) {
+                            }
+
+                            @Override
+                            public void onNetworkFailure(Exception exception) {
+                            }
+                        });
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * Calculates exponential backoff delay for retry attempts.
+     * Formula: RETRY_INTERVAL_MS * (2 ^ (retryCount - 1))
+     * The delay is capped at MAX_RETRY_INTERVAL_MS to prevent excessive wait times.
+     *
+     * @param retryCount Current retry attempt number (1-based)
+     * @return Delay in milliseconds before next retry
+     */
+    private long calculateExponentialBackoff(int retryCount) {
+        if (retryCount <= 0) {
+            return RETRY_INTERVAL_MS;
+        }
+        // Calculate exponential backoff: base * 2^(retryCount-1)
+        long delay = RETRY_INTERVAL_MS * (1L << (retryCount - 1));
+        // Cap at maximum interval
+        return Math.min(delay, MAX_RETRY_INTERVAL_MS);
     }
 
     public void logout() {
@@ -1002,9 +1093,12 @@ public class EspApplication extends Application {
         clearUserSession();
     }
 
-    private void unregisterDeviceToken() {
-        if (Utils.isPlayServicesAvailable(getApplicationContext())) {
-            // Delete endpoint API
+    public void unregisterDeviceToken() {
+        if (BuildConfig.isChinaRegion) {
+            deviceToken = JPushInterface.getRegistrationID(this);
+        }
+
+        if (!TextUtils.isEmpty(deviceToken)) {
             apiManager.unregisterDeviceToken(deviceToken, new ApiResponseListener() {
                 @Override
                 public void onSuccess(Bundle data) {
@@ -1018,6 +1112,8 @@ public class EspApplication extends Application {
                 public void onNetworkFailure(Exception exception) {
                 }
             });
+        } else {
+            Log.e(TAG, "No push service registration ID found to unregister.");
         }
     }
 
@@ -1033,11 +1129,18 @@ public class EspApplication extends Application {
         wifiNetworkEditor.clear();
         wifiNetworkEditor.apply();
 
-        if (Utils.isPlayServicesAvailable(getApplicationContext())) {
+        if (BuildConfig.isChinaRegion) {
+            String regId = JPushInterface.getRegistrationID(this);
+            if (!TextUtils.isEmpty(regId)) {
+                JPushInterface.deleteAlias(this, 0);
+                JPushInterface.stopPush(this);
+            }
+        } else {
             FirebaseMessaging.getInstance().deleteToken();
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.cancelAll();
         }
+
+        NotificationManager notificationManager = getSystemService(NotificationManager.class);
+        notificationManager.cancelAll();
 
         Log.e(TAG, "Deleted all things from local storage.");
         changeAppState(AppState.NO_USER_LOGIN, null);
