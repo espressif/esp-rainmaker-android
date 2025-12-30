@@ -17,7 +17,9 @@ package com.espressif.ui.activities;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
@@ -134,6 +136,22 @@ public class WiFiConfigActivity extends AppCompatActivity {
         txtNextBtn = findViewById(R.id.text_btn);
         txtNextBtn.setText(R.string.btn_next);
         btnNext.setOnClickListener(nextBtnClickListener);
+
+        etPassword.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String password = s.toString();
+                enableNextButton(password);
+            }
+        });
     }
 
     private void goToProvisionActivity(String ssid, String password) {
@@ -144,6 +162,16 @@ public class WiFiConfigActivity extends AppCompatActivity {
         provisionIntent.putExtra(AppConstants.KEY_SSID, ssid);
         provisionIntent.putExtra(AppConstants.KEY_PASSWORD, password);
         startActivity(provisionIntent);
+    }
+
+    private void enableNextButton(String password) {
+        if (!TextUtils.isEmpty(password) && password.length() >= AppConstants.MIN_LEN_PASSWORD) {
+            btnNext.setEnabled(true);
+            btnNext.setAlpha(1f);
+        } else {
+            btnNext.setEnabled(false);
+            btnNext.setAlpha(0.5f);
+        }
     }
 
     private void showAlertForDeviceDisconnected() {

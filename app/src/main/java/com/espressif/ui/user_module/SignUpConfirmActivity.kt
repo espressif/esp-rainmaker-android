@@ -40,7 +40,7 @@ class SignUpConfirmActivity : AppCompatActivity() {
 
     private var userName: String? = null
     private var password: String? = null
-    private var userDialog: AlertDialog? = null
+    private lateinit var userDialog: AlertDialog
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -203,7 +203,7 @@ class SignUpConfirmActivity : AppCompatActivity() {
             R.string.btn_ok
         ) { dialog, which ->
             try {
-                userDialog?.dismiss()
+                userDialog.dismiss()
                 if (exitActivity) {
                     val intent = Intent()
                     intent.putExtra(AppConstants.KEY_USER_NAME, userName)
@@ -216,7 +216,7 @@ class SignUpConfirmActivity : AppCompatActivity() {
             }
         }
         userDialog = builder.create()
-        userDialog!!.show()
+        userDialog.show()
     }
 
     private fun showLoading() {

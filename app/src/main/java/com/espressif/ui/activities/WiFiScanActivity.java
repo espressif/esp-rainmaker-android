@@ -29,7 +29,9 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -78,7 +80,7 @@ public class WiFiScanActivity extends AppCompatActivity {
     private MaterialCardView btnNext, btnRescan;
 
     private ESPProvisionManager provisionManager;
-    private String ssid, password;
+    private String ssid;
     private WifiManager wifiManager;
     private List<ScanResult> results;
     private ArrayList<WiFiAccessPoint> wifiAPList;
@@ -179,6 +181,22 @@ public class WiFiScanActivity extends AppCompatActivity {
         btnNext.setOnClickListener(startBtnClickListener);
         btnRescan.setOnClickListener(scanAgainClickListener);
         binding.tvAddNetwork.setOnClickListener(otherNetworkClickListener);
+
+        binding.etPassword.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String password = s.toString();
+                enableNextButton(password);
+            }
+        });
 
         binding.spinnerNetworks.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -549,5 +567,15 @@ public class WiFiScanActivity extends AppCompatActivity {
         binding.rlWifiScan.setAlpha(1);
         binding.rlProgress.setVisibility(View.GONE);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+    }
+
+    private void enableNextButton(String password) {
+        if (!TextUtils.isEmpty(password) && password.length() >= AppConstants.MIN_LEN_PASSWORD) {
+            btnNext.setEnabled(true);
+            btnNext.setAlpha(1f);
+        } else {
+            btnNext.setEnabled(false);
+            btnNext.setAlpha(0.5f);
+        }
     }
 }

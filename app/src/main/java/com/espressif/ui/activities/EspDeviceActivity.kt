@@ -100,13 +100,13 @@ class EspDeviceActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityEspDeviceBinding
 
-    private var espApp: EspApplication? = null
+    private lateinit var espApp: EspApplication
     private var device: Device? = null
-    private var networkApiManager: NetworkApiManager? = null
-    private var handler: Handler? = null
+    private lateinit var networkApiManager: NetworkApiManager
+    private lateinit var handler: Handler
 
-    private var paramAdapter: ParamAdapter? = null
-    private var attrAdapter: AttrParamAdapter? = null
+    private lateinit var paramAdapter: ParamAdapter
+    private lateinit var attrAdapter: AttrParamAdapter
 
     private var snackbar: Snackbar? = null
 
@@ -150,9 +150,9 @@ class EspDeviceActivity : AppCompatActivity() {
             nodeId = device!!.nodeId
             Log.d(TAG, "NODE ID : $nodeId")
 
-            nodeType = espApp!!.nodeMap[nodeId]!!.newNodeType
-            nodeStatus = espApp!!.nodeMap[nodeId]!!.nodeStatus
-            timeStampOfStatus = espApp!!.nodeMap[nodeId]!!.timeStampOfStatus
+            nodeType = espApp.nodeMap[nodeId]!!.newNodeType
+            nodeStatus = espApp.nodeMap[nodeId]!!.nodeStatus
+            timeStampOfStatus = espApp.nodeMap[nodeId]!!.timeStampOfStatus
             snackbar = Snackbar.make(
                 binding.espDeviceLayout.paramsParentLayout,
                 R.string.msg_no_internet,
@@ -165,15 +165,15 @@ class EspDeviceActivity : AppCompatActivity() {
 
             if (nodeType == AppConstants.NODE_TYPE_PURE_MATTER || nodeType == AppConstants.NODE_TYPE_RM_MATTER) {
 
-                if (espApp!!.matterRmNodeIdMap.containsKey(nodeId)) {
-                    matterNodeId = espApp!!.matterRmNodeIdMap[nodeId]
+                if (espApp.matterRmNodeIdMap.containsKey(nodeId)) {
+                    matterNodeId = espApp.matterRmNodeIdMap[nodeId]
                 }
 
                 if (!TextUtils.isEmpty(matterNodeId)
-                    && espApp!!.availableMatterDevices.contains(matterNodeId)
-                    && espApp!!.matterDeviceInfoMap.containsKey(matterNodeId)
+                    && espApp.availableMatterDevices.contains(matterNodeId)
+                    && espApp.matterDeviceInfoMap.containsKey(matterNodeId)
                 ) {
-                    val deviceMatterInfo = espApp!!.matterDeviceInfoMap[matterNodeId]
+                    val deviceMatterInfo = espApp.matterDeviceInfoMap[matterNodeId]
 
                     if (!deviceMatterInfo.isNullOrEmpty()) {
                         for ((endpoint, _, serverClusters) in deviceMatterInfo) {
@@ -202,13 +202,13 @@ class EspDeviceActivity : AppCompatActivity() {
             }
 
             val controllerService = getService(
-                espApp!!.nodeMap[nodeId]!!,
+                espApp.nodeMap[nodeId]!!,
                 AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
             )
             isCtlAvailable = controllerService != null
 
             val rmakerControllerService = getService(
-                espApp!!.nodeMap[nodeId]!!,
+                espApp.nodeMap[nodeId]!!,
                 AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER
             )
             isRmakerCtlAvailable = rmakerControllerService != null
@@ -318,8 +318,8 @@ class EspDeviceActivity : AppCompatActivity() {
                 val currentTime = System.currentTimeMillis()
                 if (BuildConfig.isContinuousUpdateEnable) {
                     if (isUpdateView && currentTime - lastUpdateRequestTime > UI_UPDATE_INTERVAL) {
-                        handler!!.removeCallbacks(updateViewTask)
-                        handler!!.post(updateViewTask)
+                        handler.removeCallbacks(updateViewTask)
+                        handler.post(updateViewTask)
                     }
                 } else if (nodeStatus != AppConstants.NODE_STATUS_MATTER_LOCAL) {
                     updateUi()
@@ -367,13 +367,13 @@ class EspDeviceActivity : AppCompatActivity() {
             return
         }
         shouldGetParams = true
-        handler!!.removeCallbacks(updateValuesTask)
-        handler!!.postDelayed(updateValuesTask, UPDATE_INTERVAL.toLong())
+        handler.removeCallbacks(updateValuesTask)
+        handler.postDelayed(updateValuesTask, UPDATE_INTERVAL.toLong())
     }
 
     fun stopUpdateValueTask() {
         shouldGetParams = false
-        handler!!.removeCallbacks(updateValuesTask)
+        handler.removeCallbacks(updateValuesTask)
     }
 
     private fun goToNodeDetailsActivity() {
@@ -390,8 +390,8 @@ class EspDeviceActivity : AppCompatActivity() {
                     if (isUpdateView && currentTime - lastUpdateRequestTime >= UI_UPDATE_INTERVAL) {
                         getValues()
                     } else {
-                        handler!!.removeCallbacks(this)
-                        handler!!.postDelayed(this, UI_UPDATE_INTERVAL.toLong())
+                        handler.removeCallbacks(this)
+                        handler.postDelayed(this, UI_UPDATE_INTERVAL.toLong())
                     }
                 } else {
                     getValues()
@@ -429,7 +429,7 @@ class EspDeviceActivity : AppCompatActivity() {
                 // Get service name
                 var serviceName = AppConstants.KEY_MATTER_CTL
                 val service = getService(
-                    espApp?.nodeMap?.get(nodeId)!!,
+                    espApp.nodeMap?.get(nodeId)!!,
                     AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
                 )
                 if (service != null && !TextUtils.isEmpty(service.name)) {
@@ -453,10 +453,10 @@ class EspDeviceActivity : AppCompatActivity() {
             } else {
                 val id = BigInteger(matterNodeId, 16)
                 val deviceId = id.toLong()
-                if (espApp!!.chipClientMap.containsKey(matterNodeId)) {
+                if (espApp.chipClientMap.containsKey(matterNodeId)) {
                     val espClusterHelper = ControllerClusterHelper(
-                        espApp!!.chipClientMap[matterNodeId]!!,
-                        espApp!!
+                        espApp.chipClientMap[matterNodeId]!!,
+                        espApp
                     )
                     espClusterHelper.sendUpdateDeviceListEventAsync(
                         deviceId,
@@ -542,7 +542,7 @@ class EspDeviceActivity : AppCompatActivity() {
         }
 
         val tbrService: Service? =
-            getService(espApp!!.nodeMap[nodeId]!!, AppConstants.SERVICE_TYPE_TBR)
+            getService(espApp.nodeMap[nodeId]!!, AppConstants.SERVICE_TYPE_TBR)
         if (tbrService != null) {
             binding.espDeviceLayout.rlUpdateThreadDataset.visibility = View.VISIBLE
             binding.espDeviceLayout.rlMergeThreadDataset.visibility = View.VISIBLE
@@ -625,7 +625,7 @@ class EspDeviceActivity : AppCompatActivity() {
     private fun getNodeDetails() {
         stopUpdateValueTask()
 
-        networkApiManager!!.getNodeDetails(
+        networkApiManager.getNodeDetails(
             nodeId, object : ApiResponseListener {
                 override fun onSuccess(data: Bundle?) {
                     runOnUiThread {
@@ -780,7 +780,7 @@ class EspDeviceActivity : AppCompatActivity() {
                 if (!TextUtils.isEmpty(nodeType) && nodeType == AppConstants.NODE_TYPE_PURE_MATTER) {
                     var controllerNodeId = ""
 
-                    for ((key, controllerDevices) in espApp!!.controllerDevices) {
+                    for ((key, controllerDevices) in espApp.controllerDevices) {
                         if (controllerDevices.containsKey(matterNodeId)) {
                             controllerNodeId = key
                             break
@@ -799,7 +799,7 @@ class EspDeviceActivity : AppCompatActivity() {
     }
 
     private fun getParamValuesForDevice(rmNodeId: String) {
-        networkApiManager!!.getParamsValues(rmNodeId, object : ApiResponseListener {
+        networkApiManager.getParamsValues(rmNodeId, object : ApiResponseListener {
             override fun onSuccess(data: Bundle?) {
                 runOnUiThread {
                     isNetworkAvailable = true
@@ -868,13 +868,13 @@ class EspDeviceActivity : AppCompatActivity() {
             lifecycleScope.launch {
                 if (nodeStatus == AppConstants.NODE_STATUS_MATTER_LOCAL
                     && !TextUtils.isEmpty(matterNodeId)
-                    && espApp!!.chipClientMap.containsKey(matterNodeId)
+                    && espApp.chipClientMap.containsKey(matterNodeId)
                 ) {
                     try {
                         val id = BigInteger(matterNodeId, 16)
                         val deviceId = id.toLong()
                         val espClusterHelper =
-                            DoorLockClusterHelper(espApp!!.chipClientMap[matterNodeId]!!)
+                            DoorLockClusterHelper(espApp.chipClientMap[matterNodeId]!!)
                         espClusterHelper.setUser(deviceId, AppConstants.ENDPOINT_1)
 
                         espClusterHelper.setCredential(
@@ -996,15 +996,15 @@ class EspDeviceActivity : AppCompatActivity() {
         var updatedDevice: Device? = null
         lastUpdateRequestTime = System.currentTimeMillis()
 
-        if (espApp!!.nodeMap.containsKey(nodeId)) {
-            val devices = espApp!!.nodeMap[nodeId]!!
+        if (espApp.nodeMap.containsKey(nodeId)) {
+            val devices = espApp.nodeMap[nodeId]!!
                 .devices
             if (devices == null || devices.isEmpty()) {
                 Log.e(TAG, "Node devices are not available")
                 return
             }
-            timeStampOfStatus = espApp!!.nodeMap[nodeId]!!.timeStampOfStatus
-            nodeStatus = espApp!!.nodeMap[nodeId]!!.nodeStatus
+            timeStampOfStatus = espApp.nodeMap[nodeId]!!.timeStampOfStatus
+            nodeStatus = espApp.nodeMap[nodeId]!!.nodeStatus
 
             for (i in devices.indices) {
                 if (device!!.deviceName != null && device!!.deviceName == devices[i].deviceName) {
@@ -1037,11 +1037,11 @@ class EspDeviceActivity : AppCompatActivity() {
         setParamList(updatedDevice!!.params)
 
         when (nodeStatus) {
-            AppConstants.NODE_STATUS_MATTER_LOCAL -> if (espApp!!.appState == EspApplication.AppState.GET_DATA_SUCCESS) {
-                if (!TextUtils.isEmpty(matterNodeId) && espApp!!.availableMatterDevices.contains(
+            AppConstants.NODE_STATUS_MATTER_LOCAL -> if (espApp.appState == EspApplication.AppState.GET_DATA_SUCCESS) {
+                if (!TextUtils.isEmpty(matterNodeId) && espApp.availableMatterDevices.contains(
                         matterNodeId
                     )
-                    && espApp!!.matterDeviceInfoMap.containsKey(matterNodeId)
+                    && espApp.matterDeviceInfoMap.containsKey(matterNodeId)
                 ) {
                     binding.espDeviceLayout.rlNodeStatus.visibility = View.VISIBLE
                     binding.espDeviceLayout.tvDeviceStatus.setText(R.string.status_local)
@@ -1050,7 +1050,7 @@ class EspDeviceActivity : AppCompatActivity() {
                 binding.espDeviceLayout.rlNodeStatus.visibility = View.INVISIBLE
             }
 
-            AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE -> if (espApp!!.appState == EspApplication.AppState.GET_DATA_SUCCESS) {
+            AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE -> if (espApp.appState == EspApplication.AppState.GET_DATA_SUCCESS) {
                 binding.espDeviceLayout.rlNodeStatus.visibility = View.VISIBLE
                 binding.espDeviceLayout.tvDeviceStatus.setText(R.string.status_remote)
             } else {
@@ -1058,12 +1058,12 @@ class EspDeviceActivity : AppCompatActivity() {
             }
 
             AppConstants.NODE_STATUS_LOCAL -> {
-                val localDevice = espApp!!.localDeviceMap[nodeId]
+                val localDevice = espApp.localDeviceMap[nodeId]
 
-                if (espApp!!.appState == EspApplication.AppState.GET_DATA_SUCCESS) {
+                if (espApp.appState == EspApplication.AppState.GET_DATA_SUCCESS) {
                     binding.espDeviceLayout.rlNodeStatus.visibility = View.VISIBLE
 
-                    if (espApp!!.localDeviceMap.containsKey(nodeId)) {
+                    if (espApp.localDeviceMap.containsKey(nodeId)) {
                         if (localDevice!!.securityType == 1 || localDevice.securityType == 2) {
                             binding.espDeviceLayout.ivSecureLocal.setVisibility(View.VISIBLE)
                         } else {
@@ -1076,7 +1076,7 @@ class EspDeviceActivity : AppCompatActivity() {
                 }
             }
 
-            AppConstants.NODE_STATUS_OFFLINE -> if (espApp!!.appState == EspApplication.AppState.GET_DATA_SUCCESS) {
+            AppConstants.NODE_STATUS_OFFLINE -> if (espApp.appState == EspApplication.AppState.GET_DATA_SUCCESS) {
                 binding.espDeviceLayout.ivSecureLocal.setVisibility(View.GONE)
                 var offlineText = getString(R.string.status_offline)
                 binding.espDeviceLayout.tvDeviceStatus.text = offlineText
@@ -1108,10 +1108,10 @@ class EspDeviceActivity : AppCompatActivity() {
 
             else -> binding.espDeviceLayout.rlNodeStatus.visibility = View.INVISIBLE
         }
-        paramAdapter!!.updateParamList(paramList)
-        attrAdapter!!.updateAttributeList(attributeList)
+        paramAdapter.updateParamList(paramList)
+        attrAdapter.updateAttributeList(attributeList)
 
-        if (paramList!!.size <= 0 && attributeList!!.size <= 0) {
+        if (paramList!!.isEmpty() && attributeList!!.isEmpty()) {
             binding.espDeviceLayout.tvNoParams.visibility = View.VISIBLE
             binding.espDeviceLayout.rvDynamicParamList.visibility = View.GONE
             binding.espDeviceLayout.rvStaticParamList.visibility = View.GONE
@@ -1164,7 +1164,7 @@ class EspDeviceActivity : AppCompatActivity() {
 
     // Matter Subscription Methods
     private fun setupMatterSubscriptions() {
-        if (matterSubscriptionActive || matterNodeId.isNullOrEmpty() || !espApp!!.chipClientMap.containsKey(
+        if (matterSubscriptionActive || matterNodeId.isNullOrEmpty() || !espApp.chipClientMap.containsKey(
                 matterNodeId
             )
         ) {
@@ -1175,7 +1175,7 @@ class EspDeviceActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val chipClient = espApp!!.chipClientMap[matterNodeId]!!
+                val chipClient = espApp.chipClientMap[matterNodeId]!!
                 subscriptionHelper = SubscriptionHelper(chipClient)
                 val deviceId = BigInteger(matterNodeId, 16).toLong()
                 val connectedDevicePtr = chipClient.getConnectedDevicePointer(deviceId)

@@ -663,11 +663,6 @@ public class ProvisionActivity extends AppCompatActivity {
                                         /* Call verify mapping API */
                                         byte[] bytes = signedChallenge.toByteArray();
 
-                                        if (bytes.length != 256) {
-                                            showMappingError();
-                                            return;
-                                        }
-
                                         /* Convert bytes to hex string */
                                         StringBuilder hexString = new StringBuilder(512);
                                         for (byte b : bytes) {

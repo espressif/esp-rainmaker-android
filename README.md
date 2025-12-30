@@ -203,6 +203,10 @@ This account linking flow enables users to link their Alexa user identity with t
 - Link their account without entering Alexa account credentials if already logged into Alexa app. They will have to login to Rainmaker once, when trying to link accounts.
 - Link their account from your RainMaker using [Login with Amazon (LWA)](https://developer.amazon.com/docs/login-with-amazon/documentation-overview.html), when the Alexa app isn't installed on their device.
 
+To configure Alexa app linking, add the following properties in `local.properties`:
+- `alexaRedirectHost`: Host value for the deep link intent filter in AndroidManifest.xml. Default value is "**your_host_value**".
+- Additional Alexa configuration properties: `alexaClientId`, `alexaClientSecret`, `alexaRedirectUrl`, `alexaRMClientId`, `skillId`, `skillStage`, `alexaAccessTokenUrl`.
+
 ### Command Response
 
 Command Response allows users to send commands to nodes and receive responses back asynchronously. This provides a more robust way of communicating with nodes and also allows nodes to provide access control based on primary/secondary role.
@@ -251,6 +255,7 @@ Settings associated with provisioning a device can be modified in the `local.pro
 Add below lines in `local.properties` and customize as per your requirement.
  
  ```
+ appName=ESP RainMaker
  transport=Both
  security=2
  POP=abcd1234
@@ -268,6 +273,7 @@ Description of each key can be found below.
 
 | Key                    	| Type    	| Description                                                                                                                                                                                                     	 |
 |------------------------	|---------	|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| appName                	| String  	| Application name displayed to users. It's default value is "**ESP RainMaker**".                                                                                                                              	 |
 | transport              	| String  	| Possible values:   <br> **Both** (Default) : Supports both BLE and SoftAP device provisioning. <br> **SoftAP** : supports only SoftAP device provisioning. <br> **BLE**: supports only BLE device provisioning. 	 |
 | security               	| int 	   | It can be 0, 1 or 2 int value. (Default value is 2).  <br> **0**: for unencrypted communication between device and app. <br> **1/2** : for secure/encrypted communication between device and app.                   |
 | POP                    	| String  	| Proof of Possession. It's default value is **empty string**.                                                                                                                                                    	 |
