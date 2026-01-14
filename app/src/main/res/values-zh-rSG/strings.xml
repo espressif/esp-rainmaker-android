@@ -578,6 +578,7 @@
         <item>BLE</item>
         <item>SoftAP</item>
         <item>Matter</item>
+        <item>On Network</item>
     </string-array>
 
     <item name="position" type="id" />
@@ -626,5 +627,10 @@
     <string name="btn_allow">Allow</string>
     <string name="btn_alexa_deny">Deny</string>
     <string name="btn_not_now">Not now</string>
+
+    <!-- On Network Discovery -->
+    <string name="title_on_network_discovery">发现设备</string>
+    <string name="discovering_devices">正在发现网络上的设备...</string>
+    <string name="no_devices_found">未找到任何设备</string>
 
 </resources>

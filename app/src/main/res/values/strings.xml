@@ -586,6 +586,7 @@
         <item>BLE</item>
         <item>SoftAP</item>
         <item>Matter</item>
+        <item>On Network</item>
     </string-array>
 
     <item name="position" type="id" />
@@ -630,5 +631,10 @@
     <string name="btn_restart">Restart</string>
     <string name="btn_allow">Allow</string>
     <string name="btn_alexa_deny">Deny</string>
+
+    <!-- On Network Discovery -->
+    <string name="title_on_network_discovery">Discover Devices</string>
+    <string name="discovering_devices">Discovering devices on network...</string>
+    <string name="no_devices_found">No devices found</string>
 
 </resources>

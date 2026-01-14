@@ -1,11 +1,12 @@
 syntax = "proto3";
 
-package rmaker_misc;
+package rmaker_ch_resp;
 
-enum RMakerMiscStatus {
+enum RMakerChRespStatus {
     Success = 0;
     Fail = 1;
     InvalidParam = 2;
+    Disabled = 3;
 }
 
 message CmdCRPayload {
@@ -25,20 +26,32 @@ message RespGetNodeIDPayload {
     string node_id = 1;
 }
 
-enum RMakerMiscMsgType {
+message CmdDisableChalRespPayload {
+    /* Empty payload - command to disable challenge-response */
+}
+
+message RespDisableChalRespPayload {
+    /* Response contains only status in the parent message */
+}
+
+enum RMakerChRespMsgType {
     TypeCmdChallengeResponse = 0;
     TypeRespChallengeResponse = 1;
     TypeCmdGetNodeID = 2;
     TypeRespGetNodeID = 3;
+    TypeCmdDisableChalResp = 4;
+    TypeRespDisableChalResp = 5;
 }
 
-message RMakerMiscPayload {
-    RMakerMiscMsgType msg = 1;
-    RMakerMiscStatus status = 2;
+message RMakerChRespPayload {
+    RMakerChRespMsgType msg = 1;
+    RMakerChRespStatus status = 2;
     oneof payload {
         CmdCRPayload cmdChallengeResponsePayload = 10;
         RespCRPayload respChallengeResponsePayload = 11;
         CmdGetNodeIDPayload cmdGetNodeIDPayload = 12;
         RespGetNodeIDPayload respGetNodeIDPayload = 13;
+        CmdDisableChalRespPayload cmdDisableChalRespPayload = 14;
+        RespDisableChalRespPayload respDisableChalRespPayload = 15;
     }
-} 
+}
