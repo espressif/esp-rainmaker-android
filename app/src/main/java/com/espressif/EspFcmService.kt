@@ -48,6 +48,7 @@ class EspFcmService : FirebaseMessagingService() {
         val title = msgData[AppConstants.KEY_TITLE]
         val body = msgData[AppConstants.KEY_BODY]
         val eventPayload = msgData[AppConstants.KEY_EVENT_DATA_PAYLOAD]
+        val additionalInfo = msgData[AppConstants.KEY_ADDITIONAL_INFO]
 
         Log.d(TAG, "Title : $title")
         Log.d(TAG, "Body : $body")
@@ -60,6 +61,20 @@ class EspFcmService : FirebaseMessagingService() {
                     .putString(AppConstants.KEY_TITLE, title)
                     .putString(AppConstants.KEY_BODY, body)
                     .putString(AppConstants.KEY_EVENT_DATA_PAYLOAD, eventPayload)
+                    .build()
+                val workRequest = OneTimeWorkRequest.Builder(NotificationWorker::class.java)
+                    .setInputData(data)
+                    .build()
+                WorkManager.getInstance().enqueue(workRequest)
+            } catch (e: JSONException) {
+                e.printStackTrace()
+            }
+        } else if (additionalInfo != null) {
+            try {
+                val data = Data.Builder()
+                    .putString(AppConstants.KEY_TITLE, title)
+                    .putString(AppConstants.KEY_BODY, body)
+                    .putString(AppConstants.KEY_ADDITIONAL_INFO, additionalInfo)
                     .build()
                 val workRequest = OneTimeWorkRequest.Builder(NotificationWorker::class.java)
                     .setInputData(data)
