@@ -58,6 +58,7 @@ def defaultChinaTermsOfUseUrl = "https://rainmaker.espressif.com/zh-hans/docs/te
 def weChatIdForLogin = "your_we_chat_id"
 def defaultJPushAppKey = "your jpush app key" // put your default value here
 def defaultJPushChannel = "developer-default" // put your default value here
+def defaultAlexaRedirectHost = "your_host_value" // put your default value here
 
 def localProperties = new Properties()
 localProperties.load(new FileInputStream(rootProject.file("local.properties")))
@@ -192,6 +193,7 @@ android {
         buildConfigField "String", "SKILL_ID", '"' + localProperties.getProperty("skillId") + '"'
         buildConfigField "String", "SKILL_STAGE", '"' + localProperties.getProperty("skillStage") + '"'
         buildConfigField "String", "ALEXA_ACCESS_TOKEN_URL", '"' + localProperties.getProperty("alexaAccessTokenUrl") + '"'
+        def alexaRedirectHost = localProperties.getProperty("alexaRedirectHost", defaultAlexaRedirectHost)
 
         // User pool selection
         def userPool = localProperties.getProperty("userPool", defaultUserPool)
@@ -209,7 +211,8 @@ android {
         manifestPlaceholders = [
                 JPUSH_PKGNAME: "com.espressif.rainmaker",
                 JPUSH_APPKEY: jpushAppKey, // Replace with your JPush app key
-                JPUSH_CHANNEL: jpushChannel
+                JPUSH_CHANNEL: jpushChannel,
+                ALEXA_REDIRECT_HOST: alexaRedirectHost // Alexa app linking redirect host value
         ]
     }
 

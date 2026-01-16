@@ -611,5 +611,7 @@ class AppConstants {
 
         /* Keys used in API calls and responses */
         const val KEY_CHALLENGE_RESP = "challenge_response"
+
+        const val MIN_LEN_PASSWORD = 8
     }
 }

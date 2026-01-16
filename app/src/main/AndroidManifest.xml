@@ -378,7 +378,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="your_host_value"
+                    android:host="${ALEXA_REDIRECT_HOST}"
                     android:scheme="https" />
             </intent-filter>
         </activity>
