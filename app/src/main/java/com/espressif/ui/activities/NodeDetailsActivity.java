@@ -35,6 +35,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.NetworkApiManager;
+import com.espressif.ble.BleLocalControlManager;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
@@ -251,6 +252,17 @@ public class NodeDetailsActivity extends AppCompatActivity {
         if (systemService != null) {
             nodeInfoList.add(getString(R.string.system_services));
             nodeInfoValueList.add(getString(R.string.system_services));
+        }
+
+        // Wi-Fi Provisioning via BLE (only when BLE-connected and device supports it)
+        BleLocalControlManager bleManager = BleLocalControlManager.getInstance(this);
+        if (bleManager.isConnected(nodeId)) {
+            ArrayList<String> caps = bleManager.getDeviceCapabilities(nodeId);
+            if (caps != null && (caps.contains(AppConstants.CAPABILITY_WIFI_SCAN)
+                    || caps.contains(AppConstants.CAPABILITY_WIFI_PROV))) {
+                nodeInfoList.add(getString(R.string.node_wifi_provisioning));
+                nodeInfoValueList.add(getString(R.string.btn_provision_wifi));
+            }
         }
 
         nodeDetailsAdapter.notifyDataSetChanged();

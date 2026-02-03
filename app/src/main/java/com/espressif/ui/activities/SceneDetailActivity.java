@@ -44,7 +44,8 @@ import androidx.core.widget.ContentLoadingProgressBar;
 import com.aventrix.jnanoid.jnanoid.NanoIdUtils;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
-import com.espressif.cloudapi.ApiManager;
+import com.espressif.NetworkApiManager;
+import com.espressif.ble.BleLocalControlManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
@@ -86,12 +87,13 @@ public class SceneDetailActivity extends AppCompatActivity {
 
     private String sceneName = "", sceneDescription = "";
     private EspApplication espApp;
-    private ApiManager apiManager;
     private ArrayList<Device> devices;
     private ArrayList<Device> selectedDevices;
     private ArrayList<String> selectedNodeIds;
     private Scene scene;
     private String operation = AppConstants.KEY_OPERATION_ADD;
+    private boolean isBleSingleDevice = false;
+    private String bleNodeId;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -99,30 +101,64 @@ public class SceneDetailActivity extends AppCompatActivity {
         setContentView(R.layout.activity_scene_detail);
 
         espApp = (EspApplication) getApplicationContext();
-        apiManager = ApiManager.getInstance(this);
         devices = new ArrayList<>();
         selectedNodeIds = new ArrayList<>();
         scene = getIntent().getParcelableExtra(AppConstants.KEY_SCENE);
         sceneName = getIntent().getStringExtra(AppConstants.KEY_NAME);
         selectedDevices = new ArrayList<>();
 
-        for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
+        isBleSingleDevice = getIntent().getBooleanExtra(AppConstants.KEY_IS_BLE_SINGLE_DEVICE, false);
+        bleNodeId = getIntent().getStringExtra(AppConstants.KEY_NODE_ID);
 
-            String key = entry.getKey();
-            EspNode node = entry.getValue();
-
-            if (node != null) {
-
-                // Scene disabled for matter devices
-                String nodeType = node.getNewNodeType();
-                if (!TextUtils.isEmpty(nodeType) && nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
-                    continue;
+        if (!isBleSingleDevice && scene != null) {
+            BleLocalControlManager bleManager = BleLocalControlManager.getInstance(this);
+            ArrayList<Action> existingActions = scene.getActions();
+            for (int i = 0; i < existingActions.size(); i++) {
+                String actionNodeId = existingActions.get(i).getNodeId();
+                if (actionNodeId != null && bleManager.isConnected(actionNodeId)) {
+                    EspNode actionNode = espApp.nodeMap.get(actionNodeId);
+                    if (actionNode != null && !actionNode.isOnline()) {
+                        isBleSingleDevice = true;
+                        bleNodeId = actionNodeId;
+                        break;
+                    }
                 }
+            }
+        }
 
-                Service sceneService = NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_SCENES);
-                if (sceneService != null) {
-                    for (Device espDevice : node.getDevices()) {
-                        devices.add(new Device(espDevice));
+        if (isBleSingleDevice && bleNodeId != null) {
+            EspNode node = espApp.nodeMap.get(bleNodeId);
+            if (node != null) {
+                for (Device espDevice : node.getDevices()) {
+                    devices.add(new Device(espDevice));
+                }
+            }
+        } else {
+            for (Map.Entry<String, EspNode> entry : espApp.nodeMap.entrySet()) {
+
+                String key = entry.getKey();
+                EspNode node = entry.getValue();
+
+                if (node != null) {
+
+                    // Scene disabled for matter devices
+                    String nodeType = node.getNewNodeType();
+                    if (!TextUtils.isEmpty(nodeType) && nodeType.equals(AppConstants.NODE_TYPE_PURE_MATTER)) {
+                        continue;
+                    }
+
+                    // Skip BLE-only devices from multi-device scene flow
+                    boolean isBleOnly = !node.isOnline()
+                            && BleLocalControlManager.getInstance(this).isConnected(key);
+                    if (isBleOnly) {
+                        continue;
+                    }
+
+                    Service sceneService = NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_SCENES);
+                    if (sceneService != null) {
+                        for (Device espDevice : node.getDevices()) {
+                            devices.add(new Device(espDevice));
+                        }
                     }
                 }
             }
@@ -147,7 +183,7 @@ public class SceneDetailActivity extends AppCompatActivity {
                 }
             }
 
-            if (params.size() <= 0) {
+            if (params.isEmpty()) {
                 deviceIterator.remove();
             }
         }
@@ -174,7 +210,7 @@ public class SceneDetailActivity extends AppCompatActivity {
                         setActionDevicesNames();
 
                         if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
-                            if (selectedDevices.size() > 0) {
+                            if (!selectedDevices.isEmpty()) {
                                 menuSave.setVisible(true);
                             } else {
                                 menuSave.setVisible(false);
@@ -195,7 +231,7 @@ public class SceneDetailActivity extends AppCompatActivity {
         menuSave.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
 
         if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
-            if (selectedDevices.size() > 0) {
+            if (!selectedDevices.isEmpty()) {
                 menuSave.setVisible(true);
             } else {
                 menuSave.setVisible(false);
@@ -281,7 +317,7 @@ public class SceneDetailActivity extends AppCompatActivity {
 
             if (menuSave != null) {
                 if (operation.equals(AppConstants.KEY_OPERATION_ADD)) {
-                    if (selectedDevices.size() > 0) {
+                    if (!selectedDevices.isEmpty()) {
                         menuSave.setVisible(true);
                     } else {
                         menuSave.setVisible(false);
@@ -657,7 +693,7 @@ public class SceneDetailActivity extends AppCompatActivity {
 
         HashMap<String, String> actionMap = prepareActionMap();
 
-        if (operation.equals(AppConstants.KEY_OPERATION_ADD) && actionMap.size() == 0) {
+        if (operation.equals(AppConstants.KEY_OPERATION_ADD) && actionMap.isEmpty()) {
             Toast.makeText(SceneDetailActivity.this, R.string.error_scene_action, Toast.LENGTH_LONG).show();
             return;
         }
@@ -680,7 +716,7 @@ public class SceneDetailActivity extends AppCompatActivity {
 
         HashMap<String, JsonObject> sceneJsonBodyMap = new HashMap<>();
 
-        if (actionMap.size() > 0) {
+        if (!actionMap.isEmpty()) {
 
             for (Map.Entry<String, String> entry : actionMap.entrySet()) {
 
@@ -707,7 +743,7 @@ public class SceneDetailActivity extends AppCompatActivity {
             }
         }
 
-        if (removedNodeIds.size() > 0) {
+        if (!removedNodeIds.isEmpty()) {
 
             sceneJson.addProperty(AppConstants.KEY_ID, scene.getId());
             sceneJson.addProperty(AppConstants.KEY_OPERATION, AppConstants.KEY_OPERATION_REMOVE);
@@ -797,38 +833,55 @@ public class SceneDetailActivity extends AppCompatActivity {
     }
 
     private void updateSceneRequest(HashMap<String, JsonObject> sceneJsonBodyMap, ApiResponseListener listener) {
-        apiManager.updateParamsForMultiNode(sceneJsonBodyMap, new ApiResponseListener() {
+        NetworkApiManager networkApiManager = new NetworkApiManager(getApplicationContext());
+        final int totalNodes = sceneJsonBodyMap.size();
+        final int[] completedCount = {0};
+        final boolean[] hasFailure = {false};
 
-            @Override
-            public void onSuccess(Bundle data) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        listener.onSuccess(data);
-                    }
-                });
-            }
+        for (Map.Entry<String, JsonObject> entry : sceneJsonBodyMap.entrySet()) {
+            String nodeId = entry.getKey();
+            JsonObject payload = entry.getValue();
 
-            @Override
-            public void onResponseFailure(Exception exception) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        listener.onResponseFailure(exception);
+            networkApiManager.updateParamValue(nodeId, payload, new ApiResponseListener() {
+                @Override
+                public void onSuccess(Bundle data) {
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        if (completedCount[0] >= totalNodes) {
+                            runOnUiThread(() -> {
+                                if (hasFailure[0]) {
+                                    listener.onResponseFailure(new Exception("Partial failure"));
+                                } else {
+                                    listener.onSuccess(data);
+                                }
+                            });
+                        }
                     }
-                });
-            }
+                }
 
-            @Override
-            public void onNetworkFailure(Exception exception) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        listener.onNetworkFailure(exception);
+                @Override
+                public void onResponseFailure(Exception exception) {
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        hasFailure[0] = true;
+                        if (completedCount[0] >= totalNodes) {
+                            runOnUiThread(() -> listener.onResponseFailure(exception));
+                        }
                     }
-                });
-            }
-        });
+                }
+
+                @Override
+                public void onNetworkFailure(Exception exception) {
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        hasFailure[0] = true;
+                        if (completedCount[0] >= totalNodes) {
+                            runOnUiThread(() -> listener.onNetworkFailure(exception));
+                        }
+                    }
+                }
+            });
+        }
     }
 
     private String generateSceneId() {

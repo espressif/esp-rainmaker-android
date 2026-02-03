@@ -33,6 +33,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
+import com.espressif.NetworkApiManager;
+import com.espressif.ble.BleLocalControlManager;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
@@ -53,14 +55,14 @@ public class SystemServiceAdapter extends RecyclerView.Adapter<RecyclerView.View
     private EspNode node;
     private Service systemService;
     private ArrayList<Param> serviceParams;
-    private ApiManager apiManager;
+    private NetworkApiManager networkApiManager;
 
     public SystemServiceAdapter(Activity activityContext, EspNode node, Service systemService) {
         this.activityContext = activityContext;
         this.node = node;
         this.systemService = systemService;
         this.serviceParams = systemService.getParams();
-        apiManager = ApiManager.getInstance(activityContext);
+        networkApiManager = new NetworkApiManager(activityContext.getApplicationContext());
     }
 
     @Override
@@ -83,7 +85,9 @@ public class SystemServiceAdapter extends RecyclerView.Adapter<RecyclerView.View
             }
         });
 
-        if (node.isOnline()) {
+        boolean isBleConnected = BleLocalControlManager.Companion.getInstance(activityContext)
+                .isConnected(node.getNodeId());
+        if (node.isOnline() || isBleConnected) {
             systemServiceViewHolder.itemView.setEnabled(true);
             systemServiceViewHolder.itemView.setAlpha(1f);
         } else {
@@ -149,19 +153,41 @@ public class SystemServiceAdapter extends RecyclerView.Adapter<RecyclerView.View
                 jsonParam.addProperty(serviceParam.getName(), true);
                 body.add(systemService.getName(), jsonParam);
 
-                apiManager.updateParamValue(node.getNodeId(), body, new ApiResponseListener() {
+                networkApiManager.updateParamValue(node.getNodeId(), body, new ApiResponseListener() {
 
                     @Override
                     public void onSuccess(Bundle data) {
                         systemServiceViewHolder.loadingServiceOperation.setVisibility(View.GONE);
 
-                        if (paramType.equals(AppConstants.PARAM_TYPE_FACTORY_RESET)) {
-                            EspApplication appContext = (EspApplication) activityContext.getApplicationContext();
-                            Intent loginActivity = new Intent(appContext, EspMainActivity.class);
-                            loginActivity.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
-                                    | Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                    | Intent.FLAG_ACTIVITY_NEW_TASK);
-                            appContext.startActivity(loginActivity);
+                        boolean isBleConnected = BleLocalControlManager.Companion.getInstance(activityContext)
+                                .isConnected(node.getNodeId());
+
+                        if (paramType.equals(AppConstants.PARAM_TYPE_FACTORY_RESET) && isBleConnected) {
+                            ApiManager.getInstance(activityContext).removeNode(node.getNodeId(), new ApiResponseListener() {
+                                @Override
+                                public void onSuccess(Bundle data) {
+                                    Log.d(TAG, "Node removed from cloud after BLE factory reset");
+                                    goToMainAndFinish();
+                                }
+
+                                @Override
+                                public void onResponseFailure(Exception exception) {
+                                    Log.e(TAG, "Failed to remove node from cloud: " + exception.getMessage());
+                                    goToMainAndFinish();
+                                }
+
+                                @Override
+                                public void onNetworkFailure(Exception exception) {
+                                    Log.e(TAG, "Network failure removing node from cloud: " + exception.getMessage());
+                                    goToMainAndFinish();
+                                }
+                            });
+                            return;
+                        }
+
+                        if (paramType.equals(AppConstants.PARAM_TYPE_FACTORY_RESET)
+                                || (paramType.equals(AppConstants.PARAM_TYPE_REBOOT) && isBleConnected)) {
+                            goToMainAndFinish();
                         }
                     }
 
@@ -203,5 +229,15 @@ public class SystemServiceAdapter extends RecyclerView.Adapter<RecyclerView.View
 
         AlertDialog alertDialog = builder.create();
         alertDialog.show();
+    }
+
+    private void goToMainAndFinish() {
+        EspApplication appContext = (EspApplication) activityContext.getApplicationContext();
+        Intent mainIntent = new Intent(appContext, EspMainActivity.class);
+        mainIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+                | Intent.FLAG_ACTIVITY_CLEAR_TASK
+                | Intent.FLAG_ACTIVITY_NEW_TASK);
+        appContext.startActivity(mainIntent);
+        activityContext.finish();
     }
 }

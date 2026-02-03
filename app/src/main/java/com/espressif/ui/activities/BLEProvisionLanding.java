@@ -28,6 +28,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -67,6 +68,8 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import android.text.TextUtils;
 
 public class BLEProvisionLanding extends AppCompatActivity {
 
@@ -444,40 +447,119 @@ public class BLEProvisionLanding extends AppCompatActivity {
     private void checkDeviceCapabilities() {
 
         ESPDevice espDevice = provisionManager.getEspDevice();
-        String versionInfo = espDevice.getVersionInfo();
-        ArrayList<String> rmakerCaps = new ArrayList<>();
-        ArrayList<String> deviceCaps = espDevice.getDeviceCapabilities();
+        if (espDevice == null) {
+            Log.e(TAG, "ESPDevice is null in checkDeviceCapabilities");
+            return;
+        }
 
+        String versionInfo = espDevice.getVersionInfo();
+        if (TextUtils.isEmpty(versionInfo)) {
+            Log.e(TAG, "Version info is empty - cannot check capabilities");
+            goToWifiScanListActivity();
+            return;
+        }
+
+        ArrayList<String> rmakerCaps = new ArrayList<>();
+        ArrayList<String> rmakerExtraCaps = new ArrayList<>();
+        parseRmakerCapsFromVersionInfo(versionInfo, rmakerCaps, rmakerExtraCaps);
+
+        ArrayList<String> deviceCaps = espDevice.getDeviceCapabilities();
+        routeProvisioningByCapabilities(rmakerCaps, rmakerExtraCaps, deviceCaps);
+    }
+
+    private void parseRmakerCapsFromVersionInfo(
+            String versionInfo,
+            ArrayList<String> rmakerCaps,
+            ArrayList<String> rmakerExtraCaps) {
         try {
             JSONObject jsonObject = new JSONObject(versionInfo);
+            Log.d(TAG, "Version Info JSON: " + versionInfo);
+
             JSONObject rmakerInfo = jsonObject.optJSONObject("rmaker");
-
             if (rmakerInfo != null) {
-
                 JSONArray rmakerCapabilities = rmakerInfo.optJSONArray("cap");
                 if (rmakerCapabilities != null) {
                     for (int i = 0; i < rmakerCapabilities.length(); i++) {
-                        String cap = rmakerCapabilities.getString(i);
-                        rmakerCaps.add(cap);
+                        rmakerCaps.add(rmakerCapabilities.getString(i));
+                    }
+                }
+            }
+
+            JSONObject rmakerExtraInfo = jsonObject.optJSONObject("rmaker_extra");
+            if (rmakerExtraInfo != null) {
+                JSONArray rmakerExtraCapabilities = rmakerExtraInfo.optJSONArray("cap");
+                if (rmakerExtraCapabilities != null) {
+                    for (int i = 0; i < rmakerExtraCapabilities.length(); i++) {
+                        String cap = rmakerExtraCapabilities.getString(i);
+                        rmakerExtraCaps.add(cap);
+                        Log.d(TAG, "rmaker_extra cap: " + cap);
                     }
                 }
             }
         } catch (JSONException e) {
             e.printStackTrace();
-            Log.d(TAG, "Version Info JSON not available.");
+            Log.e(TAG, "Version Info JSON parsing failed: " + e.getMessage());
         }
+    }
 
-        boolean hasClaimCap = false, hasCameraClaimCap = false;
+    /**
+     * Routes provisioning: POP first, then claiming, then BLE local ctrl check, then WiFi/Thread.
+     */
+    private void routeProvisioningByCapabilities(
+            ArrayList<String> rmakerCaps,
+            ArrayList<String> rmakerExtraCaps,
+            ArrayList<String> deviceCaps) {
+
+        boolean hasClaimCap = false;
+        boolean hasCameraClaimCap = false;
         if (!rmakerCaps.isEmpty()) {
             hasClaimCap = rmakerCaps.contains(AppConstants.CAPABILITY_CLAIM);
             hasCameraClaimCap = rmakerCaps.contains(AppConstants.CAPABILITY_CAMERA_CLAIM);
         }
 
-        if (deviceCaps != null && !deviceCaps.contains(AppConstants.CAPABILITY_NO_POP) && AppConstants.SEC_TYPE_0 != securityType) {
+        if (deviceCaps != null
+                && !deviceCaps.contains(AppConstants.CAPABILITY_NO_POP)
+                && AppConstants.SEC_TYPE_0 != securityType) {
             goToPopActivity();
         } else if (hasClaimCap || hasCameraClaimCap) {
             goToClaimingActivity(hasCameraClaimCap);
-        } else if (deviceCaps != null) {
+        } else if (tryShowBleLocalControlSkipFlow(rmakerExtraCaps, deviceCaps)) {
+            return;
+        } else {
+            routeToWifiOrThread(deviceCaps);
+        }
+    }
+
+    /**
+     * If the device supports BLE local control + challenge response, shows the skip Wi-Fi dialog
+     * and returns true so the caller does not continue.
+     */
+    private boolean tryShowBleLocalControlSkipFlow(
+            ArrayList<String> rmakerExtraCaps,
+            ArrayList<String> deviceCaps) {
+
+        boolean hasLocalCtrl = rmakerExtraCaps.contains(AppConstants.CAPABILITY_LOCAL_CTRL);
+        boolean hasChResp = rmakerExtraCaps.contains(AppConstants.CAPABILITY_CHALLENGE_RESP)
+                || (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_CHALLENGE_RESP));
+
+        Log.d(TAG, "BLE Local Control Check - hasLocalCtrlCap: " + hasLocalCtrl + ", hasChRespCap: " + hasChResp);
+
+        if (!hasLocalCtrl || !hasChResp) {
+            return false;
+        }
+
+        Log.d(TAG, "BLE local control capabilities found - showing skip Wi-Fi dialog");
+        try {
+            showSkipWifiProvisioningDialog();
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing skip WiFi dialog: " + e.getMessage(), e);
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+        return true;
+    }
+
+    private void routeToWifiOrThread(ArrayList<String> deviceCaps) {
+        if (deviceCaps != null) {
             if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN)) {
                 goToWifiScanListActivity();
             } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_SCAN)) {
@@ -682,5 +764,105 @@ public class BLEProvisionLanding extends AppCompatActivity {
         claimingIntent.putExtras(getIntent());
         claimingIntent.putExtra(AppConstants.KEY_IS_CAMERA_CLAIM, isCameraClaim);
         startActivity(claimingIntent);
+    }
+
+    private void showSkipWifiProvisioningDialog() {
+        Log.d(TAG, "showSkipWifiProvisioningDialog() called on thread: " + Thread.currentThread().getName());
+        
+        /* Ensure we're on UI thread */
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            Log.w(TAG, "Not on UI thread, posting to main thread");
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    showSkipWifiProvisioningDialog();
+                }
+            });
+            return;
+        }
+        
+        try {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setCancelable(false);
+            builder.setTitle(R.string.skip_wifi_provisioning_title);
+            builder.setMessage(R.string.skip_wifi_provisioning_msg);
+
+        builder.setPositiveButton(R.string.btn_yes, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                /* Get device name and PoP for BLE local control */
+                String deviceName = null;
+                
+                /* Try to get device name from stored position first */
+                if (position >= 0 && position < deviceList.size()) {
+                    deviceName = deviceList.get(position).getName();
+                }
+                
+                /* If not available, try to get from connected device or intent */
+                if (TextUtils.isEmpty(deviceName)) {
+                    ESPDevice espDevice = provisionManager.getEspDevice();
+                    if (espDevice != null && espDevice.getBluetoothDevice() != null) {
+                        /* Try to get from Bluetooth device name */
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            if (ActivityCompat.checkSelfPermission(BLEProvisionLanding.this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                                deviceName = espDevice.getBluetoothDevice().getName();
+                            }
+                        } else {
+                            deviceName = espDevice.getBluetoothDevice().getName();
+                        }
+                    }
+                    
+                    /* Fallback to intent extra */
+                    if (TextUtils.isEmpty(deviceName)) {
+                        deviceName = getIntent().getStringExtra(AppConstants.KEY_DEVICE_NAME);
+                    }
+                }
+                
+                /* Get PoP from ESPDevice first (set during connection), then fallback to intent */
+                String pop = null;
+                ESPDevice espDevice = provisionManager.getEspDevice();
+                if (espDevice != null) {
+                    pop = espDevice.getProofOfPossession();
+                }
+                if (TextUtils.isEmpty(pop)) {
+                    pop = getIntent().getStringExtra(AppConstants.KEY_PROOF_OF_POSSESSION);
+                }
+
+                Log.d(TAG, "Starting BLE local control flow - deviceName: " + deviceName + ", pop: " + (TextUtils.isEmpty(pop) ? "empty" : "set"));
+
+                /* Go to ProvisionActivity with BLE local control flag */
+                Intent provisionIntent = new Intent(getApplicationContext(), ProvisionActivity.class);
+                provisionIntent.putExtras(getIntent());
+                if (!TextUtils.isEmpty(deviceName)) {
+                    provisionIntent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceName);
+                }
+                provisionIntent.putExtra(AppConstants.KEY_PROOF_OF_POSSESSION, pop);
+                provisionIntent.putExtra(AppConstants.KEY_BLE_LOCAL_CTRL, true);
+                startActivity(provisionIntent);
+                finish();
+            }
+        });
+
+        builder.setNegativeButton(R.string.btn_no, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
+                routeToWifiOrThread(deviceCaps);
+            }
+        });
+
+            if (!isFinishing()) {
+                AlertDialog dialog = builder.create();
+                dialog.show();
+                Log.d(TAG, "Skip Wi-Fi Provisioning dialog shown");
+            } else {
+                Log.w(TAG, "Activity is finishing, cannot show dialog");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing Skip Wi-Fi Provisioning dialog: " + e.getMessage(), e);
+            e.printStackTrace();
+            ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
+            routeToWifiOrThread(deviceCaps);
+        }
     }
 }

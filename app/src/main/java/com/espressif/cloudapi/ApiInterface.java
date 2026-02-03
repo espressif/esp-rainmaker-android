@@ -381,4 +381,17 @@ public interface ApiInterface {
     @POST
     Call<ResponseBody> assumeRole(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
                                   @Body JsonObject body);
+
+    // Proxy APIs for BLE local control
+    @POST
+    Call<ResponseBody> reportProxyConfig(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                         @Body JsonObject body);
+
+    @POST
+    Call<ResponseBody> reportProxyParams(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                         @Body JsonObject body);
+
+    @POST
+    Call<ResponseBody> reportProxyInitParams(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
+                                             @Body JsonObject body);
 }

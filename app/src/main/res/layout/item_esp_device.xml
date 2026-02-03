@@ -82,6 +82,14 @@
                     app:autoSizeStepGranularity="2sp"
                     app:autoSizeTextType="uniform" />
 
+                <ProgressBar
+                    android:id="@+id/pb_ble_loading"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:visibility="gone" />
+
             </RelativeLayout>
 
         </LinearLayout>

@@ -55,12 +55,12 @@ import androidx.viewpager.widget.ViewPager;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.JsonDataParser;
+import com.espressif.ble.BleLocalControlManager;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.db.EspDatabase;
 import com.espressif.matter.GroupSelectionActivity;
 import com.espressif.provisioning.ESPConstants;
-import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
@@ -88,7 +88,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 
-public class EspMainActivity extends AppCompatActivity {
+public class EspMainActivity extends AppCompatActivity implements BleLocalControlManager.BleConnectionListener {
 
     private static final String TAG = EspMainActivity.class.getSimpleName();
 
@@ -188,6 +188,8 @@ public class EspMainActivity extends AppCompatActivity {
             // Resume any pending updates
             AppUpdateHelper.INSTANCE.resumeUpdate(this);
         }
+
+        BleLocalControlManager.getInstance(this).addListener(this);
     }
 
     @Override
@@ -202,6 +204,10 @@ public class EspMainActivity extends AppCompatActivity {
             updateListenerArrayList.clear();
         }
         espApp.stopLocalDeviceDiscovery();
+
+        BleLocalControlManager bleManager = BleLocalControlManager.getInstance(this);
+        bleManager.removeListener(this);
+        bleManager.disconnectAll();
 
         if (Utils.isPlayServicesAvailable(getApplicationContext())) {
             // Clean up update resources
@@ -287,6 +293,11 @@ public class EspMainActivity extends AppCompatActivity {
                     if (!TextUtils.isEmpty(errMsg)) {
                         Toast.makeText(EspMainActivity.this, errMsg, Toast.LENGTH_SHORT).show();
                     }
+                }
+                if (espApp.getAppState() == EspApplication.AppState.GET_DATA_SUCCESS) {
+                    BleLocalControlManager bleManager = BleLocalControlManager.getInstance(this);
+                    bleManager.reapplyBleStatusToConnectedNodes();
+                    bleManager.scanForDevices(this);
                 }
                 updateUi();
                 break;
@@ -865,7 +876,6 @@ public class EspMainActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(true);
         builder.setTitle(R.string.dialog_msg_device_selection);
-        final ESPProvisionManager provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
 
         builder.setItems(deviceTypes, new DialogInterface.OnClickListener() {
 
@@ -1032,6 +1042,36 @@ public class EspMainActivity extends AppCompatActivity {
 
         boolean result = gps_enabled || network_enabled;
         return result;
+    }
+
+    @Override
+    public void onDeviceConnected(String nodeId) {
+        Log.d(TAG, "BLE device connected: " + nodeId);
+        if (updateListenerArrayList != null) {
+            for (UiUpdateListener listener : updateListenerArrayList) {
+                listener.updateUi();
+            }
+        }
+    }
+
+    @Override
+    public void onDeviceDisconnected(String nodeId) {
+        Log.d(TAG, "BLE device disconnected: " + nodeId);
+        if (updateListenerArrayList != null) {
+            for (UiUpdateListener listener : updateListenerArrayList) {
+                listener.updateUi();
+            }
+        }
+    }
+
+    @Override
+    public void onAllDevicesProcessed() {
+        Log.d(TAG, "All BLE devices processed");
+        if (updateListenerArrayList != null) {
+            for (UiUpdateListener listener : updateListenerArrayList) {
+                listener.updateUi();
+            }
+        }
     }
 
     public interface UiUpdateListener {

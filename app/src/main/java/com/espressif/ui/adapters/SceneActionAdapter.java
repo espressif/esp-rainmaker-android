@@ -29,6 +29,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
+import com.espressif.ble.BleLocalControlManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
@@ -163,7 +164,10 @@ public class SceneActionAdapter extends RecyclerView.Adapter<SceneActionAdapter.
         });
 
         String nodeId = device.getNodeId();
-        if (espApp.nodeMap.get(nodeId).isOnline()) {
+        boolean isReachable = espApp.nodeMap.get(nodeId).isOnline()
+                || BleLocalControlManager.getInstance(context).isConnected(nodeId);
+
+        if (isReachable) {
 
             int maxCnt = espApp.nodeMap.get(nodeId).getSceneMaxCnt();
 
@@ -175,10 +179,13 @@ public class SceneActionAdapter extends RecyclerView.Adapter<SceneActionAdapter.
                 holder.tvOffline.setVisibility(View.VISIBLE);
                 holder.tvOffline.setText(context.getString(R.string.max_cnt_reached, maxCnt));
                 holder.tvDeviceName.setAlpha(0.55f);
+                device.setParamEnabled(false);
             } else {
                 holder.itemView.setAlpha(1f);
                 holder.ivDeviceSelect.setEnabled(true);
                 holder.tvOffline.setVisibility(View.GONE);
+                holder.tvDeviceName.setAlpha(1f);
+                device.setParamEnabled(true);
             }
         } else {
             holder.itemView.setAlpha(0.85f);
@@ -186,6 +193,7 @@ public class SceneActionAdapter extends RecyclerView.Adapter<SceneActionAdapter.
             holder.tvOffline.setVisibility(View.VISIBLE);
             holder.tvOffline.setText(R.string.status_offline);
             holder.tvDeviceName.setAlpha(0.55f);
+            device.setParamEnabled(false);
         }
     }
 

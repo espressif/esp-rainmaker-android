@@ -165,6 +165,8 @@
     <string name="status_local">Local</string>
     <string name="no_device_support_this_feature">You don\'t have any device\nthat supports this.</string>
     <string name="local_device_text">Reachable on WLAN</string>
+    <string name="ble_device_text">Reachable on BLE</string>
+    <string name="ble_not_reachable">Not reachable</string>
     <string name="max_cnt_reached">Max supported count %d reached</string>
     <string name="invalid">Invalid</string>
     <string name="status_remote">Remote</string>
@@ -381,6 +383,15 @@
     <string name="node_shared_by">Shared by</string>
     <string name="pending_requests">Pending for acceptance</string>
     <string name="system_services">System Services</string>
+    <string name="node_wifi_provisioning">Wi-Fi Provisioning</string>
+    <string name="btn_provision_wifi">Configure Wi-Fi</string>
+    <string name="title_activity_ble_wifi_provision">Wi-Fi Provisioning</string>
+    <string name="ble_prov_scanning">Scanning Wi-Fi networks\u2026</string>
+    <string name="ble_prov_step_1">Sending Wi-Fi credentials</string>
+    <string name="ble_prov_step_2">Applying Wi-Fi credentials</string>
+    <string name="ble_prov_step_3">Verifying connection</string>
+    <string name="ble_prov_success">Wi-Fi credentials updated successfully!\nDevice will connect to the new network.</string>
+    <string name="ble_prov_failed">Failed to update Wi-Fi credentials.</string>
     <string name="add_member">Add Member</string>
     <string name="node_fw_update">Firmware update</string>
     <string name="from_group"> (from group)</string>
@@ -622,6 +633,12 @@
     <string name="error_node_association">Node Association Failed</string>
     <string name="error_node_association_msg">Failed to verify node association. Please reset your device and try again.</string>
     <string name="error_wifi_connection_failed">Failed to confirm WiFi connection. Please check if your device is connected to the network successfully.</string>
+
+    <!-- BLE Local Control -->
+    <string name="skip_wifi_provisioning_title">Skip Wi-Fi Provisioning?</string>
+    <string name="skip_wifi_provisioning_msg">This device supports BLE local control. Do you want to skip Wi-Fi provisioning and proceed with BLE-only setup?</string>
+    <string name="getting_node_config">Getting Node Configuration</string>
+    <string name="getting_node_params">Getting Node Parameters</string>
 
     <string name="controller_unauthorised">Controller (Unauthorised)</string>
 
