@@ -633,4 +633,6 @@
     <string name="discovering_devices">正在发现网络上的设备...</string>
     <string name="no_devices_found">未找到任何设备</string>
 
+    <string name="wifi_reset_message">WiFi已重置。请重新选择WiFi凭据。</string>
+
 </resources>
