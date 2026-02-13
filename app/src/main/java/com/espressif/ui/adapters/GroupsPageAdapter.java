@@ -52,6 +52,7 @@ import com.espressif.ui.activities.AddDeviceActivity;
 import com.espressif.ui.activities.BLEProvisionLanding;
 import com.espressif.ui.activities.EspMainActivity;
 import com.espressif.ui.activities.GroupDetailActivity;
+import com.espressif.ui.activities.OnNetworkDiscoveryActivity;
 import com.espressif.ui.activities.ProvisionLanding;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
@@ -320,6 +321,12 @@ public class GroupsPageAdapter extends RecyclerView.Adapter<GroupsPageAdapter.Gr
                             Log.e(TAG, "Google Play Services not available.");
                             Utils.showPlayServicesWarning(context);
                         }
+                        break;
+
+                    case 3:
+                        // Launch On Network discovery activity
+                        Intent intent = new Intent(context, OnNetworkDiscoveryActivity.class);
+                        context.startActivity(intent);
                         break;
                 }
                 dialog.dismiss();

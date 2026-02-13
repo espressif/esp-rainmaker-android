@@ -285,6 +285,11 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
+            android:name="com.espressif.ui.activities.OnNetworkDiscoveryActivity"
+            android:label="@string/title_on_network_discovery"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
             android:name="com.espressif.ui.activities.EspMainActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
             android:label="@string/app_name"

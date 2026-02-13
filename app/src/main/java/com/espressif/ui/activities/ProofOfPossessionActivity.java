@@ -59,6 +59,7 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
     private TextView tvPopInstruction, tvPopError;
     private EditText etPop;
     private ESPProvisionManager provisionManager;
+    private boolean isOnNetworkFlow = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,9 +71,16 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         EventBus.getDefault().register(this);
 
         deviceName = getIntent().getStringExtra(AppConstants.KEY_DEVICE_NAME);
+        isOnNetworkFlow = getIntent().hasExtra(AppConstants.KEY_ON_NETWORK_DEVICE);
         if (TextUtils.isEmpty(deviceName)) {
             if (provisionManager.getEspDevice() != null) {
                 deviceName = provisionManager.getEspDevice().getDeviceName();
+            } else if (isOnNetworkFlow) {
+                com.espressif.ui.models.OnNetworkDevice device = 
+                    (com.espressif.ui.models.OnNetworkDevice) getIntent().getSerializableExtra(AppConstants.KEY_ON_NETWORK_DEVICE);
+                if (device != null) {
+                    deviceName = device.getNodeId();
+                }
             }
         }
 
@@ -175,6 +183,18 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         final String pop = etPop.getText().toString();
         Log.d(TAG, "Set POP : " + pop);
         tvPopError.setVisibility(View.INVISIBLE);
+        
+        // Handle on-network flow differently
+        if (isOnNetworkFlow) {
+            Intent resultIntent = new Intent();
+            resultIntent.putExtra(AppConstants.KEY_ON_NETWORK_DEVICE, 
+                getIntent().getSerializableExtra(AppConstants.KEY_ON_NETWORK_DEVICE));
+            resultIntent.putExtra(AppConstants.KEY_POP, pop);
+            setResult(RESULT_OK, resultIntent);
+            finish();
+            return;
+        }
+        
         provisionManager.getEspDevice().setProofOfPossession(pop);
 
         provisionManager.getEspDevice().initSession(new ResponseListener() {

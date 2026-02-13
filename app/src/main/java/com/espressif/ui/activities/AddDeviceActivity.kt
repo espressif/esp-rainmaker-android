@@ -691,6 +691,10 @@ class AddDeviceActivity : AppCompatActivity() {
                     )
                     Utils.showPlayServicesWarning(this@AddDeviceActivity)
                 }
+
+                3 -> {
+                    goToOnNetworkDiscoveryActivity()
+                }
             }
             dialog.dismiss()
         }
@@ -991,6 +995,13 @@ class AddDeviceActivity : AppCompatActivity() {
         finish()
         val intent = Intent(applicationContext, GroupSelectionActivity::class.java)
         intent.putExtra(AppConstants.KEY_ON_BOARD_PAYLOAD, qrCodeData)
+        startActivity(intent)
+    }
+
+    private fun goToOnNetworkDiscoveryActivity() {
+        finish()
+        // Launch On Network discovery activity
+        val intent = Intent(this@AddDeviceActivity, OnNetworkDiscoveryActivity::class.java)
         startActivity(intent)
     }
 

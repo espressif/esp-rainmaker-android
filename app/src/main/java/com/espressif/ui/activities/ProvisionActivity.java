@@ -33,6 +33,7 @@ import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
+import com.espressif.local_control.EspLocalDevice;
 import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPDevice;
@@ -41,6 +42,7 @@ import com.espressif.provisioning.listeners.ProvisionListener;
 import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.EspNode;
+import com.espressif.ui.models.OnNetworkDevice;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Service;
 import com.espressif.ui.models.UpdateEvent;
@@ -64,11 +66,12 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 import rainmaker.EspRmakerUserMapping;
-import rmaker_misc.EspRmakerChalResp.CmdCRPayload;
-import rmaker_misc.EspRmakerChalResp.RMakerMiscMsgType;
-import rmaker_misc.EspRmakerChalResp.RMakerMiscPayload;
-import rmaker_misc.EspRmakerChalResp.RMakerMiscStatus;
-import rmaker_misc.EspRmakerChalResp.RespCRPayload;
+import rmaker_ch_resp.EspRmakerChalResp;
+import rmaker_ch_resp.EspRmakerChalResp.CmdCRPayload;
+import rmaker_ch_resp.EspRmakerChalResp.RMakerChRespMsgType;
+import rmaker_ch_resp.EspRmakerChalResp.RMakerChRespPayload;
+import rmaker_ch_resp.EspRmakerChalResp.RMakerChRespStatus;
+import rmaker_ch_resp.EspRmakerChalResp.RespCRPayload;
 
 public class ProvisionActivity extends AppCompatActivity {
 
@@ -96,6 +99,9 @@ public class ProvisionActivity extends AppCompatActivity {
     private ESPProvisionManager provisionManager;
     private boolean isProvisioningCompleted = false;
     private boolean isChallengeResponseFlow = false;
+    private boolean isOnNetworkFlow = false;
+    private OnNetworkDevice onNetworkDevice;
+    private EspLocalDevice localDevice;
     private Handler wifiConnectHandler = new Handler();
 
     @Override
@@ -108,6 +114,24 @@ public class ProvisionActivity extends AppCompatActivity {
         ssidValue = intent.getStringExtra(AppConstants.KEY_SSID);
         passphraseValue = intent.getStringExtra(AppConstants.KEY_PASSWORD);
         dataset = intent.getStringExtra(AppConstants.KEY_THREAD_DATASET);
+        isOnNetworkFlow = intent.getBooleanExtra(AppConstants.KEY_IS_ON_NETWORK_FLOW, false);
+        if (isOnNetworkFlow) {
+            onNetworkDevice = (com.espressif.ui.models.OnNetworkDevice) intent.getSerializableExtra(AppConstants.KEY_ON_NETWORK_DEVICE);
+            if (onNetworkDevice != null) {
+                // Create EspLocalDevice for local network communication
+                localDevice = new com.espressif.local_control.EspLocalDevice(
+                        onNetworkDevice.getNodeId(),
+                        onNetworkDevice.getIpAddress(),
+                        onNetworkDevice.getPort()
+                );
+                localDevice.setSecurityType(onNetworkDevice.getSecVersion());
+                String pop = intent.getStringExtra(AppConstants.KEY_POP);
+                if (!TextUtils.isEmpty(pop)) {
+                    localDevice.setPop(pop);
+                }
+                isChallengeResponseFlow = true; // On-network flow always uses challenge-response
+            }
+        }
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
 
         handler = new Handler();
@@ -123,7 +147,9 @@ public class ProvisionActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        provisionManager.getEspDevice().disconnectDevice();
+        if (provisionManager != null && provisionManager.getEspDevice() != null) {
+            provisionManager.getEspDevice().disconnectDevice();
+        }
         super.onBackPressed();
     }
 
@@ -183,7 +209,9 @@ public class ProvisionActivity extends AppCompatActivity {
 
         @Override
         public void onClick(View v) {
-            provisionManager.getEspDevice().disconnectDevice();
+            if (provisionManager != null && provisionManager.getEspDevice() != null) {
+                provisionManager.getEspDevice().disconnectDevice();
+            }
             finish();
         }
     };
@@ -278,6 +306,13 @@ public class ProvisionActivity extends AppCompatActivity {
             if (step4View != null) {
                 step4View.setVisibility(View.GONE);
             }
+            // For on-network flow, also hide WiFi provisioning steps
+            if (isOnNetworkFlow) {
+                View step2View = findViewById(R.id.layout_confirming_wifi_connection);
+                if (step2View != null) {
+                    step2View.setVisibility(View.GONE);
+                }
+            }
             verifyNodeAssociation();
         } else {
             associateDevice();
@@ -308,6 +343,7 @@ public class ProvisionActivity extends AppCompatActivity {
             progress3.setVisibility(View.VISIBLE);
             handler.postDelayed(addDeviceTask, ADD_DEVICE_REQ_TIME);
         } else {
+            // For challenge-response flow, skip WiFi provisioning and go directly to step 5
             hideLoading();
             handler.postDelayed(new Runnable() {
                 @Override
@@ -624,6 +660,11 @@ public class ProvisionActivity extends AppCompatActivity {
 
     private void verifyNodeAssociation() {
 
+        if (isOnNetworkFlow && localDevice != null) {
+            verifyNodeAssociationOnNetwork();
+            return;
+        }
+
         apiManager.initiateMapping(new ApiResponseListener() {
 
             @Override
@@ -642,9 +683,9 @@ public class ProvisionActivity extends AppCompatActivity {
                             .setPayload(ByteString.copyFrom(challengeBytes))
                             .build();
 
-                    RMakerMiscPayload payload = RMakerMiscPayload.newBuilder()
-                            .setMsg(RMakerMiscMsgType.TypeCmdChallengeResponse)
-                            .setStatus(RMakerMiscStatus.Success)
+                    RMakerChRespPayload payload = RMakerChRespPayload.newBuilder()
+                            .setMsg(RMakerChRespMsgType.TypeCmdChallengeResponse)
+                            .setStatus(RMakerChRespStatus.Success)
                             .setCmdChallengeResponsePayload(cmdPayload)
                             .build();
 
@@ -653,8 +694,8 @@ public class ProvisionActivity extends AppCompatActivity {
                         public void onSuccess(byte[] returnData) {
                             if (returnData != null) {
                                 try {
-                                    RMakerMiscPayload response = RMakerMiscPayload.parseFrom(returnData);
-                                    if (response.getStatus() == RMakerMiscStatus.Success) {
+                                    RMakerChRespPayload response = RMakerChRespPayload.parseFrom(returnData);
+                                    if (response.getStatus() == RMakerChRespStatus.Success) {
                                         RespCRPayload respPayload = response.getRespChallengeResponsePayload();
                                         ByteString signedChallenge = respPayload.getPayload();
                                         String nodeId = respPayload.getNodeId();
@@ -723,6 +764,204 @@ public class ProvisionActivity extends AppCompatActivity {
             @Override
             public void onNetworkFailure(Exception e) {
                 showMappingError();
+            }
+        });
+    }
+
+    private void verifyNodeAssociationOnNetwork() {
+        Log.d(TAG, "Verifying node association on local network");
+
+        apiManager.initiateMapping(new ApiResponseListener() {
+            @Override
+            public void onSuccess(Bundle data) {
+                try {
+                    String jsonResponse = data.getString(AppConstants.KEY_RESPONSE);
+                    JSONObject jsonObject = new JSONObject(jsonResponse);
+                    String challenge = jsonObject.optString(AppConstants.KEY_CHALLENGE);
+                    String requestId = jsonObject.optString(AppConstants.KEY_REQUEST_ID);
+                    Log.d(TAG, "Got challenge: " + challenge + ", request_id: " + requestId);
+
+                    /* Send challenge to device using proto via local network */
+                    byte[] challengeBytes = challenge.getBytes(StandardCharsets.UTF_8);
+
+                    CmdCRPayload cmdPayload = CmdCRPayload.newBuilder()
+                            .setPayload(ByteString.copyFrom(challengeBytes))
+                            .build();
+
+                    RMakerChRespPayload payload = RMakerChRespPayload.newBuilder()
+                            .setMsg(RMakerChRespMsgType.TypeCmdChallengeResponse)
+                            .setStatus(RMakerChRespStatus.Success)
+                            .setCmdChallengeResponsePayload(cmdPayload)
+                            .build();
+
+                    // Use local device to send data via local network
+                    String endpoint = onNetworkDevice != null && !TextUtils.isEmpty(onNetworkDevice.getChRespEndpoint())
+                            ? onNetworkDevice.getChRespEndpoint() : "ch_resp";
+
+                    localDevice.sendData(endpoint, payload.toByteArray(), new com.espressif.provisioning.listeners.ResponseListener() {
+                        @Override
+                        public void onSuccess(byte[] returnData) {
+                            if (returnData != null) {
+                                try {
+                                    RMakerChRespPayload response = RMakerChRespPayload.parseFrom(returnData);
+                                    if (response.getStatus() == RMakerChRespStatus.Success) {
+                                        RespCRPayload respPayload = response.getRespChallengeResponsePayload();
+                                        ByteString signedChallenge = respPayload.getPayload();
+                                        String nodeId = respPayload.getNodeId();
+                                        receivedNodeId = nodeId;
+                                        
+                                        /* Call verify mapping API */
+                                        byte[] bytes = signedChallenge.toByteArray();
+
+                                        /* Convert bytes to hex string */
+                                        StringBuilder hexString = new StringBuilder(512);
+                                        for (byte b : bytes) {
+                                            hexString.append(String.format("%02x", b & 0xFF));
+                                        }
+                                        String challengeResponse = hexString.toString();
+                                        JsonObject body = new JsonObject();
+                                        body.addProperty(AppConstants.KEY_REQUEST_ID, requestId);
+                                        body.addProperty(AppConstants.KEY_NODE_ID, nodeId);
+                                        body.addProperty(AppConstants.KEY_CHALLENGE_RESP, challengeResponse);
+
+                                        apiManager.verifyUserNodeMapping(requestId, nodeId, challengeResponse, new ApiResponseListener() {
+                                            @Override
+                                            public void onSuccess(Bundle data) {
+                                                runOnUiThread(() -> {
+                                                    // For on-network flow, challenge-response is done
+                                                    // Mark step 1 complete
+                                                    tick1.setImageResource(R.drawable.ic_checkbox_on);
+                                                    tick1.setVisibility(View.VISIBLE);
+                                                    progress1.setVisibility(View.GONE);
+
+                                                    // Enable OK button after first step is done
+                                                    hideLoading();
+
+                                                    // Send disable challenge-response command before proceeding
+                                                    sendDisableChallengeResponse();
+                                                });
+                                            }
+
+                                            @Override
+                                            public void onResponseFailure(Exception e) {
+                                                showMappingError();
+                                            }
+
+                                            @Override
+                                            public void onNetworkFailure(Exception e) {
+                                                showMappingError();
+                                            }
+                                        });
+                                    } else {
+                                        showMappingError();
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    showMappingError();
+                                }
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            e.printStackTrace();
+                            showMappingError();
+                        }
+                    });
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    showMappingError();
+                }
+            }
+
+            @Override
+            public void onResponseFailure(Exception e) {
+                showMappingError();
+            }
+
+            @Override
+            public void onNetworkFailure(Exception e) {
+                showMappingError();
+            }
+        });
+    }
+
+    private void sendDisableChallengeResponse() {
+        Log.d(TAG, "Sending disable challenge-response command");
+
+        EspRmakerChalResp.CmdDisableChalRespPayload disablePayload = EspRmakerChalResp.CmdDisableChalRespPayload.newBuilder().build();
+
+        RMakerChRespPayload payload = RMakerChRespPayload.newBuilder()
+                .setMsg(RMakerChRespMsgType.TypeCmdDisableChalResp)
+                .setStatus(RMakerChRespStatus.Success)
+                .setCmdDisableChalRespPayload(disablePayload)
+                .build();
+
+        // Use local device to send data via local network
+        String endpoint = onNetworkDevice != null && !TextUtils.isEmpty(onNetworkDevice.getChRespEndpoint())
+                ? onNetworkDevice.getChRespEndpoint() : "ch_resp";
+
+        localDevice.sendData(endpoint, payload.toByteArray(), new com.espressif.provisioning.listeners.ResponseListener() {
+            @Override
+            public void onSuccess(byte[] returnData) {
+                if (returnData != null) {
+                    try {
+                        RMakerChRespPayload response = RMakerChRespPayload.parseFrom(returnData);
+                        if (response.getStatus() == RMakerChRespStatus.Success) {
+                            Log.d(TAG, "Challenge-response disabled successfully");
+                            runOnUiThread(() -> {
+                                // Mark step 4 as complete (node association confirmed)
+                                tick4.setImageResource(R.drawable.ic_checkbox_on);
+                                tick4.setVisibility(View.VISIBLE);
+                                progress4.setVisibility(View.GONE);
+
+                                // Now proceed to step 5 (setting up node)
+                                doStep5();
+                            });
+                        } else {
+                            Log.e(TAG, "Failed to disable challenge-response, status: " + response.getStatus());
+                            // Still proceed to step 5 even if disable fails
+                            runOnUiThread(() -> {
+                                tick4.setImageResource(R.drawable.ic_checkbox_on);
+                                tick4.setVisibility(View.VISIBLE);
+                                progress4.setVisibility(View.GONE);
+                                doStep5();
+                            });
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error parsing disable response", e);
+                        // Still proceed to step 5 even if parsing fails
+                        runOnUiThread(() -> {
+                            tick4.setImageResource(R.drawable.ic_checkbox_on);
+                            tick4.setVisibility(View.VISIBLE);
+                            progress4.setVisibility(View.GONE);
+                            doStep5();
+                        });
+                    }
+                } else {
+                    Log.e(TAG, "Disable challenge-response returned null");
+                    // Still proceed to step 5
+                    runOnUiThread(() -> {
+                        tick4.setImageResource(R.drawable.ic_checkbox_on);
+                        tick4.setVisibility(View.VISIBLE);
+                        progress4.setVisibility(View.GONE);
+                        doStep5();
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Failed to send disable challenge-response command", e);
+                // Still proceed to step 5 even if disable command fails
+                runOnUiThread(() -> {
+                    tick4.setImageResource(R.drawable.ic_checkbox_on);
+                    tick4.setVisibility(View.VISIBLE);
+                    progress4.setVisibility(View.GONE);
+                    // Enable OK button after first step is done
+                    hideLoading();
+                    doStep5();
+                });
             }
         });
     }
@@ -832,7 +1071,9 @@ public class ProvisionActivity extends AppCompatActivity {
     private void addDeviceToCloud(final ApiResponseListener responseListener) {
 
         Log.d(TAG, "Add device to cloud, count : " + addDeviceReqCount);
-        apiManager.addNode(receivedNodeId, secretKey, new ApiResponseListener() {
+        // For on-network challenge-response flow, secretKey is not needed
+        String keyToUse = isOnNetworkFlow ? null : secretKey;
+        apiManager.addNode(receivedNodeId, keyToUse, new ApiResponseListener() {
 
             @Override
             public void onSuccess(Bundle data) {
@@ -869,7 +1110,13 @@ public class ProvisionActivity extends AppCompatActivity {
 
                         @Override
                         public void run() {
-                            doStep4();
+                            // For on-network flow, go directly to step 5 (setting up node)
+                            // For regular flow, step 4 is already done, so go to step 5
+                            if (isOnNetworkFlow) {
+                                doStep5();
+                            } else {
+                                doStep4();
+                            }
                         }
                     });
                 }

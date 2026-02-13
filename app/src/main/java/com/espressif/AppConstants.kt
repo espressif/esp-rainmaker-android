@@ -224,6 +224,7 @@ class AppConstants {
         const val MDNS_SERVICE_TYPE = "_esp_local_ctrl._tcp."
         const val MDNS_TBR_SERVICE_TYPE = "_meshcop._udp."
         const val MDNS_MATTER_SERVICE_TYPE = "_matter._tcp."
+        const val MDNS_CHALLENGE_RESP_SERVICE_TYPE = "_esp_rmaker_chal_resp._tcp."
         const val LOCAL_CONTROL_ENDPOINT = "esp_local_ctrl/control"
         const val LOCAL_SESSION_ENDPOINT = "esp_local_ctrl/session"
         const val MDNS_ATTR_NETWORK_NAME = "nn"
@@ -516,6 +517,12 @@ class AppConstants {
         const val KEY_ON_BOARD_PAYLOAD = "on_board_payload"
         const val KEY_CHALLENGE = "challenge"
         const val KEY_RAINMAKER_NODE_ID = "rainmaker_node_id"
+        const val KEY_ON_NETWORK_DEVICE = "on_network_device"
+        const val KEY_IS_ON_NETWORK_FLOW = "is_on_network_flow"
+        const val KEY_POP = "pop"
+        
+        // Request codes
+        const val REQUEST_CODE_POP = 1001
         const val KEY_MATTER = "Matter"
         const val KEY_USER_NAME_WIFI = "sec2_username_wifi"
         const val KEY_USER_NAME_THREAD = "sec2_username_thread"

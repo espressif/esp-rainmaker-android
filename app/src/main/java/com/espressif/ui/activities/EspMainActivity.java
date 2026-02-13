@@ -891,6 +891,12 @@ public class EspMainActivity extends AppCompatActivity {
                             Utils.showPlayServicesWarning(EspMainActivity.this);
                         }
                         break;
+
+                    case 3:
+                        // Launch On Network discovery activity
+                        Intent intent = new Intent(EspMainActivity.this, OnNetworkDiscoveryActivity.class);
+                        startActivity(intent);
+                        break;
                 }
                 dialog.dismiss();
             }
