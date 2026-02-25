@@ -637,4 +637,6 @@
     <string name="discovering_devices">Discovering devices on network...</string>
     <string name="no_devices_found">No devices found</string>
 
+    <string name="wifi_reset_message">WiFi has been reset. Please reselect the WiFi credentials.</string>
+
 </resources>

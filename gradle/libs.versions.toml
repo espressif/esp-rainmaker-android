@@ -32,7 +32,7 @@ playServicesBase = "18.6.0"
 playServicesHome = "16.0.0"
 playServicesThreadnetwork = "16.2.1"
 
-espIdfProvisioningAndroid = "lib-2.4.2"
+espIdfProvisioningAndroid = "lib-2.4.3"
 codeScanner = "2.1.2"
 mpandroidchart = "v3.1.0"
 tapholdupbutton = "0.1.2"

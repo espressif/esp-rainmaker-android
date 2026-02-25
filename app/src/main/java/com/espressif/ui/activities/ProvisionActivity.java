@@ -21,6 +21,7 @@ import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -49,6 +50,7 @@ import com.espressif.ui.models.UpdateEvent;
 import com.espressif.utils.InAppReviewManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.JsonObject;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -93,6 +95,7 @@ public class ProvisionActivity extends AppCompatActivity {
     private int addDeviceReqCount = 0;
     private String ssidValue, passphraseValue = "", dataset;
     private String receivedNodeId, secretKey;
+    private String errorMessage;
 
     private ApiManager apiManager;
     private Handler handler;
@@ -593,27 +596,36 @@ public class ProvisionActivity extends AppCompatActivity {
 
                         @Override
                         public void run() {
+                            boolean isDeviceConnected = true;
 
                             switch (failureReason) {
 
                                 case AUTH_FAILED:
                                     tvErrAtStep2.setText(R.string.error_authentication_failed);
+                                    errorMessage = getString(R.string.error_authentication_failed);
                                     displayFailureAtStep2();
                                     break;
 
                                 case NETWORK_NOT_FOUND:
                                     tvErrAtStep2.setText(R.string.error_network_not_found);
+                                    errorMessage = getString(R.string.error_network_not_found);
                                     displayFailureAtStep2();
                                     break;
 
                                 case DEVICE_DISCONNECTED:
                                     doStep3(false);
+                                    isDeviceConnected = false;
                                     break;
 
                                 case UNKNOWN:
                                     tvErrAtStep2.setText(R.string.error_prov_step_3);
+                                    errorMessage = getString(R.string.error_prov_step_3);
                                     displayFailureAtStep2();
                                     break;
+                            }
+
+                            if (isDeviceConnected) {
+                                sendWifiResetCommand();
                             }
                         }
                     });
@@ -1358,5 +1370,187 @@ public class ProvisionActivity extends AppCompatActivity {
             result.append(String.format("%02x", bytes[i]));
         }
         return result.toString();
+    }
+
+    /**
+     * Send WiFi reset command to device when authentication failure error received in provisioning.
+     * The resetWifiStatus method will check if session is established internally
+     */
+    private void sendWifiResetCommand() {
+        ESPDevice espDevice = provisionManager.getEspDevice();
+        if (espDevice != null) {
+            espDevice.resetWifiStatus(new ResponseListener() {
+                @Override
+                public void onSuccess(byte[] returnData) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Log.d(TAG, "Success received for sending WiFi reset command");
+                            showReenterPasswordAlert();
+                        }
+                    });
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            // Log error but don't block UI - reset is best effort
+                            Log.e(TAG, "Failed to send WiFi reset command", e);
+                            showResetPasswordFailedAlert("Failed to send WiFi reset command: " + e.getMessage());
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+    /**
+     * Show alert dialog to re-enter WiFi password
+     */
+    private void showReenterPasswordAlert() {
+        String title = getString(R.string.title_activity_provisioning);
+        String wifiResetMsg = getString(R.string.wifi_reset_message);
+        String alertMsg = wifiResetMsg;
+        if (!TextUtils.isEmpty(errorMessage)) {
+            alertMsg = errorMessage + " " + wifiResetMsg;
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(title);
+        builder.setMessage(alertMsg);
+        builder.setCancelable(false);
+        builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                showPasswordInputDialog();
+            }
+        });
+        builder.setNegativeButton(R.string.btn_cancel, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        builder.show();
+    }
+
+    /**
+     * Show password input dialog for re-provisioning
+     */
+    private void showPasswordInputDialog() {
+        android.view.LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_wifi_network, null);
+        final EditText etSsid = dialogView.findViewById(R.id.et_ssid);
+        final EditText etPassword = dialogView.findViewById(R.id.et_password);
+        final TextInputLayout passwordLayout = dialogView.findViewById(R.id.layout_password);
+
+        // Hide SSID field since we already know it
+        etSsid.setVisibility(View.GONE);
+
+        // Set SSID as title
+        String title = ssidValue != null ? ssidValue : getString(R.string.join_other_network);
+
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setView(dialogView);
+        alertDialogBuilder.setTitle(title);
+        alertDialogBuilder.setPositiveButton(R.string.provision, null);
+        alertDialogBuilder.setNegativeButton(R.string.btn_cancel, null);
+        alertDialogBuilder.setCancelable(false);
+
+        final AlertDialog alertDialog = alertDialogBuilder.create();
+
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                android.widget.Button buttonPositive = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_POSITIVE);
+                buttonPositive.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        String password = etPassword.getText().toString();
+
+                        // Validate password if network is not open
+                        // Note: We assume it's not open since authentication failed
+                        if (TextUtils.isEmpty(password)) {
+                            passwordLayout.setError(getString(R.string.error_password_empty));
+                        } else {
+                            alertDialog.dismiss();
+                            // Update password and re-provision
+                            passphraseValue = password;
+                            // Reset UI elements
+                            resetUIForRetry();
+                            // Show loading and step 1 progress
+                            showLoading();
+                            progress1.setVisibility(View.VISIBLE);
+                            // Skip step 1 (association/challenge-response already done)
+                            // Go directly to provisioning with the new password
+                            provision();
+                        }
+                    }
+                });
+
+                android.widget.Button buttonNegative = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_NEGATIVE);
+                buttonNegative.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        alertDialog.dismiss();
+                    }
+                });
+            }
+        });
+
+        alertDialog.show();
+    }
+
+    /**
+     * Reset UI state before retrying provisioning.
+     * Only resets UI elements - does NOT trigger provisioning.
+     * The caller is responsible for calling provision() after this.
+     */
+    private void resetUIForRetry() {
+        // Hide error messages
+        tvErrAtStep1.setVisibility(View.GONE);
+        tvErrAtStep2.setVisibility(View.GONE);
+        tvErrAtStep3.setVisibility(View.GONE);
+        tvErrAtStep4.setVisibility(View.GONE);
+        tvErrAtStep5.setVisibility(View.GONE);
+        tvProvError.setVisibility(View.GONE);
+
+        // Hide images
+        tick1.setVisibility(View.GONE);
+        tick2.setVisibility(View.GONE);
+        tick3.setVisibility(View.GONE);
+        tick4.setVisibility(View.GONE);
+        tick5.setVisibility(View.GONE);
+
+        // Hide progress indicators
+        progress1.setVisibility(View.GONE);
+        progress2.setVisibility(View.GONE);
+        progress3.setVisibility(View.GONE);
+        progress4.setVisibility(View.GONE);
+        progress5.setVisibility(View.GONE);
+
+        // Reset error message
+        errorMessage = null;
+    }
+
+    /**
+     * Show alert dialog when reset command fails
+     */
+    private void showResetPasswordFailedAlert(String message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getString(R.string.title_activity_provisioning));
+        builder.setMessage(message);
+        builder.setCancelable(false);
+        builder.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                finish();
+            }
+        });
+        builder.show();
     }
 }
