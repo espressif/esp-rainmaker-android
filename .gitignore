@@ -63,6 +63,9 @@ fastlane/readme.md
 
 app/src/main/assets/api_key.txt
 
+# Google Services config (contains API keys)
+app/google-services.json
+
 # Built application files
 /*/build/
 
