@@ -68,6 +68,23 @@ if (localProperties.getProperty("isChinaRegion", "false") != "true") {
     apply plugin: 'com.google.firebase.crashlytics'
 }
 
+task ensureGoogleServicesJson {
+    def targetFile = file('google-services.json')
+    def templateFile = file('google-services.json.template')
+    onlyIf { !targetFile.exists() && templateFile.exists() }
+    doLast {
+        templateFile.withInputStream { input ->
+            targetFile.withOutputStream { output ->
+                output << input
+            }
+        }
+        logger.warn('NOTE: google-services.json was created from template with placeholder values. ' +
+                'Replace it with your real Firebase config for full functionality.')
+    }
+}
+
+preBuild.dependsOn ensureGoogleServicesJson
+
 android {
 
     compileSdk 35
