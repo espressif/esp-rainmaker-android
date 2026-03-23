@@ -1,57 +1,63 @@
 [versions]
-gradle = "8.13.0"
+gradle = "8.13.2"
 kotlinGradlePlugin = "2.0.0"
-lifecycleViewmodelKtx = "2.9.2"
+lifecycleViewmodelKtx = "2.10.0"
 playServicesGcm = "17.0.0"
-protobufGradlePlugin = "0.9.1"
-googleServices = "4.4.3"
-firebaseCrashlyticsGradle = "3.0.5"
+protobufGradlePlugin = "0.9.6"
+googleServices = "4.4.4"
+firebaseCrashlyticsGradle = "3.0.6"
 hiltAndroidGradlePlugin = "2.42"
 
 appcompat = "1.7.1"
 recyclerview = "1.4.0"
 constraintlayout = "2.2.1"
-swiperefreshlayout = "1.1.0"
+swiperefreshlayout = "1.2.0"
 browser = "1.8.0"
 coreKtx = "1.12.0"
-workRuntime = "2.9.1"
+workRuntime = "2.11.1"
 
 rxandroid = "2.1.1"
-adapterRxjava2 = "2.9.0"
-retrofit = "2.9.0"
+adapterRxjava2 = "3.0.0"
+retrofit = "3.0.0"
 loggingInterceptor = "4.9.1"
-gson = "2.10.1"
+gson = "2.13.2"
 
-material = "1.12.0"
-tinkAndroid = "1.12.0"
-protobufJavalite = "3.18.0"
-kotlinxCoroutinesAndroid = "1.5.2"
-firebaseBom = "34.0.0"
+material = "1.13.0"
+tinkAndroid = "1.20.0"
+protobufJavalite = "4.34.0"
+kotlinxCoroutinesAndroid = "1.10.2"
+firebaseBom = "34.10.0"
 
-playServicesBase = "18.6.0"
+playServicesBase = "18.10.0"
 playServicesHome = "16.0.0"
 playServicesThreadnetwork = "16.2.1"
 
-espIdfProvisioningAndroid = "lib-2.4.3"
+espIdfProvisioningAndroid = "lib-2.4.4"
 codeScanner = "2.1.2"
 mpandroidchart = "v3.1.0"
 tapholdupbutton = "0.1.2"
 avloadingindicatorview = "2.3.0"
 holocolorpicker = "1.5"
-androidGifDrawable = "1.2.29"
+androidGifDrawable = "1.2.31"
 androidSegmented = "1.0.6"
 eventbus = "3.3.1"
 jnanoid = "2.0.0"
 jwtdecode = "2.0.2"
 
-bcpkixJdk15to18 = "1.72"
+bcpkixJdk15to18 = "1.83"
 
 appUpdateKtx = "2.1.0"
 review = "2.0.2"
 
-cameraCore = "1.5.1"
+cameraCore = "1.5.3"
 
 awsAndroidSdkKinesisvideo = "2.81.1"
+
+streamWebrtcAndroid = "1.3.10"
+commonsLang3 = "3.20.0"
+awaitility = "4.3.0"
+guava = "33.5.0-android"
+jsoup = "1.22.1"
 
 wechatSdkAndroidWithoutMta = "6.8.0"
 
@@ -59,8 +65,8 @@ jcore = "4.7.3"
 jpush = "5.4.2"
 
 junit = "4.13.2"
-runner = "1.6.2"
-espressoCore = "3.6.1"
+runner = "1.7.0"
+espressoCore = "3.7.0"
 
 
 [libraries]
@@ -139,6 +145,12 @@ aws-android-sdk-kinesisvideo = { module = "com.amazonaws:aws-android-sdk-kinesis
 aws-android-sdk-kinesisvideo-signaling = { module = "com.amazonaws:aws-android-sdk-kinesisvideo-signaling", version.ref = "awsAndroidSdkKinesisvideo" }
 aws-android-sdk-kinesisvideo-webrtcstorage = { module = "com.amazonaws:aws-android-sdk-kinesisvideo-webrtcstorage", version.ref = "awsAndroidSdkKinesisvideo" }
 aws-android-sdk-mobile-client = { module = "com.amazonaws:aws-android-sdk-mobile-client", version.ref = "awsAndroidSdkKinesisvideo" }
+
+stream-webrtc-android = { module = "io.getstream:stream-webrtc-android", version.ref = "streamWebrtcAndroid" }
+commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commonsLang3" }
+awaitility = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 
 wechat-sdk-android-without-mta = { group = "com.tencent.mm.opensdk", name = "wechat-sdk-android-without-mta", version.ref = "wechatSdkAndroidWithoutMta" }
 
