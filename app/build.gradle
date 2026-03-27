@@ -216,6 +216,7 @@ android {
         buildConfigField "String", "ALEXA_CLIENT_SECRET", '"' + localProperties.getProperty("alexaClientSecret") + '"'
         buildConfigField "String", "ALEXA_REDIRECT_URL", '"' + localProperties.getProperty("alexaRedirectUrl") + '"'
         buildConfigField "String", "ALEXA_RM_CLIENT_ID", '"' + localProperties.getProperty("alexaRMClientId") + '"'
+        buildConfigField "String", "ALEXA_RM_CLIENT_SECRET", '"' + localProperties.getProperty("alexaRMClientSecret") + '"'
         buildConfigField "String", "SKILL_ID", '"' + localProperties.getProperty("skillId") + '"'
         buildConfigField "String", "SKILL_STAGE", '"' + localProperties.getProperty("skillStage") + '"'
         buildConfigField "String", "ALEXA_ACCESS_TOKEN_URL", '"' + localProperties.getProperty("alexaAccessTokenUrl") + '"'

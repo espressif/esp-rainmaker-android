@@ -37,19 +37,24 @@ public class AlexaLinkingWorker extends Worker {
     @Override
     public Result doWork() {
 
-        Log.e(TAG, "Get alexa linking work");
+        Log.d(TAG, "Get alexa linking work");
         AlexaApiManager apiManager = AlexaApiManager.getInstance(getApplicationContext());
         Data data = getInputData();
         String type = data.getString(AppConstants.KEY_EVENT_TYPE);
         String alexaAuthCode = data.getString(AppConstants.KEY_AUTH_CODE);
         boolean success = false;
+        Data outputData = Data.EMPTY;
 
         if (!TextUtils.isEmpty(type)) {
 
             if (type.equals(AppConstants.EVENT_ENABLE_SKILL)) {
-                Log.d(TAG, "Alexa Auth code : " + alexaAuthCode);
-                success = apiManager.enableAlexaSkill(alexaAuthCode);
-                Log.d(TAG, "Enable alexa skill : result : " + success);
+                int statusCode = apiManager.enableAlexaSkill(alexaAuthCode);
+                success = statusCode >= 200 && statusCode < 300;
+                // Pass the status code so the caller can react to specific failures (e.g. HTTP 400).
+                outputData = new Data.Builder()
+                        .putInt(AppConstants.KEY_STATUS_CODE, statusCode)
+                        .build();
+                Log.d(TAG, "Enable alexa skill : result : " + success + ", status code : " + statusCode);
 
             } else if (type.equals(AppConstants.EVENT_DISABLE_SKILL)) {
                 success = apiManager.disableAlexaSkill();
@@ -61,9 +66,9 @@ public class AlexaLinkingWorker extends Worker {
             }
         }
         if (success) {
-            return Result.success();
+            return Result.success(outputData);
         } else {
-            return Result.failure();
+            return Result.failure(outputData);
         }
     }
 }

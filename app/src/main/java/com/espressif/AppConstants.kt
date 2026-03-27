@@ -307,6 +307,8 @@ class AppConstants {
         const val URL_USER_NODES_PROXY_INITPARAMS = "/user/nodes/{node_id}/proxy/initparams"
 
         const val URL_ASSUME_ROLE = "/user/assume_role"
+
+        const val URL_APP_LINK = "/app-link/authorize"
         
         // Alexa account linking constants
         const val ALEXA_API_ENDPOINTS_URL = "https://api.amazonalexa.com/v1/alexaApiEndpoint"
@@ -429,9 +431,13 @@ class AppConstants {
         const val KEY_NOTIFICATION_ID = "notification_id"
         const val KEY_LOCAL_CONTROL = "Local Control"
         const val KEY_REDIRECT_URI = "redirect_uri"
+        const val KEY_RESPONSE_TYPE = "response_type"
+        const val KEY_STATE = "state"
+        const val KEY_SCOPE = "scope"
         const val KEY_CODE = "code"
         const val KEY_AUTH_CODE = "authCode"
         const val KEY_ACCOUNT_LINK_REQUEST = "accountLinkRequest"
+        const val KEY_STATUS_CODE = "status_code"
         const val KEY_STAGE = "stage"
         const val KEY_CLIENT_ID = "client_id"
         const val KEY_CLIENT_SECRET = "client_secret"
