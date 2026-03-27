@@ -500,6 +500,11 @@
     <string name="matter_fabric_yes">是</string>
     <string name="matter_fabric_no">否</string>
     <string name="preferences">偏好设置</string>
+    <string name="theme_selection_title">主题</string>
+    <string name="theme_selection_description">选择您喜欢的应用程序主题</string>
+    <string name="theme_light">浅色主题</string>
+    <string name="theme_dark">深色主题</string>
+    <string name="theme_system">跟随系统主题</string>
 
     <string name="linked_with_alexa">已与亚马逊 Alexa 连接</string>
     <string name="alexa_link_str">现在您可以通过 Alexa 启用的音箱使用语音命令控制您的智能家居设备。</string>
@@ -620,13 +625,13 @@
     <string name="controller_unauthorised">Controller (Unauthorised)</string>
     <string name="btn_merge">合併</string>
 
-    <string name="dialog_title_new_version_available">New Version Available!</string>
-    <string name="update_message">A new version of the app is available. Would you like to update now?</string>
-    <string name="update_downloaded_message">Update has been downloaded. Restart the app to complete installation.</string>
-    <string name="btn_restart">Restart</string>
-    <string name="btn_allow">Allow</string>
-    <string name="btn_alexa_deny">Deny</string>
-    <string name="btn_not_now">Not now</string>
+    <string name="dialog_title_new_version_available">新版本已发布！</string>
+    <string name="update_message">新版本的应用程序已可用。您现在要更新吗？</string>
+    <string name="update_downloaded_message">更新已下载完成。请重启应用程序以完成安装。</string>
+    <string name="btn_restart">重新启动</string>
+    <string name="btn_allow">允许</string>
+    <string name="btn_alexa_deny">否定</string>
+    <string name="btn_not_now">现在不要</string>
 
     <!-- On Network Discovery -->
     <string name="title_on_network_discovery">发现设备</string>

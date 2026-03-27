@@ -93,6 +93,7 @@ class AppConstants {
         const val PARAM_TYPE_TEMPERATURE = "esp.param.temperature"
         const val PARAM_TYPE_TZ = "esp.param.tz"
         const val PARAM_TYPE_TZ_POSIX = "esp.param.tz_posix"
+        const val PARAM_TYPE_TIMESTAMP = "esp.param.timestamp"
         const val PARAM_TYPE_LOCAL_CONTROL_POP = "esp.param.local_control_pop"
         const val PARAM_TYPE_LOCAL_CONTROL_SEC_TYPE = "esp.param.local_control_type"
         const val PARAM_TYPE_LOCAL_CONTROL_USERNAME = "esp.param.local_control_username"
@@ -580,6 +581,13 @@ class AppConstants {
 
         const val DEVICE_NAME_MATTER_CONTROLLER = "Matter Controller"
         const val DEVICE_NAME_THREAD_BR = "Thread-BR"
+
+        // Theme constants
+        const val THEME_LIGHT = "light"
+        const val THEME_DARK = "dark"
+        const val THEME_SYSTEM = "system"
+        const val THEME_DEFAULT = THEME_SYSTEM
+        const val KEY_THEME_PREFERENCE = "theme_preference"
 
         enum class SystemMode(val modeValue: Int, val modeName: String) {
             OFF(0, "Off"),
