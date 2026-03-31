@@ -134,12 +134,6 @@ public class EspApplication extends Application {
 
     public static String channelName = "", region = "";
 
-    // Theme constants
-    public static final String THEME_LIGHT = "light";
-    public static final String THEME_DARK = "dark";
-    public static final String THEME_SYSTEM = "system";
-    public static final String KEY_THEME_PREFERENCE = "theme_preference";
-
     private static final int RETRY_INTERVAL_MS = 5000; // 5 seconds
     private static final int MAX_RETRY_COUNT = 5; // Maximum number of retry attempts
     private static final long MAX_RETRY_INTERVAL_MS = 60000; // Maximum retry interval (60 seconds)
@@ -1121,7 +1115,24 @@ public class EspApplication extends Application {
 
         clearData();
         SharedPreferences.Editor editor = appPreferences.edit();
+
+        // Save keys to preserve (base URL, and theme preference)
+        String savedBaseUrl = appPreferences.getString(AppConstants.KEY_BASE_URL, BuildConfig.BASE_URL);
+        String savedTheme = appPreferences.getString(AppConstants.KEY_THEME_PREFERENCE, AppConstants.THEME_DEFAULT);
+
+        // Clear all preferences
         editor.clear();
+
+        // Restore the preserved keys
+        if (savedBaseUrl != null) {
+            editor.putString(AppConstants.KEY_BASE_URL, savedBaseUrl);
+            // Update BASE_URL static variable
+            BASE_URL = savedBaseUrl;
+        }
+        if (savedTheme != null) {
+            editor.putString(AppConstants.KEY_THEME_PREFERENCE, savedTheme);
+        }
+
         editor.apply();
 
         SharedPreferences wifiNetworkPref = getSharedPreferences(AppConstants.PREF_FILE_WIFI_NETWORKS, Context.MODE_PRIVATE);
@@ -1142,7 +1153,7 @@ public class EspApplication extends Application {
         NotificationManager notificationManager = getSystemService(NotificationManager.class);
         notificationManager.cancelAll();
 
-        Log.e(TAG, "Deleted all things from local storage.");
+        Log.d(TAG, "Deleted all things from local storage (preserved base URL, and theme preferences).");
         changeAppState(AppState.NO_USER_LOGIN, null);
     }
 
@@ -1411,7 +1422,7 @@ public class EspApplication extends Application {
      */
     public String getThemePreference() {
         SharedPreferences preferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
-        return preferences.getString(KEY_THEME_PREFERENCE, THEME_SYSTEM);
+        return preferences.getString(AppConstants.KEY_THEME_PREFERENCE, AppConstants.THEME_DEFAULT);
     }
 
     /**
@@ -1420,7 +1431,7 @@ public class EspApplication extends Application {
     public void setThemePreference(String theme) {
         SharedPreferences preferences = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
-        editor.putString(KEY_THEME_PREFERENCE, theme);
+        editor.putString(AppConstants.KEY_THEME_PREFERENCE, theme);
         editor.apply();
         applyTheme(theme);
     }
@@ -1431,13 +1442,13 @@ public class EspApplication extends Application {
     private void applyTheme(String theme) {
         Log.d(TAG, "Applying theme: " + theme);
         switch (theme) {
-            case THEME_LIGHT:
+            case AppConstants.THEME_LIGHT:
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
                 break;
-            case THEME_DARK:
+            case AppConstants.THEME_DARK:
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
                 break;
-            case THEME_SYSTEM:
+            case AppConstants.THEME_SYSTEM:
             default:
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
                 break;

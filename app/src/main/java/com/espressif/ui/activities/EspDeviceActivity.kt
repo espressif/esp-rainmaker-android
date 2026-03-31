@@ -150,9 +150,16 @@ class EspDeviceActivity : AppCompatActivity() {
             nodeId = device!!.nodeId
             Log.d(TAG, "NODE ID : $nodeId")
 
-            nodeType = espApp.nodeMap[nodeId]!!.newNodeType
-            nodeStatus = espApp.nodeMap[nodeId]!!.nodeStatus
-            timeStampOfStatus = espApp.nodeMap[nodeId]!!.timeStampOfStatus
+            val node = espApp.nodeMap[nodeId]
+            if (node == null) {
+                Log.e(TAG, "Node not found in nodeMap for nodeId: $nodeId. App may have been restarted.")
+                finish()
+                return
+            }
+
+            nodeType = node.newNodeType
+            nodeStatus = node.nodeStatus
+            timeStampOfStatus = node.timeStampOfStatus
             snackbar = Snackbar.make(
                 binding.espDeviceLayout.paramsParentLayout,
                 R.string.msg_no_internet,
@@ -202,13 +209,13 @@ class EspDeviceActivity : AppCompatActivity() {
             }
 
             val controllerService = getService(
-                espApp.nodeMap[nodeId]!!,
+                node,
                 AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
             )
             isCtlAvailable = controllerService != null
 
             val rmakerControllerService = getService(
-                espApp.nodeMap[nodeId]!!,
+                node,
                 AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER
             )
             isRmakerCtlAvailable = rmakerControllerService != null
@@ -542,7 +549,7 @@ class EspDeviceActivity : AppCompatActivity() {
         }
 
         val tbrService: Service? =
-            getService(espApp.nodeMap[nodeId]!!, AppConstants.SERVICE_TYPE_TBR)
+            espApp.nodeMap[nodeId]?.let { getService(it, AppConstants.SERVICE_TYPE_TBR) }
         if (tbrService != null) {
             binding.espDeviceLayout.rlUpdateThreadDataset.visibility = View.VISIBLE
             binding.espDeviceLayout.rlMergeThreadDataset.visibility = View.VISIBLE
@@ -996,15 +1003,15 @@ class EspDeviceActivity : AppCompatActivity() {
         var updatedDevice: Device? = null
         lastUpdateRequestTime = System.currentTimeMillis()
 
-        if (espApp.nodeMap.containsKey(nodeId)) {
-            val devices = espApp.nodeMap[nodeId]!!
-                .devices
+        val currentNode = espApp.nodeMap[nodeId]
+        if (currentNode != null) {
+            val devices = currentNode.devices
             if (devices == null || devices.isEmpty()) {
                 Log.e(TAG, "Node devices are not available")
                 return
             }
-            timeStampOfStatus = espApp.nodeMap[nodeId]!!.timeStampOfStatus
-            nodeStatus = espApp.nodeMap[nodeId]!!.nodeStatus
+            timeStampOfStatus = currentNode.timeStampOfStatus
+            nodeStatus = currentNode.nodeStatus
 
             for (i in devices.indices) {
                 if (device!!.deviceName != null && device!!.deviceName == devices[i].deviceName) {

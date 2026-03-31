@@ -40,8 +40,8 @@ def googleIdentityProvider = "Google"
 def appleIdentityProvider = "SignInWithApple"
 
 def defaultDocUrl = "https://rainmaker.espressif.com/"
-def defaultPrivacyUrl = "https://rainmaker.espressif.com/docs/privacy-policy.html"
-def defaultTermsOfUseUrl = "https://rainmaker.espressif.com/docs/terms-of-use.html"
+def defaultPrivacyUrl = "https://rainmaker.espressif.com/en/privacy-policy?region=global"
+def defaultTermsOfUseUrl = "https://rainmaker.espressif.com/en/terms-of-use?region=global"
 
 def defaultUserPool = "2"
 def matterBuild = false
@@ -51,8 +51,8 @@ def defaultChinaBaseUrl = "https://api2.rainmaker.espressif.com.cn"
 def defaultChinaAuthUrl = "https://api2.rainmaker.espressif.com.cn"
 def defaultChinaClientId = "6m3FgmvJSt4g6pDrHgfpYj"
 def defaultChinaClaimBaseUrl = "https://claiming.rainmaker.espressif.com.cn"
-def defaultChinaPrivacyUrl = "https://rainmaker.espressif.com/zh-hans/docs/privacy-policy-cn/"
-def defaultChinaTermsOfUseUrl = "https://rainmaker.espressif.com/zh-hans/docs/terms-of-use-cn/"
+def defaultChinaPrivacyUrl = "https://rainmaker.espressif.com/zh/privacy-policy?region=china"
+def defaultChinaTermsOfUseUrl = "https://rainmaker.espressif.com/zh/terms-of-use?region=china"
 
 // Please configure WeChat App id to support WeChat login for China region
 def weChatIdForLogin = "your_we_chat_id"
@@ -93,8 +93,8 @@ android {
         applicationId "com.espressif.rainmaker"
         minSdkVersion 27
         targetSdkVersion 35
-        versionCode 207
-        versionName "3.11.1 - ${getGitHash()}"
+        versionCode 208
+        versionName "3.11.2 - ${getGitHash()}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField "String", "GitHash", "\"${getGitHash()}\""

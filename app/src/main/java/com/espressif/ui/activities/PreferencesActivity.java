@@ -15,14 +15,13 @@
 package com.espressif.ui.activities;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
-import android.widget.RadioButton;
 import android.widget.RadioGroup;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.rainmaker.R;
 import com.espressif.rainmaker.databinding.ActivityPreferencesBinding;
@@ -68,13 +67,13 @@ public class PreferencesActivity extends AppCompatActivity {
         String currentTheme = espApp.getThemePreference();
 
         switch (currentTheme) {
-            case EspApplication.THEME_LIGHT:
+            case AppConstants.THEME_LIGHT:
                 binding.rbLightTheme.setChecked(true);
                 break;
-            case EspApplication.THEME_DARK:
+            case AppConstants.THEME_DARK:
                 binding.rbDarkTheme.setChecked(true);
                 break;
-            case EspApplication.THEME_SYSTEM:
+            case AppConstants.THEME_SYSTEM:
             default:
                 binding.rbSystemTheme.setChecked(true);
                 break;
@@ -84,16 +83,15 @@ public class PreferencesActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
 
-                String selectedTheme = EspApplication.THEME_SYSTEM;
-                
+                String selectedTheme = AppConstants.THEME_DEFAULT;
+
                 if (checkedId == R.id.rb_light_theme) {
-                    selectedTheme = EspApplication.THEME_LIGHT;
+                    selectedTheme = AppConstants.THEME_LIGHT;
                 } else if (checkedId == R.id.rb_dark_theme) {
-                    selectedTheme = EspApplication.THEME_DARK;
+                    selectedTheme = AppConstants.THEME_DARK;
                 } else if (checkedId == R.id.rb_system_theme) {
-                    selectedTheme = EspApplication.THEME_SYSTEM;
+                    selectedTheme = AppConstants.THEME_SYSTEM;
                 }
-                
                 espApp.setThemePreference(selectedTheme);
                 recreate();
             }

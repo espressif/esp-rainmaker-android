@@ -1209,6 +1209,7 @@ public class ProvisionActivity extends AppCompatActivity {
                                 ArrayList<Service> services = espNode.getServices();
                                 boolean isTimeZoneServiceAvailable = false;
                                 String paramName = "";
+                                String timestampParamName = null;
 
                                 for (int i = 0; i < services.size(); i++) {
 
@@ -1216,14 +1217,20 @@ public class ProvisionActivity extends AppCompatActivity {
                                     if (!TextUtils.isEmpty(s.getType()) && s.getType().equals(AppConstants.SERVICE_TYPE_TIME)) {
 
                                         ArrayList<Param> timeParams = s.getParams();
+                                        String tzName = null;
+                                        String tsName = null;
                                         for (int index = 0; index < timeParams.size(); index++) {
-                                            if (AppConstants.PARAM_TYPE_TZ.equals(timeParams.get(index).getParamType())) {
-                                                isTimeZoneServiceAvailable = true;
-                                                paramName = timeParams.get(index).getName();
-                                                break;
+                                            Param p = timeParams.get(index);
+                                            if (AppConstants.PARAM_TYPE_TZ.equals(p.getParamType())) {
+                                                tzName = p.getName();
+                                            } else if (AppConstants.PARAM_TYPE_TIMESTAMP.equals(p.getParamType())) {
+                                                tsName = p.getName();
                                             }
                                         }
-                                        if (isTimeZoneServiceAvailable) {
+                                        if (!TextUtils.isEmpty(tzName)) {
+                                            isTimeZoneServiceAvailable = true;
+                                            paramName = tzName;
+                                            timestampParamName = tsName;
                                             break;
                                         }
                                     }
@@ -1239,6 +1246,11 @@ public class ProvisionActivity extends AppCompatActivity {
                                     JsonObject body = new JsonObject();
                                     JsonObject jsonParam = new JsonObject();
                                     jsonParam.addProperty(paramName, timeZoneId);
+                                    if (!TextUtils.isEmpty(timestampParamName)) {
+                                        long timestampSec = System.currentTimeMillis() / 1000L;
+                                        jsonParam.addProperty(timestampParamName, timestampSec);
+                                        Log.d(TAG, "Timestamp (s) : " + timestampSec);
+                                    }
                                     body.add(AppConstants.KEY_TIME, jsonParam);
                                     apiManager.updateParamValue(espNode.getNodeId(), body, new ApiResponseListener() {
 
@@ -1519,11 +1531,11 @@ public class ProvisionActivity extends AppCompatActivity {
         tvProvError.setVisibility(View.GONE);
 
         // Hide images
-        tick1.setVisibility(View.GONE);
-        tick2.setVisibility(View.GONE);
-        tick3.setVisibility(View.GONE);
-        tick4.setVisibility(View.GONE);
-        tick5.setVisibility(View.GONE);
+        tick1.setImageResource(R.drawable.ic_checkbox_unselected);
+        tick2.setImageResource(R.drawable.ic_checkbox_unselected);
+        tick3.setImageResource(R.drawable.ic_checkbox_unselected);
+        tick4.setImageResource(R.drawable.ic_checkbox_unselected);
+        tick5.setImageResource(R.drawable.ic_checkbox_unselected);
 
         // Hide progress indicators
         progress1.setVisibility(View.GONE);
@@ -1532,6 +1544,20 @@ public class ProvisionActivity extends AppCompatActivity {
         progress4.setVisibility(View.GONE);
         progress5.setVisibility(View.GONE);
 
+        if (isChallengeResponseFlow) {
+
+            // Update UI for challenge-response flow
+            tvProvStep1.setText(R.string.confirming_node_association);
+            View step3View = findViewById(R.id.layout_configuring_wifi_creds);
+            View step4View = findViewById(R.id.layout_confirming_node_association);
+            if (step3View != null) {
+                step3View.setVisibility(View.GONE);
+            }
+            if (step4View != null) {
+                step4View.setVisibility(View.GONE);
+            }
+        }
+        
         // Reset error message
         errorMessage = null;
     }
