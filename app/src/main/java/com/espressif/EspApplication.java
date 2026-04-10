@@ -130,6 +130,7 @@ public class EspApplication extends Application {
     private KeyStore keyStore = null;
 
     public String mGroupId, mFabricId, mRootCa, mIpk, groupCatIdOperate;
+    public String lastCommissionedRmNodeId;
     public static boolean loggedInUsingWeChat = false;
 
     public static String channelName = "", region = "";

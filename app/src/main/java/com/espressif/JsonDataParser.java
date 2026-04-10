@@ -32,13 +32,46 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 public class JsonDataParser {
 
     private static final String TAG = JsonDataParser.class.getSimpleName();
+
+    private static final Set<String> CONTROLLER_PARAM_TYPES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            AppConstants.PARAM_TYPE_BASE_URL,
+            AppConstants.PARAM_TYPE_USER_TOKEN,
+            AppConstants.PARAM_TYPE_RMAKER_GROUP_ID,
+            AppConstants.PARAM_TYPE_GROUP_ID
+    )));
+
+    private static final Set<String> CONTROLLER_SETUP_PARAM_TYPES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            AppConstants.PARAM_TYPE_RMAKER_GROUP_ID,
+            AppConstants.PARAM_TYPE_MATTER_CTL_CMD,
+            AppConstants.PARAM_TYPE_MATTER_CTL_STATUS
+    )));
+
+    private static void applyServiceParamValues(ArrayList<Param> params, JSONObject json, Set<String> supportedTypes) {
+        if (params == null || json == null) {
+            return;
+        }
+        for (Param param : params) {
+            String type = param.getParamType();
+            if (TextUtils.isEmpty(type) || !supportedTypes.contains(type)) {
+                continue;
+            }
+            String value = json.optString(param.getName());
+            if (!TextUtils.isEmpty(value)) {
+                param.setLabelValue(value);
+            }
+        }
+    }
 
     /**
      * This method is used to set param value received from cloud.
@@ -393,7 +426,7 @@ public class JsonDataParser {
         ArrayList<Service> services = node.getServices();
         JSONObject scheduleJson = null, sceneJson = null;
         JSONObject timeJson = null, localControlJson = null, systemServiceJson = null;
-        JSONObject controllerServiceJson = null, ctlServiceJson = null, rmCtrlServiceJson = null, tbrServiceJson = null;
+        JSONObject controllerServiceJson = null, ctlServiceJson = null, ctlSetupServiceJson = null, rmCtrlServiceJson = null, tbrServiceJson = null;
 
         if (services != null) {
             for (Service service : services) {
@@ -416,6 +449,8 @@ public class JsonDataParser {
                 } else if (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(serviceType)) {
                     controllerServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CONTROLLER);
                     ctlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CTL);
+                } else if (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP.equals(serviceType)) {
+                    ctlSetupServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CTL_SETUP);
                 } else if (AppConstants.SERVICE_TYPE_TBR.equals(serviceType)) {
                     tbrServiceJson = paramsJson.optJSONObject(serviceName);
                 } else if (AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER.equals(serviceType)) {
@@ -778,24 +813,8 @@ public class JsonDataParser {
                 } else if (AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER.equals(service.getType()) && rmCtrlServiceJson != null) {
 
                     // RainMaker controller service
-                    ArrayList<Param> controllerParams = service.getParams();
+                    applyServiceParamValues(service.getParams(), rmCtrlServiceJson, CONTROLLER_PARAM_TYPES);
 
-                    if (controllerParams != null) {
-
-                        for (Param controllerParam : controllerParams) {
-
-                            String type = controllerParam.getParamType();
-
-                            if (!TextUtils.isEmpty(type) &&
-                                    (AppConstants.PARAM_TYPE_BASE_URL.equals(type) || AppConstants.PARAM_TYPE_USER_TOKEN.equals(type)
-                                            || AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type))) {
-                                if (!TextUtils.isEmpty(rmCtrlServiceJson.optString(controllerParam.getName()))) {
-                                    String value = rmCtrlServiceJson.optString(controllerParam.getName());
-                                    controllerParam.setLabelValue(value);
-                                }
-                            }
-                        }
-                    }
                 } else if ((AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && controllerServiceJson != null)
                         || (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && ctlServiceJson != null)) {
 
@@ -846,33 +865,21 @@ public class JsonDataParser {
                                     }
                                     setRemoteDeviceParamValues(espAppContext, nodeId, node, controllerDataVersion);
                                     break;
-
-                                } else if (!TextUtils.isEmpty(type) &&
-                                        (AppConstants.PARAM_TYPE_BASE_URL.equals(type) || AppConstants.PARAM_TYPE_USER_TOKEN.equals(type)
-                                                || AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type))) {
-                                    if (!TextUtils.isEmpty(controllerServiceJson.optString(controllerParam.getName()))) {
-                                        String value = controllerServiceJson.optString(controllerParam.getName());
-                                        controllerParam.setLabelValue(value);
-                                    }
                                 }
                             }
+
+                            applyServiceParamValues(controllerParams, controllerServiceJson, CONTROLLER_PARAM_TYPES);
+
                         } else if (ctlServiceJson != null) {
 
-                            for (Param controllerParam : controllerParams) {
-
-                                String type = controllerParam.getParamType();
-
-                                if (!TextUtils.isEmpty(type) &&
-                                        (AppConstants.PARAM_TYPE_BASE_URL.equals(type) || AppConstants.PARAM_TYPE_USER_TOKEN.equals(type)
-                                                || AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type))) {
-                                    if (!TextUtils.isEmpty(ctlServiceJson.optString(controllerParam.getName()))) {
-                                        String value = ctlServiceJson.optString(controllerParam.getName());
-                                        controllerParam.setLabelValue(value);
-                                    }
-                                }
-                            }
+                            applyServiceParamValues(controllerParams, ctlServiceJson, CONTROLLER_PARAM_TYPES);
                         }
                     }
+                } else if (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP.equals(service.getType()) && ctlSetupServiceJson != null) {
+
+                    // Matter controller setup service
+                    applyServiceParamValues(service.getParams(), ctlSetupServiceJson, CONTROLLER_SETUP_PARAM_TYPES);
+
                 } else if (AppConstants.SERVICE_TYPE_TBR.equals(service.getType()) && tbrServiceJson != null) {
 
                     // TBR service

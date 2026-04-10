@@ -35,6 +35,8 @@ import com.espressif.EspApplication;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.local_control.EspLocalDevice;
+import com.espressif.matter.ControllerLoginActivity;
+import com.espressif.matter.GroupSelectionActivity;
 import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPDevice;
@@ -48,6 +50,8 @@ import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Service;
 import com.espressif.ui.models.UpdateEvent;
 import com.espressif.utils.InAppReviewManager;
+import com.espressif.utils.NodeUtils;
+import com.espressif.utils.ParamUtils;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputLayout;
@@ -106,12 +110,14 @@ public class ProvisionActivity extends AppCompatActivity {
     private OnNetworkDevice onNetworkDevice;
     private EspLocalDevice localDevice;
     private Handler wifiConnectHandler = new Handler();
+    private EspApplication espApp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_provision);
+        espApp = (EspApplication) getApplicationContext();
 
         Intent intent = getIntent();
         ssidValue = intent.getStringExtra(AppConstants.KEY_SSID);
@@ -212,12 +218,50 @@ public class ProvisionActivity extends AppCompatActivity {
 
         @Override
         public void onClick(View v) {
+
+            EspNode espNode = espApp.nodeMap.get(receivedNodeId);
+            if (espNode != null && espNode.isOnline()) {
+                Service rmakerCtrlService = NodeUtils.Companion.getService(espNode, AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER);
+                Service ctrlService = NodeUtils.Companion.getService(espNode, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER);
+                Service ctrlSetupService = NodeUtils.Companion.getService(espNode, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP);
+
+                boolean isRmakerServiceAvailable = rmakerCtrlService != null;
+                boolean isCtrlServiceAvailable = ctrlService != null;
+                boolean isCtrlSetupServiceAvailable = ctrlSetupService != null;
+
+                boolean hasGroupIdParam = hasGroupIdParam(rmakerCtrlService)
+                        || hasGroupIdParam(ctrlService)
+                        || hasGroupIdParam(ctrlSetupService);
+
+                if (hasGroupIdParam) {
+                    Intent intent = new Intent(ProvisionActivity.this, GroupSelectionActivity.class);
+                    startPostProvisioningFlow(intent, receivedNodeId, isCtrlServiceAvailable, isCtrlSetupServiceAvailable, isRmakerServiceAvailable);
+                } else if (isRmakerServiceAvailable || isCtrlServiceAvailable) {
+                    Intent intent = new Intent(ProvisionActivity.this, ControllerLoginActivity.class);
+                    startPostProvisioningFlow(intent, receivedNodeId, isCtrlServiceAvailable, isCtrlSetupServiceAvailable, isRmakerServiceAvailable);
+                }
+            }
+
             if (provisionManager != null && provisionManager.getEspDevice() != null) {
                 provisionManager.getEspDevice().disconnectDevice();
             }
             finish();
         }
     };
+
+    private void startPostProvisioningFlow(Intent intent, String provisionedNodeId, boolean isCtrlServiceAvailable, boolean isCtrlSetupServiceAvailable, boolean isRmakerServiceAvailable) {
+        intent.putExtra(AppConstants.KEY_NODE_ID, provisionedNodeId);
+        intent.putExtra(AppConstants.KEY_IS_CTRL_SERVICE, isCtrlServiceAvailable);
+        intent.putExtra(AppConstants.KEY_IS_CTRL_SETUP_SERVICE, isCtrlSetupServiceAvailable);
+        intent.putExtra(AppConstants.KEY_IS_RMAKER_CONTROLLER, isRmakerServiceAvailable);
+        startActivity(intent);
+    }
+
+    private boolean hasGroupIdParam(Service service) {
+        if (service == null) return false;
+        return ParamUtils.Companion.isParamAvailableInList(service.getParams(), AppConstants.PARAM_TYPE_RMAKER_GROUP_ID)
+                || ParamUtils.Companion.isParamAvailableInList(service.getParams(), AppConstants.PARAM_TYPE_GROUP_ID);
+    }
 
     private void initViews() {
 
@@ -1201,7 +1245,6 @@ public class ProvisionActivity extends AppCompatActivity {
 
                         @Override
                         public void run() {
-                            EspApplication espApp = (EspApplication) getApplicationContext();
                             EspNode espNode = espApp.nodeMap.get(receivedNodeId);
                             if (espNode != null && espNode.isOnline()) {
 
