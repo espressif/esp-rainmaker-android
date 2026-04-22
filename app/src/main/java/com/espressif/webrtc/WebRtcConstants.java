@@ -34,6 +34,8 @@ public class WebRtcConstants {
 
     // Set to true to mute incoming (remote) audio by default
     public static final boolean INCOMING_AUDIO_MUTED_BY_DEFAULT = false;
+    // Set to true to flip the video vertically (display only, does not affect the stream)
+    public static final boolean FLIP_VIDEO_VERTICAL = false;
 
     public static final String KEY_CLIENT_ID = "clientId";
     public static final String KEY_CHANNEL_NAME = "channelName";

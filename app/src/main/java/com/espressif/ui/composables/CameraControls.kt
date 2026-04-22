@@ -65,7 +65,6 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -256,73 +255,71 @@ fun WebRtcVideoPlayer(
     }
 
     Box(modifier = modifier) {
-        // Video content area
-        Crossfade(
-            targetState = isPlaying,
-            animationSpec = tween(300),
-            label = "video_crossfade",
-            modifier = Modifier.fillMaxSize()
-        ) { playing ->
+        // Video content area — SurfaceView is always present to avoid EGL/surface
+        // lifecycle issues with Crossfade animations
+        key(videoSessionKey) {
+            // Track this key-instance's renderer locally so the inner DisposableEffect
+            // releases the exact renderer this `key` block created. Without this,
+            // bumping videoSessionKey would drop the old SurfaceViewRenderer without
+            // a release() call — see CLAUDE.md: "SurfaceViewRenderer must have
+            // release() called before init() can be called again."
+            var localRenderer by remember { mutableStateOf<SurfaceViewRenderer?>(null) }
+            AndroidView(
+                factory = { ctx ->
+                    com.espressif.ui.webrtc.FlippableSurfaceViewRenderer(ctx).apply {
+                        setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
+                        setMirror(false)
+                        localRenderer = this
+                        onSurfaceViewRendererChange(this)
+                    }
+                },
+                update = { view ->
+                    view.visibility = if (isPlaying) android.view.View.VISIBLE else android.view.View.GONE
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { showControls = !showControls },
+                            onLongPress = { showStatsDialog = true }
+                        )
+                    }
+            )
+            DisposableEffect(Unit) {
+                onDispose {
+                    localRenderer?.let { renderer ->
+                        try {
+                            renderer.release()
+                        } catch (e: Exception) {
+                            Log.e("CameraControls", "Error releasing renderer on key bump: ${e.message}", e)
+                        }
+                    }
+                    localRenderer = null
+                }
+            }
+        }
+
+        // Play button overlay when not playing
+        if (!isPlaying) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                if (!playing) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.5f))
-                    )
-                    IconButton(
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                )
+                IconButton(
+                    modifier = Modifier.size(64.dp),
+                    onClick = onVideoPlay
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.PlayArrow,
+                        contentDescription = stringResource(R.string.camera_cd_play),
                         modifier = Modifier.size(64.dp),
-                        onClick = onVideoPlay
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.PlayArrow,
-                            contentDescription = stringResource(R.string.camera_cd_play),
-                            modifier = Modifier.size(64.dp),
-                            tint = Color.White
-                        )
-                    }
-                } else {
-                    key(videoSessionKey) {
-                        // Track this key-instance's renderer locally so the inner DisposableEffect
-                        // releases the exact renderer this `key` block created. Without this,
-                        // bumping videoSessionKey would drop the old SurfaceViewRenderer without
-                        // a release() call — see CLAUDE.md: "SurfaceViewRenderer must have
-                        // release() called before init() can be called again."
-                        var localRenderer by remember { mutableStateOf<SurfaceViewRenderer?>(null) }
-                        AndroidView(
-                            factory = { ctx ->
-                                SurfaceViewRenderer(ctx).apply {
-                                    setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
-                                    setMirror(false)
-                                    localRenderer = this
-                                    onSurfaceViewRendererChange(this)
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .pointerInput(Unit) {
-                                    detectTapGestures(
-                                        onTap = { showControls = !showControls },
-                                        onLongPress = { showStatsDialog = true }
-                                    )
-                                }
-                        )
-                        DisposableEffect(Unit) {
-                            onDispose {
-                                localRenderer?.let { renderer ->
-                                    try {
-                                        renderer.release()
-                                    } catch (e: Exception) {
-                                        Log.e("CameraControls", "Error releasing renderer on key bump: ${e.message}", e)
-                                    }
-                                }
-                                localRenderer = null
-                            }
-                        }
-                    }
+                        tint = Color.White
+                    )
                 }
             }
         }
@@ -1008,6 +1005,7 @@ fun initCameraControls(view: View, nodeId: String, hasControlParam: Boolean = tr
                     webRtcManager = null
                     EspApplication.clearActiveWebRtcManager()
                     surfaceViewRenderer = null
+                    videoSessionKey++
                     isPlaying = false
                     isLoading = false
                     errorMessage = null
@@ -1023,13 +1021,7 @@ fun initCameraControls(view: View, nodeId: String, hasControlParam: Boolean = tr
                     EspApplication.isLandscapeTransitionActive = true
                     manager.setViewportRenderer(renderer)
 
-                    val channelInfo = manager.getChannelInfo()
-                    if (channelInfo != null) {
-                        EspApplication.region = channelInfo.region
-                    }
-
-                    val intent = Intent(context, WebRtcConfigActivity::class.java)
-                    EspApplication.channelName = channelName
+                    val intent = Intent(context, WebRtcActivity::class.java)
                     intent.putExtra("reuse_session", true)
                     context.startActivity(intent)
                 }
@@ -1299,7 +1291,8 @@ fun initViewportControls(composeView: ComposeView, channelName: String, nodeId: 
                         EspApplication.clearActiveWebRtcManager()
                         EspApplication.clearLandscapeSessionReferences()
 
-                        // Don't set surfaceViewRenderer to null here - AndroidView will handle it
+                        surfaceViewRenderer = null
+                        videoSessionKey++
                         isPlaying = false
                         isLoading = false
                         errorMessage = null
@@ -1322,15 +1315,8 @@ fun initViewportControls(composeView: ComposeView, channelName: String, nodeId: 
                     EspApplication.setViewportWebRtcManager(manager)
                     EspApplication.isLandscapeTransitionActive = true
 
-                    // Get channel info for passing to landscape
-                    val channelInfo = manager.getChannelInfo()
-                    if (channelInfo != null) {
-                        EspApplication.region = channelInfo.region
-                    }
-
-                    // Launch landscape with reuse_session flag
-                    val intent = Intent(context, WebRtcConfigActivity::class.java)
-                    EspApplication.channelName = channelName
+                    // Launch landscape directly, bypassing WebRtcConfigActivity
+                    val intent = Intent(context, WebRtcActivity::class.java)
                     intent.putExtra("reuse_session", true)
                     context.startActivity(intent)
 
@@ -1537,45 +1523,43 @@ fun initViewportControls(composeView: ComposeView, channelName: String, nodeId: 
 
                 val renderer = surfaceViewRenderer!!
                 renderer.post {
-                    renderer.postDelayed({
+                    try {
                         try {
-                            try {
-                                renderer.init(landscapeEglBase.eglBaseContext, null)
-                                renderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
-                                renderer.setMirror(false)
-                            } catch (e: IllegalStateException) {
-                                // Pickup failed — dispose the orphaned natives rather than just
-                                // null the references (otherwise PeerConnection/EglBase/Track leak).
+                            renderer.init(landscapeEglBase.eglBaseContext, null)
+                            renderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
+                            renderer.setMirror(false)
+                        } catch (e: IllegalStateException) {
+                            // Pickup failed — dispose the orphaned natives rather than just
+                            // null the references (otherwise PeerConnection/EglBase/Track leak).
+                            EspApplication.clearLandscapeSession()
+                            return@post
+                        }
+
+                        try {
+                            val trackState = landscapeVideoTrack.state()
+                            if (trackState == org.webrtc.MediaStreamTrack.State.ENDED) {
                                 EspApplication.clearLandscapeSession()
-                                return@postDelayed
+                                return@post
                             }
+                        } catch (e: Exception) {
+                        }
 
-                            try {
-                                val trackState = landscapeVideoTrack.state()
-                                if (trackState == org.webrtc.MediaStreamTrack.State.ENDED) {
-                                    EspApplication.clearLandscapeSession()
-                                    return@postDelayed
-                                }
-                            } catch (e: Exception) {
-                            }
-
-                            try {
-                                landscapeVideoTrack.addSink(renderer)
-                                isPlaying = true
-                                isLoading = false
-                            } catch (e: Exception) {
-                                EspApplication.clearLandscapeSession()
-                                return@postDelayed
-                            }
-
-                            EspApplication.landscapeVideoTrack = null
-                            EspApplication.landscapeEglBase = null
-                            EspApplication.landscapeRenderer = null
-                            EspApplication.landscapePeerConnection = null
+                        try {
+                            landscapeVideoTrack.addSink(renderer)
+                            isPlaying = true
+                            isLoading = false
                         } catch (e: Exception) {
                             EspApplication.clearLandscapeSession()
+                            return@post
                         }
-                    }, 300)
+
+                        EspApplication.landscapeVideoTrack = null
+                        EspApplication.landscapeEglBase = null
+                        EspApplication.landscapeRenderer = null
+                        EspApplication.landscapePeerConnection = null
+                    } catch (e: Exception) {
+                        EspApplication.clearLandscapeSession()
+                    }
                 }
             }
 
@@ -1966,42 +1950,40 @@ fun CameraControlsWithViewport(
 
         val renderer = surfaceViewRenderer!!
         renderer.post {
-            renderer.postDelayed({
+            try {
                 try {
-                    try {
-                        renderer.init(landscapeEglBase.eglBaseContext, null)
-                        renderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
-                        renderer.setMirror(false)
-                    } catch (e: IllegalStateException) {
+                    renderer.init(landscapeEglBase.eglBaseContext, null)
+                    renderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
+                    renderer.setMirror(false)
+                } catch (e: IllegalStateException) {
+                    EspApplication.clearLandscapeSession()
+                    return@post
+                }
+
+                try {
+                    val trackState = landscapeVideoTrack.state()
+                    if (trackState == org.webrtc.MediaStreamTrack.State.ENDED) {
                         EspApplication.clearLandscapeSession()
-                        return@postDelayed
+                        return@post
                     }
+                } catch (e: Exception) {
+                }
 
-                    try {
-                        val trackState = landscapeVideoTrack.state()
-                        if (trackState == org.webrtc.MediaStreamTrack.State.ENDED) {
-                            EspApplication.clearLandscapeSession()
-                            return@postDelayed
-                        }
-                    } catch (e: Exception) {
-                    }
-
-                    try {
-                        landscapeVideoTrack.addSink(renderer)
-                        onVideoPlay()
-                    } catch (e: Exception) {
-                        EspApplication.clearLandscapeSession()
-                        return@postDelayed
-                    }
-
-                    EspApplication.landscapeVideoTrack = null
-                    EspApplication.landscapeEglBase = null
-                    EspApplication.landscapeRenderer = null
-                    EspApplication.landscapePeerConnection = null
+                try {
+                    landscapeVideoTrack.addSink(renderer)
+                    onVideoPlay()
                 } catch (e: Exception) {
                     EspApplication.clearLandscapeSession()
+                    return@post
                 }
-            }, 300)
+
+                EspApplication.landscapeVideoTrack = null
+                EspApplication.landscapeEglBase = null
+                EspApplication.landscapeRenderer = null
+                EspApplication.landscapePeerConnection = null
+            } catch (e: Exception) {
+                EspApplication.clearLandscapeSession()
+            }
         }
     }
 

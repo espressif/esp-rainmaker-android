@@ -1578,63 +1578,60 @@ class WebRtcViewportManager(
                 Log.d(TAG, "Stored viewport renderer reference for transfer back (fallback)")
             }
 
-            // Remove video track from old renderer (viewport) - MUST happen first
-            oldView?.let { view ->
-                try {
-                    Log.d(TAG, "Removing video sink from viewport renderer (oldView=${view.hashCode()})...")
-                    videoTrack.removeSink(view)
-                    Log.d(TAG, "Video sink removed from viewport - video should stop in viewport")
-                } catch (e: Exception) {
-                    Log.w(TAG, "Note removing sink from viewport: ${e.message} - may already be removed")
-                    // Don't throw - continue with transfer
-                }
+            // Verify rootEglBase is available
+            if (rootEglBase == null) {
+                Log.e(TAG, "Root EglBase is null - cannot transfer video")
+                throw IllegalStateException("Root EglBase is null")
             }
 
-            // Also remove from current remoteView if it's different from oldView
-            remoteView?.let { currentView ->
-                if (currentView != oldView && currentView != newRenderer) {
+            // Don't transfer if it's already the current renderer
+            if (remoteView == newRenderer) {
+                Log.w(TAG, "New renderer is already the current remoteView - skipping transfer")
+                return
+            }
+
+            // Configure renderer for display
+            try {
+                newRenderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
+                newRenderer.setMirror(false)
+            } catch (e: Exception) {
+                Log.w(TAG, "Error setting renderer properties: ${e.message} - continuing anyway")
+            }
+
+            // Add new sink BEFORE removing old ones to avoid a sinkless gap.
+            // WebRTC VideoTrack supports multiple simultaneous sinks, so this is safe.
+            // Without this, the sender gets back-pressured during the gap which causes
+            // slow data send on the ESP device and a black screen on the app.
+            try {
+                Log.d(TAG, "Adding video sink to new renderer (newRenderer=${newRenderer.hashCode()})...")
+                val previousRemoteView = remoteView
+                videoTrack.addSink(newRenderer)
+                Log.d(TAG, "Video sink added to new renderer")
+
+                // Now remove old sinks (new sink is already receiving frames)
+                // Skip if oldView is the same as newRenderer (e.g. landscape→portrait return)
+                if (oldView != null && oldView != newRenderer) {
                     try {
-                        Log.d(TAG, "Removing video sink from current remoteView (currentView=${currentView.hashCode()})...")
-                        videoTrack.removeSink(currentView)
-                        Log.d(TAG, "Video sink removed from current remoteView")
+                        videoTrack.removeSink(oldView)
+                        Log.d(TAG, "Removed old sink (oldView=${oldView.hashCode()})")
                     } catch (e: Exception) {
-                        Log.w(TAG, "Note removing sink from current remoteView: ${e.message}")
-                        // Don't throw - continue with transfer
+                        Log.w(TAG, "Note removing sink from old view: ${e.message}")
                     }
                 }
-            }
 
-            // Immediately add to new renderer (landscape) - same video stream, different display
-            try {
-                Log.d(TAG, "Adding video sink to landscape renderer (newRenderer=${newRenderer.hashCode()})...")
-
-                // Verify rootEglBase is available
-                if (rootEglBase == null) {
-                    Log.e(TAG, "Root EglBase is null - cannot transfer video")
-                    throw IllegalStateException("Root EglBase is null")
+                if (previousRemoteView != null && previousRemoteView != oldView && previousRemoteView != newRenderer) {
+                    try {
+                        videoTrack.removeSink(previousRemoteView)
+                        Log.d(TAG, "Removed sink from previous remoteView (${previousRemoteView.hashCode()})")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Note removing sink from previous remoteView: ${e.message}")
+                    }
                 }
 
-                // Don't add sink if it's already the current renderer
-                if (remoteView == newRenderer) {
-                    Log.w(TAG, "New renderer is already the current remoteView - skipping transfer")
-                    return
-                }
-
-                // Configure renderer for landscape display
-                try {
-                    newRenderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
-                    newRenderer.setMirror(false)
-                } catch (e: Exception) {
-                    Log.w(TAG, "Error setting renderer properties: ${e.message} - continuing anyway")
-                }
-
-                // Add video track - this is the same stream, just displayed in landscape
-                // Note: Both renderers must share the same EglBase context (verified in WebRtcActivity.onCreate)
-                videoTrack.addSink(newRenderer)
                 remoteView = newRenderer
-                Log.d(TAG, "Video now displaying in landscape - same stream, different orientation")
+                Log.d(TAG, "Video transfer complete - no sinkless gap")
             } catch (e: Exception) {
-                Log.e(TAG, "Error adding video to landscape renderer: ${e.message}", e)
+                Log.e(TAG, "Error adding video sink to new renderer: ${e.message}", e)
                 e.printStackTrace()
                 onError?.invoke("Error transferring video: ${e.message}")
                 throw e
