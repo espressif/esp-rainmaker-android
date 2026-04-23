@@ -55,6 +55,7 @@ import com.espressif.utils.ParamUtils;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -78,6 +79,14 @@ import rmaker_ch_resp.EspRmakerChalResp.RMakerChRespMsgType;
 import rmaker_ch_resp.EspRmakerChalResp.RMakerChRespPayload;
 import rmaker_ch_resp.EspRmakerChalResp.RMakerChRespStatus;
 import rmaker_ch_resp.EspRmakerChalResp.RespCRPayload;
+
+import rmaker_prov_local_ctrl.EspRmakerProvLocalCtrl.CmdGetData;
+import rmaker_prov_local_ctrl.EspRmakerProvLocalCtrl.PayloadBuf;
+import rmaker_prov_local_ctrl.EspRmakerProvLocalCtrl.RMakerLocalCtrlDataType;
+import rmaker_prov_local_ctrl.EspRmakerProvLocalCtrl.RMakerLocalCtrlMsgType;
+import rmaker_prov_local_ctrl.EspRmakerProvLocalCtrl.RMakerLocalCtrlPayload;
+import rmaker_prov_local_ctrl.EspRmakerProvLocalCtrl.RMakerLocalCtrlStatus;
+import rmaker_prov_local_ctrl.EspRmakerProvLocalCtrl.RespGetData;
 
 public class ProvisionActivity extends AppCompatActivity {
 
@@ -109,6 +118,10 @@ public class ProvisionActivity extends AppCompatActivity {
     private boolean isOnNetworkFlow = false;
     private OnNetworkDevice onNetworkDevice;
     private EspLocalDevice localDevice;
+
+    private boolean isBleLocalCtrlFlow = false;
+    private String bleLocalCtrlDeviceName = null;
+    private String bleLocalCtrlPop = null;
     private Handler wifiConnectHandler = new Handler();
     private EspApplication espApp;
 
@@ -141,7 +154,20 @@ public class ProvisionActivity extends AppCompatActivity {
                 isChallengeResponseFlow = true; // On-network flow always uses challenge-response
             }
         }
+        isBleLocalCtrlFlow = intent.getBooleanExtra(AppConstants.KEY_BLE_LOCAL_CTRL, false);
+        bleLocalCtrlDeviceName = intent.getStringExtra(AppConstants.KEY_DEVICE_NAME);
+        bleLocalCtrlPop = intent.getStringExtra(AppConstants.KEY_PROOF_OF_POSSESSION);
+        Log.d(TAG, "BLE Local Ctrl Flow: " + isBleLocalCtrlFlow);
+        Log.d(TAG, "From Intent - deviceName: " + bleLocalCtrlDeviceName + ", pop: " + bleLocalCtrlPop);
+
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
+
+        /* Fallback: get PoP from ESPDevice if not in intent */
+        if (TextUtils.isEmpty(bleLocalCtrlPop) && provisionManager.getEspDevice() != null) {
+            bleLocalCtrlPop = provisionManager.getEspDevice().getProofOfPossession();
+            Log.d(TAG, "Fallback - Got PoP from ESPDevice: " + bleLocalCtrlPop);
+        }
+        Log.d(TAG, "Final values - deviceName: " + bleLocalCtrlDeviceName + ", pop: " + bleLocalCtrlPop);
 
         handler = new Handler();
         apiManager = ApiManager.getInstance(getApplicationContext());
@@ -212,7 +238,6 @@ public class ProvisionActivity extends AppCompatActivity {
                 break;
         }
     }
-
 
     private View.OnClickListener okBtnClickListener = new View.OnClickListener() {
 
@@ -776,7 +801,12 @@ public class ProvisionActivity extends AppCompatActivity {
                                             @Override
                                             public void onSuccess(Bundle data) {
                                                 runOnUiThread(() -> {
-                                                    provision();
+                                                    if (isBleLocalCtrlFlow) {
+                                                        /* BLE local control flow - skip Wi-Fi provisioning */
+                                                        startBleLocalCtrlFlow();
+                                                    } else {
+                                                        provision();
+                                                    }
                                                 });
                                             }
 
@@ -865,7 +895,7 @@ public class ProvisionActivity extends AppCompatActivity {
                                         ByteString signedChallenge = respPayload.getPayload();
                                         String nodeId = respPayload.getNodeId();
                                         receivedNodeId = nodeId;
-                                        
+
                                         /* Call verify mapping API */
                                         byte[] bytes = signedChallenge.toByteArray();
 
@@ -1462,6 +1492,483 @@ public class ProvisionActivity extends AppCompatActivity {
     }
 
     /**
+     * Start BLE local control flow after challenge-response succeeds.
+     * This flow:
+     * 1. Gets config with timestamp, signs it, and reports to proxy/config
+     * 2. Gets params with timestamp, signs it, and reports to proxy/initparams
+     * 3. Updates node metadata with ble_local_ctrl object
+     */
+    private void startBleLocalCtrlFlow() {
+        Log.d(TAG, "Starting BLE local control flow for node: " + receivedNodeId);
+        tick1.setImageResource(R.drawable.ic_checkbox_on);
+        tick1.setVisibility(View.VISIBLE);
+        progress1.setVisibility(View.GONE);
+
+        /* Step 1: Get config with timestamp and report to proxy */
+        getConfigAndReportToProxy();
+    }
+
+    /**
+     * Get config with timestamp and report to proxy/config
+     * Device returns already-signed data, no need to use ch_resp
+     */
+    private void getConfigAndReportToProxy() {
+        Log.d(TAG, "Getting config with timestamp...");
+        tick2.setVisibility(View.GONE);
+        progress2.setVisibility(View.VISIBLE);
+        tvProvStep2.setText(R.string.getting_node_config);
+
+        /* Get current timestamp */
+        long timestamp = System.currentTimeMillis() / 1000;
+
+        /* Get config with chunked transfer */
+        getRawDataWithChunking(1, timestamp, new RawDataCallback() {
+            @Override
+            public void onSuccess(JSONObject deviceResponse) {
+                /* Device returns: {"node_payload": {"data": {...}, "timestamp": ...}, "signature": "..."} */
+                try {
+                    Log.d(TAG, "Device config response: " + deviceResponse.toString());
+
+                    /* Extract signature from TOP level (not inside node_payload) */
+                    String signature = deviceResponse.optString("signature", "");
+                    if (TextUtils.isEmpty(signature)) {
+                        Log.e(TAG, "No signature in device response");
+                        runOnUiThread(() -> getParamsAndReportToProxy(false));
+                        return;
+                    }
+
+                    /* Extract node_payload object - this becomes the node_payload string for proxy */
+                    JSONObject nodePayloadObj = deviceResponse.optJSONObject("node_payload");
+                    if (nodePayloadObj == null) {
+                        Log.e(TAG, "No node_payload in device response");
+                        runOnUiThread(() -> getParamsAndReportToProxy(false));
+                        return;
+                    }
+
+                    /* The node_payload itself is what we send to proxy as a string */
+                    /* Note: JSONObject.toString() escapes forward slashes (/ -> \/), but the device
+                     * signed the original JSON without escaped slashes, so we must unescape them */
+                    String nodePayloadStr = nodePayloadObj.toString().replace("\\/", "/");
+
+                    Log.d(TAG, "Reporting config to proxy - payload length: " + nodePayloadStr.length() + ", signature length: " + signature.length());
+
+                    /* Report directly to proxy (device already signed it) */
+                    reportToProxy(nodePayloadStr, signature, true, new ProxyReportCallback() {
+                        @Override
+                        public void onSuccess() {
+                            /* Continue to get params - show success tick */
+                            runOnUiThread(() -> getParamsAndReportToProxy(true));
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            Log.e(TAG, "Failed to report config to proxy: " + e.getMessage());
+                            /* Continue but show failure */
+                            runOnUiThread(() -> getParamsAndReportToProxy(false));
+                        }
+                    });
+                } catch (Exception e) {
+                    Log.e(TAG, "Error processing config: " + e.getMessage());
+                    e.printStackTrace();
+                    /* Continue but show failure */
+                    runOnUiThread(() -> getParamsAndReportToProxy(false));
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Failed to get config: " + e.getMessage());
+                e.printStackTrace();
+                /* Continue but show failure */
+                runOnUiThread(() -> getParamsAndReportToProxy(false));
+            }
+        });
+    }
+
+    /**
+     * Get params with timestamp and report to proxy/initparams
+     * Device returns already-signed data, no need to use ch_resp
+     *
+     * @param configSuccess true if previous config step succeeded, false otherwise
+     */
+    private void getParamsAndReportToProxy(boolean configSuccess) {
+        Log.d(TAG, "Getting params with timestamp... (configSuccess: " + configSuccess + ")");
+        /* Show success or failure for previous config step */
+        tick2.setImageResource(configSuccess ? R.drawable.ic_checkbox_on : R.drawable.ic_alert);
+        tick2.setVisibility(View.VISIBLE);
+        progress2.setVisibility(View.GONE);
+        tick3.setVisibility(View.GONE);
+        progress3.setVisibility(View.VISIBLE);
+        tvProvStep2.setText(R.string.getting_node_params);
+
+        /* Get current timestamp */
+        long timestamp = System.currentTimeMillis() / 1000;
+
+        /* Get params with chunked transfer */
+        getRawDataWithChunking(0, timestamp, new RawDataCallback() {
+            @Override
+            public void onSuccess(JSONObject deviceResponse) {
+                /* Device returns: {"node_payload": {"data": {...}, "timestamp": ...}, "signature": "..."} */
+                try {
+                    Log.d(TAG, "Device params response: " + deviceResponse.toString());
+
+                    /* Extract signature from TOP level (not inside node_payload) */
+                    String signature = deviceResponse.optString("signature", "");
+                    if (TextUtils.isEmpty(signature)) {
+                        Log.e(TAG, "No signature in device response");
+                        runOnUiThread(() -> updateNodeMetadataWithBleLocalCtrl(false));
+                        return;
+                    }
+
+                    /* Extract node_payload object - this becomes the node_payload string for proxy */
+                    JSONObject nodePayloadObj = deviceResponse.optJSONObject("node_payload");
+                    if (nodePayloadObj == null) {
+                        Log.e(TAG, "No node_payload in device response");
+                        runOnUiThread(() -> updateNodeMetadataWithBleLocalCtrl(false));
+                        return;
+                    }
+
+                    /* The node_payload itself is what we send to proxy as a string */
+                    /* Note: JSONObject.toString() escapes forward slashes (/ -> \/), but the device
+                     * signed the original JSON without escaped slashes, so we must unescape them */
+                    String nodePayloadStr = nodePayloadObj.toString().replace("\\/", "/");
+
+                    Log.d(TAG, "Reporting params to proxy - payload length: " + nodePayloadStr.length() + ", signature length: " + signature.length());
+
+                    /* Report directly to proxy (device already signed it) */
+                    reportToProxy(nodePayloadStr, signature, false, new ProxyReportCallback() {
+                        @Override
+                        public void onSuccess() {
+                            /* Update metadata and complete - show success tick */
+                            runOnUiThread(() -> updateNodeMetadataWithBleLocalCtrl(true));
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            Log.e(TAG, "Failed to report params to proxy: " + e.getMessage());
+                            /* Update metadata anyway but show failure */
+                            runOnUiThread(() -> updateNodeMetadataWithBleLocalCtrl(false));
+                        }
+                    });
+                } catch (Exception e) {
+                    Log.e(TAG, "Error processing params: " + e.getMessage());
+                    e.printStackTrace();
+                    /* Update metadata anyway but show failure */
+                    runOnUiThread(() -> updateNodeMetadataWithBleLocalCtrl(false));
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Failed to get params: " + e.getMessage());
+                e.printStackTrace();
+                /* Update metadata anyway but show failure */
+                runOnUiThread(() -> updateNodeMetadataWithBleLocalCtrl(false));
+            }
+        });
+    }
+
+    /**
+     * Update node metadata with ble_local_ctrl object containing name and pop
+     *
+     * @param paramsSuccess true if previous params step succeeded, false otherwise
+     */
+    private void updateNodeMetadataWithBleLocalCtrl(boolean paramsSuccess) {
+        Log.d(TAG, "Updating node metadata with BLE local control info... (paramsSuccess: " + paramsSuccess + ")");
+        Log.d(TAG, "  bleLocalCtrlDeviceName = " + bleLocalCtrlDeviceName);
+        Log.d(TAG, "  bleLocalCtrlPop = " + bleLocalCtrlPop);
+        /* Show success or failure for previous params step */
+        tick3.setImageResource(paramsSuccess ? R.drawable.ic_checkbox_on : R.drawable.ic_alert);
+        tick3.setVisibility(View.VISIBLE);
+        progress3.setVisibility(View.GONE);
+        tick4.setVisibility(View.GONE);
+        progress4.setVisibility(View.VISIBLE);
+
+        try {
+            JsonObject metadata = new JsonObject();
+            JsonObject bleLocalCtrl = new JsonObject();
+            bleLocalCtrl.addProperty("name", bleLocalCtrlDeviceName != null ? bleLocalCtrlDeviceName : "");
+            bleLocalCtrl.addProperty("pop", bleLocalCtrlPop != null ? bleLocalCtrlPop : "");
+            metadata.add("ble_local_ctrl", bleLocalCtrl);
+
+            JsonObject body = new JsonObject();
+            body.add(AppConstants.KEY_METADATA, metadata);
+
+            Log.d(TAG, "Metadata body being sent: " + body.toString());
+
+            apiManager.updateNodeMetadata(receivedNodeId, body, new ApiResponseListener() {
+                @Override
+                public void onSuccess(Bundle data) {
+                    runOnUiThread(() -> {
+                        Log.d(TAG, "Node metadata updated successfully");
+                        tick4.setImageResource(R.drawable.ic_checkbox_on);
+                        tick4.setVisibility(View.VISIBLE);
+                        progress4.setVisibility(View.GONE);
+                        tick5.setImageResource(R.drawable.ic_checkbox_on);
+                        tick5.setVisibility(View.VISIBLE);
+                        progress5.setVisibility(View.GONE);
+                        tvProvSuccess.setVisibility(View.VISIBLE);
+                        hideLoading();
+                        isProvisioningCompleted = true;
+                    });
+                }
+
+                @Override
+                public void onResponseFailure(Exception e) {
+                    runOnUiThread(() -> {
+                        Log.e(TAG, "Failed to update node metadata: " + e.getMessage());
+                        tick4.setImageResource(R.drawable.ic_alert);
+                        tick4.setVisibility(View.VISIBLE);
+                        progress4.setVisibility(View.GONE);
+                        /* Still show success since main flow completed */
+                        tick5.setImageResource(R.drawable.ic_checkbox_on);
+                        tick5.setVisibility(View.VISIBLE);
+                        progress5.setVisibility(View.GONE);
+                        tvProvSuccess.setVisibility(View.VISIBLE);
+                        hideLoading();
+                        isProvisioningCompleted = true;
+                    });
+                }
+
+                @Override
+                public void onNetworkFailure(Exception e) {
+                    runOnUiThread(() -> {
+                        Log.e(TAG, "Network failure updating node metadata: " + e.getMessage());
+                        tick4.setImageResource(R.drawable.ic_alert);
+                        tick4.setVisibility(View.VISIBLE);
+                        progress4.setVisibility(View.GONE);
+                        /* Still show success since main flow completed */
+                        tick5.setImageResource(R.drawable.ic_checkbox_on);
+                        tick5.setVisibility(View.VISIBLE);
+                        progress5.setVisibility(View.GONE);
+                        tvProvSuccess.setVisibility(View.VISIBLE);
+                        hideLoading();
+                        isProvisioningCompleted = true;
+                    });
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating node metadata: " + e.getMessage());
+            e.printStackTrace();
+            runOnUiThread(() -> {
+                tick4.setImageResource(R.drawable.ic_alert);
+                tick4.setVisibility(View.VISIBLE);
+                progress4.setVisibility(View.GONE);
+                tick5.setImageResource(R.drawable.ic_checkbox_on);
+                tick5.setVisibility(View.VISIBLE);
+                progress5.setVisibility(View.GONE);
+                tvProvSuccess.setVisibility(View.VISIBLE);
+                hideLoading();
+                isProvisioningCompleted = true;
+            });
+        }
+    }
+
+    /**
+     * Interface for raw data callback
+     */
+    private interface RawDataCallback {
+        void onSuccess(JSONObject data);
+
+        void onFailure(Exception e);
+    }
+
+    /**
+     * Interface for proxy report callback
+     */
+    private interface ProxyReportCallback {
+        void onSuccess();
+
+        void onFailure(Exception e);
+    }
+
+    /**
+     * Get raw data (params or config) with chunked transfer support
+     *
+     * @param dataType  0 for params, 1 for config
+     * @param timestamp Optional timestamp for signed response (only sent on first request)
+     * @param callback  Callback for success/failure
+     */
+    private void getRawDataWithChunking(int dataType, Long timestamp, RawDataCallback callback) {
+        String endpointName = (dataType == 0) ? AppConstants.HANDLER_GET_PARAMS : AppConstants.HANDLER_GET_CONFIG;
+        String dataName = (dataType == 0) ? "params" : "config";
+        Log.d(TAG, "Getting " + dataName + " with chunked transfer...");
+
+        getRawDataChunk(endpointName, dataType, 0, timestamp, new ArrayList<Byte>(), null, callback);
+    }
+
+    /**
+     * Recursive method to get data chunks
+     */
+    private void getRawDataChunk(String endpointName, int dataType, int offset, Long timestamp,
+                                 ArrayList<Byte> dataBuffer, Integer totalLen, RawDataCallback callback) {
+        /* Use wrapper arrays for mutable values that need to be accessed from inner class */
+        final int[] currentOffset = {offset};
+        final Integer[] currentTotalLen = {totalLen};
+
+        /* Create protobuf request */
+        CmdGetData cmdGetData = CmdGetData.newBuilder()
+                .setDataType(dataType == 0 ? RMakerLocalCtrlDataType.TypeParams : RMakerLocalCtrlDataType.TypeConfig)
+                .setOffset(currentOffset[0])
+                .setTimestamp(timestamp != null ? timestamp : 0)
+                .setHasTimestamp(timestamp != null)
+                .build();
+
+        RMakerLocalCtrlPayload payload = RMakerLocalCtrlPayload.newBuilder()
+                .setMsg(RMakerLocalCtrlMsgType.TypeCmdGetData)
+                .setCmdGetData(cmdGetData)
+                .build();
+
+        /* Send request to device */
+        provisionManager.getEspDevice().sendDataToCustomEndPoint(endpointName, payload.toByteArray(), new ResponseListener() {
+            @Override
+            public void onSuccess(byte[] returnData) {
+                if (returnData != null) {
+                    try {
+                        /* Parse response */
+                        RMakerLocalCtrlPayload response = RMakerLocalCtrlPayload.parseFrom(returnData);
+                        if (response.getMsg() != RMakerLocalCtrlMsgType.TypeRespGetData) {
+                            callback.onFailure(new Exception("Unexpected message type"));
+                            return;
+                        }
+
+                        RespGetData respGetData = response.getRespGetData();
+                        if (respGetData.getStatus() != RMakerLocalCtrlStatus.Success) {
+                            callback.onFailure(new Exception("Device returned error status: " + respGetData.getStatus()));
+                            return;
+                        }
+
+                        /* Get payload buffer */
+                        PayloadBuf buf = respGetData.getBuf();
+                        int respOffset = buf.getOffset();
+                        byte[] payloadBytes = buf.getPayload().toByteArray();
+                        int respTotalLen = buf.getTotalLen();
+
+                        /* Validate offset */
+                        if (respOffset != currentOffset[0]) {
+                            callback.onFailure(new Exception("Offset mismatch: expected " + currentOffset[0] + ", got " + respOffset));
+                            return;
+                        }
+
+                        /* Set total length from first response */
+                        if (currentTotalLen[0] == null) {
+                            currentTotalLen[0] = respTotalLen;
+                            Log.d(TAG, "Total length: " + currentTotalLen[0] + " bytes");
+                        }
+
+                        /* Append payload to buffer */
+                        for (byte b : payloadBytes) {
+                            dataBuffer.add(b);
+                        }
+                        currentOffset[0] += payloadBytes.length;
+
+                        Log.d(TAG, "Received fragment: offset=" + respOffset + ", len=" + payloadBytes.length + ", progress=" + currentOffset[0] + "/" + currentTotalLen[0]);
+
+                        /* Check if we have all data */
+                        if (currentOffset[0] >= currentTotalLen[0]) {
+                            /* Convert buffer to byte array */
+                            byte[] completeData = new byte[dataBuffer.size()];
+                            for (int i = 0; i < dataBuffer.size(); i++) {
+                                completeData[i] = dataBuffer.get(i);
+                            }
+
+                            /* Decode as UTF-8 string */
+                            String dataStr = new String(completeData, StandardCharsets.UTF_8);
+
+                            /* Parse as JSON */
+                            try {
+                                JSONObject dataJson = new JSONObject(dataStr);
+                                callback.onSuccess(dataJson);
+                            } catch (JSONException e) {
+                                Log.e(TAG, "Failed to parse JSON: " + e.getMessage());
+                                callback.onFailure(e);
+                            }
+                        } else {
+                            /* Request next chunk (without timestamp) */
+                            getRawDataChunk(endpointName, dataType, currentOffset[0], null, dataBuffer, currentTotalLen[0], callback);
+                        }
+                    } catch (InvalidProtocolBufferException e) {
+                        Log.e(TAG, "Failed to parse protobuf response: " + e.getMessage());
+                        e.printStackTrace();
+                        callback.onFailure(e);
+                    }
+                } else {
+                    callback.onFailure(new Exception("No response from device"));
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Failed to get data chunk: " + e.getMessage());
+                e.printStackTrace();
+                callback.onFailure(e);
+            }
+        });
+    }
+
+    /**
+     * Report already-signed data to proxy API
+     *
+     * @param nodePayloadStr The node payload as a JSON string (data + timestamp)
+     * @param signature      The signature from the device
+     * @param isConfig       true for config (proxy/config), false for params (proxy/initparams)
+     * @param callback       Callback for success/failure
+     */
+    private void reportToProxy(String nodePayloadStr, String signature, boolean isConfig, ProxyReportCallback callback) {
+        Log.d(TAG, "Reporting to proxy - isConfig: " + isConfig);
+
+        /* Create payload for proxy API */
+        JsonObject proxyPayload = new JsonObject();
+        proxyPayload.addProperty("node_payload", nodePayloadStr);
+        proxyPayload.addProperty("signature", signature);
+
+        Log.d(TAG, "Proxy payload: " + proxyPayload.toString());
+
+        if (isConfig) {
+            apiManager.reportProxyConfig(receivedNodeId, proxyPayload, new ApiResponseListener() {
+                @Override
+                public void onSuccess(Bundle data) {
+                    Log.d(TAG, "Config reported to proxy successfully");
+                    callback.onSuccess();
+                }
+
+                @Override
+                public void onResponseFailure(Exception e) {
+                    Log.e(TAG, "Failed to report config to proxy: " + e.getMessage());
+                    callback.onFailure(e);
+                }
+
+                @Override
+                public void onNetworkFailure(Exception e) {
+                    Log.e(TAG, "Network failure reporting config to proxy: " + e.getMessage());
+                    callback.onFailure(e);
+                }
+            });
+        } else {
+            apiManager.reportProxyInitParams(receivedNodeId, proxyPayload, new ApiResponseListener() {
+                @Override
+                public void onSuccess(Bundle data) {
+                    Log.d(TAG, "Params reported to proxy successfully");
+                    callback.onSuccess();
+                }
+
+                @Override
+                public void onResponseFailure(Exception e) {
+                    Log.e(TAG, "Failed to report params to proxy: " + e.getMessage());
+                    callback.onFailure(e);
+                }
+
+                @Override
+                public void onNetworkFailure(Exception e) {
+                    Log.e(TAG, "Network failure reporting params to proxy: " + e.getMessage());
+                    callback.onFailure(e);
+                }
+            });
+        }
+    }
+
+    /**
+     * <<<<<<< HEAD
      * Show alert dialog to re-enter WiFi password
      */
     private void showReenterPasswordAlert() {

@@ -40,6 +40,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.aar.tapholdupbutton.TapHoldUpButton;
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
+import com.espressif.ble.BleLocalControlManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
@@ -87,11 +88,9 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
         sceneParamVH.cbParamSelect.setChecked(param.isSelected());
 
         String nodeId = device.getNodeId();
-        if (espApp.nodeMap.get(nodeId).isOnline()) {
-            setParamsEnabled(sceneParamVH, true);
-        } else {
-            setParamsEnabled(sceneParamVH, false);
-        }
+        boolean isReachable = espApp.nodeMap.get(nodeId).isOnline()
+                || BleLocalControlManager.getInstance(context).isConnected(nodeId);
+        setParamsEnabled(sceneParamVH, isReachable);
 
         sceneParamVH.cbParamSelect.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
 

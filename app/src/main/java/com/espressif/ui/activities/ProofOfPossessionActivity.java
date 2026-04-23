@@ -238,20 +238,10 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
                         
                         if (hasClaimCap || hasCameraClaimCap) {
                             goToClaimingActivity(hasCameraClaimCap);
+                        } else if (checkAndShowBleLocalCtrlFlow()) {
+                            return;
                         } else {
-                            if (deviceCaps != null) {
-                                if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN)) {
-                                    goToWiFiScanListActivity();
-                                } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_SCAN)) {
-                                    goToThreadConfigActivity(true);
-                                } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_PROV)) {
-                                    goToThreadConfigActivity(false);
-                                } else {
-                                    goToWiFiConfigActivity();
-                                }
-                            } else {
-                                goToWiFiConfigActivity();
-                            }
+                            routeToWifiOrThread(deviceCaps);
                         }
                     }
                 });
@@ -304,6 +294,91 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
         threadConfigIntent.putExtras(getIntent());
         threadConfigIntent.putExtra(AppConstants.KEY_THREAD_SCAN_AVAILABLE, scanCapAvailable);
         startActivity(threadConfigIntent);
+    }
+
+    private void routeToWifiOrThread(ArrayList<String> deviceCaps) {
+        if (deviceCaps != null) {
+            if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN)) {
+                goToWiFiScanListActivity();
+            } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_SCAN)) {
+                goToThreadConfigActivity(true);
+            } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_PROV)) {
+                goToThreadConfigActivity(false);
+            } else {
+                goToWiFiConfigActivity();
+            }
+        } else {
+            goToWiFiConfigActivity();
+        }
+    }
+
+    private boolean checkAndShowBleLocalCtrlFlow() {
+        try {
+            String versionInfo = provisionManager.getEspDevice().getVersionInfo();
+            if (TextUtils.isEmpty(versionInfo)) return false;
+
+            ArrayList<String> rmakerExtraCaps = new ArrayList<>();
+            JSONObject jsonObject = new JSONObject(versionInfo);
+            JSONObject rmakerExtraInfo = jsonObject.optJSONObject("rmaker_extra");
+            if (rmakerExtraInfo != null) {
+                JSONArray caps = rmakerExtraInfo.optJSONArray("cap");
+                if (caps != null) {
+                    for (int i = 0; i < caps.length(); i++) {
+                        rmakerExtraCaps.add(caps.getString(i));
+                    }
+                }
+            }
+
+            boolean hasLocalCtrl = rmakerExtraCaps.contains(AppConstants.CAPABILITY_LOCAL_CTRL);
+            ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
+            boolean hasChResp = rmakerExtraCaps.contains(AppConstants.CAPABILITY_CHALLENGE_RESP)
+                    || (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_CHALLENGE_RESP));
+
+            if (hasLocalCtrl && hasChResp) {
+                showSkipWifiProvisioningDialog();
+                return true;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error checking BLE local ctrl caps: " + e.getMessage());
+        }
+        return false;
+    }
+
+    private void showSkipWifiProvisioningDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setCancelable(false);
+        builder.setTitle(R.string.skip_wifi_provisioning_title);
+        builder.setMessage(R.string.skip_wifi_provisioning_msg);
+
+        builder.setPositiveButton(R.string.btn_yes, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String pop = provisionManager.getEspDevice().getProofOfPossession();
+                String devName = provisionManager.getEspDevice().getDeviceName();
+
+                Intent provisionIntent = new Intent(getApplicationContext(), ProvisionActivity.class);
+                provisionIntent.putExtras(getIntent());
+                if (!TextUtils.isEmpty(devName)) {
+                    provisionIntent.putExtra(AppConstants.KEY_DEVICE_NAME, devName);
+                }
+                provisionIntent.putExtra(AppConstants.KEY_PROOF_OF_POSSESSION, pop);
+                provisionIntent.putExtra(AppConstants.KEY_BLE_LOCAL_CTRL, true);
+                startActivity(provisionIntent);
+                finish();
+            }
+        });
+
+        builder.setNegativeButton(R.string.btn_no, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                ArrayList<String> deviceCaps = provisionManager.getEspDevice().getDeviceCapabilities();
+                routeToWifiOrThread(deviceCaps);
+            }
+        });
+
+        if (!isFinishing()) {
+            builder.show();
+        }
     }
 
     private void showAlertForDeviceDisconnected() {

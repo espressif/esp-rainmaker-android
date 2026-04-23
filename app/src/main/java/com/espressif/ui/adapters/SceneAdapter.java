@@ -30,6 +30,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
+import com.espressif.NetworkApiManager;
 import com.espressif.cloudapi.ApiManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.rainmaker.R;
@@ -46,6 +47,7 @@ import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class SceneAdapter extends RecyclerView.Adapter<SceneAdapter.SceneViewHolder> {
@@ -163,74 +165,67 @@ public class SceneAdapter extends RecyclerView.Adapter<SceneAdapter.SceneViewHol
                     }
                 }
 
-                apiManager.updateParamsForMultiNode(nodeIdJsonBodyMap, new ApiResponseListener() {
+                NetworkApiManager networkApiManager = new NetworkApiManager(context.getApplicationContext());
+                final int totalNodes = nodeIdJsonBodyMap.size();
+                final int[] completedCount = {0};
+                final boolean[] hasFailure = {false};
 
-                    @Override
-                    public void onSuccess(Bundle data) {
-
-                        context.runOnUiThread(new Runnable() {
-
-                            @Override
-                            public void run() {
-
-                                if (data != null) {
-                                    String jsonResponse = data.getString(AppConstants.KEY_RESPONSE);
-
-                                    if (jsonResponse.contains(AppConstants.KEY_FAILURE_RESPONSE)) {
-                                        String deviceNames = Utils.processSceneResponse(sceneList.get(sceneViewHolder.getAdapterPosition()), jsonResponse, nodeIdJsonBodyMap.size());
-                                        if (!TextUtils.isEmpty(deviceNames)) {
-                                            String msg = context.getString(R.string.error_scene_activate_partial) + " " + deviceNames;
-                                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show();
-                                        } else {
+                for (Map.Entry<String, JsonObject> entry : nodeIdJsonBodyMap.entrySet()) {
+                    networkApiManager.updateParamValue(entry.getKey(), entry.getValue(), new ApiResponseListener() {
+                        @Override
+                        public void onSuccess(Bundle data) {
+                            synchronized (completedCount) {
+                                completedCount[0]++;
+                                if (completedCount[0] >= totalNodes) {
+                                    context.runOnUiThread(() -> {
+                                        if (hasFailure[0]) {
                                             Toast.makeText(context, R.string.error_scene_activate, Toast.LENGTH_LONG).show();
+                                        } else {
+                                            Toast.makeText(context, R.string.msg_scene_activated, Toast.LENGTH_LONG).show();
                                         }
-                                    } else {
-                                        Toast.makeText(context, R.string.msg_scene_activated, Toast.LENGTH_LONG).show();
-                                    }
+                                        sceneViewHolder.btnActivate.setVisibility(View.VISIBLE);
+                                        sceneViewHolder.progressBar.setVisibility(View.GONE);
+                                        fragment.updateSceneList();
+                                    });
                                 }
-                                sceneViewHolder.btnActivate.setVisibility(View.VISIBLE);
-                                sceneViewHolder.progressBar.setVisibility(View.GONE);
-                                fragment.updateSceneList();
                             }
-                        });
-                    }
+                        }
 
-                    @Override
-                    public void onResponseFailure(Exception exception) {
-
-                        exception.printStackTrace();
-                        final String msg = exception.getMessage();
-
-                        context.runOnUiThread(new Runnable() {
-
-                            @Override
-                            public void run() {
-                                sceneViewHolder.btnActivate.setVisibility(View.VISIBLE);
-                                sceneViewHolder.progressBar.setVisibility(View.GONE);
-                                Toast.makeText(context, "" + msg, Toast.LENGTH_LONG).show();
-                                fragment.updateSceneList();
+                        @Override
+                        public void onResponseFailure(Exception exception) {
+                            exception.printStackTrace();
+                            synchronized (completedCount) {
+                                completedCount[0]++;
+                                hasFailure[0] = true;
+                                if (completedCount[0] >= totalNodes) {
+                                    context.runOnUiThread(() -> {
+                                        sceneViewHolder.btnActivate.setVisibility(View.VISIBLE);
+                                        sceneViewHolder.progressBar.setVisibility(View.GONE);
+                                        Toast.makeText(context, exception.getMessage(), Toast.LENGTH_LONG).show();
+                                        fragment.updateSceneList();
+                                    });
+                                }
                             }
-                        });
-                    }
+                        }
 
-                    @Override
-                    public void onNetworkFailure(final Exception exception) {
-
-                        exception.printStackTrace();
-                        final String msg = exception.getMessage();
-
-                        context.runOnUiThread(new Runnable() {
-
-                            @Override
-                            public void run() {
-                                sceneViewHolder.btnActivate.setVisibility(View.VISIBLE);
-                                sceneViewHolder.progressBar.setVisibility(View.GONE);
-                                Toast.makeText(context, "" + msg, Toast.LENGTH_LONG).show();
-                                fragment.updateSceneList();
+                        @Override
+                        public void onNetworkFailure(Exception exception) {
+                            exception.printStackTrace();
+                            synchronized (completedCount) {
+                                completedCount[0]++;
+                                hasFailure[0] = true;
+                                if (completedCount[0] >= totalNodes) {
+                                    context.runOnUiThread(() -> {
+                                        sceneViewHolder.btnActivate.setVisibility(View.VISIBLE);
+                                        sceneViewHolder.progressBar.setVisibility(View.GONE);
+                                        Toast.makeText(context, exception.getMessage(), Toast.LENGTH_LONG).show();
+                                        fragment.updateSceneList();
+                                    });
+                                }
                             }
-                        });
-                    }
-                });
+                        }
+                    });
+                }
             }
         });
     }

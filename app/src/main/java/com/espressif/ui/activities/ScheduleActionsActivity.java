@@ -29,6 +29,7 @@ import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
+import com.espressif.ble.BleLocalControlManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.adapters.ScheduleActionAdapter;
 import com.espressif.ui.models.Device;
@@ -62,7 +63,7 @@ public class ScheduleActionsActivity extends AppCompatActivity {
                 Device d = iterator.next();
                 if (d != null) {
                     String nodeId = d.getNodeId();
-                    if (espApp.nodeMap.get(nodeId).isOnline()) {
+                    if (isNodeReachable(nodeId)) {
                         devices.add(0, new Device(d));
                     } else {
                         devices.add(new Device(d));
@@ -99,18 +100,13 @@ public class ScheduleActionsActivity extends AppCompatActivity {
         @Override
         public int compare(Device d1, Device d2) {
 
-            String node1 = d1.getNodeId();
-            String node2 = d2.getNodeId();
+            boolean online1 = isNodeReachable(d1.getNodeId());
+            boolean online2 = isNodeReachable(d2.getNodeId());
 
-            if ((espApp.nodeMap.get(node1).isOnline() && espApp.nodeMap.get(node2).isOnline())
-                    || (!espApp.nodeMap.get(node1).isOnline() && !espApp.nodeMap.get(node2).isOnline())) {
+            if ((online1 && online2) || (!online1 && !online2)) {
                 return 0;
             } else {
-                if (espApp.nodeMap.get(node2).isOnline()) {
-                    return 1;
-                } else {
-                    return -1;
-                }
+                return online2 ? 1 : -1;
             }
         }
     }
@@ -202,5 +198,11 @@ public class ScheduleActionsActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
         recyclerView.setHasFixedSize(true);
+    }
+
+    private boolean isNodeReachable(String nodeId) {
+        boolean online = espApp.nodeMap.get(nodeId) != null && espApp.nodeMap.get(nodeId).isOnline();
+        boolean bleConnected = BleLocalControlManager.getInstance(this).isConnected(nodeId);
+        return online || bleConnected;
     }
 }

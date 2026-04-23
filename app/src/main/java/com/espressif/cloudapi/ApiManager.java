@@ -1032,6 +1032,11 @@ public class ApiManager {
                                         JSONObject metadataJson = nodeJson.optJSONObject(AppConstants.KEY_METADATA);
                                         JSONObject matterMetadataJson = (metadataJson != null) ? metadataJson.optJSONObject(AppConstants.KEY_MATTER) : null;
 
+                                        /* Store full metadata JSON for all nodes (for BLE local control, etc.) */
+                                        if (metadataJson != null) {
+                                            espNode.setNodeMetadataJson(metadataJson.toString());
+                                        }
+
                                         if (matterMetadataJson != null) {
                                             NodeMetadata metadata = new NodeMetadata();
                                             metadata.setDeviceName(matterMetadataJson.optString(AppConstants.KEY_DEVICENAME));
@@ -1811,7 +1816,8 @@ public class ApiManager {
         }
 
         if (statusJson != null && !Arrays.asList(AppConstants.NODE_STATUS_LOCAL, AppConstants.NODE_STATUS_MATTER_LOCAL,
-                AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE).contains(espNode.getNodeStatus())) {
+                AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE, AppConstants.NODE_STATUS_BLE_LOCAL,
+                AppConstants.NODE_STATUS_BLE_DISCOVERABLE).contains(espNode.getNodeStatus())) {
 
             JSONObject connectivityObject = statusJson.optJSONObject(AppConstants.KEY_CONNECTIVITY);
 
@@ -2083,6 +2089,102 @@ public class ApiManager {
                     } else {
                         String jsonErrResponse = response.errorBody().string();
                         processError(jsonErrResponse, listener, "Failed to update Node metadata");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(e);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new Exception(t));
+            }
+        });
+    }
+
+    public void reportProxyConfig(String nodeId, JsonObject body, ApiResponseListener listener) {
+        Log.d(TAG, "Report proxy config for node: " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES_PROXY_CONFIG.replace("{node_id}", nodeId);
+
+        apiInterface.reportProxyConfig(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                Log.d(TAG, "Report proxy config, Response code : " + response.code());
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonResponse = response.body().string();
+                        Bundle data = new Bundle();
+                        data.putString(AppConstants.KEY_RESPONSE, jsonResponse);
+                        listener.onSuccess(data);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to report proxy config");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(e);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new Exception(t));
+            }
+        });
+    }
+
+    public void reportProxyInitParams(String nodeId, JsonObject body, ApiResponseListener listener) {
+        Log.d(TAG, "Report proxy initparams for node: " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES_PROXY_INITPARAMS.replace("{node_id}", nodeId);
+
+        apiInterface.reportProxyInitParams(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                Log.d(TAG, "Report proxy initparams, Response code : " + response.code());
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonResponse = response.body().string();
+                        Bundle data = new Bundle();
+                        data.putString(AppConstants.KEY_RESPONSE, jsonResponse);
+                        listener.onSuccess(data);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to report proxy initparams");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(e);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new Exception(t));
+            }
+        });
+    }
+
+    public void reportProxyParams(String nodeId, JsonObject body, ApiResponseListener listener) {
+        Log.d(TAG, "Report proxy params for node: " + nodeId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES_PROXY_PARAMS.replace("{node_id}", nodeId);
+
+        apiInterface.reportProxyParams(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                Log.d(TAG, "Report proxy params, Response code : " + response.code());
+                try {
+                    if (response.isSuccessful()) {
+                        String jsonResponse = response.body().string();
+                        Bundle data = new Bundle();
+                        data.putString(AppConstants.KEY_RESPONSE, jsonResponse);
+                        listener.onSuccess(data);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to report proxy params");
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -2921,12 +3023,14 @@ public class ApiManager {
         Log.d(TAG, "Verify User Node Mapping...");
         Log.d(TAG, "Challenge response length: " + (challengeResponse != null ? challengeResponse.length() : 0));
 
+        String url = getBaseUrl() + AppConstants.URL_USER_MAPPING_VERIFY;
+
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_REQ_ID, requestId);
         body.addProperty(AppConstants.KEY_NODE_ID, nodeId);
         body.addProperty(AppConstants.KEY_CHALLENGE_RESP, challengeResponse);
 
-        apiInterface.verifyUserNodeMapping(getBaseUrl() + AppConstants.URL_USER_MAPPING_VERIFY, accessToken, body).enqueue(new Callback<ResponseBody>() {
+        apiInterface.verifyUserNodeMapping(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
 
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -2944,6 +3048,7 @@ public class ApiManager {
 
                     } else {
                         String jsonErrResponse = response.errorBody().string();
+                        Log.e(TAG, "Verify mapping response: " + jsonErrResponse);
                         processError(jsonErrResponse, listener, "Verify mapping failed");
                     }
                 } catch (Exception e) {

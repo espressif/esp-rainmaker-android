@@ -265,6 +265,11 @@
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
+            android:name="com.espressif.ui.activities.BleWifiProvisionActivity"
+            android:label="@string/title_activity_ble_wifi_provision"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
             android:name="com.espressif.ui.activities.WiFiConfigActivity"
             android:label="@string/title_activity_wifi_config"
             android:screenOrientation="portrait"

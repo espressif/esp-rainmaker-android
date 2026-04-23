@@ -179,11 +179,15 @@ class AppConstants {
 
         /* RainMaker Extra Capabilities */
         const val CAPABILITY_CHALLENGE_RESP = "ch_resp"
+        const val CAPABILITY_LOCAL_CTRL = "local_ctrl"
 
         // Device End point names
         const val HANDLER_RM_USER_MAPPING = "cloud_user_assoc"
         const val HANDLER_RM_CLAIM = "rmaker_claim"
         const val HANDLER_RM_CH_RESP = "ch_resp"
+        const val HANDLER_GET_CONFIG = "get_config"
+        const val HANDLER_GET_PARAMS = "get_params"
+        const val HANDLER_SET_PARAMS = "set_params"
 
         /* Notification related constants */
 
@@ -285,6 +289,9 @@ class AppConstants {
         const val URL_USER_NODE_GROUP_SHARING_REQUESTS = "/user/node_group/sharing/requests"
         const val URL_USER_MAPPING_INITIATE = "/user/nodes/mapping/initiate"
         const val URL_USER_MAPPING_VERIFY = "/user/nodes/mapping/verify"
+        const val URL_USER_NODES_PROXY_CONFIG = "/user/nodes/{node_id}/proxy/config"
+        const val URL_USER_NODES_PROXY_PARAMS = "/user/nodes/{node_id}/proxy/params"
+        const val URL_USER_NODES_PROXY_INITPARAMS = "/user/nodes/{node_id}/proxy/initparams"
 
         const val URL_ASSUME_ROLE = "/user/assume_role"
         
@@ -455,6 +462,7 @@ class AppConstants {
         const val KEY_PROOF_OF_POSSESSION = "proof_of_possession"
         const val KEY_DEVICE_NAME = "device_name"
         const val KEY_ESP_DEVICE = "esp_device"
+        const val KEY_IS_BLE_SINGLE_DEVICE = "is_ble_single_device"
         const val KEY_NODE_ID = "node_id"
         const val KEY_NODE_TYPE = "node_type"
         const val KEY_EMAIL = "email"
@@ -539,6 +547,7 @@ class AppConstants {
         const val KEY_IS_CTRL_SETUP_SERVICE = "isCtrlSetupService"
         const val KEY_IS_RMAKER_CONTROLLER = "is_rmaker_controller"
         const val KEY_IS_CAMERA_CLAIM = "is_camera_claim"
+        const val KEY_BLE_LOCAL_CTRL = "ble_local_ctrl"
 
         const val CERT_BEGIN = "-----BEGIN CERTIFICATE REQUEST-----"
         const val CERT_END = "-----END CERTIFICATE REQUEST-----"
@@ -579,6 +588,8 @@ class AppConstants {
         const val NODE_STATUS_LOCAL = 3;
         const val NODE_STATUS_MATTER_LOCAL = 4;
         const val NODE_STATUS_REMOTELY_CONTROLLABLE = 5;
+        const val NODE_STATUS_BLE_LOCAL = 6;
+        const val NODE_STATUS_BLE_DISCOVERABLE = 7;
 
         const val HEX_PREFIX = "0x"
 

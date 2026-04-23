@@ -262,8 +262,11 @@ public class DeviceParamUpdates {
     }
 
     private void sendParamUpdates(JsonObject body, ApiResponseListener listener) {
+        Log.d(TAG, "sendParamUpdates called with body: " + body.toString());
 
-        ((EspDeviceActivity) context).setLastUpdateRequestTime(System.currentTimeMillis());
+        if (context instanceof EspDeviceActivity) {
+            ((EspDeviceActivity) context).setLastUpdateRequestTime(System.currentTimeMillis());
+        }
         isWait = true;
 
         networkApiManager.updateParamValue(nodeId, body, new ApiResponseListener() {

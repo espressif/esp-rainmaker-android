@@ -373,6 +373,15 @@
     <string name="node_shared_by">由...共享</string>
     <string name="pending_requests">待处理请求</string>
     <string name="system_services">系统服务</string>
+    <string name="node_wifi_provisioning">Wi-Fi 配网</string>
+    <string name="btn_provision_wifi">配置 Wi-Fi</string>
+    <string name="title_activity_ble_wifi_provision">Wi-Fi 配网</string>
+    <string name="ble_prov_scanning">正在扫描 Wi-Fi 网络\u2026</string>
+    <string name="ble_prov_step_1">正在发送 Wi-Fi 凭据</string>
+    <string name="ble_prov_step_2">正在应用 Wi-Fi 凭据</string>
+    <string name="ble_prov_step_3">正在验证连接</string>
+    <string name="ble_prov_success">Wi-Fi 凭据更新成功！\n设备将连接到新网络。</string>
+    <string name="ble_prov_failed">Wi-Fi 凭据更新失败。</string>
     <string name="add_member">添加成员</string>
     <string name="node_fw_update">固件更新</string>
     <string name="from_group">（来自群组）</string>

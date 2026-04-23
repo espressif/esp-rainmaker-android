@@ -798,11 +798,13 @@ class AddDeviceActivity : AppCompatActivity() {
     private fun checkDeviceCapabilities() {
         val versionInfo = espDevice!!.versionInfo
         val rmakerCaps = ArrayList<String>()
+        val rmakerExtraCaps = ArrayList<String>()
         val deviceCaps = espDevice!!.deviceCapabilities
 
         try {
             val jsonObject = JSONObject(versionInfo)
             val rmakerInfo = jsonObject.optJSONObject("rmaker")
+            val rmakerExtraInfo = jsonObject.optJSONObject("rmaker_extra")
 
             if (rmakerInfo != null) {
                 val rmakerCapabilities = rmakerInfo.optJSONArray("cap")
@@ -810,6 +812,18 @@ class AddDeviceActivity : AppCompatActivity() {
                     for (i in 0 until rmakerCapabilities.length()) {
                         val cap = rmakerCapabilities.getString(i)
                         rmakerCaps.add(cap)
+                    }
+                }
+            }
+
+            /* Parse rmaker_extra capabilities for BLE local control */
+            if (rmakerExtraInfo != null) {
+                val rmakerExtraCapabilities = rmakerExtraInfo.optJSONArray("cap")
+                if (rmakerExtraCapabilities != null) {
+                    for (i in 0 until rmakerExtraCapabilities.length()) {
+                        val cap = rmakerExtraCapabilities.getString(i)
+                        rmakerExtraCaps.add(cap)
+                        Log.d(TAG, "Found rmaker_extra capability: $cap")
                     }
                 }
             }
@@ -831,20 +845,93 @@ class AddDeviceActivity : AppCompatActivity() {
             } else {
                 alertForClaimingNotSupported()
             }
+        } else if (tryShowBleLocalControlSkipFlow(rmakerExtraCaps, deviceCaps)) {
+            return
         } else {
-            if (deviceCaps != null) {
-                if (deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN)) {
-                    goToWiFiScanActivity()
-                } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_SCAN)) {
-                    goToThreadConfigActivity(true)
-                } else if (deviceCaps.contains(AppConstants.CAPABILITY_THREAD_PROV)) {
-                    goToThreadConfigActivity(false)
-                } else {
-                    goToWiFiConfigActivity()
-                }
-            } else {
-                goToWiFiConfigActivity()
+            routeToWifiOrThread(deviceCaps)
+        }
+    }
+
+    private fun tryShowBleLocalControlSkipFlow(
+        rmakerExtraCaps: ArrayList<String>,
+        deviceCaps: ArrayList<String>?
+    ): Boolean {
+        val hasLocalCtrl = rmakerExtraCaps.contains(AppConstants.CAPABILITY_LOCAL_CTRL)
+        val hasChResp = rmakerExtraCaps.contains(AppConstants.CAPABILITY_CHALLENGE_RESP) ||
+                (deviceCaps != null && deviceCaps.contains(AppConstants.CAPABILITY_CHALLENGE_RESP))
+
+        Log.d(TAG, "BLE Local Control Check - hasLocalCtrlCap: $hasLocalCtrl, hasChRespCap: $hasChResp")
+
+        if (!hasLocalCtrl || !hasChResp) return false
+        if (espDevice!!.transportType != ESPConstants.TransportType.TRANSPORT_BLE) return false
+
+        Log.d(TAG, "BLE local control capabilities found - showing skip Wi-Fi dialog")
+        showSkipWifiProvisioningDialog()
+        return true
+    }
+
+    private fun routeToWifiOrThread(deviceCaps: ArrayList<String>?) {
+        if (deviceCaps != null) {
+            when {
+                deviceCaps.contains(AppConstants.CAPABILITY_WIFI_SCAN) -> goToWiFiScanActivity()
+                deviceCaps.contains(AppConstants.CAPABILITY_THREAD_SCAN) -> goToThreadConfigActivity(true)
+                deviceCaps.contains(AppConstants.CAPABILITY_THREAD_PROV) -> goToThreadConfigActivity(false)
+                else -> goToWiFiConfigActivity()
             }
+        } else {
+            goToWiFiConfigActivity()
+        }
+    }
+
+    private fun showSkipWifiProvisioningDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setCancelable(false)
+        builder.setTitle(R.string.skip_wifi_provisioning_title)
+        builder.setMessage(R.string.skip_wifi_provisioning_msg)
+
+        builder.setPositiveButton(R.string.btn_yes) { dialog, which ->
+            /* Get device name from ESPDevice */
+            var deviceName: String? = null
+            if (espDevice != null && espDevice!!.bluetoothDevice != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                        deviceName = espDevice!!.bluetoothDevice.name
+                    }
+                } else {
+                    deviceName = espDevice!!.bluetoothDevice.name
+                }
+            }
+
+            /* Get PoP from ESPDevice (set during QR code scan or manual entry) */
+            val espDevicePop = espDevice?.proofOfPossession
+            val intentPop = intent.getStringExtra(AppConstants.KEY_PROOF_OF_POSSESSION)
+            Log.d(TAG, "BLE Local Ctrl - ESPDevice PoP: $espDevicePop, Intent PoP: $intentPop")
+            var pop = espDevicePop
+            if (pop.isNullOrEmpty()) {
+                /* Fallback to intent extra */
+                pop = intentPop
+            }
+            Log.d(TAG, "Starting BLE local control flow - deviceName: $deviceName, pop: $pop")
+
+            /* Go to ProvisionActivity with BLE local control flag */
+            val provisionIntent = Intent(applicationContext, ProvisionActivity::class.java)
+            provisionIntent.putExtras(intent)
+            if (!deviceName.isNullOrEmpty()) {
+                provisionIntent.putExtra(AppConstants.KEY_DEVICE_NAME, deviceName)
+            }
+            provisionIntent.putExtra(AppConstants.KEY_PROOF_OF_POSSESSION, pop)
+            provisionIntent.putExtra(AppConstants.KEY_BLE_LOCAL_CTRL, true)
+            startActivity(provisionIntent)
+            finish()
+        }
+
+        builder.setNegativeButton(R.string.btn_no) { dialog, which ->
+            val deviceCaps = espDevice!!.deviceCapabilities
+            routeToWifiOrThread(deviceCaps)
+        }
+
+        if (!isFinishing) {
+            builder.show()
         }
     }
 

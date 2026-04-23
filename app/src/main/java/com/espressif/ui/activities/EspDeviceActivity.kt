@@ -16,9 +16,7 @@ package com.espressif.ui.activities
 
 import android.Manifest
 import android.content.Intent
-
 import android.content.pm.PackageManager
-
 import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
@@ -41,18 +39,16 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener
-
 import chip.devicecontroller.ReportCallback
 import chip.devicecontroller.model.ChipAttributePath
 import chip.devicecontroller.model.ChipEventPath
 import chip.devicecontroller.model.NodeState
-
 import com.auth0.android.jwt.JWT
-
 import com.espressif.AppConstants
 import com.espressif.AppConstants.Companion.UpdateEventType
 import com.espressif.EspApplication
 import com.espressif.NetworkApiManager
+import com.espressif.ble.BleLocalControlManager
 import com.espressif.cloudapi.ApiManager
 import com.espressif.cloudapi.ApiResponseListener
 import com.espressif.cloudapi.CloudException
@@ -68,6 +64,7 @@ import com.espressif.rainmaker.databinding.ActivityEspDeviceBinding
 import com.espressif.ui.adapters.AttrParamAdapter
 import com.espressif.ui.adapters.ParamAdapter
 import com.espressif.ui.models.Device
+import com.espressif.ui.models.EspNode
 import com.espressif.ui.models.Param
 import com.espressif.ui.models.Service
 import com.espressif.ui.models.UpdateEvent
@@ -134,6 +131,9 @@ class EspDeviceActivity : AppCompatActivity() {
     private var lastMatterUpdateTime = 0L
     private val MATTER_UPDATE_THROTTLE_MS = 100L // Throttle updates to max once per 100ms
 
+    // BLE local control related
+    private var bleLocalCtrlInfo: EspNode.BleLocalCtrlInfo? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityEspDeviceBinding.inflate(layoutInflater)
@@ -159,6 +159,19 @@ class EspDeviceActivity : AppCompatActivity() {
                 )
                 finish()
                 return
+            }
+
+            /* Check for BLE local control capability */
+            Log.d(TAG, "Checking for BLE local ctrl - node: found")
+            Log.d(TAG, "Node metadata JSON: ${node.nodeMetadataJson}")
+            bleLocalCtrlInfo = node.getBleLocalCtrlInfo()
+            if (bleLocalCtrlInfo != null) {
+                Log.d(
+                    TAG,
+                    "BLE local control device detected: name=${bleLocalCtrlInfo!!.name}, pop=${bleLocalCtrlInfo!!.pop}"
+                )
+            } else {
+                Log.d(TAG, "BLE local control info is null")
             }
 
             nodeType = node.newNodeType
@@ -270,6 +283,31 @@ class EspDeviceActivity : AppCompatActivity() {
             setupMatterSubscriptions()
         }
 
+        if (bleLocalCtrlInfo != null && nodeId != null) {
+            val bleManager = BleLocalControlManager.getInstance(this)
+            if (bleManager.isConnected(nodeId!!)) {
+                nodeStatus = AppConstants.NODE_STATUS_BLE_LOCAL
+                espApp.nodeMap[nodeId]?.nodeStatus = AppConstants.NODE_STATUS_BLE_LOCAL
+                paramAdapter?.setNodeStatus(AppConstants.NODE_STATUS_BLE_LOCAL)
+                queryCurrentParamsViaBle()
+                startUpdateValueTask()
+                updateUi()
+            } else if (bleManager.isDiscovered(nodeId!!)) {
+                bleManager.connectDevice(nodeId!!) { success ->
+                    runOnUiThread {
+                        if (success) {
+                            nodeStatus = AppConstants.NODE_STATUS_BLE_LOCAL
+                            espApp.nodeMap[nodeId]?.nodeStatus = AppConstants.NODE_STATUS_BLE_LOCAL
+                            paramAdapter?.setNodeStatus(AppConstants.NODE_STATUS_BLE_LOCAL)
+                            queryCurrentParamsViaBle()
+                            startUpdateValueTask()
+                            updateUi()
+                        }
+                    }
+                }
+            }
+        }
+
         if (AppConstants.ESP_DEVICE_CAMERA == device?.deviceType && (ContextCompat.checkSelfPermission(
                 this, Manifest.permission.CAMERA
             ) != PackageManager.PERMISSION_GRANTED
@@ -293,6 +331,10 @@ class EspDeviceActivity : AppCompatActivity() {
         EventBus.getDefault().unregister(this)
     }
 
+    override fun onStop() {
+        super.onStop()
+    }
+
     override fun onDestroy() {
         stopUpdateValueTask()
         stopMatterSubscriptions()
@@ -305,6 +347,19 @@ class EspDeviceActivity : AppCompatActivity() {
             .setShowAsAction(
                 MenuItem.SHOW_AS_ACTION_ALWAYS
             )
+
+        val node = espApp.nodeMap[nodeId]
+        val bleManager = BleLocalControlManager.getInstance(this)
+        if (node != null && nodeId != null && bleManager.isConnected(nodeId!!)) {
+            if (getService(node, AppConstants.SERVICE_TYPE_SCHEDULE) != null) {
+                menu.add(Menu.NONE, 2, Menu.NONE, R.string.btn_add_schedule)
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+            }
+            if (getService(node, AppConstants.SERVICE_TYPE_SCENES) != null) {
+                menu.add(Menu.NONE, 3, Menu.NONE, R.string.btn_add_scene)
+                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+            }
+        }
         return true
     }
 
@@ -315,8 +370,61 @@ class EspDeviceActivity : AppCompatActivity() {
                 return true
             }
 
+            2 -> {
+                askForNameAndLaunch(true)
+                return true
+            }
+
+            3 -> {
+                askForNameAndLaunch(false)
+                return true
+            }
+
             else -> return super.onOptionsItemSelected(item)
         }
+    }
+
+    private fun askForNameAndLaunch(isSchedule: Boolean) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_attribute, null)
+        val etName = dialogView.findViewById<android.widget.EditText>(R.id.et_attr_value)
+        etName.inputType = android.text.InputType.TYPE_CLASS_TEXT
+        etName.hint = getString(
+            if (isSchedule) R.string.hint_schedule_name else R.string.hint_scene_name
+        )
+        etName.filters = arrayOf(android.text.InputFilter.LengthFilter(32))
+
+        val alertDialog = android.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setTitle(R.string.dialog_title_add_name)
+            .setPositiveButton(R.string.btn_ok, null)
+            .setNegativeButton(R.string.btn_cancel, null)
+            .create()
+
+        alertDialog.setOnShowListener {
+            val btnPositive = alertDialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
+            btnPositive.setOnClickListener {
+                val name = etName.text.toString().trim()
+                if (name.isEmpty()) {
+                    etName.error = getString(
+                        if (isSchedule) R.string.error_invalid_schedule_name
+                        else R.string.error_invalid_scene_name
+                    )
+                } else {
+                    alertDialog.dismiss()
+                    val intent = if (isSchedule) {
+                        Intent(this, ScheduleDetailActivity::class.java)
+                    } else {
+                        Intent(this, SceneDetailActivity::class.java)
+                    }
+                    intent.putExtra(AppConstants.KEY_NAME, name)
+                    intent.putExtra(AppConstants.KEY_NODE_ID, nodeId)
+                    intent.putExtra(AppConstants.KEY_ESP_DEVICE, device)
+                    intent.putExtra(AppConstants.KEY_IS_BLE_SINGLE_DEVICE, true)
+                    startActivity(intent)
+                }
+            }
+        }
+        alertDialog.show()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -358,19 +466,18 @@ class EspDeviceActivity : AppCompatActivity() {
     }
 
     fun isNodeOnline(): Boolean {
-        var isNodeOnline = false
-
         if (Arrays.asList(
                 AppConstants.NODE_STATUS_ONLINE,
                 AppConstants.NODE_STATUS_LOCAL,
                 AppConstants.NODE_STATUS_MATTER_LOCAL,
-                AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE
+                AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE,
+                AppConstants.NODE_STATUS_BLE_LOCAL
             )
                 .contains(nodeStatus)
         ) {
-            isNodeOnline = true
+            return true
         }
-        return isNodeOnline
+        return false
     }
 
     fun setIsUpdateView(isUpdateView: Boolean) {
@@ -382,12 +489,15 @@ class EspDeviceActivity : AppCompatActivity() {
     }
 
     fun startUpdateValueTask() {
+        Log.d(TAG, "startUpdateValueTask called, nodeType=$nodeType, nodeStatus=$nodeStatus")
         if (!TextUtils.isEmpty(nodeType) && nodeType == AppConstants.NODE_TYPE_PURE_MATTER && nodeStatus != AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE) {
+            Log.d(TAG, "Skipping update task for Pure Matter node")
             return
         }
         shouldGetParams = true
         handler.removeCallbacks(updateValuesTask)
         handler.postDelayed(updateValuesTask, UPDATE_INTERVAL.toLong())
+        Log.d(TAG, "Scheduled updateValuesTask in ${UPDATE_INTERVAL}ms")
     }
 
     fun stopUpdateValueTask() {
@@ -403,9 +513,17 @@ class EspDeviceActivity : AppCompatActivity() {
 
     private val updateValuesTask: Runnable = object : Runnable {
         override fun run() {
+            Log.d(
+                TAG,
+                "updateValuesTask running, shouldGetParams=$shouldGetParams, nodeStatus=$nodeStatus"
+            )
             if (shouldGetParams) {
                 if (BuildConfig.isContinuousUpdateEnable) {
                     val currentTime = System.currentTimeMillis()
+                    Log.d(
+                        TAG,
+                        "ContinuousUpdate enabled, isUpdateView=$isUpdateView, timeDiff=${currentTime - lastUpdateRequestTime}"
+                    )
                     if (isUpdateView && currentTime - lastUpdateRequestTime >= UI_UPDATE_INTERVAL) {
                         getValues()
                     } else {
@@ -413,6 +531,7 @@ class EspDeviceActivity : AppCompatActivity() {
                         handler.postDelayed(this, UI_UPDATE_INTERVAL.toLong())
                     }
                 } else {
+                    Log.d(TAG, "ContinuousUpdate disabled, calling getValues()")
                     getValues()
                 }
             }
@@ -503,7 +622,8 @@ class EspDeviceActivity : AppCompatActivity() {
                 getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP)
             )
             val groupIdParam = findGroupIdParam(services)
-            val shouldOpenGroupSelection = groupIdParam != null && TextUtils.isEmpty(groupIdParam.labelValue)
+            val shouldOpenGroupSelection =
+                groupIdParam != null && TextUtils.isEmpty(groupIdParam.labelValue)
 
             val intent = if (shouldOpenGroupSelection) {
                 Intent(this, GroupSelectionActivity::class.java)
@@ -820,6 +940,10 @@ class EspDeviceActivity : AppCompatActivity() {
     }
 
     private fun getValues() {
+        Log.d(
+            TAG,
+            "getValues() called, nodeStatus=$nodeStatus (BLE_LOCAL=${AppConstants.NODE_STATUS_BLE_LOCAL})"
+        )
 
         when (nodeStatus) {
             AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE -> {
@@ -837,6 +961,11 @@ class EspDeviceActivity : AppCompatActivity() {
                         getParamValuesForDevice(controllerNodeId!!)
                     }
                 }
+            }
+
+            AppConstants.NODE_STATUS_OFFLINE -> {
+                /* Don't poll cloud API for offline nodes */
+                Log.d(TAG, "Node is offline, skipping cloud API poll")
             }
 
 //            AppConstants.NODE_STATUS_MATTER_LOCAL -> getParamValuesForMatterDevice(nodeId!!)
@@ -1122,8 +1251,16 @@ class EspDeviceActivity : AppCompatActivity() {
                 }
             }
 
+            AppConstants.NODE_STATUS_BLE_LOCAL -> {
+                binding.espDeviceLayout.rlNodeStatus.visibility = View.VISIBLE
+                /* BLE local control uses security (sec1 with PoP) */
+                binding.espDeviceLayout.ivSecureLocal.setVisibility(View.VISIBLE)
+                binding.espDeviceLayout.tvDeviceStatus.setText(R.string.ble_device_text)
+            }
+
             AppConstants.NODE_STATUS_OFFLINE -> if (espApp.appState == EspApplication.AppState.GET_DATA_SUCCESS) {
                 binding.espDeviceLayout.ivSecureLocal.setVisibility(View.GONE)
+
                 var offlineText = getString(R.string.status_offline)
                 binding.espDeviceLayout.tvDeviceStatus.text = offlineText
 
@@ -1697,5 +1834,127 @@ class EspDeviceActivity : AppCompatActivity() {
             }
         }
         return null
+    }
+
+    fun isBleLocalCtrlConnected(): Boolean {
+        if (nodeId == null) return false
+        return BleLocalControlManager.getInstance(this).isConnected(nodeId!!)
+    }
+
+    fun sendParamViaBle(body: JsonObject, listener: ApiResponseListener) {
+        if (nodeId == null) {
+            listener.onNetworkFailure(Exception("nodeId is null"))
+            return
+        }
+        BleLocalControlManager.getInstance(this).sendParams(nodeId!!, body, listener)
+    }
+
+    private fun queryCurrentParamsViaBle() {
+        if (nodeId == null) {
+            Log.e(TAG, "Cannot query params: nodeId is null")
+            return
+        }
+
+        val bleManager = BleLocalControlManager.getInstance(this)
+        if (!bleManager.isConnected(nodeId!!)) {
+            Log.e(TAG, "Cannot query params: BLE not connected")
+            return
+        }
+
+        Log.d(TAG, "Querying current params via BLE...")
+        bleManager.queryParams(nodeId!!) { json ->
+            if (json != null) {
+                updateParamsFromJson(json)
+            } else {
+                Log.w(TAG, "queryParams returned null for $nodeId")
+            }
+        }
+    }
+
+    /**
+     * Update device params from JSON response
+     * Expected format: {"DeviceName": {"ParamName": value, ...}}
+     */
+    private fun updateParamsFromJson(json: org.json.JSONObject) {
+        if (device == null) {
+            Log.e(TAG, "Device is null, cannot update params")
+            return
+        }
+
+        val deviceName = device!!.deviceName
+        if (!json.has(deviceName)) {
+            Log.w(TAG, "Device '$deviceName' not found in get_params response")
+            return
+        }
+
+        val deviceParams = json.getJSONObject(deviceName)
+
+        /* Update espApp.nodeMap (central data store) and then call updateUi() - same as WLAN local control */
+        val espNode = espApp.nodeMap[nodeId]
+        if (espNode == null) {
+            Log.e(TAG, "Node not found in nodeMap")
+            return
+        }
+
+        val devices = espNode.devices
+        if (devices == null || devices.isEmpty()) {
+            Log.e(TAG, "No devices in node")
+            return
+        }
+
+        var updated = false
+        for (dev in devices) {
+            if (dev.deviceName == deviceName) {
+                for (param in dev.params) {
+                    val paramName = param.name
+                    if (deviceParams.has(paramName)) {
+                        try {
+                            val value = deviceParams.get(paramName)
+                            when {
+                                value is Boolean -> {
+                                    Log.d(
+                                        TAG,
+                                        "Updating param $paramName: ${param.switchStatus} -> $value"
+                                    )
+                                    param.switchStatus = value
+                                    updated = true
+                                }
+
+                                value is Number -> {
+                                    Log.d(
+                                        TAG,
+                                        "Updating param $paramName: ${param.value} -> ${value.toDouble()}"
+                                    )
+                                    param.value = value.toDouble()
+                                    param.labelValue = value.toString()
+                                    updated = true
+                                }
+
+                                value is String -> {
+                                    Log.d(
+                                        TAG,
+                                        "Updating param $paramName: ${param.labelValue} -> $value"
+                                    )
+                                    param.labelValue = value
+                                    updated = true
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to update param $paramName: ${e.message}")
+                        }
+                    }
+                }
+                break
+            }
+        }
+
+        if (updated) {
+            runOnUiThread {
+                Log.d(TAG, "Refreshing UI via updateUi()")
+                updateUi()
+                /* Force full refresh to ensure toggle switches update properly */
+                paramAdapter?.notifyDataSetChanged()
+            }
+        }
     }
 }

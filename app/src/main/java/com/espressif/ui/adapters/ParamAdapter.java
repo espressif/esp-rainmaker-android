@@ -126,6 +126,14 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
     }
 
+    /**
+     * Update the node status. Call notifyDataSetChanged() after this to refresh UI.
+     */
+    public void setNodeStatus(int status) {
+        Log.d(TAG, "setNodeStatus: " + nodeStatus + " -> " + status);
+        this.nodeStatus = status;
+    }
+
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
 
@@ -276,7 +284,10 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
             if (param.getProperties().contains(AppConstants.KEY_PROPERTY_WRITE)) {
 
-                if (((EspDeviceActivity) context).isNodeOnline()) {
+                boolean isOnline = ((EspDeviceActivity) context).isNodeOnline();
+                Log.d(TAG, "Binding switch param: " + param.getName() + ", isNodeOnline=" + isOnline);
+
+                if (isOnline) {
 
                     switchViewHolder.ivSwitch.setAlpha(1f);
                     switchViewHolder.ivSwitch.setEnabled(true);
@@ -285,6 +296,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                         @Override
                         public void onClick(View v) {
+                            Log.d(TAG, "Switch clicked for: " + param.getName());
                             ((EspDeviceActivity) context).stopUpdateValueTask();
                             ((EspDeviceActivity) context).showParamUpdateLoading("Updating...");
 
@@ -718,6 +730,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                                     case AppConstants.NODE_STATUS_LOCAL:
                                     case AppConstants.NODE_STATUS_ONLINE:
+                                    case AppConstants.NODE_STATUS_BLE_LOCAL:
 
                                         if (seekParams.fromUser) {
                                             ((EspDeviceActivity) context).setIsUpdateView(false);
@@ -742,6 +755,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                                     case AppConstants.NODE_STATUS_LOCAL:
                                     case AppConstants.NODE_STATUS_ONLINE:
+                                    case AppConstants.NODE_STATUS_BLE_LOCAL:
 
                                         ((EspDeviceActivity) context).setIsUpdateView(false);
                                         if (!BuildConfig.isContinuousUpdateEnable) {
@@ -862,6 +876,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                                     case AppConstants.NODE_STATUS_LOCAL:
                                     case AppConstants.NODE_STATUS_ONLINE:
+                                    case AppConstants.NODE_STATUS_BLE_LOCAL:
                                         ((EspDeviceActivity) context).setIsUpdateView(true);
 
                                         deviceParamUpdates.clearQueueAndSendLastValue(param.getName(), lastProgressValue, new ApiResponseListener() {
@@ -880,6 +895,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                                                 ((EspDeviceActivity) context).startUpdateValueTask();
                                             }
                                         });
+                                        break;
 
                                     case AppConstants.NODE_STATUS_OFFLINE:
                                     default:
@@ -1019,6 +1035,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
             case AppConstants.NODE_STATUS_ONLINE:
             case AppConstants.NODE_STATUS_LOCAL:
+            case AppConstants.NODE_STATUS_BLE_LOCAL:
                 if (!TextUtils.isEmpty(param.getDependencies())) {
 
                     String dependencies = param.getDependencies();
@@ -1220,6 +1237,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
                             case AppConstants.NODE_STATUS_LOCAL:
                             case AppConstants.NODE_STATUS_ONLINE:
+                            case AppConstants.NODE_STATUS_BLE_LOCAL:
                                 ((EspDeviceActivity) context).stopUpdateValueTask();
 
                                 if (isChecked) {

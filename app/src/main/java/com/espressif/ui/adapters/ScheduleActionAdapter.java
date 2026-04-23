@@ -29,6 +29,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.AppConstants;
 import com.espressif.EspApplication;
+import com.espressif.ble.BleLocalControlManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
@@ -163,7 +164,10 @@ public class ScheduleActionAdapter extends RecyclerView.Adapter<ScheduleActionAd
         });
 
         String nodeId = device.getNodeId();
-        if (espApp.nodeMap.get(nodeId).isOnline()) {
+        boolean isReachable = espApp.nodeMap.get(nodeId).isOnline()
+                || BleLocalControlManager.getInstance(context).isConnected(nodeId);
+
+        if (isReachable) {
 
             int maxCnt = espApp.nodeMap.get(nodeId).getScheduleMaxCnt();
 

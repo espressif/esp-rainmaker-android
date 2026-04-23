@@ -16,6 +16,8 @@ package com.espressif.ui.models;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.text.TextUtils;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
@@ -392,6 +394,49 @@ public class EspNode implements Parcelable {
 
     public void setNodeMetadataJson(String nodeMetadataJson) {
         this.nodeMetadataJson = nodeMetadataJson;
+    }
+
+    /**
+     * Check if node has BLE local control capability in metadata
+     * @return BLE local control info (name and pop) or null if not available
+     */
+    public BleLocalCtrlInfo getBleLocalCtrlInfo() {
+        if (TextUtils.isEmpty(nodeMetadataJson)) {
+            Log.d("EspNode", "getBleLocalCtrlInfo: nodeMetadataJson is empty");
+            return null;
+        }
+        try {
+            Log.d("EspNode", "getBleLocalCtrlInfo: parsing metadata: " + nodeMetadataJson);
+            org.json.JSONObject metadataJson = new org.json.JSONObject(nodeMetadataJson);
+            org.json.JSONObject bleLocalCtrl = metadataJson.optJSONObject("ble_local_ctrl");
+            if (bleLocalCtrl != null) {
+                String name = bleLocalCtrl.optString("name", "");
+                String pop = bleLocalCtrl.optString("pop", "");
+                Log.d("EspNode", "getBleLocalCtrlInfo: name=" + name + ", pop=" + pop);
+                /* Only require name to be non-empty (pop can be empty for no-security devices) */
+                if (!TextUtils.isEmpty(name)) {
+                    return new BleLocalCtrlInfo(name, pop);
+                }
+            } else {
+                Log.d("EspNode", "getBleLocalCtrlInfo: ble_local_ctrl object not found");
+            }
+        } catch (org.json.JSONException e) {
+            Log.e("EspNode", "getBleLocalCtrlInfo: JSON parse error", e);
+        }
+        return null;
+    }
+
+    /**
+     * Helper class to hold BLE local control information
+     */
+    public static class BleLocalCtrlInfo {
+        public final String name;
+        public final String pop;
+
+        public BleLocalCtrlInfo(String name, String pop) {
+            this.name = name;
+            this.pop = pop;
+        }
     }
 
     public boolean isController() {

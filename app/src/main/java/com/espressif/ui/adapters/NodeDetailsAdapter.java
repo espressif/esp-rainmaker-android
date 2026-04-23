@@ -40,9 +40,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.espressif.AppConstants;
 import com.espressif.NetworkApiManager;
+import com.espressif.ble.BleLocalControlManager;
 import com.espressif.cloudapi.ApiResponseListener;
 import com.espressif.cloudapi.CloudException;
 import com.espressif.rainmaker.R;
+import com.espressif.ui.activities.BleWifiProvisionActivity;
 import com.espressif.ui.activities.FwUpdateActivity;
 import com.espressif.ui.activities.CmdRespActivity;
 import com.espressif.ui.models.EspNode;
@@ -99,7 +101,9 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
         String nodeInfoValue = nodeInfoValueList.get(position);
         String nodeInfoLabel = nodeInfoList.get(position);
         
-        if (node.isOnline() || !nodeInfoLabel.equals(context.getString(R.string.system_services))) {
+        boolean isBleConnected = BleLocalControlManager.Companion.getInstance(context)
+                .isConnected(node.getNodeId());
+        if (node.isOnline() || isBleConnected || !nodeInfoLabel.equals(context.getString(R.string.system_services))) {
             nodeDetailVh.tvNodeInfoLabel.setText(nodeInfoLabel);
         } else {
             if (nodeInfoLabel.equals(context.getString(R.string.system_services))) {
@@ -326,6 +330,20 @@ public class NodeDetailsAdapter extends RecyclerView.Adapter<NodeDetailsAdapter.
             };
             nodeDetailVh.tvNodeInfoValue.setOnClickListener(cmdRespListener);
             nodeDetailVh.ivCopy.setOnClickListener(cmdRespListener);
+
+        } else if (nodeInfoLabel.equals(context.getString(R.string.node_wifi_provisioning))) {
+
+            nodeDetailVh.tvNodeInfoValue.setVisibility(View.VISIBLE);
+            nodeDetailVh.ivCopy.setImageResource(R.drawable.ic_side_arrow);
+            nodeDetailVh.ivCopy.setVisibility(View.VISIBLE);
+            nodeDetailVh.tvNodeInfoValue.setText(nodeInfoValue);
+            View.OnClickListener provListener = v -> {
+                Intent intent = new Intent(context, BleWifiProvisionActivity.class);
+                intent.putExtra(AppConstants.KEY_NODE_ID, node.getNodeId());
+                context.startActivity(intent);
+            };
+            nodeDetailVh.tvNodeInfoValue.setOnClickListener(provListener);
+            nodeDetailVh.ivCopy.setOnClickListener(provListener);
 
         } else if (!TextUtils.isEmpty(nodeInfoValueList.get(position))) {
 
