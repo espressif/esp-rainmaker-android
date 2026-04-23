@@ -33,7 +33,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
-import com.google.android.material.card.MaterialCardView;
 
 import com.aar.tapholdupbutton.TapHoldUpButton;
 import com.espressif.AppConstants;
@@ -54,6 +53,7 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Service;
 import com.espressif.utils.NodeUtils;
+import com.google.android.material.card.MaterialCardView;
 import com.google.gson.JsonObject;
 
 import java.math.BigInteger;
@@ -66,13 +66,15 @@ import java.util.Map;
 public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.DeviceViewHolder> {
 
     private Context context;
+    private EspApplication espApp;
     private NetworkApiManager networkApiManager;
     private ArrayList<Device> deviceList;
 
     public EspDeviceAdapter(Context context, ArrayList<Device> deviceList) {
         this.context = context;
         this.deviceList = deviceList;
-        networkApiManager = new NetworkApiManager(context.getApplicationContext());
+        espApp = (EspApplication) context.getApplicationContext();
+        networkApiManager = new NetworkApiManager(espApp);
     }
 
     @Override
@@ -88,7 +90,6 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
     public void onBindViewHolder(@NonNull final DeviceViewHolder deviceVh, final int position) {
 
         final Device device = deviceList.get(position);
-        EspApplication espApp = (EspApplication) context.getApplicationContext();
         EspNode node = espApp.nodeMap.get(device.getNodeId());
         String deviceName = device.getUserVisibleName();
         String nodeId = device.getNodeId();
@@ -587,9 +588,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
                 }
 
                 if (isMatterController && !isMatterCtrlSetupDone) {
-                    controllerNeedsAccessWarning(rmNodeId, R.string.dialog_msg_matter_controller, false);
-                } else if (isCtlServiceAvailable && matterNodeIdParamAvailable && !hasUserToken) {
-                    controllerNeedsAccessWarning(rmNodeId, R.string.dialog_msg_controller, true);
+                    controllerNeedsAccessWarning(rmNodeId, R.string.dialog_msg_matter_controller, false, false);
                 } else {
                     Intent intent = new Intent(context, EspDeviceActivity.class);
                     intent.putExtra(AppConstants.KEY_ESP_DEVICE, device);
@@ -609,7 +608,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
         notifyDataSetChanged();
     }
 
-    private void controllerNeedsAccessWarning(String rmNodeId, int strResId, boolean isCtrlService) {
+    private void controllerNeedsAccessWarning(String rmNodeId, int strResId, boolean isCtrlService, boolean isRmakerController) {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setCancelable(true);
@@ -621,17 +620,47 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
-                Intent intent = new Intent(context, ControllerLoginActivity.class);
-                if (isCtrlService) {
+                Param groupIdParam = findGroupIdParam(rmNodeId);
+                boolean shouldOpenGroupSelection = groupIdParam != null && TextUtils.isEmpty(groupIdParam.getLabelValue());
+
+                Intent intent;
+                if (shouldOpenGroupSelection) {
                     intent = new Intent(context, GroupSelectionActivity.class);
+                } else {
+                    intent = new Intent(context, ControllerLoginActivity.class);
                 }
                 intent.putExtra(AppConstants.KEY_NODE_ID, rmNodeId);
                 intent.putExtra(AppConstants.KEY_IS_CTRL_SERVICE, isCtrlService);
+                intent.putExtra(AppConstants.KEY_IS_RMAKER_CONTROLLER, isRmakerController);
                 context.startActivity(intent);
             }
         });
 
         builder.show();
+    }
+
+    private Param findGroupIdParam(String nodeId) {
+        EspNode node = espApp.nodeMap.get(nodeId);
+        if (node == null) return null;
+
+        Service[] services = new Service[]{
+                NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER),
+                NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER),
+                NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP)
+        };
+
+        for (Service service : services) {
+            if (service == null) continue;
+            ArrayList<Param> params = service.getParams();
+            if (params == null) continue;
+            for (Param param : params) {
+                String type = param.getParamType();
+                if (AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type) || AppConstants.PARAM_TYPE_GROUP_ID.equals(type)) {
+                    return param;
+                }
+            }
+        }
+        return null;
     }
 
     private String setDeviceNameFromType(String deviceType) {
@@ -715,10 +744,10 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
         
         if (isDarkTheme) {
             // Only apply background color changes in dark theme
-            boolean isOnline = (node != null && node.isOnline()) || 
-                             nodeStatus == AppConstants.NODE_STATUS_MATTER_LOCAL ||
-                             nodeStatus == AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE;
-            
+            boolean isOnline = (node != null && node.isOnline()) ||
+                    nodeStatus == AppConstants.NODE_STATUS_MATTER_LOCAL ||
+                    nodeStatus == AppConstants.NODE_STATUS_REMOTELY_CONTROLLABLE;
+
             if (isOnline) {
                 // Online devices get a slightly lighter background
                 deviceVh.cardView.setCardBackgroundColor(context.getColor(R.color.device_online_background));

@@ -1224,6 +1224,7 @@ public class ApiManager {
                                             JSONObject localControlJson = paramsJson.optJSONObject(AppConstants.KEY_LOCAL_CONTROL);
                                             JSONObject controllerJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CONTROLLER);
                                             JSONObject ctlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CTL);
+                                            JSONObject ctlSetupServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CTL_SETUP);
                                             JSONObject rmCtrlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_RMAKER_CTL);
 
                                             // If node is available on local network then ignore param values received from cloud.
@@ -1618,7 +1619,8 @@ public class ApiManager {
                                                                 String type = controllerParam.getParamType();
                                                                 boolean isSupportedType = (!TextUtils.isEmpty(type)) && (AppConstants.PARAM_TYPE_BASE_URL.equals(type)
                                                                         || AppConstants.PARAM_TYPE_USER_TOKEN.equals(type)
-                                                                        || AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type));
+                                                                        || AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type)
+                                                                        || AppConstants.PARAM_TYPE_GROUP_ID.equals(type));
 
                                                                 if (isSupportedType) {
                                                                     if (!TextUtils.isEmpty(ctlServiceJson.optString(controllerParam.getName()))) {
@@ -1653,6 +1655,36 @@ public class ApiManager {
                                                                     if (!TextUtils.isEmpty(rmCtrlServiceJson.optString(controllerParam.getName()))) {
                                                                         String value = rmCtrlServiceJson.optString(controllerParam.getName());
                                                                         controllerParam.setLabelValue(value);
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // Matter controller setup service
+                                            if (ctlSetupServiceJson != null && services != null) {
+
+                                                for (Service service : services) {
+
+                                                    if (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP.equals(service.getType())) {
+
+                                                        ArrayList<Param> setupParams = service.getParams();
+
+                                                        if (setupParams != null) {
+
+                                                            for (Param setupParam : setupParams) {
+
+                                                                String type = setupParam.getParamType();
+                                                                boolean isSupportedType = (!TextUtils.isEmpty(type)) && (AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type)
+                                                                        || AppConstants.PARAM_TYPE_MATTER_CTL_CMD.equals(type)
+                                                                        || AppConstants.PARAM_TYPE_MATTER_CTL_STATUS.equals(type));
+
+                                                                if (isSupportedType) {
+                                                                    if (!TextUtils.isEmpty(ctlSetupServiceJson.optString(setupParam.getName()))) {
+                                                                        String value = ctlSetupServiceJson.optString(setupParam.getName());
+                                                                        setupParam.setLabelValue(value);
                                                                     }
                                                                 }
                                                             }
@@ -2615,6 +2647,42 @@ public class ApiManager {
                     } else {
                         String jsonErrResponse = response.errorBody().string();
                         processError(jsonErrResponse, listener, "Failed to update param value");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    listener.onResponseFailure(e);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                listener.onNetworkFailure(new Exception(t));
+            }
+        });
+    }
+
+    public void addControllerToGroup(final String nodeId, final String groupId, final ApiResponseListener listener) {
+
+        Log.d(TAG, "Add controller to group, nodeId : " + nodeId + ", groupId : " + groupId);
+        String url = getBaseUrl() + AppConstants.URL_USER_NODES + "/" + nodeId + "/groups/" + groupId + "/controller";
+
+        JsonObject body = new JsonObject();
+        body.addProperty(AppConstants.KEY_OPERATION, "subscribe");
+
+        apiInterface.addControllerToGroup(url, accessToken, body).enqueue(new Callback<ResponseBody>() {
+
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                Log.d(TAG, "Add controller to group, Response code : " + response.code());
+
+                try {
+                    if (response.isSuccessful()) {
+                        listener.onSuccess(null);
+                    } else {
+                        String jsonErrResponse = response.errorBody().string();
+                        processError(jsonErrResponse, listener, "Failed to add controller to group");
                     }
                 } catch (IOException e) {
                     e.printStackTrace();

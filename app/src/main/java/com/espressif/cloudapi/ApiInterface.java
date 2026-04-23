@@ -362,6 +362,9 @@ public interface ApiInterface {
 
     // Matter APIs
     @PUT
+    Call<ResponseBody> addControllerToGroup(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token, @Body JsonObject body);
+
+    @PUT
     Call<ResponseBody> convertGroupToFabric(@Url String url, @Header(AppConstants.HEADER_AUTHORIZATION) String token,
                                             @Query(AppConstants.KEY_GROUP_ID) String groupId,
                                             @Body JsonObject body);

@@ -25,6 +25,7 @@ import chip.devicecontroller.GetConnectedDeviceCallbackJni.GetConnectedDeviceCal
 import chip.devicecontroller.model.*
 import chip.platform.*
 import com.espressif.AppConstants
+import com.espressif.EspApplication
 import com.espressif.cloudapi.ApiManager
 import com.espressif.ui.Utils
 import com.espressif.utils.NodeUtils
@@ -686,6 +687,7 @@ class ChipClient constructor(
                                                 readAttribute(devicePtr, rmNodeIdAttributePath)
                                             Log.d(TAG, "RainMaker Node Id : ${rmNodeIdData?.value}")
                                             rmNodeId = rmNodeIdData?.value as String?
+                                            (context as? EspApplication)?.lastCommissionedRmNodeId = rmNodeId
 
                                             // Write Matter Node Id
                                             if (matterNodeId != null) {

@@ -33,6 +33,7 @@ import com.espressif.rainmaker.BuildConfig
 import com.espressif.rainmaker.R
 import com.espressif.rainmaker.databinding.ActivityControllerLoginBinding
 import com.espressif.ui.Utils
+import com.espressif.ui.models.EspNode
 import com.espressif.ui.models.Service
 import com.espressif.ui.models.UpdateEvent
 import com.espressif.utils.NodeUtils.Companion.getService
@@ -57,6 +58,7 @@ class ControllerLoginActivity : AppCompatActivity() {
     private var nodeId: String? = null
     private var isCtrlService = false
     private var isRmakerController = false
+    private var isControllerClusterAvailable = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,6 +68,26 @@ class ControllerLoginActivity : AppCompatActivity() {
         espApp = applicationContext as EspApplication
         setToolbar()
         init()
+
+        val matterNodeId = espApp.matterRmNodeIdMap[nodeId]
+
+        if (!TextUtils.isEmpty(matterNodeId)
+            && espApp.availableMatterDevices.contains(matterNodeId)
+            && espApp.matterDeviceInfoMap.containsKey(matterNodeId)
+        ) {
+            val deviceMatterInfo = espApp.matterDeviceInfoMap[matterNodeId]
+
+            if (!deviceMatterInfo.isNullOrEmpty()) {
+                for ((endpoint, _, serverClusters) in deviceMatterInfo) {
+                    if (endpoint == 0 && serverClusters.isNotEmpty()) {
+                        if (serverClusters.any { (it as Long) == AppConstants.CONTROLLER_CLUSTER_ID }) {
+                            isControllerClusterAvailable = true
+                            break
+                        }
+                    }
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -248,134 +270,7 @@ class ControllerLoginActivity : AppCompatActivity() {
 
     private fun sendRefreshToken(token: String) {
 
-        val networkApiManager = NetworkApiManager(espApp)
-        val serviceParamJson = JsonObject()
-
-        if (isCtrlService) {
-
-            nodeId?.let {
-
-                val service = getService(
-                    espApp.nodeMap[nodeId]!!,
-                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
-                )
-
-                if (service != null) {
-
-                    addParamIfAvailable(
-                        it,
-                        service,
-                        AppConstants.PARAM_TYPE_BASE_URL,
-                        AppConstants.PARAM_BASE_URL,
-                        EspApplication.BASE_URL,
-                        serviceParamJson
-                    )
-
-                    addParamIfAvailable(
-                        it,
-                        service,
-                        AppConstants.PARAM_TYPE_USER_TOKEN,
-                        AppConstants.PARAM_USER_TOKEN,
-                        token,
-                        serviceParamJson
-                    )
-
-                    addParamIfAvailable(
-                        it,
-                        service,
-                        AppConstants.PARAM_TYPE_RMAKER_GROUP_ID,
-                        AppConstants.PARAM_RMAKER_GROUP_ID,
-                        intent.getStringExtra(AppConstants.KEY_GROUP_ID),
-                        serviceParamJson
-                    )
-                }
-            }
-
-            // Get service name
-            var serviceName = AppConstants.KEY_MATTER_CTL
-            if (espApp.nodeMap[nodeId] != null) {
-                val service = getService(
-                    espApp.nodeMap[nodeId]!!,
-                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
-                )
-                if (service != null && !TextUtils.isEmpty(service.name)) {
-                    serviceName = service.name
-                }
-            }
-
-            val body = JsonObject()
-            body.add(serviceName, serviceParamJson)
-
-            networkApiManager.updateParamValue(nodeId, body, object : ApiResponseListener {
-                override fun onSuccess(data: Bundle?) {
-                    hideLoading()
-                    finish()
-                }
-
-                override fun onResponseFailure(exception: java.lang.Exception) {
-                }
-
-                override fun onNetworkFailure(exception: java.lang.Exception) {
-                }
-            })
-        } else if (isRmakerController) {
-
-            val service = getService(
-                espApp.nodeMap[nodeId]!!,
-                AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER
-            )
-
-            if (service != null) {
-                nodeId?.let {
-
-                    addParamIfAvailable(
-                        it,
-                        service,
-                        AppConstants.PARAM_TYPE_BASE_URL,
-                        AppConstants.PARAM_BASE_URL,
-                        EspApplication.BASE_URL,
-                        serviceParamJson
-                    )
-
-                    addParamIfAvailable(
-                        it,
-                        service,
-                        AppConstants.PARAM_TYPE_USER_TOKEN,
-                        AppConstants.PARAM_USER_TOKEN,
-                        token,
-                        serviceParamJson
-                    )
-                }
-            }
-
-            // Get service name
-            var serviceName = AppConstants.KEY_RMAKER_CTL
-            if (espApp.nodeMap[nodeId] != null) {
-                val service = getService(
-                    espApp.nodeMap[nodeId]!!,
-                    AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER
-                )
-                if (service != null && !TextUtils.isEmpty(service.name)) {
-                    serviceName = service.name
-                }
-            }
-
-            val body = JsonObject()
-            body.add(serviceName, serviceParamJson)
-
-            networkApiManager.updateParamValue(nodeId, body, object : ApiResponseListener {
-                override fun onSuccess(data: Bundle?) {
-                    hideLoading()
-                    finish()
-                }
-
-                override fun onResponseFailure(exception: java.lang.Exception) {
-                }
-
-                override fun onNetworkFailure(exception: java.lang.Exception) {
-                }
-            })
-        } else {
+        if (isControllerClusterAvailable) {
 
             val matterNodeId = espApp.matterRmNodeIdMap[nodeId]
             val id = matterNodeId?.let { BigInteger(it, 16) }
@@ -403,6 +298,73 @@ class ControllerLoginActivity : AppCompatActivity() {
                 editor.putBoolean(key, true)
                 editor.apply()
             }
+        } else {
+            val nId = nodeId ?: return
+            val node = espApp.nodeMap[nId] ?: return
+            val groupId = intent.getStringExtra(AppConstants.KEY_GROUP_ID)
+
+            val ctlSetupService = getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER)
+            val needsControllerGroupApi = ctlSetupService != null && !groupId.isNullOrEmpty()
+
+            if (needsControllerGroupApi) {
+                val apiManager = ApiManager.getInstance(applicationContext)
+                apiManager.addControllerToGroup(nId, groupId!!, object : ApiResponseListener {
+                    override fun onSuccess(data: Bundle?) {
+                        updateServiceParams(nId, node, groupId, token)
+                    }
+
+                    override fun onResponseFailure(exception: Exception) {
+                        hideLoading()
+                    }
+
+                    override fun onNetworkFailure(exception: Exception) {
+                        hideLoading()
+                    }
+                })
+            } else {
+                updateServiceParams(nId, node, groupId, token)
+            }
+        }
+    }
+
+    private fun updateServiceParams(nId: String, node: EspNode, groupId: String?, token: String) {
+        val serviceEntries = listOf(
+            Pair(AppConstants.SERVICE_TYPE_MATTER_CONTROLLER, AppConstants.KEY_MATTER_CTL),
+            Pair(AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER, AppConstants.KEY_RMAKER_CTL),
+            Pair(AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP, AppConstants.KEY_MATTER_CTL_SETUP)
+        )
+
+        val body = JsonObject()
+
+        for ((serviceType, defaultName) in serviceEntries) {
+            val service = getService(node, serviceType) ?: continue
+            val serviceParamJson = JsonObject()
+
+            addParamIfAvailable(nId, service, AppConstants.PARAM_TYPE_BASE_URL, AppConstants.PARAM_BASE_URL, EspApplication.BASE_URL, serviceParamJson)
+            addParamIfAvailable(nId, service, AppConstants.PARAM_TYPE_USER_TOKEN, AppConstants.PARAM_USER_TOKEN, token, serviceParamJson)
+            addParamIfAvailable(nId, service, AppConstants.PARAM_TYPE_RMAKER_GROUP_ID, AppConstants.PARAM_RMAKER_GROUP_ID, groupId, serviceParamJson)
+            addParamIfAvailable(nId, service, AppConstants.PARAM_TYPE_GROUP_ID, AppConstants.PARAM_GROUP_ID, groupId, serviceParamJson)
+
+            if (serviceParamJson.size() > 0) {
+                val serviceName = if (!TextUtils.isEmpty(service.name)) service.name else defaultName
+                body.add(serviceName, serviceParamJson)
+            }
+        }
+
+        if (body.size() > 0) {
+            val networkApiManager = NetworkApiManager(espApp)
+            networkApiManager.updateParamValue(nodeId, body, object : ApiResponseListener {
+                override fun onSuccess(data: Bundle?) {
+                    hideLoading()
+                    finish()
+                }
+
+                override fun onResponseFailure(exception: Exception) {
+                }
+
+                override fun onNetworkFailure(exception: Exception) {
+                }
+            })
         }
     }
 
@@ -414,6 +376,9 @@ class ControllerLoginActivity : AppCompatActivity() {
         paramValue: String?,
         serviceParamJson: JsonObject
     ) {
+        if (TextUtils.isEmpty(paramValue)) {
+            return
+        }
         if (ParamUtils.isParamAvailableInList(
                 service.params,
                 paramType

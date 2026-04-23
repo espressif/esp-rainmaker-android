@@ -32,13 +32,16 @@ import androidx.recyclerview.widget.LinearLayoutManager
 
 import com.espressif.AppConstants
 import com.espressif.EspApplication
+import com.espressif.NetworkApiManager
 import com.espressif.cloudapi.ApiResponseListener
 import com.espressif.cloudapi.CloudException
 import com.espressif.rainmaker.R
 import com.espressif.rainmaker.databinding.ActivityGroupsSelectionBinding
 import com.espressif.ui.models.Group
+import com.espressif.utils.NodeUtils.Companion.getService
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
+import com.google.gson.JsonObject
 
 class GroupSelectionActivity : AppCompatActivity() {
 
@@ -58,6 +61,8 @@ class GroupSelectionActivity : AppCompatActivity() {
     // CODELAB SECTION END
 
     private var isCtrlService = false
+    private var isCtrlSetupService = false
+    private var isRmakerController = false
     private lateinit var espApp: EspApplication
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,8 +91,10 @@ class GroupSelectionActivity : AppCompatActivity() {
         binding.rvGroupList.visibility = View.GONE
         binding.layoutProgress.visibility = View.GONE
         isCtrlService = intent.getBooleanExtra(AppConstants.KEY_IS_CTRL_SERVICE, false)
+        isCtrlSetupService = intent.getBooleanExtra(AppConstants.KEY_IS_CTRL_SETUP_SERVICE, false)
+        isRmakerController = intent.getBooleanExtra(AppConstants.KEY_IS_RMAKER_CONTROLLER, false)
 
-        if (!isCtrlService) {
+        if (!isCtrlService && !isCtrlSetupService && !isRmakerController) {
             setup()
         }
 
@@ -96,8 +103,8 @@ class GroupSelectionActivity : AppCompatActivity() {
         binding.rvGroupList.adapter = groupAdapter
         binding.swipeContainer.isEnabled = false
 
-        var espApp: EspApplication = applicationContext as EspApplication
-        if (espApp.groupMap.size > 0) {
+        val espApp: EspApplication = applicationContext as EspApplication
+        if (espApp.groupMap.isNotEmpty()) {
             updateUi()
         } else {
             createFabric()
@@ -166,7 +173,7 @@ class GroupSelectionActivity : AppCompatActivity() {
             )
         })
 
-        if (groups.size > 0) {
+        if (groups.isNotEmpty()) {
             binding.rlNoGroup.visibility = View.GONE
             binding.rvGroupList.visibility = View.VISIBLE
         } else {
@@ -198,10 +205,22 @@ class GroupSelectionActivity : AppCompatActivity() {
                 val resultCode = result.resultCode
                 if (resultCode == Activity.RESULT_OK) {
                     Log.e(TAG, "CommissionDevice: Success")
-                    // We now need to capture the device information for the app's fabric.
-                    // Once this completes, a call is made to the viewModel to persist the information
-                    // about that device in the app.
-                    // TODO      showNewDeviceAlertDialog(result)
+                    val rmNodeId = espApp.lastCommissionedRmNodeId
+                    if (!rmNodeId.isNullOrEmpty()) {
+                        val node = espApp.nodeMap[rmNodeId]
+                        if (node != null) {
+                            val ctlSetupService =
+                                getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP)
+                            if (ctlSetupService != null) {
+                                val loginIntent = Intent(this, ControllerLoginActivity::class.java)
+                                loginIntent.putExtra(AppConstants.KEY_NODE_ID, rmNodeId)
+                                loginIntent.putExtra(AppConstants.KEY_GROUP_ID, espApp.mGroupId)
+                                startActivity(loginIntent)
+                            }
+                        }
+                    }
+                    espApp.lastCommissionedRmNodeId = ""
+                    sendUpdateDeviceListToControllerSetupNodes()
                     finish()
                 } else {
                     Log.e(TAG, "Error !")
@@ -211,13 +230,62 @@ class GroupSelectionActivity : AppCompatActivity() {
             }
     }
 
+    private fun sendUpdateDeviceListToControllerSetupNodes() {
+        val groupId = espApp.mGroupId
+        if (groupId.isNullOrEmpty()) {
+            Log.w(TAG, "No group selected, skip update device list")
+            return
+        }
+
+        val group = espApp.groupMap[groupId]
+        val nodeIds = group?.nodeList
+        if (nodeIds.isNullOrEmpty()) {
+            Log.w(TAG, "No nodes in group $groupId, skip update device list")
+            return
+        }
+
+        val networkApiManager = NetworkApiManager(espApp)
+
+        for (nodeId in nodeIds) {
+            val node = espApp.nodeMap[nodeId] ?: continue
+            val ctlSetupService = getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP) ?: continue
+
+            val serviceParamJson = JsonObject()
+            serviceParamJson.addProperty("MTCtlCMD", 2)
+
+            val serviceName = if (!TextUtils.isEmpty(ctlSetupService.name)) ctlSetupService.name else AppConstants.KEY_MATTER_CTL_SETUP
+            val body = JsonObject()
+            body.add(serviceName, serviceParamJson)
+
+            Log.d(TAG, "Sending update device list to controller setup node : $nodeId")
+            networkApiManager.updateParamValue(nodeId, body, object : ApiResponseListener {
+                override fun onSuccess(data: Bundle?) {
+                    Log.d(TAG, "Update device list sent successfully to node : $nodeId")
+                }
+
+                override fun onResponseFailure(exception: Exception) {
+                    Log.e(TAG, "Failed to send update device list to node : $nodeId", exception)
+                }
+
+                override fun onNetworkFailure(exception: Exception) {
+                    Log.e(TAG, "Network failure sending update device list to node : $nodeId", exception)
+                }
+            })
+        }
+    }
+
     public fun commissionDevice() {
 
-        if (isCtrlService) {
-            var intent = Intent(this, ControllerLoginActivity::class.java)
-            intent.putExtras(getIntent())
-            intent.putExtra(AppConstants.KEY_GROUP_ID, espApp.mGroupId)
-            startActivity(intent)
+        if (isCtrlService || isCtrlSetupService || isRmakerController) {
+            val loginIntent = Intent(this, ControllerLoginActivity::class.java)
+            loginIntent.putExtras(getIntent())
+            loginIntent.putExtra(AppConstants.KEY_GROUP_ID, espApp.mGroupId)
+            startActivity(loginIntent)
+            finish()
+            return
+        }
+
+        if (isCtrlSetupService) {
             finish()
             return
         }

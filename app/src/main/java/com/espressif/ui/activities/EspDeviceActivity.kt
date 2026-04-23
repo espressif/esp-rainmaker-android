@@ -121,6 +121,7 @@ class EspDeviceActivity : AppCompatActivity() {
     private var isControllerClusterAvailable = false
     private var isTbrClusterAvailable: Boolean = false
     private var isCtlAvailable = false
+    private var isCtlSetupAvailable = false
     private var isRmakerCtlAvailable = false
     private var lastUpdateRequestTime: Long = 0
     private var isNetworkAvailable = true
@@ -152,7 +153,10 @@ class EspDeviceActivity : AppCompatActivity() {
 
             val node = espApp.nodeMap[nodeId]
             if (node == null) {
-                Log.e(TAG, "Node not found in nodeMap for nodeId: $nodeId. App may have been restarted.")
+                Log.e(
+                    TAG,
+                    "Node not found in nodeMap for nodeId: $nodeId. App may have been restarted."
+                )
                 finish()
                 return
             }
@@ -212,13 +216,21 @@ class EspDeviceActivity : AppCompatActivity() {
                 node,
                 AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
             )
-            isCtlAvailable = controllerService != null
 
             val rmakerControllerService = getService(
                 node,
                 AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER
             )
+
+            val ctlSetupService = getService(
+                node,
+                AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP
+            )
+
+            isCtlAvailable = controllerService != null
             isRmakerCtlAvailable = rmakerControllerService != null
+            isCtlSetupAvailable = ctlSetupService != null
+
             var matterNodeIdParamAvailable = false
 
             if (isCtlAvailable) {
@@ -248,8 +260,8 @@ class EspDeviceActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         EspApplication.region = ""
-        paramAdapter?.updateVideoStreamingState()
-        paramAdapter?.notifyDataSetChanged()
+        paramAdapter.updateVideoStreamingState()
+        paramAdapter.notifyDataSetChanged()
         getNodeDetails()
         EventBus.getDefault().register(this)
 
@@ -429,15 +441,38 @@ class EspDeviceActivity : AppCompatActivity() {
 
         binding.espDeviceLayout.btnUpdate.setOnClickListener(View.OnClickListener {
 
-            if (isCtlAvailable) {
+            if (isControllerClusterAvailable) {
+                val id = BigInteger(matterNodeId, 16)
+                val deviceId = id.toLong()
+                if (espApp.chipClientMap.containsKey(matterNodeId)) {
+                    val espClusterHelper = ControllerClusterHelper(
+                        espApp.chipClientMap[matterNodeId]!!,
+                        espApp
+                    )
+                    espClusterHelper.sendUpdateDeviceListEventAsync(
+                        deviceId,
+                        AppConstants.ENDPOINT_0,
+                        AppConstants.CONTROLLER_CLUSTER_ID_HEX
+                    )
+                }
+            } else {
                 val serviceParamJson = JsonObject()
                 serviceParamJson.addProperty("MTCtlCMD", 2)
 
-                // Get service name
-                var serviceName = AppConstants.KEY_MATTER_CTL
+                val serviceType = if (isCtlAvailable)
+                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
+                else
+                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP
+
+                val defaultServiceName = if (isCtlAvailable)
+                    AppConstants.KEY_MATTER_CTL
+                else
+                    AppConstants.KEY_MATTER_CTL_SETUP
+
+                var serviceName = defaultServiceName
                 val service = getService(
                     espApp.nodeMap?.get(nodeId)!!,
-                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
+                    serviceType
                 )
                 if (service != null && !TextUtils.isEmpty(service.name)) {
                     serviceName = service.name
@@ -457,46 +492,50 @@ class EspDeviceActivity : AppCompatActivity() {
                     override fun onNetworkFailure(exception: java.lang.Exception) {
                     }
                 })
-            } else {
-                val id = BigInteger(matterNodeId, 16)
-                val deviceId = id.toLong()
-                if (espApp.chipClientMap.containsKey(matterNodeId)) {
-                    val espClusterHelper = ControllerClusterHelper(
-                        espApp.chipClientMap[matterNodeId]!!,
-                        espApp
-                    )
-                    espClusterHelper.sendUpdateDeviceListEventAsync(
-                        deviceId,
-                        AppConstants.ENDPOINT_0,
-                        AppConstants.CONTROLLER_CLUSTER_ID_HEX
-                    )
-                }
             }
         })
 
         binding.espDeviceLayout.btnUpdateRmaker.setOnClickListener(View.OnClickListener {
-            if (isRmakerCtlAvailable) {
-                val intent = Intent(
-                    this@EspDeviceActivity,
-                    ControllerLoginActivity::class.java
-                )
-                intent.putExtra(AppConstants.KEY_NODE_ID, nodeId)
-                intent.putExtra(AppConstants.KEY_IS_RMAKER_CONTROLLER, true)
-                startActivity(intent)
-            }
-        })
-
-        binding.espDeviceLayout.tvControllerLogin.setOnClickListener(View.OnClickListener {
-            var intent = Intent(
-                this,
-                ControllerLoginActivity::class.java
+            val node = espApp.nodeMap[nodeId] ?: return@OnClickListener
+            val services = listOfNotNull(
+                getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER),
+                getService(node, AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER),
+                getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP)
             )
+            val groupIdParam = findGroupIdParam(services)
+            val shouldOpenGroupSelection = groupIdParam != null && TextUtils.isEmpty(groupIdParam.labelValue)
 
-            if (isCtlAvailable) {
-                intent = Intent(this, GroupSelectionActivity::class.java)
+            val intent = if (shouldOpenGroupSelection) {
+                Intent(this, GroupSelectionActivity::class.java)
+            } else {
+                Intent(this, ControllerLoginActivity::class.java)
             }
             intent.putExtra(AppConstants.KEY_NODE_ID, nodeId)
             intent.putExtra(AppConstants.KEY_IS_CTRL_SERVICE, isCtlAvailable)
+            intent.putExtra(AppConstants.KEY_IS_RMAKER_CONTROLLER, isRmakerCtlAvailable)
+            startActivity(intent)
+        })
+
+        binding.espDeviceLayout.tvControllerLogin.setOnClickListener(View.OnClickListener {
+            val node = espApp.nodeMap[nodeId] ?: return@OnClickListener
+            val services = listOfNotNull(
+                getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER),
+                getService(node, AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER),
+                getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP)
+            )
+            val groupIdParam = findGroupIdParam(services)
+            val shouldOpenGroupSelection =
+                groupIdParam != null && TextUtils.isEmpty(groupIdParam.labelValue)
+
+            val intent = if (shouldOpenGroupSelection) {
+                Intent(this, GroupSelectionActivity::class.java)
+            } else {
+                Intent(this, ControllerLoginActivity::class.java)
+            }
+            intent.putExtra(AppConstants.KEY_NODE_ID, nodeId)
+            intent.putExtra(AppConstants.KEY_IS_CTRL_SERVICE, isCtlAvailable)
+            intent.putExtra(AppConstants.KEY_IS_CTRL_SETUP_SERVICE, isCtlSetupAvailable)
+            intent.putExtra(AppConstants.KEY_IS_RMAKER_CONTROLLER, isRmakerCtlAvailable)
             startActivity(intent)
         })
 
@@ -528,7 +567,7 @@ class EspDeviceActivity : AppCompatActivity() {
                 )
                 binding.espDeviceLayout.tvControllerLabel.text = spannable
             }
-        } else if (isCtlAvailable) {
+        } else if (isCtlAvailable || isCtlSetupAvailable) {
             binding.espDeviceLayout.rlControllerLogin.visibility = View.GONE
             binding.espDeviceLayout.rlMatterController.visibility = View.VISIBLE
         } else {
@@ -689,7 +728,7 @@ class EspDeviceActivity : AppCompatActivity() {
                                                         "Extracted region from token: $region"
                                                     )
                                                     EspApplication.region = region
-                                                    paramAdapter?.updateVideoStreamingState()
+                                                    paramAdapter.updateVideoStreamingState()
                                                 } else {
                                                     Log.e(
                                                         TAG,
@@ -700,7 +739,7 @@ class EspDeviceActivity : AppCompatActivity() {
                                                 Log.e(TAG, "Error parsing ID token", e)
                                             }
                                         }
-                                        paramAdapter?.notifyDataSetChanged()
+                                        paramAdapter.notifyDataSetChanged()
                                         startUpdateValueTask()
                                         hideLoading()
                                         snackbar!!.dismiss()
@@ -712,7 +751,7 @@ class EspDeviceActivity : AppCompatActivity() {
                                     runOnUiThread {
                                         exception.printStackTrace()
                                         EspApplication.region = ""
-                                        paramAdapter?.updateVideoStreamingState()
+                                        paramAdapter.updateVideoStreamingState()
                                         startUpdateValueTask()
                                         hideLoading()
                                         snackbar!!.dismiss()
@@ -724,7 +763,7 @@ class EspDeviceActivity : AppCompatActivity() {
                                     runOnUiThread {
                                         exception.printStackTrace()
                                         EspApplication.region = ""
-                                        paramAdapter?.updateVideoStreamingState()
+                                        paramAdapter.updateVideoStreamingState()
                                         startUpdateValueTask()
                                         hideLoading()
                                         snackbar!!.dismiss()
@@ -921,8 +960,8 @@ class EspDeviceActivity : AppCompatActivity() {
             paramList!!.addAll(params)
             attributeList!!.addAll(attributes)
         } else {
-            paramAdapter?.updateParamList(params)
-            attrAdapter?.updateAttributeList(attributes)
+            paramAdapter.updateParamList(params)
+            attrAdapter.updateAttributeList(attributes)
         }
     }
 
@@ -1186,7 +1225,7 @@ class EspDeviceActivity : AppCompatActivity() {
                 subscriptionHelper = SubscriptionHelper(chipClient)
                 val deviceId = BigInteger(matterNodeId, 16).toLong()
                 val connectedDevicePtr = chipClient.getConnectedDevicePointer(deviceId)
-                
+
                 // Create subscriptions based on device type
                 val subscriptions = subscriptionHelper!!.createSubscriptionsForDevice(
                     device?.deviceType ?: "esp.device.switch",
@@ -1560,10 +1599,10 @@ class EspDeviceActivity : AppCompatActivity() {
                 // Find the specific parameter position and update only that item
                 val paramPosition = findParameterPosition(clusterId, attributeId)
                 if (paramPosition >= 0) {
-                    paramAdapter?.notifyItemChanged(paramPosition)
+                    paramAdapter.notifyItemChanged(paramPosition)
                 } else {
                     // Fallback to full refresh if position not found
-                    paramAdapter?.notifyDataSetChanged()
+                    paramAdapter.notifyDataSetChanged()
                 }
             }
 
@@ -1645,5 +1684,18 @@ class EspDeviceActivity : AppCompatActivity() {
 
         Log.d(TAG, "Parameter not found for cluster $clusterId attribute $attributeId")
         return -1
+    }
+
+    private fun findGroupIdParam(services: List<Service>): Param? {
+        for (service in services) {
+            val params = service.params ?: continue
+            for (param in params) {
+                val type = param.paramType ?: continue
+                if (type == AppConstants.PARAM_TYPE_RMAKER_GROUP_ID || type == AppConstants.PARAM_TYPE_GROUP_ID) {
+                    return param
+                }
+            }
+        }
+        return null
     }
 }
