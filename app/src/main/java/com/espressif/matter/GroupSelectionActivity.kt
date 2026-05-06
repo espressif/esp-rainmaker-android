@@ -33,6 +33,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.espressif.AppConstants
 import com.espressif.EspApplication
 import com.espressif.NetworkApiManager
+import com.espressif.cloudapi.ApiManager
 import com.espressif.cloudapi.ApiResponseListener
 import com.espressif.cloudapi.CloudException
 import com.espressif.rainmaker.R
@@ -41,6 +42,7 @@ import com.espressif.ui.models.Group
 import com.espressif.utils.NodeUtils.Companion.getService
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
+import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 
 class GroupSelectionActivity : AppCompatActivity() {
@@ -157,13 +159,15 @@ class GroupSelectionActivity : AppCompatActivity() {
         groups.clear()
         var espApp: EspApplication = applicationContext as EspApplication
 
-        for ((key, group) in espApp.groupMap) {
-            if (group != null) {
+        // Only primary groups (groups owned by the user, not shared-in)
+        // are valid targets for adding a node, so filter out the rest.
+        for ((_, group) in espApp.groupMap) {
+            if (group != null && group.isPrimary) {
                 groups.add(group)
             }
         }
 
-        Log.d(TAG, "Number of Groups : " + groups.size)
+        Log.d(TAG, "Number of primary groups : " + groups.size)
 
         // Sort groups list to display alphabetically.
         groups.sortWith(Comparator { g1, g2 ->
@@ -274,14 +278,91 @@ class GroupSelectionActivity : AppCompatActivity() {
         }
     }
 
+    private fun addNodeToGroupAndOpenLogin() {
+        val nodeId = intent.getStringExtra(AppConstants.KEY_NODE_ID)
+        val groupId = espApp.mGroupId
+
+        // If we don't have both pieces of information, skip the API call
+        // and fall back to the previous behaviour so the user is not blocked.
+        if (nodeId.isNullOrEmpty() || groupId.isNullOrEmpty()) {
+            Log.w(
+                TAG,
+                "Skip add-node-to-group call. nodeId=$nodeId, groupId=$groupId"
+            )
+            openControllerLoginActivity()
+            return
+        }
+
+        binding.layoutProgress.visibility = View.VISIBLE
+        binding.rvGroupList.visibility = View.GONE
+        binding.tvLoading.text = getString(R.string.progress_update_group)
+
+        val nodesArray = JsonArray()
+        nodesArray.add(nodeId)
+        val body = JsonObject()
+        body.add(AppConstants.KEY_NODES, nodesArray)
+        body.addProperty(AppConstants.KEY_OPERATION, AppConstants.KEY_OPERATION_ADD)
+
+        Log.d(TAG, "Adding node $nodeId to group $groupId before opening login")
+
+        ApiManager.getInstance(applicationContext)
+            .updateGroup(groupId, body, object : ApiResponseListener {
+
+                override fun onSuccess(data: Bundle?) {
+                    runOnUiThread {
+                        binding.layoutProgress.visibility = View.GONE
+                        openControllerLoginActivity()
+                    }
+                }
+
+                override fun onResponseFailure(exception: Exception) {
+                    runOnUiThread {
+                        binding.layoutProgress.visibility = View.GONE
+                        binding.rvGroupList.visibility = View.VISIBLE
+                        val msg = if (exception is CloudException) {
+                            exception.message
+                        } else {
+                            getString(R.string.error_group_update)
+                        }
+                        Toast.makeText(
+                            this@GroupSelectionActivity,
+                            msg,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+
+                override fun onNetworkFailure(exception: Exception) {
+                    runOnUiThread {
+                        binding.layoutProgress.visibility = View.GONE
+                        binding.rvGroupList.visibility = View.VISIBLE
+                        val msg = if (exception is CloudException) {
+                            exception.message
+                        } else {
+                            getString(R.string.error_group_update)
+                        }
+                        Toast.makeText(
+                            this@GroupSelectionActivity,
+                            msg,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            })
+    }
+
+    private fun openControllerLoginActivity() {
+        val loginIntent = Intent(this, ControllerLoginActivity::class.java)
+        loginIntent.putExtras(getIntent())
+        loginIntent.putExtra(AppConstants.KEY_GROUP_ID, espApp.mGroupId)
+        startActivity(loginIntent)
+        finish()
+    }
+
     public fun commissionDevice() {
 
         if (isCtrlService || isCtrlSetupService || isRmakerController) {
-            val loginIntent = Intent(this, ControllerLoginActivity::class.java)
-            loginIntent.putExtras(getIntent())
-            loginIntent.putExtra(AppConstants.KEY_GROUP_ID, espApp.mGroupId)
-            startActivity(loginIntent)
-            finish()
+            addNodeToGroupAndOpenLogin()
             return
         }
 
