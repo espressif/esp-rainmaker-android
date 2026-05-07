@@ -632,6 +632,7 @@
     <string name="dialog_msg_controller">控制器需要访问您的 RainMaker 帐户才能获取该帐户下的所有节点。继续吗？</string>
 
     <string name="controller_unauthorised">Controller (Unauthorised)</string>
+    <string name="reconfigure_controller">重新配置控制器</string>
     <string name="btn_merge">合併</string>
 
     <string name="dialog_title_new_version_available">新版本已发布！</string>
