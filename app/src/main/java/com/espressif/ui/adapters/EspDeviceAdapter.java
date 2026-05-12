@@ -647,7 +647,7 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
                 }
                 intent.putExtra(AppConstants.KEY_NODE_ID, rmNodeId);
                 intent.putExtra(AppConstants.KEY_IS_CTRL_SERVICE, isCtrlService);
-                intent.putExtra(AppConstants.KEY_IS_RMAKER_CONTROLLER, isRmakerController);
+                intent.putExtra(AppConstants.KEY_IS_RMAKER_USER_AUTH, isRmakerController);
                 context.startActivity(intent);
             }
         });
@@ -661,7 +661,8 @@ public class EspDeviceAdapter extends RecyclerView.Adapter<EspDeviceAdapter.Devi
 
         Service[] services = new Service[]{
                 NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER),
-                NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER),
+                NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_RMAKER_USER_AUTH),
+                NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_RM_CONTROLLER),
                 NodeUtils.Companion.getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP)
         };
 

@@ -39,7 +39,9 @@ import com.espressif.cloudapi.CloudException
 import com.espressif.rainmaker.R
 import com.espressif.rainmaker.databinding.ActivityGroupsSelectionBinding
 import com.espressif.ui.models.Group
-import com.espressif.utils.NodeUtils.Companion.getService
+import com.espressif.ui.models.Service
+import com.espressif.utils.NodeUtils
+import com.espressif.utils.ParamUtils
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
 import com.google.gson.JsonArray
@@ -64,7 +66,9 @@ class GroupSelectionActivity : AppCompatActivity() {
 
     private var isCtrlService = false
     private var isCtrlSetupService = false
-    private var isRmakerController = false
+    private var isRmakerUserAuth = false
+    private var isRmController = false
+    private var isGroupsServiceAvailable = false
     private lateinit var espApp: EspApplication
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -94,9 +98,11 @@ class GroupSelectionActivity : AppCompatActivity() {
         binding.layoutProgress.visibility = View.GONE
         isCtrlService = intent.getBooleanExtra(AppConstants.KEY_IS_CTRL_SERVICE, false)
         isCtrlSetupService = intent.getBooleanExtra(AppConstants.KEY_IS_CTRL_SETUP_SERVICE, false)
-        isRmakerController = intent.getBooleanExtra(AppConstants.KEY_IS_RMAKER_CONTROLLER, false)
+        isRmakerUserAuth = intent.getBooleanExtra(AppConstants.KEY_IS_RMAKER_USER_AUTH, false)
+        isRmController = intent.getBooleanExtra(AppConstants.KEY_IS_RM_CONTROLLER, false)
+        isGroupsServiceAvailable = intent.getBooleanExtra(AppConstants.KEY_IS_GROUPS, false)
 
-        if (!isCtrlService && !isCtrlSetupService && !isRmakerController) {
+        if (!isCtrlService && !isCtrlSetupService && !isRmakerUserAuth && !isRmController && !isGroupsServiceAvailable) {
             setup()
         }
 
@@ -214,7 +220,10 @@ class GroupSelectionActivity : AppCompatActivity() {
                         val node = espApp.nodeMap[rmNodeId]
                         if (node != null) {
                             val ctlSetupService =
-                                getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP)
+                                NodeUtils.getService(
+                                    node,
+                                    AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP
+                                )
                             if (ctlSetupService != null) {
                                 val loginIntent = Intent(this, ControllerLoginActivity::class.java)
                                 loginIntent.putExtra(AppConstants.KEY_NODE_ID, rmNodeId)
@@ -252,12 +261,15 @@ class GroupSelectionActivity : AppCompatActivity() {
 
         for (nodeId in nodeIds) {
             val node = espApp.nodeMap[nodeId] ?: continue
-            val ctlSetupService = getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP) ?: continue
+            val ctlSetupService =
+                NodeUtils.getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP)
+                    ?: continue
 
             val serviceParamJson = JsonObject()
             serviceParamJson.addProperty("MTCtlCMD", 2)
 
-            val serviceName = if (!TextUtils.isEmpty(ctlSetupService.name)) ctlSetupService.name else AppConstants.KEY_MATTER_CTL_SETUP
+            val serviceName =
+                if (!TextUtils.isEmpty(ctlSetupService.name)) ctlSetupService.name else AppConstants.KEY_MATTER_CTL_SETUP
             val body = JsonObject()
             body.add(serviceName, serviceParamJson)
 
@@ -272,7 +284,11 @@ class GroupSelectionActivity : AppCompatActivity() {
                 }
 
                 override fun onNetworkFailure(exception: Exception) {
-                    Log.e(TAG, "Network failure sending update device list to node : $nodeId", exception)
+                    Log.e(
+                        TAG,
+                        "Network failure sending update device list to node : $nodeId",
+                        exception
+                    )
                 }
             })
         }
@@ -310,8 +326,12 @@ class GroupSelectionActivity : AppCompatActivity() {
 
                 override fun onSuccess(data: Bundle?) {
                     runOnUiThread {
-                        binding.layoutProgress.visibility = View.GONE
-                        openControllerLoginActivity()
+                        if (isCtrlService || isCtrlSetupService || isRmakerUserAuth || isRmController) {
+                            binding.layoutProgress.visibility = View.GONE
+                            openControllerLoginActivity()
+                        } else {
+                            updateGroupsServiceParams(nodeId, groupId)
+                        }
                     }
                 }
 
@@ -359,15 +379,115 @@ class GroupSelectionActivity : AppCompatActivity() {
         finish()
     }
 
-    public fun commissionDevice() {
-
-        if (isCtrlService || isCtrlSetupService || isRmakerController) {
-            addNodeToGroupAndOpenLogin()
+    private fun updateGroupsServiceParams(nodeId: String, groupId: String) {
+        val node = espApp.nodeMap[nodeId]
+        if (node == null) {
+            Log.w(TAG, "Node not found for Node Id : $nodeId")
+            binding.layoutProgress.visibility = View.GONE
+            finish()
+            return
+        }
+        val groupsService = NodeUtils.getService(node, AppConstants.SERVICE_TYPE_GROUPS)
+        if (groupsService == null) {
+            Log.w(TAG, "Groups service not found on node : $nodeId")
+            binding.layoutProgress.visibility = View.GONE
+            finish()
             return
         }
 
-        if (isCtrlSetupService) {
+        val serviceParamJson = JsonObject()
+        addParamIfAvailable(
+            nodeId,
+            groupsService,
+            AppConstants.PARAM_TYPE_RMAKER_GROUP_ID,
+            AppConstants.PARAM_RMAKER_GROUP_ID,
+            groupId,
+            serviceParamJson
+        )
+        addParamIfAvailable(
+            nodeId,
+            groupsService,
+            AppConstants.PARAM_TYPE_GROUP_ID,
+            AppConstants.PARAM_GROUP_ID,
+            groupId,
+            serviceParamJson
+        )
+
+        if (serviceParamJson.size() == 0) {
+            Log.w(TAG, "No group id params available on Groups service for node : $nodeId")
+            binding.layoutProgress.visibility = View.GONE
             finish()
+            return
+        }
+
+        val serviceName = if (!TextUtils.isEmpty(groupsService.name))
+            groupsService.name
+        else
+            AppConstants.KEY_GROUPS_SERVICE
+
+        val body = JsonObject()
+        body.add(serviceName, serviceParamJson)
+
+        val networkApiManager = NetworkApiManager(espApp)
+        networkApiManager.updateParamValue(nodeId, body, object : ApiResponseListener {
+            override fun onSuccess(data: Bundle?) {
+                runOnUiThread {
+                    binding.layoutProgress.visibility = View.GONE
+                    finish()
+                }
+            }
+
+            override fun onResponseFailure(exception: Exception) {
+                runOnUiThread {
+                    binding.layoutProgress.visibility = View.GONE
+                    Log.e(
+                        TAG,
+                        "Failed to update Groups service params on node : $nodeId",
+                        exception
+                    )
+                    finish()
+                }
+            }
+
+            override fun onNetworkFailure(exception: Exception) {
+                runOnUiThread {
+                    binding.layoutProgress.visibility = View.GONE
+                    Log.e(
+                        TAG,
+                        "Network failure updating Groups service params on node : $nodeId",
+                        exception
+                    )
+                    finish()
+                }
+            }
+        })
+    }
+
+    private fun addParamIfAvailable(
+        nodeId: String,
+        service: Service,
+        paramType: String,
+        defaultParamName: String,
+        paramValue: String?,
+        serviceParamJson: JsonObject
+    ) {
+        if (TextUtils.isEmpty(paramValue)) {
+            return
+        }
+        if (ParamUtils.isParamAvailableInList(service.params, paramType)) {
+            var paramName =
+                ParamUtils.getParamNameForService(nodeId, service.type, paramType, espApp)
+            if (paramName.isEmpty()) {
+                paramName = defaultParamName
+            }
+            serviceParamJson.addProperty(paramName, paramValue)
+        }
+    }
+
+    public fun commissionDevice() {
+
+        if (isCtrlService || isCtrlSetupService || isRmakerUserAuth || isRmController || isGroupsServiceAvailable) {
+            addNodeToGroupAndOpenLogin()
             return
         }
 

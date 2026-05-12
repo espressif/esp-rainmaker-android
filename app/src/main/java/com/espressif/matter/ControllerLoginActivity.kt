@@ -57,7 +57,8 @@ class ControllerLoginActivity : AppCompatActivity() {
     private var password: String? = null
     private var nodeId: String? = null
     private var isCtrlService = false
-    private var isRmakerController = false
+    private var isRmakerUserAuth = false
+    private var isRmController = false
     private var isControllerClusterAvailable = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -179,7 +180,8 @@ class ControllerLoginActivity : AppCompatActivity() {
 
         nodeId = intent.getStringExtra(AppConstants.KEY_NODE_ID)
         isCtrlService = intent.getBooleanExtra(AppConstants.KEY_IS_CTRL_SERVICE, false)
-        isRmakerController = intent.getBooleanExtra(AppConstants.KEY_IS_RMAKER_CONTROLLER, false)
+        isRmakerUserAuth = intent.getBooleanExtra(AppConstants.KEY_IS_RMAKER_USER_AUTH, false)
+        isRmController = intent.getBooleanExtra(AppConstants.KEY_IS_RM_CONTROLLER, false)
         binding.btnLogin.textBtn.text = getString(R.string.btn_login)
         binding.btnLogin.layoutBtn.setOnClickListener { signInUser() }
         binding.btnCancel.setOnClickListener { finish() }
@@ -303,12 +305,12 @@ class ControllerLoginActivity : AppCompatActivity() {
             val node = espApp.nodeMap[nId] ?: return
             val groupId = intent.getStringExtra(AppConstants.KEY_GROUP_ID)
 
-            val ctlSetupService = getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER)
-            val needsControllerGroupApi = ctlSetupService != null && !groupId.isNullOrEmpty()
+            val rmCtrlService = getService(node, AppConstants.SERVICE_TYPE_RM_CONTROLLER)
+            val needsControllerGroupApi = rmCtrlService != null && !groupId.isNullOrEmpty()
 
             if (needsControllerGroupApi) {
                 val apiManager = ApiManager.getInstance(applicationContext)
-                apiManager.addControllerToGroup(nId, groupId!!, object : ApiResponseListener {
+                apiManager.addControllerToGroup(nId, groupId, object : ApiResponseListener {
                     override fun onSuccess(data: Bundle?) {
                         updateServiceParams(nId, node, groupId, token)
                     }
@@ -330,7 +332,8 @@ class ControllerLoginActivity : AppCompatActivity() {
     private fun updateServiceParams(nId: String, node: EspNode, groupId: String?, token: String) {
         val serviceEntries = listOf(
             Pair(AppConstants.SERVICE_TYPE_MATTER_CONTROLLER, AppConstants.KEY_MATTER_CTL),
-            Pair(AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER, AppConstants.KEY_RMAKER_CTL),
+            Pair(AppConstants.SERVICE_TYPE_RMAKER_USER_AUTH, AppConstants.KEY_RMAKER_AUTH),
+            Pair(AppConstants.SERVICE_TYPE_RM_CONTROLLER, AppConstants.KEY_RMAKER_CTL),
             Pair(AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP, AppConstants.KEY_MATTER_CTL_SETUP)
         )
 
@@ -340,13 +343,42 @@ class ControllerLoginActivity : AppCompatActivity() {
             val service = getService(node, serviceType) ?: continue
             val serviceParamJson = JsonObject()
 
-            addParamIfAvailable(nId, service, AppConstants.PARAM_TYPE_BASE_URL, AppConstants.PARAM_BASE_URL, EspApplication.BASE_URL, serviceParamJson)
-            addParamIfAvailable(nId, service, AppConstants.PARAM_TYPE_USER_TOKEN, AppConstants.PARAM_USER_TOKEN, token, serviceParamJson)
-            addParamIfAvailable(nId, service, AppConstants.PARAM_TYPE_RMAKER_GROUP_ID, AppConstants.PARAM_RMAKER_GROUP_ID, groupId, serviceParamJson)
-            addParamIfAvailable(nId, service, AppConstants.PARAM_TYPE_GROUP_ID, AppConstants.PARAM_GROUP_ID, groupId, serviceParamJson)
+            addParamIfAvailable(
+                nId,
+                service,
+                AppConstants.PARAM_TYPE_BASE_URL,
+                AppConstants.PARAM_BASE_URL,
+                EspApplication.BASE_URL,
+                serviceParamJson
+            )
+            addParamIfAvailable(
+                nId,
+                service,
+                AppConstants.PARAM_TYPE_USER_TOKEN,
+                AppConstants.PARAM_USER_TOKEN,
+                token,
+                serviceParamJson
+            )
+            addParamIfAvailable(
+                nId,
+                service,
+                AppConstants.PARAM_TYPE_RMAKER_GROUP_ID,
+                AppConstants.PARAM_RMAKER_GROUP_ID,
+                groupId,
+                serviceParamJson
+            )
+            addParamIfAvailable(
+                nId,
+                service,
+                AppConstants.PARAM_TYPE_GROUP_ID,
+                AppConstants.PARAM_GROUP_ID,
+                groupId,
+                serviceParamJson
+            )
 
             if (serviceParamJson.size() > 0) {
-                val serviceName = if (!TextUtils.isEmpty(service.name)) service.name else defaultName
+                val serviceName =
+                    if (!TextUtils.isEmpty(service.name)) service.name else defaultName
                 body.add(serviceName, serviceParamJson)
             }
         }
