@@ -1231,6 +1231,7 @@ public class ApiManager {
                                             JSONObject ctlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CTL);
                                             JSONObject ctlSetupServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CTL_SETUP);
                                             JSONObject rmCtrlServiceJson = paramsJson.optJSONObject(AppConstants.KEY_RMAKER_CTL);
+                                            JSONObject groupsServiceJson = paramsJson.optJSONObject(AppConstants.KEY_GROUPS_SERVICE);
 
                                             // If node is available on local network then ignore param values received from cloud.
                                             if (!espApp.localDeviceMap.containsKey(nodeId) && devices != null) {
@@ -1644,7 +1645,7 @@ public class ApiManager {
 
                                                 for (Service service : services) {
 
-                                                    if (AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER.equals(service.getType())) {
+                                                    if (AppConstants.SERVICE_TYPE_RMAKER_USER_AUTH.equals(service.getType())) {
 
                                                         ArrayList<Param> controllerParams = service.getParams();
 
@@ -1693,6 +1694,39 @@ public class ApiManager {
                                                                     }
                                                                 }
                                                             }
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // Groups service
+                                            if (groupsServiceJson != null && services != null) {
+
+                                                for (Service service : services) {
+
+                                                    if (!AppConstants.SERVICE_TYPE_GROUPS.equals(service.getType())) {
+                                                        continue;
+                                                    }
+
+                                                    ArrayList<Param> groupsParams = service.getParams();
+
+                                                    if (groupsParams == null) {
+                                                        continue;
+                                                    }
+
+                                                    for (Param groupsParam : groupsParams) {
+
+                                                        String type = groupsParam.getParamType();
+                                                        boolean isSupportedType = (!TextUtils.isEmpty(type)) && (AppConstants.PARAM_TYPE_RMAKER_GROUP_ID.equals(type)
+                                                                || AppConstants.PARAM_TYPE_GROUP_ID.equals(type));
+
+                                                        if (!isSupportedType) {
+                                                            continue;
+                                                        }
+
+                                                        String value = groupsServiceJson.optString(groupsParam.getName());
+                                                        if (!TextUtils.isEmpty(value)) {
+                                                            groupsParam.setLabelValue(value);
                                                         }
                                                     }
                                                 }

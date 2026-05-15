@@ -633,6 +633,7 @@
 
     <string name="controller_unauthorised">Controller (Unauthorised)</string>
     <string name="reconfigure_controller">重新配置控制器</string>
+    <string name="add_to_group">添加到群组</string>
     <string name="btn_merge">合併</string>
 
     <string name="dialog_title_new_version_available">新版本已发布！</string>

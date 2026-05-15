@@ -55,7 +55,6 @@ import com.espressif.utils.ParamUtils;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputLayout;
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -246,24 +245,32 @@ public class ProvisionActivity extends AppCompatActivity {
 
             EspNode espNode = espApp.nodeMap.get(receivedNodeId);
             if (espNode != null && espNode.isOnline()) {
-                Service rmakerCtrlService = NodeUtils.Companion.getService(espNode, AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER);
+                Service rmakerUserAuthService = NodeUtils.Companion.getService(espNode, AppConstants.SERVICE_TYPE_RMAKER_USER_AUTH);
+                Service rmCtrlService = NodeUtils.Companion.getService(espNode, AppConstants.SERVICE_TYPE_RM_CONTROLLER);
                 Service ctrlService = NodeUtils.Companion.getService(espNode, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER);
                 Service ctrlSetupService = NodeUtils.Companion.getService(espNode, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP);
+                Service groupsService = NodeUtils.Companion.getService(espNode, AppConstants.SERVICE_TYPE_GROUPS);
 
-                boolean isRmakerServiceAvailable = rmakerCtrlService != null;
+                boolean isRmakerUserAuthServiceAvailable = rmakerUserAuthService != null;
+                boolean isRmCtrlServiceAvailable = rmCtrlService != null;
                 boolean isCtrlServiceAvailable = ctrlService != null;
                 boolean isCtrlSetupServiceAvailable = ctrlSetupService != null;
+                boolean isGroupServiceAvailable = groupsService != null;
 
-                boolean hasGroupIdParam = hasGroupIdParam(rmakerCtrlService)
+                boolean hasGroupIdParam = hasGroupIdParam(rmakerUserAuthService)
+                        || hasGroupIdParam(rmCtrlService)
                         || hasGroupIdParam(ctrlService)
-                        || hasGroupIdParam(ctrlSetupService);
+                        || hasGroupIdParam(ctrlSetupService)
+                        || hasGroupIdParam(groupsService);
 
                 if (hasGroupIdParam) {
                     Intent intent = new Intent(ProvisionActivity.this, GroupSelectionActivity.class);
-                    startPostProvisioningFlow(intent, receivedNodeId, isCtrlServiceAvailable, isCtrlSetupServiceAvailable, isRmakerServiceAvailable);
-                } else if (isRmakerServiceAvailable || isCtrlServiceAvailable) {
+                    startPostProvisioningFlow(intent, receivedNodeId, isCtrlServiceAvailable, isCtrlSetupServiceAvailable,
+                            isRmakerUserAuthServiceAvailable, isRmCtrlServiceAvailable, isGroupServiceAvailable);
+                } else if (isRmakerUserAuthServiceAvailable || isRmCtrlServiceAvailable || isCtrlServiceAvailable) {
                     Intent intent = new Intent(ProvisionActivity.this, ControllerLoginActivity.class);
-                    startPostProvisioningFlow(intent, receivedNodeId, isCtrlServiceAvailable, isCtrlSetupServiceAvailable, isRmakerServiceAvailable);
+                    startPostProvisioningFlow(intent, receivedNodeId, isCtrlServiceAvailable, isCtrlSetupServiceAvailable,
+                            isRmakerUserAuthServiceAvailable, isRmCtrlServiceAvailable, isGroupServiceAvailable);
                 }
             }
 
@@ -274,11 +281,14 @@ public class ProvisionActivity extends AppCompatActivity {
         }
     };
 
-    private void startPostProvisioningFlow(Intent intent, String provisionedNodeId, boolean isCtrlServiceAvailable, boolean isCtrlSetupServiceAvailable, boolean isRmakerServiceAvailable) {
+    private void startPostProvisioningFlow(Intent intent, String provisionedNodeId, boolean isCtrlServiceAvailable, boolean isCtrlSetupServiceAvailable,
+                                           boolean isRmakerUserAuthAvailable, boolean isRmCtrlServiceAvailable, boolean isGroupServiceAvailable) {
         intent.putExtra(AppConstants.KEY_NODE_ID, provisionedNodeId);
         intent.putExtra(AppConstants.KEY_IS_CTRL_SERVICE, isCtrlServiceAvailable);
         intent.putExtra(AppConstants.KEY_IS_CTRL_SETUP_SERVICE, isCtrlSetupServiceAvailable);
-        intent.putExtra(AppConstants.KEY_IS_RMAKER_CONTROLLER, isRmakerServiceAvailable);
+        intent.putExtra(AppConstants.KEY_IS_RMAKER_USER_AUTH, isRmakerUserAuthAvailable);
+        intent.putExtra(AppConstants.KEY_IS_RM_CONTROLLER, isRmCtrlServiceAvailable);
+        intent.putExtra(AppConstants.KEY_IS_GROUPS, isGroupServiceAvailable);
         startActivity(intent);
     }
 

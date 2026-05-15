@@ -80,9 +80,11 @@ class AppConstants {
         const val SERVICE_TYPE_LOCAL_CONTROL = "esp.service.local_control"
         const val SERVICE_TYPE_SYSTEM = "esp.service.system"
         const val SERVICE_TYPE_MATTER_CONTROLLER = "esp.service.matter-controller"
-        const val SERVICE_TYPE_RMAKER_CONTROLLER = "esp.service.rmaker-user-auth"
+        const val SERVICE_TYPE_RMAKER_USER_AUTH = "esp.service.rmaker-user-auth"
+        const val SERVICE_TYPE_RM_CONTROLLER = "esp.service.rmaker-controller"
         const val SERVICE_TYPE_MATTER_CONTROLLER_SETUP = "esp.service.matter-controller-setup"
         const val SERVICE_TYPE_TBR = "esp.service.thread-br"
+        const val SERVICE_TYPE_GROUPS = "esp.service.groups"
 
         // Param Types
         const val PARAM_TYPE_NAME = "esp.param.name"
@@ -332,6 +334,8 @@ class AppConstants {
         const val KEY_MATTER_CTL = "MatterCTL"
         const val KEY_MATTER_CTL_SETUP = "MatterCTLSetup"
         const val KEY_RMAKER_CTL = "RmakerCTL"
+        const val KEY_RMAKER_AUTH = "RMUserAuth"
+        const val KEY_GROUPS_SERVICE = "Groups"
 
         const val KEY_SUPPORTED_VERSIONS = "supported_versions"
         const val KEY_ADDITIONAL_INFO = "additional_info"
@@ -545,7 +549,9 @@ class AppConstants {
         const val KEY_IS_RAINMAKER_NODE = "is_rainmaker_node"
         const val KEY_IS_CTRL_SERVICE = "isCtrlService"
         const val KEY_IS_CTRL_SETUP_SERVICE = "isCtrlSetupService"
-        const val KEY_IS_RMAKER_CONTROLLER = "is_rmaker_controller"
+        const val KEY_IS_RMAKER_USER_AUTH = "is_rmaker_user_auth"
+        const val KEY_IS_RM_CONTROLLER = "is_rm_controller"
+        const val KEY_IS_GROUPS = "is_groups"
         const val KEY_IS_CAMERA_CLAIM = "is_camera_claim"
         const val KEY_BLE_LOCAL_CTRL = "ble_local_ctrl"
 

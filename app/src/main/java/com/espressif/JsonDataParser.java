@@ -57,6 +57,11 @@ public class JsonDataParser {
             AppConstants.PARAM_TYPE_MATTER_CTL_STATUS
     )));
 
+    private static final Set<String> GROUPS_PARAM_TYPES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            AppConstants.PARAM_TYPE_RMAKER_GROUP_ID,
+            AppConstants.PARAM_TYPE_GROUP_ID
+    )));
+
     private static void applyServiceParamValues(ArrayList<Param> params, JSONObject json, Set<String> supportedTypes) {
         if (params == null || json == null) {
             return;
@@ -426,7 +431,7 @@ public class JsonDataParser {
         ArrayList<Service> services = node.getServices();
         JSONObject scheduleJson = null, sceneJson = null;
         JSONObject timeJson = null, localControlJson = null, systemServiceJson = null;
-        JSONObject controllerServiceJson = null, ctlServiceJson = null, ctlSetupServiceJson = null, rmCtrlServiceJson = null, tbrServiceJson = null;
+        JSONObject controllerServiceJson = null, ctlServiceJson = null, ctlSetupServiceJson = null, rmakerUserAuthServiceJson = null, rmCtrlServiceJson = null, tbrServiceJson = null, groupsServiceJson = null;
 
         if (services != null) {
             for (Service service : services) {
@@ -453,8 +458,12 @@ public class JsonDataParser {
                     ctlSetupServiceJson = paramsJson.optJSONObject(AppConstants.KEY_MATTER_CTL_SETUP);
                 } else if (AppConstants.SERVICE_TYPE_TBR.equals(serviceType)) {
                     tbrServiceJson = paramsJson.optJSONObject(serviceName);
-                } else if (AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER.equals(serviceType)) {
+                } else if (AppConstants.SERVICE_TYPE_RMAKER_USER_AUTH.equals(serviceType)) {
+                    rmakerUserAuthServiceJson = paramsJson.optJSONObject(serviceName);
+                } else if (AppConstants.SERVICE_TYPE_RM_CONTROLLER.equals(serviceType)) {
                     rmCtrlServiceJson = paramsJson.optJSONObject(serviceName);
+                } else if (AppConstants.SERVICE_TYPE_GROUPS.equals(serviceType)) {
+                    groupsServiceJson = paramsJson.optJSONObject(serviceName);
                 }
             }
         }
@@ -810,10 +819,20 @@ public class JsonDataParser {
                             }
                         }
                     }
-                } else if (AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER.equals(service.getType()) && rmCtrlServiceJson != null) {
+                } else if (AppConstants.SERVICE_TYPE_RMAKER_USER_AUTH.equals(service.getType()) && rmakerUserAuthServiceJson != null) {
+
+                    // RainMaker Auth service
+                    applyServiceParamValues(service.getParams(), rmakerUserAuthServiceJson, CONTROLLER_PARAM_TYPES);
+
+                } else if (AppConstants.SERVICE_TYPE_RM_CONTROLLER.equals(service.getType()) && rmCtrlServiceJson != null) {
 
                     // RainMaker controller service
                     applyServiceParamValues(service.getParams(), rmCtrlServiceJson, CONTROLLER_PARAM_TYPES);
+
+                } else if (AppConstants.SERVICE_TYPE_GROUPS.equals(service.getType()) && groupsServiceJson != null) {
+
+                    // Groups service
+                    applyServiceParamValues(service.getParams(), groupsServiceJson, GROUPS_PARAM_TYPES);
 
                 } else if ((AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && controllerServiceJson != null)
                         || (AppConstants.SERVICE_TYPE_MATTER_CONTROLLER.equals(service.getType()) && ctlServiceJson != null)) {

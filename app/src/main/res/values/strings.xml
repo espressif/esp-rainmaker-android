@@ -642,6 +642,7 @@
 
     <string name="controller_unauthorised">Controller (Unauthorised)</string>
     <string name="reconfigure_controller">Reconfigure Controller</string>
+    <string name="add_to_group">Add to Group</string>
 
     <string name="dialog_title_new_version_available">New Version Available!</string>
     <string name="update_message">A new version of the app is available. Would you like to update now?</string>

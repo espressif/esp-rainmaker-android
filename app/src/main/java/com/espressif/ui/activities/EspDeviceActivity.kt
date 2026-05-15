@@ -119,7 +119,10 @@ class EspDeviceActivity : AppCompatActivity() {
     private var isTbrClusterAvailable: Boolean = false
     private var isCtlAvailable = false
     private var isCtlSetupAvailable = false
-    private var isRmakerCtlAvailable = false
+    private var isRmakerUserAuthAvailable = false
+    private var isRmCtlAvailable = false
+    private var isGroupsServiceAvailable = false
+    private var isGroupsGroupIdEmpty = false
     private var lastUpdateRequestTime: Long = 0
     private var isNetworkAvailable = true
     private var shouldGetParams = true
@@ -230,9 +233,14 @@ class EspDeviceActivity : AppCompatActivity() {
                 AppConstants.SERVICE_TYPE_MATTER_CONTROLLER
             )
 
-            val rmakerControllerService = getService(
+            val rmakerUserAuthService = getService(
                 node,
-                AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER
+                AppConstants.SERVICE_TYPE_RMAKER_USER_AUTH
+            )
+
+            val rmControllerService = getService(
+                node,
+                AppConstants.SERVICE_TYPE_RM_CONTROLLER
             )
 
             val ctlSetupService = getService(
@@ -240,9 +248,24 @@ class EspDeviceActivity : AppCompatActivity() {
                 AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP
             )
 
+            val groupsService = getService(
+                node,
+                AppConstants.SERVICE_TYPE_GROUPS
+            )
+
             isCtlAvailable = controllerService != null
-            isRmakerCtlAvailable = rmakerControllerService != null
+            isRmakerUserAuthAvailable = rmakerUserAuthService != null
+            isRmCtlAvailable = rmControllerService != null
             isCtlSetupAvailable = ctlSetupService != null
+            isGroupsServiceAvailable = groupsService != null
+
+            if (groupsService != null) {
+                val groupsGroupIdParam = findGroupIdParam(listOf(groupsService))
+                isGroupsGroupIdEmpty =
+                    groupsGroupIdParam != null && TextUtils.isEmpty(groupsGroupIdParam.labelValue)
+            } else {
+                isGroupsGroupIdEmpty = false
+            }
 
             var matterNodeIdParamAvailable = false
 
@@ -618,7 +641,8 @@ class EspDeviceActivity : AppCompatActivity() {
             val node = espApp.nodeMap[nodeId] ?: return@OnClickListener
             val services = listOfNotNull(
                 getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER),
-                getService(node, AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER),
+                getService(node, AppConstants.SERVICE_TYPE_RMAKER_USER_AUTH),
+                getService(node, AppConstants.SERVICE_TYPE_RM_CONTROLLER),
                 getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP)
             )
             val groupIdParam = findGroupIdParam(services)
@@ -632,7 +656,8 @@ class EspDeviceActivity : AppCompatActivity() {
             }
             intent.putExtra(AppConstants.KEY_NODE_ID, nodeId)
             intent.putExtra(AppConstants.KEY_IS_CTRL_SERVICE, isCtlAvailable)
-            intent.putExtra(AppConstants.KEY_IS_RMAKER_CONTROLLER, isRmakerCtlAvailable)
+            intent.putExtra(AppConstants.KEY_IS_RMAKER_USER_AUTH, isRmakerUserAuthAvailable)
+            intent.putExtra(AppConstants.KEY_IS_RM_CONTROLLER, isRmCtlAvailable)
             startActivity(intent)
         })
 
@@ -640,7 +665,8 @@ class EspDeviceActivity : AppCompatActivity() {
             val node = espApp.nodeMap[nodeId] ?: return@OnClickListener
             val services = listOfNotNull(
                 getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER),
-                getService(node, AppConstants.SERVICE_TYPE_RMAKER_CONTROLLER),
+                getService(node, AppConstants.SERVICE_TYPE_RMAKER_USER_AUTH),
+                getService(node, AppConstants.SERVICE_TYPE_RM_CONTROLLER),
                 getService(node, AppConstants.SERVICE_TYPE_MATTER_CONTROLLER_SETUP)
             )
             val groupIdParam = findGroupIdParam(services)
@@ -655,7 +681,15 @@ class EspDeviceActivity : AppCompatActivity() {
             intent.putExtra(AppConstants.KEY_NODE_ID, nodeId)
             intent.putExtra(AppConstants.KEY_IS_CTRL_SERVICE, isCtlAvailable)
             intent.putExtra(AppConstants.KEY_IS_CTRL_SETUP_SERVICE, isCtlSetupAvailable)
-            intent.putExtra(AppConstants.KEY_IS_RMAKER_CONTROLLER, isRmakerCtlAvailable)
+            intent.putExtra(AppConstants.KEY_IS_RMAKER_USER_AUTH, isRmakerUserAuthAvailable)
+            intent.putExtra(AppConstants.KEY_IS_RM_CONTROLLER, isRmCtlAvailable)
+            startActivity(intent)
+        })
+
+        binding.espDeviceLayout.rlAddToGroup.setOnClickListener(View.OnClickListener {
+            val intent = Intent(this, GroupSelectionActivity::class.java)
+            intent.putExtra(AppConstants.KEY_NODE_ID, nodeId)
+            intent.putExtra(AppConstants.KEY_IS_GROUPS, true)
             startActivity(intent)
         })
 
@@ -695,10 +729,16 @@ class EspDeviceActivity : AppCompatActivity() {
             binding.espDeviceLayout.rlMatterController.visibility = View.GONE
         }
 
-        if (isRmakerCtlAvailable) {
+        if (isRmakerUserAuthAvailable || isRmCtlAvailable) {
             binding.espDeviceLayout.rlRmakerController.visibility = View.VISIBLE
         } else {
             binding.espDeviceLayout.rlRmakerController.visibility = View.GONE
+        }
+
+        if (isGroupsServiceAvailable && isGroupsGroupIdEmpty) {
+            binding.espDeviceLayout.rlAddToGroup.visibility = View.VISIBLE
+        } else {
+            binding.espDeviceLayout.rlAddToGroup.visibility = View.GONE
         }
 
         if (isTbrClusterAvailable) {
@@ -1397,17 +1437,17 @@ class EspDeviceActivity : AppCompatActivity() {
             }
         }
     }
-    
+
     private fun stopMatterSubscriptions() {
         if (!matterSubscriptionActive) {
             return
         }
-        
+
         Log.d(TAG, "Stopping Matter subscriptions")
         matterSubscriptionActive = false
         subscriptionHelper = null
     }
-    
+
     private fun createMatterReportCallback(): ReportCallback {
         return object : ReportCallback {
 
