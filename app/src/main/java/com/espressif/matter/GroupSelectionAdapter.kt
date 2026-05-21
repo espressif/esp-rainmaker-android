@@ -61,6 +61,7 @@ class GroupSelectionAdapter(val context: Activity, val groups: MutableList<Group
                     espApp.mRootCa = clickedGroup.fabricDetails.rootCa
                     espApp.mIpk = clickedGroup.fabricDetails.ipk
                     espApp.groupCatIdOperate = clickedGroup.fabricDetails.groupCatIdOperate
+                    espApp.groupCatIdAdmin = clickedGroup.fabricDetails.groupCatIdAdmin
                     startCommissioningFlow()
                 }
             } else {
@@ -79,6 +80,8 @@ class GroupSelectionAdapter(val context: Activity, val groups: MutableList<Group
                             espApp.mIpk = data.getString(AppConstants.KEY_IPK, "")
                             espApp.groupCatIdOperate =
                                 data.getString(AppConstants.KEY_GROUP_CAT_ID_OPERATE, "")
+                            espApp.groupCatIdAdmin =
+                                data.getString(AppConstants.KEY_GROUP_CAT_ID_ADMIN, "")
                         }
                         startCommissioningFlow()
                     }
