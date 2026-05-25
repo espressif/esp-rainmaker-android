@@ -84,4 +84,8 @@ abstract class BaseCompletionListener : ChipDeviceController.CompletionListener 
             "onCommissioningStatusUpdate nodeId [${nodeId}]  stage [${stage}]  errorCode [${errorCode}]"
         )
     }
+
+    override fun onCommissioningStageStart(nodeId: Long, stage: String?) {
+        Log.d(TAG, "onCommissioningStageStart nodeId [${nodeId}]  stage [${stage}]")
+    }
 }

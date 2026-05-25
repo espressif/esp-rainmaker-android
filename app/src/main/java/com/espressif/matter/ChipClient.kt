@@ -52,13 +52,14 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 /** Class to interact with the CHIP APIs. */
-class ChipClient constructor(
+class ChipClient @JvmOverloads constructor(
     @ApplicationContext private val context: Context,
     private val groupId: String,
     private val fabricId: String,
     private val rootCa: String,
     private val ipk: String,
-    private val groupCatIdOperate: String
+    private val groupCatIdOperate: String,
+    private val groupCatIdAdmin: String = ""
 ) {
 
     companion object {
@@ -137,7 +138,7 @@ class ChipClient constructor(
         return OperationalKeyConfig(
             EspKeypairDelegate(),
             chain[1].encoded,
-            chain[1].encoded,
+            null,
             chain[0].encoded,
             ipkEpochKey
         )
@@ -243,13 +244,35 @@ class ChipClient constructor(
                             Log.d(TAG, "Calling onNOCChainGeneration with node NOC")
 
                             val chain = arrayOf(decode(nodeNoc), decode(rootCa))
+                            val adminSubject: Long = if (!TextUtils.isEmpty(groupCatIdAdmin)) {
+                                Utils.getCatId(groupCatIdAdmin)
+                            } else {
+                                Log.e(TAG, "groupCatIdAdmin is EMPTY; commissioning may fail")
+                                0L
+                            }
+                            Log.d(
+                                TAG,
+                                "Using admin CAT subject: 0x${
+                                    java.lang.Long.toHexString(
+                                        adminSubject
+                                    )
+                                }"
+                            )
+
+                            // NOTE: The JNI layer requires the intermediate certificate byte[] to
+                            // be non-null (VerifyOrExit in CHIPDeviceController-JNI.cpp::onNOCChainGeneration
+                            // returns CHIP_ERROR_BAD_REQUEST/0x92 when it is null). RainMaker uses a
+                            // 2-tier PKI (Root -> NOC, no ICA), so we pass an empty byte array which
+                            // is interpreted downstream as "no intermediate cert present".
+                            val emptyIcac = ByteArray(0)
+
                             val err = chipDeviceController.onNOCChainGeneration(
                                 ControllerParams.newBuilder()
                                     .setRootCertificate(chain[1].encoded)
-                                    .setIntermediateCertificate(chain[1].encoded)
+                                    .setIntermediateCertificate(emptyIcac)
                                     .setOperationalCertificate(chain[0].encoded)
-                                    .setOperationalCertificate(decode(nodeNoc).encoded)
                                     .setIpk(ipkEpochKey)
+                                    .setAdminSubject(adminSubject)
                                     .build()
                             )
                             Log.e(TAG, "NOCChainGenerated Error $err")
@@ -687,7 +710,8 @@ class ChipClient constructor(
                                                 readAttribute(devicePtr, rmNodeIdAttributePath)
                                             Log.d(TAG, "RainMaker Node Id : ${rmNodeIdData?.value}")
                                             rmNodeId = rmNodeIdData?.value as String?
-                                            (context as? EspApplication)?.lastCommissionedRmNodeId = rmNodeId
+                                            (context as? EspApplication)?.lastCommissionedRmNodeId =
+                                                rmNodeId
 
                                             // Write Matter Node Id
                                             if (matterNodeId != null) {
@@ -821,7 +845,7 @@ class ChipClient constructor(
                                             ChipStructs.AccessControlClusterAccessControlEntryStruct(
                                                 AppConstants.PRIVILEGE_OPERATE,
                                                 authMode, subjects,
-                                                null,
+                                                null, Optional.empty(),
                                                 fabricIndex
                                             )
 

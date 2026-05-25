@@ -129,7 +129,7 @@ public class EspApplication extends Application {
     private String deviceToken;
     private KeyStore keyStore = null;
 
-    public String mGroupId, mFabricId, mRootCa, mIpk, groupCatIdOperate;
+    public String mGroupId, mFabricId, mRootCa, mIpk, groupCatIdOperate, groupCatIdAdmin;
     public String lastCommissionedRmNodeId;
     public static boolean loggedInUsingWeChat = false;
 
@@ -663,12 +663,14 @@ public class EspApplication extends Application {
                         String ipk = "";
                         String rootCa = "";
                         String catIdOp = "";
+                        String catIdAdmin = "";
 
                         if (g.getFabricDetails() != null) {
                             fabricId = g.getFabricDetails().getFabricId();
                             rootCa = g.getFabricDetails().getRootCa();
                             ipk = g.getFabricDetails().getIpk();
                             catIdOp = g.getFabricDetails().getGroupCatIdOperate();
+                            catIdAdmin = g.getFabricDetails().getGroupCatIdAdmin();
 
                             if (TextUtils.isEmpty(matterNodeId)) {
                                 return;
@@ -678,7 +680,7 @@ public class EspApplication extends Application {
                                 if (!TextUtils.isEmpty(fabricId) && !TextUtils.isEmpty(rootCa)
                                         && !TextUtils.isEmpty(ipk) && !TextUtils.isEmpty(matterNodeId) && !TextUtils.isEmpty(matterNodeId)) {
                                     ChipClient chipClient = new ChipClient(this, g.getGroupId()
-                                            , fabricId, rootCa, ipk, catIdOp);
+                                            , fabricId, rootCa, ipk, catIdOp, catIdAdmin);
                                     Log.d(TAG, "In it chip controller for matterNodeId id : " + matterNodeId);
                                     chipClientMap.put(matterNodeId, chipClient);
                                 }

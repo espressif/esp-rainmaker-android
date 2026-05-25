@@ -64,6 +64,7 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                             var ipk = ""
                             var rootCa = ""
                             var groupCatIdOperate = ""
+                            var groupCatIdAdmin = ""
                             if (matterNodeId != mNodeId) {
                                 continue
                             }
@@ -76,6 +77,7 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                                 rootCa = g.fabricDetails.rootCa
                                 ipk = g.fabricDetails.ipk
                                 groupCatIdOperate = g.fabricDetails.groupCatIdOperate
+                                groupCatIdAdmin = g.fabricDetails.groupCatIdAdmin
                                 if (!espApp.chipClientMap.containsKey(matterNodeId)) {
                                     if (!TextUtils.isEmpty(fabricId) && !TextUtils.isEmpty(rootCa)
                                         && !TextUtils.isEmpty(ipk) && !TextUtils.isEmpty(
@@ -89,7 +91,8 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                                             fabricId,
                                             rootCa,
                                             ipk,
-                                            groupCatIdOperate
+                                            groupCatIdOperate,
+                                            groupCatIdAdmin
                                         )
                                         espApp.chipClientMap.put(matterNodeId, chipClient)
                                     }

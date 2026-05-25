@@ -65,7 +65,8 @@ class AppCommissioningService : Service(), CommissioningService.Callback {
                 espApp.mFabricId,
                 espApp.mRootCa,
                 espApp.mIpk,
-                espApp.groupCatIdOperate
+                espApp.groupCatIdOperate,
+                espApp.groupCatIdAdmin
             )
         } else {
             Log.d(TAG, "Commissioning service created without RM parameters")
