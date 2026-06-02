@@ -109,15 +109,24 @@
 
             </androidx.appcompat.widget.LinearLayoutCompat>
 
-            <androidx.appcompat.widget.AppCompatButton
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_update"
+                style="@style/Widget.App.UpdateButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:background="@color/colorPrimary"
-                android:text="@string/btn_update"
-                android:textColor="@android:color/white" />
+                android:text="@string/btn_update" />
+
+            <ProgressBar
+                android:id="@+id/progress_update"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="@dimen/margin_8"
+                android:indeterminateTint="@color/colorPrimary"
+                android:visibility="gone" />
 
         </RelativeLayout>
 
@@ -158,15 +167,14 @@
 
             </androidx.appcompat.widget.LinearLayoutCompat>
 
-            <androidx.appcompat.widget.AppCompatButton
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_update_rmaker"
+                style="@style/Widget.App.UpdateButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:background="@color/colorPrimary"
-                android:text="@string/btn_update"
-                android:textColor="@android:color/white" />
+                android:text="@string/btn_update" />
 
         </RelativeLayout>
 
@@ -275,16 +283,14 @@
                     android:textSize="16sp" />
             </androidx.appcompat.widget.LinearLayoutCompat>
 
-            <androidx.appcompat.widget.AppCompatButton
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_update_dataset"
+                style="@style/Widget.App.UpdateButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:background="@color/colorPrimary"
-                android:padding="@dimen/margin_8"
-                android:text="@string/btn_update"
-                android:textColor="@android:color/white" />
+                android:text="@string/btn_update" />
 
         </RelativeLayout>
 
@@ -320,16 +326,14 @@
                     android:textSize="16sp" />
             </androidx.appcompat.widget.LinearLayoutCompat>
 
-            <androidx.appcompat.widget.AppCompatButton
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_merge_dataset"
+                style="@style/Widget.App.UpdateButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:background="@color/colorPrimary"
-                android:padding="@dimen/margin_8"
-                android:text="@string/btn_merge"
-                android:textColor="@android:color/white" />
+                android:text="@string/btn_merge" />
 
         </RelativeLayout>
 

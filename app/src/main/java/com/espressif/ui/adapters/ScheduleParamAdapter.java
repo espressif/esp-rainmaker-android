@@ -42,6 +42,7 @@ import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Device;
+import com.espressif.ui.Utils;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.widgets.EspDropDown;
 import com.espressif.ui.widgets.PaletteBar;
@@ -274,8 +275,7 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
             scheduleParamVH.intSlider.setVisibility(View.VISIBLE);
             scheduleParamVH.floatSlider.setVisibility(View.GONE);
 
-            scheduleParamVH.intSlider.setMax(max);
-            scheduleParamVH.intSlider.setMin(min);
+            Utils.setSliderBounds(scheduleParamVH.intSlider, min, max);
             scheduleParamVH.intSlider.setTickCount(2);
 
             if (sliderValue < min) {
@@ -312,8 +312,7 @@ public class ScheduleParamAdapter extends RecyclerView.Adapter<ScheduleParamAdap
             scheduleParamVH.intSlider.setVisibility(View.GONE);
             scheduleParamVH.floatSlider.setVisibility(View.VISIBLE);
 
-            scheduleParamVH.floatSlider.setMax(max);
-            scheduleParamVH.floatSlider.setMin(min);
+            Utils.setSliderBounds(scheduleParamVH.floatSlider, min, max);
             scheduleParamVH.floatSlider.setTickCount(2);
 
             if (sliderValue < min) {

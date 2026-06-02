@@ -243,6 +243,8 @@
     <string name="btn_change_prefix">Change</string>
     <string name="btn_save">Save</string>
     <string name="btn_update">Update</string>
+    <string name="update_device_list_success">Device list updated successfully</string>
+    <string name="update_device_list_failed">Failed to update device list</string>
     <string name="btn_logout">Logout</string>
     <string name="btn_done">Done</string>
     <string name="btn_add">Add</string>

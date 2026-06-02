@@ -61,6 +61,7 @@ class AppConstants {
         const val ESP_DEVICE_MATTER_CONTROLLER = "esp.device.matter-controller"
         const val ESP_DEVICE_THREAD_BR = "esp.device.thread-br"
         const val ESP_DEVICE_CAMERA = "esp.device.camera"
+        const val ESP_DEVICE_AGENT = "esp.device.agent"
 
         const val MATTER_DEVICE_ON_OFF_LIGHT = 256
         const val MATTER_DEVICE_DIMMABLE_LIGHT = 257
