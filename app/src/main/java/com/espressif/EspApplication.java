@@ -135,6 +135,114 @@ public class EspApplication extends Application {
 
     public static String channelName = "", region = "";
 
+    // WebRTC viewport manager for session reuse across viewport/landscape
+    public static com.espressif.ui.webrtc.WebRtcViewportManager viewportWebRtcManager = null;
+
+    // Active WebRTC session manager — used by EspDeviceActivity.onStop() to stop the session
+    // when the activity goes to background (e.g. back gesture on task root from notification).
+    private static com.espressif.ui.webrtc.WebRtcViewportManager activeWebRtcManager = null;
+
+    // Flag to suppress WebRTC cleanup during portrait→landscape transition.
+    // Set before starting WebRtcActivity, cleared in EspDeviceActivity.onResume().
+    public static boolean isLandscapeTransitionActive = false;
+
+    public static void setViewportWebRtcManager(com.espressif.ui.webrtc.WebRtcViewportManager manager) {
+        viewportWebRtcManager = manager;
+    }
+
+    public static com.espressif.ui.webrtc.WebRtcViewportManager getViewportWebRtcManager() {
+        return viewportWebRtcManager;
+    }
+
+    public static void clearViewportWebRtcManager() {
+        viewportWebRtcManager = null;
+    }
+
+    public static void setActiveWebRtcManager(com.espressif.ui.webrtc.WebRtcViewportManager manager) {
+        activeWebRtcManager = manager;
+    }
+
+    public static com.espressif.ui.webrtc.WebRtcViewportManager getActiveWebRtcManager() {
+        return activeWebRtcManager;
+    }
+
+    public static void clearActiveWebRtcManager() {
+        activeWebRtcManager = null;
+    }
+
+    // Landscape session info for transfer to viewport (when started directly in landscape)
+    public static org.webrtc.VideoTrack landscapeVideoTrack = null;
+    public static org.webrtc.EglBase landscapeEglBase = null;
+    public static org.webrtc.SurfaceViewRenderer landscapeRenderer = null;
+    public static org.webrtc.PeerConnection landscapePeerConnection = null; // Store to allow cleanup
+
+    public static void setLandscapeSession(org.webrtc.VideoTrack videoTrack, org.webrtc.EglBase eglBase, org.webrtc.SurfaceViewRenderer renderer, org.webrtc.PeerConnection peerConnection) {
+        landscapeVideoTrack = videoTrack;
+        landscapeEglBase = eglBase;
+        landscapeRenderer = renderer;
+        landscapePeerConnection = peerConnection;
+    }
+
+    /**
+     * Clears the stored landscape session and disposes resources.
+     * This is called when the landscape session is no longer needed (e.g., failed to transfer
+     * back to viewport, or viewport picked it up and cleared the globals).
+     */
+    public static void clearLandscapeSession() {
+        // Remove video sink from renderer first
+        if (landscapeVideoTrack != null && landscapeRenderer != null) {
+            try {
+                landscapeVideoTrack.removeSink(landscapeRenderer);
+                android.util.Log.d("EspApplication", "Removed sink from landscape renderer");
+            } catch (Exception e) {
+                android.util.Log.w("EspApplication", "Error removing sink: " + e.getMessage());
+            }
+        }
+
+        // Release renderer
+        if (landscapeRenderer != null) {
+            try {
+                landscapeRenderer.release();
+            } catch (Exception e) {
+                android.util.Log.w("EspApplication", "Error releasing renderer: " + e.getMessage());
+            }
+        }
+
+        // Dispose PeerConnection (this also disposes tracks)
+        if (landscapePeerConnection != null) {
+            try {
+                landscapePeerConnection.dispose();
+                android.util.Log.d("EspApplication", "Disposed landscape PeerConnection");
+            } catch (Exception e) {
+                android.util.Log.w("EspApplication", "Error disposing PeerConnection: " + e.getMessage());
+            }
+        }
+
+        // Release EglBase context
+        if (landscapeEglBase != null) {
+            try {
+                landscapeEglBase.release();
+                android.util.Log.d("EspApplication", "Released landscape EglBase");
+            } catch (Exception e) {
+                android.util.Log.w("EspApplication", "Error releasing EglBase: " + e.getMessage());
+            }
+        }
+
+        landscapeVideoTrack = null;
+        landscapeEglBase = null;
+        landscapeRenderer = null;
+        landscapePeerConnection = null;
+    }
+
+    /** Clears landscape session references only (no dispose). Use before viewport manager stop from landscape. */
+    public static void clearLandscapeSessionReferences() {
+        landscapeVideoTrack = null;
+        landscapeEglBase = null;
+        landscapeRenderer = null;
+        landscapePeerConnection = null;
+    }
+
+
     private static final int RETRY_INTERVAL_MS = 5000; // 5 seconds
     private static final int MAX_RETRY_COUNT = 5; // Maximum number of retry attempts
     private static final long MAX_RETRY_INTERVAL_MS = 60000; // Maximum retry interval (60 seconds)
@@ -190,6 +298,10 @@ public class EspApplication extends Application {
 
     public AppState getAppState() {
         return appState;
+    }
+
+    public void setAppState(AppState newState) {
+        appState = newState;
     }
 
     public void changeAppState(AppState newState, Bundle extras) {

@@ -31,6 +31,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.ActivityCompat
@@ -137,10 +138,48 @@ class EspDeviceActivity : AppCompatActivity() {
     // BLE local control related
     private var bleLocalCtrlInfo: EspNode.BleLocalCtrlInfo? = null
 
+    // Set by back-pressed callback so onStop() can distinguish back gesture from home button.
+    private var isNavigatingBack = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityEspDeviceBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Stop WebRTC session in the back-pressed callback, BEFORE finish().
+        // This is critical for the notification-launched flow: when this activity is the
+        // task root, pressing back sends the app to background. Android restricts network
+        // (especially UDP for TURN) BEFORE onStop() fires, so TURN deallocation messages
+        // fail if cleanup is deferred to onStop(). By stopping here, we still have full
+        // network access and TURN cleanup reaches the ESP device.
+        onBackPressedDispatcher.addCallback(this) {
+            Log.d(TAG, "Back pressed: enter handler (configChange=$isChangingConfigurations, landscapeTransition=${EspApplication.isLandscapeTransitionActive})")
+            if (!isChangingConfigurations && !EspApplication.isLandscapeTransitionActive) {
+                // Stop whichever manager(s) are tracked. We deliberately do NOT gate on
+                // isActive(): once ICE establishes, the signaling WebSocket may close, leaving
+                // isActive() == false even though the peer connection is still streaming.
+                // stop() is idempotent (guarded by isStopping inside), so calling it
+                // unconditionally is safe.
+                val active = EspApplication.getActiveWebRtcManager()
+                val viewport = EspApplication.viewportWebRtcManager
+                val managers = listOfNotNull(active, viewport).distinct()
+                if (managers.isEmpty()) {
+                    Log.d(TAG, "Back pressed: no manager to stop")
+                }
+                for (manager in managers) {
+                    Log.d(TAG, "Back pressed: Stopping WebRTC manager (isActive=${manager.isActive()})")
+                    try {
+                        manager.stop()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error stopping WebRTC on back: ${e.message}", e)
+                    }
+                }
+                EspApplication.clearActiveWebRtcManager()
+                EspApplication.clearViewportWebRtcManager()
+            }
+            isNavigatingBack = true
+            finish()
+        }
 
         espApp = applicationContext as EspApplication
         networkApiManager = NetworkApiManager(applicationContext)
@@ -153,6 +192,17 @@ class EspDeviceActivity : AppCompatActivity() {
         } else {
             nodeId = device!!.nodeId
             Log.d(TAG, "NODE ID : $nodeId")
+
+            // When launched from a notification after app was killed, nodeMap may be empty.
+            // Load from local storage so the device page can render with cached data.
+            // onResume -> getNodeDetails() will fetch fresh state from cloud and call updateUi().
+            if (!espApp.nodeMap.containsKey(nodeId)) {
+                Log.d(TAG, "Node not in nodeMap, loading from local storage")
+                loadNodeFromLocalStorage(nodeId)
+                // Set app state so updateUi() renders controls as active (not blurred).
+                // Use setAppState() not changeAppState() to avoid side effects.
+                espApp.setAppState(EspApplication.AppState.GET_DATA_SUCCESS)
+            }
 
             val node = espApp.nodeMap[nodeId]
             if (node == null) {
@@ -295,7 +345,9 @@ class EspDeviceActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        EspApplication.region = ""
+        EspApplication.isLandscapeTransitionActive = false
+        // Don't blank region — the camera viewport is gated on it, so clearing it hid the
+        // viewport for ~1s until getNodeDetails() (below) re-fetched credentials & refreshed it.
         paramAdapter.updateVideoStreamingState()
         paramAdapter.notifyDataSetChanged()
         getNodeDetails()
@@ -356,6 +408,29 @@ class EspDeviceActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
+        // Stop the WebRTC session whenever the activity goes to background — back press,
+        // Home press, notification/incoming call all reach here. Excluded:
+        //   - isChangingConfigurations: rotation/locale change, keep the session alive.
+        //   - isLandscapeTransitionActive: portrait→landscape handoff to WebRtcActivity.
+        // stop() is idempotent (isStopping guard) so it's safe when the back-press
+        // callback already ran.
+        Log.d(TAG, "onStop: isNavigatingBack=$isNavigatingBack, configChange=$isChangingConfigurations, landscapeTransition=${EspApplication.isLandscapeTransitionActive}")
+        if (!isChangingConfigurations && !EspApplication.isLandscapeTransitionActive) {
+            val active = EspApplication.getActiveWebRtcManager()
+            val viewport = EspApplication.viewportWebRtcManager
+            val managers = listOfNotNull(active, viewport).distinct()
+            for (manager in managers) {
+                Log.d(TAG, "onStop: Stopping WebRTC manager (isActive=${manager.isActive()})")
+                try {
+                    manager.stop()
+                } catch (e: Exception) {
+                    Log.e(TAG, "onStop: Error stopping WebRTC: ${e.message}", e)
+                }
+            }
+            EspApplication.clearActiveWebRtcManager()
+            EspApplication.clearViewportWebRtcManager()
+        }
+        isNavigatingBack = false
     }
 
     override fun onDestroy() {
@@ -826,6 +901,35 @@ class EspDeviceActivity : AppCompatActivity() {
         binding.toolbarLayout.toolbar.navigationIcon =
             AppCompatResources.getDrawable(this, R.drawable.ic_arrow_left)
         binding.toolbarLayout.toolbar.setNavigationOnClickListener { finish() }
+    }
+
+    private fun loadNodeFromLocalStorage(targetNodeId: String?) {
+        if (targetNodeId == null) return
+        val espDatabase = com.espressif.db.EspDatabase.getInstance(applicationContext)
+        val nodeList = espDatabase.nodeDao.nodesFromStorage
+        for (node in nodeList) {
+            if (node != null && node.nodeId == targetNodeId) {
+                val configData = node.configData
+                val paramData = node.paramData
+                if (configData != null) {
+                    try {
+                        val parsed = com.espressif.JsonDataParser.setNodeConfig(
+                            node, org.json.JSONObject(configData)
+                        )
+                        if (paramData != null) {
+                            com.espressif.JsonDataParser.setAllParams(
+                                espApp, parsed, org.json.JSONObject(paramData)
+                            )
+                        }
+                        espApp.nodeMap[parsed.nodeId] = parsed
+                        Log.d(TAG, "Loaded node $targetNodeId from local storage")
+                    } catch (e: org.json.JSONException) {
+                        Log.e(TAG, "Error parsing node from local storage", e)
+                    }
+                }
+                break
+            }
+        }
     }
 
     private fun getNodeDetails() {

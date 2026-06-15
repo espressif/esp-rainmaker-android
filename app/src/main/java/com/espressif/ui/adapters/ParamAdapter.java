@@ -14,6 +14,8 @@
 
 package com.espressif.ui.adapters;
 
+import com.espressif.ui.composables.CameraControlsKt;
+
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -41,6 +43,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SwitchCompat;
+import androidx.compose.ui.platform.ComposeView;
 import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
@@ -96,6 +99,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private final int VIEW_TYPE_PARAM = 1;
     private final int VIEW_TYPE_PUSH_BTN_BIG = 2;
     private final int VIEW_TYPE_HUE = 3;
+    private final int VIEW_TYPE_CAMERA_CONTROL = 4;
 
     private Activity context;
     private final ArrayList<Param> params;
@@ -139,6 +143,9 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
         LayoutInflater layoutInflater = LayoutInflater.from(context);
         switch (viewType) {
+            case VIEW_TYPE_CAMERA_CONTROL:
+                View controlView = layoutInflater.inflate(R.layout.item_camera_control, parent, false);
+                return new CameraControlViewHolder(controlView, device.getNodeId());
 
             case VIEW_TYPE_PUSH_BTN_BIG:
                 View switchView = layoutInflater.inflate(R.layout.item_param_switch, parent, false);
@@ -163,6 +170,10 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         if (param != null) {
 
             String dataType = param.getDataType();
+
+            if (AppConstants.UI_TYPE_CAMERA_CONTROLS.equalsIgnoreCase(param.getUiType())) {
+                return VIEW_TYPE_CAMERA_CONTROL;
+            }
 
             if (AppConstants.UI_TYPE_HUE_CIRCLE.equalsIgnoreCase(param.getUiType())) {
 
@@ -190,10 +201,10 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         if (holder.getItemViewType() == VIEW_TYPE_PARAM) {
 
             final ParamViewHolder paramViewHolder = (ParamViewHolder) holder;
-            
+
             // Reset all ViewHolder states to prevent recycling issues
             resetViewHolderState(paramViewHolder);
-            
+
             String dataType = param.getDataType();
 
             if (AppConstants.UI_TYPE_SLIDER.equalsIgnoreCase(param.getUiType())) {
@@ -359,7 +370,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     private void resetViewHolderState(ParamViewHolder paramViewHolder) {
         // Reset all UI components to prevent ViewHolder recycling issues
-        
+
         // Hide all layouts initially
         paramViewHolder.rlUiTypeSlider.setVisibility(View.GONE);
         paramViewHolder.rlUiTypeSwitch.setVisibility(View.GONE);
@@ -367,7 +378,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         paramViewHolder.rlPalette.setVisibility(View.GONE);
         paramViewHolder.rlUiTypeDropDown.setVisibility(View.GONE);
         paramViewHolder.rlUiTypeTrigger.setVisibility(View.GONE);
-        
+
         // Clear slider listeners and reset configurations
         if (paramViewHolder.intSlider != null) {
             paramViewHolder.intSlider.setOnSeekChangeListener(null);
@@ -377,17 +388,17 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             paramViewHolder.floatSlider.setOnSeekChangeListener(null);
             paramViewHolder.floatSlider.setVisibility(View.GONE);
         }
-        
+
         // Clear switch listener
         if (paramViewHolder.toggleSwitch != null) {
             paramViewHolder.toggleSwitch.setOnCheckedChangeListener(null);
         }
-        
+
         // Clear spinner listener
         if (paramViewHolder.spinner != null) {
             paramViewHolder.spinner.setOnItemSelectedListener(null);
         }
-        
+
         // Clear button listeners
         if (paramViewHolder.btnEdit != null) {
             paramViewHolder.btnEdit.setOnClickListener(null);
@@ -397,7 +408,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         if (paramViewHolder.btnTrigger != null) {
             paramViewHolder.btnTrigger.setOnButtonClickListener(null);
         }
-        
+
         // Clear palette listener
         if (paramViewHolder.paletteBar != null) {
             paramViewHolder.paletteBar.setListener(null);
@@ -421,6 +432,15 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             }
         }
         return -1;
+    }
+
+    private boolean hasCameraControlParam() {
+        for (Param param : params) {
+            if (param != null && AppConstants.UI_TYPE_CAMERA_CONTROLS.equalsIgnoreCase(param.getUiType())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void updateVideoStreamingState() {
@@ -632,7 +652,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         float min = param.getMinBounds();
         String dataType = param.getDataType();
         EspApplication espApp = (EspApplication) context.getApplicationContext();
-        
+
         Log.d(TAG, "displaySlider: param=" + param.getName() + ", min=" + min + ", max=" + max + ", value=" + sliderValue);
 
         if (AppConstants.PARAM_TYPE_CCT.equals(param.getParamType())) {
@@ -671,14 +691,14 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             paramViewHolder.intSlider.setMin(min);
             paramViewHolder.intSlider.setMax(max);
             paramViewHolder.intSlider.setTickCount(2);
-            
+
             // Force a second configuration to overcome any caching issues
             paramViewHolder.intSlider.post(new Runnable() {
                 @Override
                 public void run() {
                     paramViewHolder.intSlider.setMin(min);
                     paramViewHolder.intSlider.setMax(max);
-                    
+
                     // Verify the values were set correctly
                     float actualMin = paramViewHolder.intSlider.getMin();
                     float actualMax = paramViewHolder.intSlider.getMax();
@@ -703,7 +723,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             } else {
                 paramViewHolder.intSlider.setProgress((int) sliderValue);
             }
-            
+
             // Verify progress was set correctly
             int actualProgress = paramViewHolder.intSlider.getProgress();
             Log.d(TAG, "Slider progress for " + param.getName() + " - Expected:" + (int) sliderValue + " Actual:" + actualProgress);
@@ -926,14 +946,14 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             paramViewHolder.floatSlider.setMin(min);
             paramViewHolder.floatSlider.setMax(max);
             paramViewHolder.floatSlider.setTickCount(2);
-            
+
             // Force a second configuration to overcome any caching issues
             paramViewHolder.floatSlider.post(new Runnable() {
                 @Override
                 public void run() {
                     paramViewHolder.floatSlider.setMin(min);
                     paramViewHolder.floatSlider.setMax(max);
-                    
+
                     // Verify the values were set correctly
                     float actualMin = paramViewHolder.floatSlider.getMin();
                     float actualMax = paramViewHolder.floatSlider.getMax();
@@ -958,7 +978,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             } else {
                 paramViewHolder.floatSlider.setProgress((float) sliderValue);
             }
-            
+
             // Verify progress was set correctly
             float actualProgress = paramViewHolder.floatSlider.getProgressFloat();
             Log.d(TAG, "Float Slider progress for " + param.getName() + " - Expected:" + sliderValue + " Actual:" + actualProgress);
@@ -1396,6 +1416,66 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         paramViewHolder.tvLabelName.setText(param.getName());
         paramViewHolder.tvLabelValue.setText(param.getLabelValue());
 
+        // Hide viewport by default - it will be shown only for PARAM_TYPE_CHANNEL or camera device without camera control
+        if (paramViewHolder.viewportComposeView != null) {
+            paramViewHolder.viewportComposeView.setVisibility(View.GONE);
+        }
+
+        // Show viewport for camera devices without camera control param on the last param item
+        // Note: If camera_control param exists, viewport is now part of the camera control widget
+        boolean isLastItem = (position == params.size() - 1);
+        boolean isCameraDevice = AppConstants.ESP_DEVICE_CAMERA.equals(device.getDeviceType());
+        boolean hasCameraControl = hasCameraControlParam();
+        if (isLastItem && isCameraDevice && !hasCameraControl &&
+            !AppConstants.PARAM_TYPE_CHANNEL.equals(param.getParamType())) {
+            Log.d(TAG, "Showing viewport for camera device on last param item");
+            // Try to find the viewport if it's null
+            if (paramViewHolder.viewportComposeView == null) {
+                paramViewHolder.viewportComposeView = paramViewHolder.itemView.findViewById(R.id.viewport_compose_view);
+                if (paramViewHolder.viewportComposeView == null && paramViewHolder.rlUiTypeLabel != null) {
+                    paramViewHolder.viewportComposeView = paramViewHolder.rlUiTypeLabel.findViewById(R.id.viewport_compose_view);
+                }
+            }
+            // Try to find the viewport if it's null
+            if (paramViewHolder.viewportComposeView == null) {
+                paramViewHolder.viewportComposeView = paramViewHolder.itemView.findViewById(R.id.viewport_compose_view);
+                if (paramViewHolder.viewportComposeView == null && paramViewHolder.rlUiTypeLabel != null) {
+                    paramViewHolder.viewportComposeView = paramViewHolder.rlUiTypeLabel.findViewById(R.id.viewport_compose_view);
+                }
+            }
+
+            if (paramViewHolder.viewportComposeView != null) {
+                paramViewHolder.viewportComposeView.setVisibility(View.VISIBLE);
+                String channelName = "esp-v1-" + nodeId;
+                CameraControlsKt.initViewportControls(paramViewHolder.viewportComposeView, channelName, nodeId);
+            } else {
+                Log.e(TAG, "viewportComposeView is null for last item viewport! Creating programmatically");
+                // Create programmatically
+                if (paramViewHolder.rlUiTypeLabel != null) {
+                    ComposeView newViewport = new ComposeView(context);
+                    newViewport.setId(View.generateViewId());
+                    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                        RelativeLayout.LayoutParams.MATCH_PARENT,
+                        (int) (240 * context.getResources().getDisplayMetrics().density)
+                    );
+                    View btnEditLayout = paramViewHolder.rlUiTypeLabel.findViewById(R.id.rl_btn_edit);
+                    if (btnEditLayout != null) {
+                        params.addRule(RelativeLayout.BELOW, btnEditLayout.getId());
+                    }
+                    params.addRule(RelativeLayout.ALIGN_PARENT_START);
+                    params.addRule(RelativeLayout.ALIGN_PARENT_END);
+                    params.topMargin = (int) (16 * context.getResources().getDisplayMetrics().density);
+                    params.bottomMargin = (int) (8 * context.getResources().getDisplayMetrics().density);
+                    newViewport.setLayoutParams(params);
+                    newViewport.setVisibility(View.VISIBLE);
+                    paramViewHolder.rlUiTypeLabel.addView(newViewport);
+                    paramViewHolder.viewportComposeView = newViewport;
+                    String channelName = "esp-v1-" + nodeId;
+                    CameraControlsKt.initViewportControls(paramViewHolder.viewportComposeView, channelName, nodeId);
+                }
+            }
+        }
+
         if (param.getProperties().contains(AppConstants.KEY_PROPERTY_TS)) {
 
             paramViewHolder.ivTsArrow.setVisibility(View.VISIBLE);
@@ -1410,26 +1490,127 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
         } else if (AppConstants.PARAM_TYPE_CHANNEL.equals(param.getParamType())) {
 
+            if (hasCameraControlParam()) {
+                // Hide the entire param item when camera_control exists (viewport is now integrated into camera control widget)
+                paramViewHolder.rlUiTypeLabel.setVisibility(View.GONE);
             paramViewHolder.tvLabelName.setVisibility(View.GONE);
-            paramViewHolder.tvLabelValue.setText("Video Streaming");
-
+                paramViewHolder.tvLabelValue.setVisibility(View.GONE);
             paramViewHolder.ivTsArrow.setVisibility(View.GONE);
             paramViewHolder.ivTsArrow.setOnClickListener(null);
             paramViewHolder.btnEdit.setVisibility(View.GONE);
-            paramViewHolder.btnStart.setVisibility(View.VISIBLE);
-
-            if (((EspDeviceActivity) context).isNodeOnline() && !TextUtils.isEmpty(EspApplication.region)) {
-
-                paramViewHolder.btnStart.setAlpha(1f);
-                paramViewHolder.itemView.setEnabled(true);
-                paramViewHolder.btnStart.setOnClickListener(v -> startViewerActivity(param.getLabelValue()));
-                paramViewHolder.itemView.setOnClickListener(v -> startViewerActivity(param.getLabelValue()));
-
-            } else {
-                paramViewHolder.btnStart.setAlpha(0.5f);
-                paramViewHolder.itemView.setEnabled(false);
-                paramViewHolder.btnStart.setOnClickListener(null);
+                paramViewHolder.btnStart.setVisibility(View.GONE);
+                if (paramViewHolder.viewportComposeView != null) {
+                    paramViewHolder.viewportComposeView.setVisibility(View.GONE);
+                }
                 paramViewHolder.itemView.setOnClickListener(null);
+            } else {
+                // Only show the viewport when this is actually a camera device, the node is
+                // online, and we have an AWS region resolved. Otherwise the Compose viewport
+                // would spin up WebRTC signaling against AWS for a node it cannot reach,
+                // producing repeated failed requests and a stuck loading UI.
+                boolean isCameraDeviceForChannel = AppConstants.ESP_DEVICE_CAMERA.equals(device.getDeviceType());
+                boolean isOnline = context instanceof EspDeviceActivity && ((EspDeviceActivity) context).isNodeOnline();
+                boolean canStartStream = isCameraDeviceForChannel && isOnline && !TextUtils.isEmpty(EspApplication.region);
+                if (!canStartStream) {
+                    // Camera + online but region/credentials not resolved yet (getNodeDetails is
+                    // still running the assume-role fetch). Show the existing card spinner instead
+                    // of a blank; the re-bind once region arrives swaps it for the viewport.
+                    if (isCameraDeviceForChannel && isOnline) {
+                        Log.d(TAG, "PARAM_TYPE_CHANNEL: region not resolved yet — showing loader");
+                        paramViewHolder.rlUiTypeLabel.setVisibility(View.VISIBLE);
+                        // Reuse the label text as a loading message next to the spinner.
+                        paramViewHolder.tvLabelName.setText(R.string.camera_fetching_info);
+                        paramViewHolder.tvLabelName.setVisibility(View.VISIBLE);
+                        paramViewHolder.tvLabelValue.setVisibility(View.GONE);
+                        paramViewHolder.ivTsArrow.setVisibility(View.GONE);
+                        paramViewHolder.btnEdit.setVisibility(View.GONE);
+                        paramViewHolder.btnStart.setVisibility(View.GONE);
+                        if (paramViewHolder.viewportComposeView != null) {
+                            paramViewHolder.viewportComposeView.setVisibility(View.GONE);
+                        }
+                        if (paramViewHolder.progressBar != null) {
+                            paramViewHolder.progressBar.setVisibility(View.VISIBLE);
+                        }
+                        paramViewHolder.itemView.setOnClickListener(null);
+                        return;
+                    }
+                    // Not a reachable camera (not a camera device / offline) — hide the card.
+                    Log.d(TAG, "PARAM_TYPE_CHANNEL: hiding viewport (isCameraDevice=" + isCameraDeviceForChannel
+                            + ", online=" + isOnline + ", region=" + EspApplication.region + ")");
+                    paramViewHolder.rlUiTypeLabel.setVisibility(View.GONE);
+                    if (paramViewHolder.viewportComposeView != null) {
+                        paramViewHolder.viewportComposeView.setVisibility(View.GONE);
+                    }
+                    paramViewHolder.itemView.setOnClickListener(null);
+                    return;
+                }
+                // Region resolved — hide the loading spinner now that the viewport will show.
+                if (paramViewHolder.progressBar != null) {
+                    paramViewHolder.progressBar.setVisibility(View.GONE);
+                }
+                paramViewHolder.rlUiTypeLabel.setVisibility(View.VISIBLE);
+                Log.d(TAG, "Showing viewport for PARAM_TYPE_CHANNEL, hasCameraControlParam=false");
+                // Make sure rl_card_label is visible first
+                if (paramViewHolder.rlUiTypeLabel != null) {
+                    paramViewHolder.rlUiTypeLabel.setVisibility(View.VISIBLE);
+                }
+                paramViewHolder.tvLabelName.setVisibility(View.GONE);
+                paramViewHolder.tvLabelValue.setVisibility(View.GONE);
+                paramViewHolder.ivTsArrow.setVisibility(View.GONE);
+                paramViewHolder.ivTsArrow.setOnClickListener(null);
+                paramViewHolder.btnEdit.setVisibility(View.GONE);
+                paramViewHolder.btnStart.setVisibility(View.GONE);
+
+                // Try to find the viewport if it's null (might be due to view recycling)
+                if (paramViewHolder.viewportComposeView == null) {
+                    // First try in rlUiTypeLabel since that's where it's defined
+                    if (paramViewHolder.rlUiTypeLabel != null) {
+                        paramViewHolder.viewportComposeView = paramViewHolder.rlUiTypeLabel.findViewById(R.id.viewport_compose_view);
+                        Log.d(TAG, "Trying to find in rlUiTypeLabel, result: " + (paramViewHolder.viewportComposeView != null));
+                    }
+                    // Fallback to itemView
+                    if (paramViewHolder.viewportComposeView == null) {
+                        paramViewHolder.viewportComposeView = paramViewHolder.itemView.findViewById(R.id.viewport_compose_view);
+                        Log.d(TAG, "Re-attempting to find viewport_compose_view in itemView, result: " + (paramViewHolder.viewportComposeView != null));
+                    }
+                }
+
+                if (paramViewHolder.viewportComposeView != null) {
+                    Log.d(TAG, "Setting viewport visibility to VISIBLE");
+                    paramViewHolder.viewportComposeView.setVisibility(View.VISIBLE);
+                    String channelName = !TextUtils.isEmpty(param.getLabelValue()) ? param.getLabelValue() : "esp-v1-" + nodeId;
+                    Log.d(TAG, "Initializing viewport with channelName: " + channelName);
+                    CameraControlsKt.initViewportControls(paramViewHolder.viewportComposeView, channelName, nodeId);
+            } else {
+                    Log.e(TAG, "viewportComposeView is null! Creating programmatically");
+                    // Create the viewport programmatically if it doesn't exist
+                    if (paramViewHolder.rlUiTypeLabel != null) {
+                        ComposeView newViewport = new ComposeView(context);
+                        newViewport.setId(View.generateViewId());
+                        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                            RelativeLayout.LayoutParams.MATCH_PARENT,
+                            (int) (240 * context.getResources().getDisplayMetrics().density)
+                        );
+                        // Find rl_btn_edit to position below it
+                        View btnEditLayout = paramViewHolder.rlUiTypeLabel.findViewById(R.id.rl_btn_edit);
+                        if (btnEditLayout != null) {
+                            params.addRule(RelativeLayout.BELOW, btnEditLayout.getId());
+                        }
+                        params.addRule(RelativeLayout.ALIGN_PARENT_START);
+                        params.addRule(RelativeLayout.ALIGN_PARENT_END);
+                        params.topMargin = (int) (16 * context.getResources().getDisplayMetrics().density);
+                        params.bottomMargin = (int) (8 * context.getResources().getDisplayMetrics().density);
+                        newViewport.setLayoutParams(params);
+                        newViewport.setVisibility(View.VISIBLE);
+                        paramViewHolder.rlUiTypeLabel.addView(newViewport);
+                        paramViewHolder.viewportComposeView = newViewport;
+                        String channelName = !TextUtils.isEmpty(param.getLabelValue()) ? param.getLabelValue() : "esp-v1-" + nodeId;
+                        Log.d(TAG, "Created viewport programmatically, initializing with channelName: " + channelName);
+                        CameraControlsKt.initViewportControls(paramViewHolder.viewportComposeView, channelName, nodeId);
+                    } else {
+                        Log.e(TAG, "Cannot create viewport - rlUiTypeLabel is also null!");
+                    }
+                }
             }
         } else {
             paramViewHolder.ivTsArrow.setVisibility(View.GONE);
@@ -2177,6 +2358,7 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         TextView tvMinHue, tvMaxHue;
         ImageView ivTsArrow;
         TextView btnStart;
+        ComposeView viewportComposeView;
 
         public ParamViewHolder(View itemView) {
             super(itemView);
@@ -2211,6 +2393,12 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             tvMaxHue = itemView.findViewById(R.id.tv_palette_end);
             ivTsArrow = itemView.findViewById(R.id.iv_ts_arrow);
             btnStart = itemView.findViewById(R.id.btn_start);
+            viewportComposeView = itemView.findViewById(R.id.viewport_compose_view);
+            if (viewportComposeView == null) {
+                Log.e("ParamAdapter", "Failed to find viewport_compose_view in item_param.xml");
+            } else {
+                Log.d("ParamAdapter", "Successfully found viewport_compose_view");
+            }
         }
     }
 
@@ -2231,6 +2419,16 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         public SwitchViewHolder(View itemView) {
             super(itemView);
             ivSwitch = itemView.findViewById(R.id.iv_switch);
+        }
+    }
+
+    static class CameraControlViewHolder extends RecyclerView.ViewHolder {
+
+        ComposeView cameraComposeView;
+
+        public CameraControlViewHolder(View itemView, String nodeId) {
+            super(itemView);
+            cameraComposeView = CameraControlsKt.initCameraControls(itemView, nodeId);
         }
     }
 }

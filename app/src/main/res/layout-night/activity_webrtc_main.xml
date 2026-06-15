@@ -17,6 +17,20 @@
             android:layout_height="match_parent"
             android:layout_gravity="center" />
 
+        <org.webrtc.SurfaceViewRenderer
+            android:id="@+id/local_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:visibility="invisible" />
+
+        <!-- Landscape controls overlay (tap to show: stop, mic, camera). Sits BELOW the
+             FPS overlay so the read-out stays visible above the Compose layer. -->
+        <androidx.compose.ui.platform.ComposeView
+            android:id="@+id/media_toggle_compose_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
         <LinearLayout
             android:id="@+id/fps_overlay_container"
             android:layout_width="wrap_content"
@@ -54,13 +68,6 @@
                 android:textStyle="bold" />
 
         </LinearLayout>
-
-        <org.webrtc.SurfaceViewRenderer
-            android:id="@+id/local_view"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:visibility="invisible" />
 
         <LinearLayout
             android:layout_width="wrap_content"

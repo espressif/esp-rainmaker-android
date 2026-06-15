@@ -486,8 +486,8 @@
 
         <activity
             android:name="com.espressif.ui.activities.WebRtcActivity"
-            android:configChanges="uiMode"
-            android:screenOrientation="landscape"
+            android:configChanges="uiMode|orientation|screenSize"
+            android:screenOrientation="unspecified"
             android:theme="@style/AppTheme.NoActionBar" />
 
         <receiver android:name="com.espressif.NodeSharingActionReceiver" />

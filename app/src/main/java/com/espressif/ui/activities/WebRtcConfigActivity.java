@@ -66,6 +66,61 @@ public class WebRtcConfigActivity extends AppCompatActivity {
         region = EspApplication.region;
         Log.d(TAG, "Channel name : " + channelName);
 
+        // Check if we're reusing an existing session (channel info provided)
+        Intent intent = getIntent();
+        boolean reuseSession = intent != null && intent.getBooleanExtra("reuse_session", false);
+        Log.d(TAG, "onCreate: reuse_session=" + reuseSession);
+        if (reuseSession) {
+            // Extract channel info from intent extras
+            mChannelArn = intent.getStringExtra(WebRtcConstants.KEY_CHANNEL_ARN);
+            mStreamArn = intent.getStringExtra(WebRtcConstants.KEY_STREAM_ARN);
+            String wssEndpoint = intent.getStringExtra(WebRtcConstants.KEY_WSS_ENDPOINT);
+            String webrtcEndpoint = intent.getStringExtra(WebRtcConstants.KEY_WEBRTC_ENDPOINT);
+            Log.d(TAG, "Extracted channel info: mChannelArn=" + mChannelArn + ", wssEndpoint=" + wssEndpoint);
+
+            // Extract ICE servers
+            ArrayList<String> userNames = intent.getStringArrayListExtra(WebRtcConstants.KEY_ICE_SERVER_USER_NAME);
+            ArrayList<String> passwords = intent.getStringArrayListExtra(WebRtcConstants.KEY_ICE_SERVER_PASSWORD);
+            ArrayList<Integer> ttls = intent.getIntegerArrayListExtra(WebRtcConstants.KEY_ICE_SERVER_TTL);
+            ArrayList<List<String>> urisList = (ArrayList<List<String>>) intent.getSerializableExtra(WebRtcConstants.KEY_ICE_SERVER_URI);
+
+            if (mChannelArn != null && wssEndpoint != null) {
+                // Add endpoints to list
+                mEndpointList.clear();
+                if (wssEndpoint != null) {
+                    ResourceEndpointListItem wssItem = new ResourceEndpointListItem();
+                    wssItem.setProtocol("WSS");
+                    wssItem.setResourceEndpoint(wssEndpoint);
+                    mEndpointList.add(wssItem);
+                }
+                if (webrtcEndpoint != null) {
+                    ResourceEndpointListItem webrtcItem = new ResourceEndpointListItem();
+                    webrtcItem.setProtocol("WEBRTC");
+                    webrtcItem.setResourceEndpoint(webrtcEndpoint);
+                    mEndpointList.add(webrtcItem);
+                }
+
+                // Convert ICE servers
+                if (userNames != null && passwords != null && ttls != null && urisList != null) {
+                    mIceServerList.clear();
+                    for (int i = 0; i < userNames.size() && i < urisList.size(); i++) {
+                        IceServer iceServer = new IceServer();
+                        iceServer.setUsername(userNames.get(i));
+                        iceServer.setPassword(passwords.get(i));
+                        iceServer.setTtl(ttls.get(i));
+                        iceServer.setUris(urisList.get(i));
+                        mIceServerList.add(iceServer);
+                    }
+                }
+
+                Log.d(TAG, "Reusing existing session with channel ARN: " + mChannelArn);
+                runOnUiThread(() -> {
+                    checkPermissionsAndStartViewer();
+                });
+                return;
+            }
+        }
+
         runOnUiThread(() -> {
             checkPermissionsAndStartViewer();
         });
@@ -107,8 +162,12 @@ public class WebRtcConfigActivity extends AppCompatActivity {
 
     private void startViewerActivity() {
         Log.e(TAG, "Start Viewer Activity");
+
+        // Always fetch channel info - creating new session
+        if (mChannelArn == null) {
         if (!updateSignalingChannelInfo(region, channelName.replaceAll("\\s+$", ""), ChannelRole.VIEWER)) {
             return;
+            }
         }
 
         stopLoaderAnimation();
@@ -117,6 +176,15 @@ public class WebRtcConfigActivity extends AppCompatActivity {
             Bundle extras = setExtras(false);
             Intent intent = new Intent(this, WebRtcActivity.class);
             intent.putExtras(extras);
+            // Check if we should force portrait mode (from viewport play button)
+            Intent incomingIntent = getIntent();
+            if (incomingIntent != null && incomingIntent.getBooleanExtra("force_portrait", false)) {
+                intent.putExtra("force_portrait", true);
+            }
+            // Pass reuse_session flag to WebRtcActivity
+            if (incomingIntent != null && incomingIntent.getBooleanExtra("reuse_session", false)) {
+                intent.putExtra("reuse_session", true);
+            }
             startActivity(intent);
             finish();
         }
@@ -130,6 +198,16 @@ public class WebRtcConfigActivity extends AppCompatActivity {
         extras.putString(WebRtcConstants.KEY_CHANNEL_ARN, mChannelArn);
         extras.putString(WebRtcConstants.KEY_STREAM_ARN, mStreamArn);
         extras.putBoolean(WebRtcConstants.KEY_IS_MASTER, isMaster);
+
+        // Pass client ID if provided (for reusing session)
+        Intent intent = getIntent();
+        if (intent != null) {
+            String clientId = intent.getStringExtra(WebRtcConstants.KEY_CLIENT_ID);
+            if (clientId != null) {
+                extras.putString(WebRtcConstants.KEY_CLIENT_ID, clientId);
+                Log.d(TAG, "Passing client ID for session reuse: " + clientId);
+            }
+        }
 
         if (mIceServerList.size() > 0) {
             ArrayList<String> userNames = new ArrayList<>(mIceServerList.size());

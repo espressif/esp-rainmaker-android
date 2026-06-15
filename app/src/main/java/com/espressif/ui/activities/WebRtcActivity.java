@@ -3,6 +3,7 @@ package com.espressif.ui.activities;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.os.Bundle;
@@ -17,6 +18,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -115,9 +117,13 @@ public class WebRtcActivity extends AppCompatActivity {
     private SurfaceViewRenderer localView;
     private SurfaceViewRenderer remoteView;
 
+    private VideoTrack remoteVideoTrack = null; // Store for transfer to viewport
+
     private PeerConnection localPeer;
 
     private EglBase rootEglBase = null;
+    // Store viewport manager reference when reusing session to check if PeerConnection is still valid
+    private com.espressif.ui.webrtc.WebRtcViewportManager viewportManagerForReusedSession = null;
     private VideoCapturer videoCapturer;
 
     private final List<IceServer> peerIceServers = new ArrayList<>();
@@ -129,6 +135,7 @@ public class WebRtcActivity extends AppCompatActivity {
     // Simple FPS tracking for diagnostics
     private long lastFramesDropped = 0;
     private long lastStatsTime = 0;
+    private long lastBytesReceived = 0; // For delta-based bitrate calculation
 
     // Stream duration tracking
     private long streamStartTime = 0;
@@ -146,6 +153,7 @@ public class WebRtcActivity extends AppCompatActivity {
     private String videoCodec = "N/A";
     private int currentFrameWidth = 0;
     private int currentFrameHeight = 0;
+    private long currentBitrate = 0; // Current bitrate in kbps (delta-based)
 
     // Stats dialog update handler
     private android.os.Handler statsUpdateHandler = null;
@@ -155,6 +163,11 @@ public class WebRtcActivity extends AppCompatActivity {
     private int mNotificationId = 0;
 
     private boolean master = true;
+    private boolean reuseSession = false;
+    // Set true by the in-landscape Stop button. Suppresses onDestroy's "stash session for
+    // future viewport pickup" path so disposed-natives are not parked in EspApplication
+    // (reuseSession case) and a direct-landscape session is fully disposed (non-reuse case).
+    private boolean userStoppedSession = false;
     private EditText dataChannelText = null;
     private Button sendDataChannelButton = null;
 
@@ -178,6 +191,8 @@ public class WebRtcActivity extends AppCompatActivity {
      * Prints WebRTC stats to the debug console every so often.
      */
     private final ScheduledExecutorService printStatsExecutor = Executors.newSingleThreadScheduledExecutor();
+    private java.util.concurrent.ScheduledFuture<?> statsCollectionTask = null;
+    private volatile boolean shouldCollectStats = false;
 
     /**
      * Mapping of established peer connections to the peer's sender id. In other words, if an SDP
@@ -194,7 +209,6 @@ public class WebRtcActivity extends AppCompatActivity {
     private final HashMap<String, Queue<IceCandidate>> pendingIceCandidatesMap = new HashMap<String, Queue<IceCandidate>>();
 
     private void initWsConnection() {
-
         // See https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-2.html
         final String masterEndpoint = mWssEndpoint + "?" + Constants.CHANNEL_ARN_QUERY_PARAM + "=" + mChannelArn;
 
@@ -336,9 +350,21 @@ public class WebRtcActivity extends AppCompatActivity {
                         }).start();
                     }
                 } else {
-                    Log.d(TAG, "Signaling service is connected: " +
-                            "Sending offer as viewer to remote peer"); // Viewer
+                    // Viewer mode - always create peer connection
+                    if (localPeer == null) {
+                        createLocalPeerConnection();
+                    }
 
+                    if (reuseSession) {
+                        Log.d(TAG, "Reusing session with client ID: " + mClientId + " - creating offer to reconnect");
+                        // Still create offer to reconnect, but using same client ID means we're reusing the viewer slot
+                    } else {
+                        Log.d(TAG, "New session - creating new viewer connection");
+                    }
+
+                    // Always create SDP offer for viewer (even when reusing, we need to reconnect)
+                    Log.d(TAG, "Signaling service is connected: " +
+                            "Sending offer as viewer to remote peer");
                     createSdpOffer();
                 }
             } else {
@@ -411,16 +437,101 @@ public class WebRtcActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        // Show stream duration if stream was active
-        if (isStreamActive) {
+        // Stop stats collection immediately to prevent any crashes
+        // This must happen before any other cleanup
+        stopStatsCollection();
+
+        // Clear viewport manager reference
+        viewportManagerForReusedSession = null;
+
+        // If reusing session, transfer video back to viewport before destroying
+        // This ensures we're back in portrait mode before any cleanup is triggered
+        // The viewport will handle cleanup gracefully when connection state changes
+        if (reuseSession) {
+            com.espressif.ui.webrtc.WebRtcViewportManager viewportManager = com.espressif.EspApplication.getViewportWebRtcManager();
+            if (viewportManager != null) {
+                Log.d(TAG, "Transferring video back to viewport before destroying landscape - ensuring portrait mode before cleanup");
+                try {
+                    org.webrtc.SurfaceViewRenderer viewportRenderer = viewportManager.getViewportRenderer();
+                    if (viewportRenderer != null) {
+                        viewportManager.transferVideoTo(viewportRenderer);
+                        Log.d(TAG, "Video transferred back to viewport - cleanup will happen in portrait mode");
+                    } else {
+                        Log.w(TAG, "Viewport renderer not available, video will stop");
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error transferring video back to viewport: " + e.getMessage(), e);
+                }
+            }
+            // Don't clear viewport manager - it's still active in viewport
+            // Cleanup will be handled by viewport's onConnectionStateChanged callback
+        } else if (!userStoppedSession && remoteVideoTrack != null && rootEglBase != null && remoteView != null) {
+            // Started directly in landscape - store session info for viewport to pick up.
+            // Skipped when the user explicitly tapped Stop: in that case we want the full
+            // disposal path below, not a stash for a (possibly never-happening) viewport pickup.
+            Log.d(TAG, "Storing landscape session for transfer to viewport");
+
+            // Remove video sink from landscape renderer before storing
+            // The renderer will be destroyed, so we need to remove the sink now
+            try {
+                remoteVideoTrack.removeSink(remoteView);
+                Log.d(TAG, "Removed video sink from landscape renderer");
+            } catch (Exception e) {
+                Log.w(TAG, "Error removing sink from landscape renderer: " + e.getMessage());
+            }
+
+            // Store session info (VideoTrack, EglBase, and PeerConnection) for viewport to pick up
+            // Note: We don't store remoteView as it will be destroyed
+            // Viewport will add the sink to its own renderer
+            // Store PeerConnection so it can be cleaned up if viewport doesn't pick it up
+            com.espressif.EspApplication.setLandscapeSession(remoteVideoTrack, rootEglBase, null, localPeer);
+            // Don't release resources yet - viewport will pick them up and handle cleanup
+            // But note: localPeer reference is kept in EspApplication for cleanup
+        }
+
+        // Show stream duration only when the stream is genuinely stopping,
+        // NOT when transferring back to viewport (reuseSession landscape->portrait transition)
+        if (isStreamActive && !reuseSession) {
             showStreamEndedWithDuration("Stream ended");
         }
 
         Thread.setDefaultUncaughtExceptionHandler(null);
+        // Stop stats collection BEFORE disposing PeerConnection to prevent crashes
+        // This must happen before any PeerConnection disposal
+        stopStatsCollection();
+        // Wait a bit for any in-flight stats collection tasks to complete/abort
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Log.w(TAG, "Interrupted while waiting for stats collection to stop");
+        }
         printStatsExecutor.shutdownNow();
 
         audioManager.setMode(originalAudioMode);
         audioManager.setSpeakerphoneOn(originalSpeakerphoneOn);
+
+        if (!reuseSession) {
+            // Only cleanup WebRTC resources if we created a new session AND not storing for transfer
+            boolean storingForTransfer = com.espressif.EspApplication.landscapeVideoTrack != null;
+
+            // Always disconnect client to clean up WebSocket signaling connection
+            if (client != null) {
+                try {
+                    client.disconnect();
+                    Log.d(TAG, "Disconnected WebSocket client");
+                } catch (Exception e) {
+                    Log.w(TAG, "Error disconnecting client: " + e.getMessage());
+                }
+                client = null;
+            }
+
+            if (!storingForTransfer) {
+                // No transfer - cleanup normally
+                Log.d(TAG, "Cleaning up WebRTC session (no transfer)");
+
+        // IMPORTANT: Stop stats collection BEFORE disposing PeerConnection
+        // This prevents crashes from getStats() being called on disposed PeerConnection
+        stopStatsCollection();
 
         if (rootEglBase != null) {
             rootEglBase.release();
@@ -433,37 +544,55 @@ public class WebRtcActivity extends AppCompatActivity {
         }
 
         if (localPeer != null) {
-            localPeer.dispose();
+            // Clear reference first, then dispose to prevent stats collection from accessing it
+            PeerConnection peerToDispose = localPeer;
             localPeer = null;
+            try {
+                peerToDispose.dispose();
+            } catch (Exception e) {
+                Log.e(TAG, "Error disposing PeerConnection: " + e.getMessage(), e);
+            }
+                }
+
+                peerConnectionFoundMap.clear();
+                pendingIceCandidatesMap.clear();
+            } else {
+                // Storing for transfer - keep PeerConnection, EglBase, and VideoTrack alive
+                // The viewport will pick these up and handle cleanup
+                // Note: We've already disconnected the client above to clean up signaling
+                Log.d(TAG, "Keeping PeerConnection/EglBase/VideoTrack for viewport transfer");
+
+                // Release remoteView since sink was already removed and it's no longer needed
+                if (remoteView != null) {
+                    remoteView.release();
+                    remoteView = null;
+                }
+
+                // Keep PeerConnection alive - viewport will dispose it when done
+                // Keep EglBase alive - viewport will release it when done
+                // Keep VideoTrack alive - viewport will use it
+
+                // Clear peer connection maps (but keep the actual peer connection)
+                peerConnectionFoundMap.clear();
+                pendingIceCandidatesMap.clear();
         }
 
-        // DISABLED: Video source not created since phone doesn't send video
-        // if (videoSource != null) {
-        //     videoSource.dispose();
-        //     videoSource = null;
-        // }
-
-        // DISABLED: Video capturer not created since phone doesn't send video
-        // if (videoCapturer != null) {
-        //     try {
-        //         videoCapturer.stopCapture();
-        //     } catch (InterruptedException e) {
-        //         Log.e(TAG, "Failed to stop webrtc video capture. ", e);
-        //     }
-        //     videoCapturer = null;
-        // }
+        // Video/audio sending resources are managed by WebRtcViewportManager
+        // and cleaned up when the manager is stopped.
 
         if (localView != null) {
             localView.release();
             localView = null;
         }
-
-        if (client != null) {
-            client.disconnect();
-            client = null;
+        } else {
+            // Reusing session - don't release EglBase or dispose peer connection
+            // Just release the landscape renderer (it was initialized with viewport's EglBase)
+            if (remoteView != null) {
+                remoteView.release();
+                remoteView = null;
         }
-        peerConnectionFoundMap.clear();
-        pendingIceCandidatesMap.clear();
+            Log.d(TAG, "Reused session - keeping WebRTC resources alive for viewport");
+        }
 
         finish();
 
@@ -474,7 +603,119 @@ public class WebRtcActivity extends AppCompatActivity {
     protected void onPostCreate(@Nullable Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
 
-        // Start websocket after adding local audio/video tracks
+        if (reuseSession) {
+            // Reuse existing session - transfer video from viewport
+            Log.d(TAG, "Reusing session - transferring video from viewport to landscape");
+            com.espressif.ui.webrtc.WebRtcViewportManager viewportManager = com.espressif.EspApplication.getViewportWebRtcManager();
+            if (viewportManager == null) {
+                Log.e(TAG, "Cannot reuse session: viewportManager is null");
+                Toast.makeText(this, "Cannot reuse session - viewport manager not available", Toast.LENGTH_LONG).show();
+                finish();
+                return;
+            }
+
+            if (remoteView == null) {
+                Log.e(TAG, "Cannot reuse session: remoteView is null");
+                Toast.makeText(this, "Cannot reuse session - renderer not initialized", Toast.LENGTH_LONG).show();
+                finish();
+                return;
+            }
+
+            // Transfer video track from viewport to landscape renderer
+            // Post to ensure renderer is attached to window after orientation change
+            remoteView.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (remoteView == null) {
+                        Log.e(TAG, "RemoteView became null during transfer setup");
+                        finish();
+                        return;
+                    }
+
+                    // Small delay to ensure renderer is fully ready after orientation change
+                    remoteView.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                if (remoteView == null) {
+                                    Log.e(TAG, "RemoteView became null during delayed transfer");
+                                    finish();
+                                    return;
+                                }
+
+                                Log.d(TAG, "Transferring video to landscape renderer...");
+                                viewportManager.transferVideoTo(remoteView);
+                                Log.d(TAG, "Video transferred successfully - hiding loading indicators");
+
+                                // Get the peer connection from viewport manager for stats collection
+                                localPeer = viewportManager.getPeerConnection();
+                                remoteVideoTrack = viewportManager.getRemoteVideoTrack();
+                                rootEglBase = viewportManager.getEglBase();
+
+                                // Store viewport manager reference to check if PeerConnection is still valid
+                                // When viewport manager stops, it disposes the PeerConnection, so we need to check
+                                viewportManagerForReusedSession = viewportManager;
+
+                                // Start stats collection now that we have the peer connection
+                                if (localPeer != null) {
+                                    Log.d(TAG, "Starting stats collection for reused session");
+                                    // Initialize stats tracking for reused session
+                                    // The stream was already active in viewport, so mark it as active here too
+                                    if (!isStreamActive) {
+                                        isStreamActive = true;
+                                        // Don't reset streamStartTime - use current time for bitrate calculation
+                                        // The delta-based bitrate calculation will work regardless
+                                        streamStartTime = System.currentTimeMillis();
+                                    }
+                                    // Reset last stats tracking to start fresh delta calculations
+                                    lastStatsTime = 0;
+                                    lastBytesReceived = 0;
+                                    startStatsCollection();
+                                } else {
+                                    Log.w(TAG, "Cannot start stats collection - localPeer is null");
+                                }
+
+                                // Hide loading indicators - video is already playing
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        try {
+                                            if (progressLoader != null) {
+                                                progressLoader.setVisibility(View.GONE);
+                                            }
+                                            if (tvLoading != null) {
+                                                tvLoading.setVisibility(View.GONE);
+                                            }
+                                        } catch (Exception e) {
+                                            Log.e(TAG, "Error hiding loading indicators: " + e.getMessage(), e);
+                                        }
+                                    }
+                                });
+                            } catch (Exception e) {
+                                Log.e(TAG, "Error transferring video: " + e.getMessage(), e);
+                                e.printStackTrace();
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        try {
+                                            String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown error";
+                                            Toast.makeText(WebRtcActivity.this, "Failed to transfer video: " + errorMsg, Toast.LENGTH_LONG).show();
+                                            finish();
+                                        } catch (Exception ex) {
+                                            Log.e(TAG, "Error showing error toast: " + ex.getMessage(), ex);
+                                            finish();
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }, 300); // Delay to ensure renderer is ready after orientation change
+                }
+            });
+            return; // Don't create new connection
+        }
+
+        // Start websocket connection - create new session
         initWsConnection();
 
         if (!gotException && isValidClient()) {
@@ -512,12 +753,54 @@ public class WebRtcActivity extends AppCompatActivity {
         mWssEndpoint = intent.getStringExtra(WebRtcConstants.KEY_WSS_ENDPOINT);
         webrtcEndpoint = intent.getStringExtra(WebRtcConstants.KEY_WEBRTC_ENDPOINT);
 
+        // Check if we're reusing existing session (transferring video from viewport)
+        reuseSession = intent.getBooleanExtra("reuse_session", false);
+
+        // Check if we should force portrait mode (from viewport play button)
+        boolean forcePortrait = intent.getBooleanExtra("force_portrait", false);
+
+        if (forcePortrait) {
+            // Force portrait mode (from viewport play button)
+            setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        } else {
+            // Default to landscape for fullscreen mode (both new session and reused session)
+            setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        }
+
+        if (!reuseSession) {
+            // Initialize WebRTC components for new session
         mClientId = intent.getStringExtra(WebRtcConstants.KEY_CLIENT_ID);
         // If no client identifier is present, a random one will be created.
         if (Strings.isNullOrEmpty(mClientId)) {
             mClientId = UUID.randomUUID().toString();
         }
         master = intent.getBooleanExtra(WebRtcConstants.KEY_IS_MASTER, true);
+            Log.d(TAG, "Creating new session: mClientId=" + mClientId);
+        } else {
+            Log.d(TAG, "Reusing existing session - will transfer video from viewport");
+        }
+        setContentView(R.layout.activity_webrtc_main);
+
+        // Style FPS overlay with rounded corners to match portrait Compose player
+        LinearLayout fpsContainer = findViewById(R.id.fps_overlay_container);
+        if (fpsContainer != null) {
+            android.graphics.drawable.GradientDrawable fpsBg = new android.graphics.drawable.GradientDrawable();
+            fpsBg.setColor(Color.parseColor("#99000000"));
+            fpsBg.setCornerRadius(4 * getResources().getDisplayMetrics().density);
+            fpsContainer.setBackground(fpsBg);
+        }
+
+        progressLoader = findViewById(R.id.progress_loader);
+        tvLoading = findViewById(R.id.tv_loading);
+
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        originalAudioMode = audioManager.getMode();
+        originalSpeakerphoneOn = audioManager.isSpeakerphoneOn();
+
+        remoteView = findViewById(R.id.remote_view);
+
+        if (!reuseSession) {
+            // Initialize WebRTC components for new session
         ArrayList<String> mUserNames = intent.getStringArrayListExtra(WebRtcConstants.KEY_ICE_SERVER_USER_NAME);
         ArrayList<String> mPasswords = intent.getStringArrayListExtra(WebRtcConstants.KEY_ICE_SERVER_PASSWORD);
         ArrayList<Integer> mTTLs = intent.getIntegerArrayListExtra(WebRtcConstants.KEY_ICE_SERVER_TTL);
@@ -526,7 +809,6 @@ public class WebRtcActivity extends AppCompatActivity {
         mCameraFacingFront = intent.getBooleanExtra(WebRtcConstants.KEY_CAMERA_FRONT_FACING, true);
 
         rootEglBase = EglBase.create();
-
 
         //TODO: add ui to control TURN only option
 
@@ -550,11 +832,6 @@ public class WebRtcActivity extends AppCompatActivity {
                 }
             }
         }
-
-        setContentView(R.layout.activity_webrtc_main);
-
-        progressLoader = findViewById(R.id.progress_loader);
-        tvLoading = findViewById(R.id.tv_loading);
 
         // Show the loader initially
         progressLoader.setVisibility(View.VISIBLE);
@@ -587,32 +864,82 @@ public class WebRtcActivity extends AppCompatActivity {
         // Enable Google WebRTC debug logs
         Logging.enableLogToDebugOutput(Logging.Severity.LS_INFO);
 
-        // DISABLED: Phone should only receive video, not send it to ESP device
-        // videoCapturer = createVideoCapturer();
-
-        // Local video view (hidden since we're not sending video)
+        // Local video view (hidden by default, video sending controlled by toggle buttons)
         localView = findViewById(R.id.local_view);
-        localView.setVisibility(View.GONE); // Hide local preview since we're not capturing
+        localView.setVisibility(View.GONE);
 
-        // DISABLED: No need to create video source or track for sending
-        // videoSource = peerConnectionFactory.createVideoSource(false);
-        // SurfaceTextureHelper surfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext());
-        // videoCapturer.initialize(surfaceTextureHelper, this.getApplicationContext(), videoSource.getCapturerObserver());
-        // localVideoTrack = peerConnectionFactory.createVideoTrack(VideoTrackID, videoSource);
-        // localVideoTrack.addSink(localView);
+        // Video/audio sending is managed dynamically via toggle controls.
+        // Users can enable sending video/audio during an active peer connection.
+        Log.i(TAG, "Video/audio sending available via toggle controls");
 
-        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        originalAudioMode = audioManager.getMode();
-        originalSpeakerphoneOn = audioManager.isSpeakerphoneOn();
-
-        // DISABLED: Not capturing or sending video from phone
-        // videoCapturer.startCapture(VIDEO_SIZE_WIDTH, VIDEO_SIZE_HEIGHT, VIDEO_FPS);
-        // localVideoTrack.setEnabled(true);
-
-        Log.i(TAG, "📱 PHONE VIDEO SENDING DISABLED - Only receiving video from ESP device");
-
-        remoteView = findViewById(R.id.remote_view);
         remoteView.init(rootEglBase.getEglBaseContext(), null);
+        remoteView.setZOrderMediaOverlay(false);
+        } else {
+            // Reuse session - transfer video from viewport
+            Log.d(TAG, "Reusing session - initializing renderer with viewport's EglBase");
+            com.espressif.ui.webrtc.WebRtcViewportManager viewportManager = com.espressif.EspApplication.getViewportWebRtcManager();
+            if (viewportManager != null) {
+                org.webrtc.EglBase viewportEglBase = viewportManager.getEglBase();
+                if (viewportEglBase != null) {
+                    // Use viewport's EglBase so video track can be transferred
+                    remoteView.init(viewportEglBase.getEglBaseContext(), null);
+                    remoteView.setZOrderMediaOverlay(false);
+                    Log.d(TAG, "Initialized landscape renderer with viewport's EglBase for video transfer");
+                } else {
+                    Log.e(TAG, "Viewport EglBase is null - cannot reuse session");
+                    finish();
+                    return;
+                }
+            } else {
+                Log.e(TAG, "Viewport manager not found - cannot reuse session");
+                finish();
+                return;
+            }
+        }
+
+        // Setup back button to return to viewport
+        android.widget.ImageButton btnBackToViewport = findViewById(R.id.btn_back_to_viewport);
+        if (btnBackToViewport != null) {
+            btnBackToViewport.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    finish();
+                }
+            });
+        }
+
+        // Setup landscape controls overlay (tap to show: stop, mic, camera toggles)
+        androidx.compose.ui.platform.ComposeView mediaToggleView =
+                findViewById(R.id.media_toggle_compose_view);
+        if (mediaToggleView != null) {
+            com.espressif.ui.composables.CameraControlsKt.initLandscapeControls(
+                    mediaToggleView,
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            userStoppedSession = true;
+                            if (reuseSession) {
+                                com.espressif.EspApplication.clearLandscapeSessionReferences();
+                                com.espressif.ui.webrtc.WebRtcViewportManager manager =
+                                        com.espressif.EspApplication.getViewportWebRtcManager();
+                                if (manager != null) {
+                                    manager.stop();
+                                }
+                                com.espressif.EspApplication.clearViewportWebRtcManager();
+                                // The WebRtcActivity's localPeer/remoteVideoTrack/rootEglBase
+                                // fields were aliased from the viewport (onPostCreate L645-647).
+                                // manager.stop() just disposed those natives — null the aliases
+                                // so onDestroy does not removeSink / dispose them again.
+                                remoteVideoTrack = null;
+                                rootEglBase = null;
+                                localPeer = null;
+                                reuseSession = false;
+                            }
+                            finish();
+                        }
+                    }
+            );
+        }
 
         // Setup long press listener for detailed stats
         setupLongPressForStats();
@@ -703,15 +1030,30 @@ public class WebRtcActivity extends AppCompatActivity {
             public void onIceConnectionChange(final PeerConnection.IceConnectionState iceConnectionState) {
                 super.onIceConnectionChange(iceConnectionState);
                 if (iceConnectionState == PeerConnection.IceConnectionState.FAILED) {
-                    showStreamEndedWithDuration("Connection to peer failed!");
+                    // Stay on screen like master branch - don't finish() or tear down
+                    // The connection may recover or user can navigate away manually
+                    Log.w(TAG, "ICE connection failed - staying on screen");
+                    isStreamActive = false;
+                    runOnUiThread(() -> {
+                        if (!isFinishing()) {
+                            showStreamEndedWithDuration("Connection to peer failed!");
+                        }
+                    });
                 } else if (iceConnectionState == PeerConnection.IceConnectionState.DISCONNECTED) {
-                    showStreamEndedWithDuration("Disconnected from peer");
+                    // Stay on screen - ICE DISCONNECTED is often transient on mobile networks
+                    // and may recover without intervention
+                    Log.w(TAG, "ICE connection disconnected - staying on screen, may recover");
+                    runOnUiThread(() -> {
+                        if (!isFinishing()) {
+                            Toast.makeText(getApplicationContext(), "Connection interrupted, may recover...", Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 } else if (iceConnectionState == PeerConnection.IceConnectionState.CONNECTED) {
                     // Start stream duration tracking
                     if (!isStreamActive) {
                         streamStartTime = System.currentTimeMillis();
                         isStreamActive = true;
-                        Log.i(TAG, "📺 Stream started - duration tracking began");
+                        Log.i(TAG, "Stream started - duration tracking began");
                     }
                     runOnUiThread(() -> Toast.makeText(getApplicationContext(), "Connected to peer!", Toast.LENGTH_LONG).show());
                     runOnUiThread(() -> {
@@ -758,13 +1100,85 @@ public class WebRtcActivity extends AppCompatActivity {
             }
         });
 
-        String frameWidth = "1920";
-        String frameHeight = "1080";
-        String framesPerSecond = "0";
-
         if (localPeer != null) {
-            printStatsExecutor.scheduleWithFixedDelay(() -> {
-                localPeer.getStats(rtcStatsReport -> {
+            startStatsCollection();
+        }
+
+        if (ENABLE_DATA_CHANNEL) {
+            addDataChannelToLocalPeer();
+        }
+        addStreamToLocalPeer();
+    }
+
+    private void stopStatsCollection() {
+        Log.d(TAG, "Stopping WebRTC stats collection");
+        // Set flag first to prevent any in-flight tasks from proceeding
+        shouldCollectStats = false;
+        if (statsCollectionTask != null) {
+            // Cancel with interrupt to stop any currently executing task
+            boolean cancelled = statsCollectionTask.cancel(true);
+            Log.d(TAG, "Stats collection task cancelled: " + cancelled);
+            statsCollectionTask = null;
+        }
+        // Note: Don't clear localPeer here - it might still be needed for cleanup in onDestroy
+        // The flag check will prevent stats collection from accessing it
+    }
+
+    private void startStatsCollection() {
+        if (localPeer == null) {
+            Log.w(TAG, "Cannot start stats collection: localPeer is null");
+            return;
+        }
+
+        // Stop any existing stats collection first
+        stopStatsCollection();
+
+        Log.d(TAG, "Starting WebRTC stats collection");
+        shouldCollectStats = true;
+        statsCollectionTask = printStatsExecutor.scheduleWithFixedDelay(() -> {
+                // Check if we should continue collecting stats and if localPeer is still valid
+                // Also check if activity is still alive (not finishing or destroyed)
+                if (!shouldCollectStats || localPeer == null || isFinishing() || isDestroyed()) {
+                    Log.d(TAG, "Stopping stats collection - shouldCollectStats=" + shouldCollectStats + ", localPeer=" + (localPeer != null) + ", isFinishing=" + isFinishing() + ", isDestroyed=" + isDestroyed());
+                    stopStatsCollection();
+                    return;
+                }
+
+                // CRITICAL: When reusing session, check if viewport manager still has the PeerConnection
+                // If viewport manager disposed it, getPeerConnection() will return null
+                if (reuseSession && viewportManagerForReusedSession != null) {
+                    PeerConnection viewportPeer = viewportManagerForReusedSession.getPeerConnection();
+                    if (viewportPeer == null || viewportPeer != localPeer) {
+                        Log.d(TAG, "Stopping stats collection - viewport manager disposed PeerConnection");
+                        stopStatsCollection();
+                        // Finish activity to return to portrait mode
+                        runOnUiThread(() -> {
+                            if (!isFinishing()) {
+                                finish();
+                            }
+                        });
+                        return;
+                    }
+                }
+
+                // Store reference to localPeer and flag to avoid race condition
+                final PeerConnection peer = localPeer;
+                final boolean shouldContinue = shouldCollectStats;
+
+                // Double-check after storing references
+                if (peer == null || !shouldContinue || isFinishing() || isDestroyed()) {
+                    Log.d(TAG, "Aborting stats collection - peer or activity invalid");
+                    return;
+                }
+
+                try {
+                    // Wrap getStats call to catch any native crashes
+                    peer.getStats(rtcStatsReport -> {
+                        // Check flag again in callback - activity might have finished while callback was queued
+                        if (!shouldCollectStats || isFinishing() || isDestroyed()) {
+                            Log.d(TAG, "Skipping stats processing - activity finished");
+                            return;
+                        }
                     final Map<String, RTCStats> statsMap = rtcStatsReport.getStatsMap();
                     for (final Map.Entry<String, RTCStats> entry : statsMap.entrySet()) {
 
@@ -806,8 +1220,21 @@ public class WebRtcActivity extends AppCompatActivity {
                             // Simple calculation: Received FPS = Rendered FPS + Dropped FPS
                             float calcReceivedFps = calcCurrentFps + calcDroppedFps;
 
+                            // Calculate current bitrate (delta-based, similar to FPS calculation)
+                            long currentBytesReceived = bytesReceived != null ? Long.parseLong(bytesReceived.toString()) : 0;
+                            long calcCurrentBitrate = 0;
+                            if (lastStatsTime > 0 && currentTime > lastStatsTime) {
+                                float deltaSeconds = (currentTime - lastStatsTime) / 1000.0f;
+                                long deltaBytes = currentBytesReceived - lastBytesReceived;
+                                if (deltaSeconds > 0 && deltaBytes >= 0) {
+                                    // Bitrate = (bytes * 8 bits/byte) / seconds / 1000 = kbps
+                                    calcCurrentBitrate = (long)((deltaBytes * 8) / deltaSeconds / 1000);
+                                }
+                            }
+
                             // Update tracking variables
                             lastFramesDropped = currentFramesDropped;
+                            lastBytesReceived = currentBytesReceived;
                             lastStatsTime = currentTime;
 
                             // Update member variables for detailed stats
@@ -815,12 +1242,13 @@ public class WebRtcActivity extends AppCompatActivity {
                             receivedFps = calcReceivedFps;
                             droppedFps = calcDroppedFps;
                             totalFramesDropped = currentFramesDropped;
-                            totalBytesReceived = bytesReceived != null ? Long.parseLong(bytesReceived.toString()) : 0;
+                            totalBytesReceived = currentBytesReceived;
                             totalPacketsReceived = packetsReceived != null ? Long.parseLong(packetsReceived.toString()) : 0;
                             totalPacketsLost = packetsLost != null ? Long.parseLong(packetsLost.toString()) : 0;
                             jitterMs = jitter != null ? Double.parseDouble(jitter.toString()) * 1000 : 0;
                             currentFrameWidth = width != null ? Integer.parseInt(width.toString()) : 0;
                             currentFrameHeight = height != null ? Integer.parseInt(height.toString()) : 0;
+                            currentBitrate = calcCurrentBitrate;
 
                             // Enhanced logging with all FPS metrics
                             if (calcCurrentFps > 0 || calcDroppedFps > 0) {
@@ -829,19 +1257,34 @@ public class WebRtcActivity extends AppCompatActivity {
 
                             if (tmp != null) {
                                 final String fps = tmp.toString();
+                                final Object finalWidth = width;
+                                final Object finalHeight = height;
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        TextView my_view = findViewById(R.id.tv_fps);
-                                        String to_display = "fps: " + fps;
-                                        my_view.setText(to_display);
+                                        // Check if activity is finishing before updating UI
+                                        if (isFinishing()) {
+                                            return;
+                                        }
 
-                                        TextView resolution = findViewById(R.id.tv_resolution);
-                                        String resolutionStr = width + " x " + height;
-                                        resolution.setText(resolutionStr);
+                                        try {
+                                            TextView my_view = findViewById(R.id.tv_fps);
+                                            if (my_view != null) {
+                                                String to_display = "fps: " + fps;
+                                                my_view.setText(to_display);
+                                            }
 
-                                        // Position FPS overlay relative to video view
-                                        positionFpsOverlay();
+                                            TextView resolution = findViewById(R.id.tv_resolution);
+                                            if (resolution != null && finalWidth != null && finalHeight != null) {
+                                                String resolutionStr = finalWidth + " x " + finalHeight;
+                                                resolution.setText(resolutionStr);
+                                            }
+
+                                            // Position FPS overlay relative to video view
+                                            positionFpsOverlay();
+                                        } catch (Exception e) {
+                                            Log.e(TAG, "Error updating stats UI: " + e.getMessage(), e);
+                                        }
                                     }
                                 });
 
@@ -858,13 +1301,17 @@ public class WebRtcActivity extends AppCompatActivity {
                         }
                     }
                 });
+                } catch (Exception e) {
+                    Log.e(TAG, "Error getting stats: " + e.getMessage(), e);
+                    // Stop stats collection on error to prevent repeated crashes
+                    stopStatsCollection();
+                } catch (Throwable t) {
+                    // Catch any native crashes (SIGSEGV, etc.) that might not be caught as Exception
+                    Log.e(TAG, "Fatal error getting stats (native crash?): " + t.getMessage(), t);
+                    // Stop stats collection immediately
+                    stopStatsCollection();
+                }
             }, 0, 1, TimeUnit.SECONDS);
-        }
-
-        if (ENABLE_DATA_CHANNEL) {
-            addDataChannelToLocalPeer();
-        }
-        addStreamToLocalPeer();
     }
 
     private Message createIceCandidateMessage(final IceCandidate iceCandidate) {
@@ -889,15 +1336,10 @@ public class WebRtcActivity extends AppCompatActivity {
     }
 
     private void addStreamToLocalPeer() {
-        // DISABLED: Phone doesn't send video to ESP device - only receives
-        Log.i(TAG, "📱 Skipping local video stream - phone is receiver only");
-
-        // DISABLED: No local video track to send
-        // final MediaStream stream = peerConnectionFactory.createLocalMediaStream(LOCAL_MEDIA_STREAM_LABEL);
-        // if (!stream.addTrack(localVideoTrack)) {
-        //     Log.e(TAG, "Add video track failed");
-        // }
-        // localPeer.addTrack(stream.videoTracks.get(0), Collections.singletonList(stream.getId()));
+        // Video/audio sending is managed by WebRtcViewportManager when the session is active.
+        // The phone primarily receives video from the ESP device.
+        // Users can enable sending video/audio via the toggle controls in the player overlay.
+        Log.i(TAG, "Local stream setup - video/audio sending controlled via toggle buttons");
     }
 
     private void addDataChannelToLocalPeer() {
@@ -1058,7 +1500,7 @@ public class WebRtcActivity extends AppCompatActivity {
 
     private void addRemoteStreamToVideoView(MediaStream stream) {
 
-        final VideoTrack remoteVideoTrack = stream.videoTracks != null && stream.videoTracks.size() > 0 ? stream.videoTracks.get(0) : null;
+        remoteVideoTrack = stream.videoTracks != null && stream.videoTracks.size() > 0 ? stream.videoTracks.get(0) : null;
 
         AudioTrack remoteAudioTrack = stream.audioTracks != null && stream.audioTracks.size() > 0 ? stream.audioTracks.get(0) : null;
 
@@ -1218,7 +1660,7 @@ public class WebRtcActivity extends AppCompatActivity {
             int videoTop = remoteView.getTop();
             int videoRight = remoteView.getRight();
             int videoBottom = remoteView.getBottom();
-            
+
             int videoWidth = videoRight - videoLeft;
             int videoHeight = videoBottom - videoTop;
 
@@ -1250,18 +1692,16 @@ public class WebRtcActivity extends AppCompatActivity {
             params.bottomMargin = bottomMargin;
 
             fpsContainer.setLayoutParams(params);
-            Log.d(TAG, String.format("FPS overlay positioned relative to video: video bounds [%d,%d %dx%d], parent [%dx%d], margins [right=%d, bottom=%d]", 
+            Log.d(TAG, String.format("FPS overlay positioned relative to video: video bounds [%d,%d %dx%d], parent [%dx%d], margins [right=%d, bottom=%d]",
                 videoLeft, videoTop, videoWidth, videoHeight, parentWidth, parentHeight, rightMargin, bottomMargin));
         });
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    private void setupLongPressForStats() {
-        if (remoteView == null) {
-            return;
-        }
+    // GestureDetector for long-press (stats dialog), driven by dispatchTouchEvent.
+    private GestureDetector longPressDetector;
 
-        final GestureDetector gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+    private void setupLongPressForStats() {
+        longPressDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public void onLongPress(MotionEvent e) {
                 showDetailedStats();
@@ -1272,8 +1712,14 @@ public class WebRtcActivity extends AppCompatActivity {
                 return true;
             }
         });
+    }
 
-        remoteView.setOnTouchListener((v, event) -> gestureDetector.onTouchEvent(event));
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (longPressDetector != null) {
+            longPressDetector.onTouchEvent(ev);
+        }
+        return super.dispatchTouchEvent(ev);
     }
 
     private void showDetailedStats() {
@@ -1281,7 +1727,10 @@ public class WebRtcActivity extends AppCompatActivity {
             // Create custom layout programmatically with wrap_content width
             statsContainer = new LinearLayout(this);
             statsContainer.setOrientation(LinearLayout.VERTICAL);
-            statsContainer.setBackgroundColor(Color.parseColor("#99000000")); // More transparent (60% opacity)
+            android.graphics.drawable.GradientDrawable statsBg = new android.graphics.drawable.GradientDrawable();
+            statsBg.setColor(Color.parseColor("#99000000"));
+            statsBg.setCornerRadius(12 * getResources().getDisplayMetrics().density);
+            statsContainer.setBackground(statsBg);
             int padding = (int) (8 * getResources().getDisplayMetrics().density); // Minimal padding
             statsContainer.setPadding(padding, padding, padding, padding);
 
@@ -1373,11 +1822,15 @@ public class WebRtcActivity extends AppCompatActivity {
             return;
         }
 
-        // Calculate bitrate
+        // Use current bitrate (delta-based) if available, otherwise fall back to average
         final long bitrate;
-        if (isStreamActive && streamStartTime > 0) {
+        if (currentBitrate > 0) {
+            // Use delta-based current bitrate (more accurate and works even when reusing session)
+            bitrate = currentBitrate;
+        } else if (isStreamActive && streamStartTime > 0) {
+            // Fall back to average bitrate calculation
             long durationSeconds = (System.currentTimeMillis() - streamStartTime) / 1000;
-            if (durationSeconds > 0) {
+            if (durationSeconds > 0 && totalBytesReceived > 0) {
                 bitrate = (totalBytesReceived * 8) / durationSeconds / 1000;
             } else {
                 bitrate = 0;

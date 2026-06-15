@@ -651,4 +651,52 @@
 
     <string name="wifi_reset_message">WiFi已重置。请重新选择WiFi凭据。</string>
 
+    <!-- Camera WebRTC stats dialog -->
+    <string name="camera_stats_title">视频统计</string>
+    <string name="camera_stats_video">视频</string>
+    <string name="camera_stats_resolution">分辨率</string>
+    <string name="camera_stats_current_fps">当前帧率</string>
+    <string name="camera_stats_received_fps">接收帧率</string>
+    <string name="camera_stats_dropped_fps">丢帧率</string>
+    <string name="camera_stats_frames_dropped">丢失帧数</string>
+    <string name="camera_stats_codec">编解码器</string>
+    <string name="camera_stats_network">网络</string>
+    <string name="camera_stats_bitrate">比特率</string>
+    <string name="camera_stats_total_data">总数据量</string>
+    <string name="camera_stats_packets_rx">接收数据包</string>
+    <string name="camera_stats_packets_lost">丢失数据包</string>
+    <string name="camera_stats_loss_percent">丢包率</string>
+    <string name="camera_stats_jitter">抖动</string>
+    <string name="camera_cd_play">播放</string>
+    <string name="camera_cd_stop">停止</string>
+    <string name="camera_cd_mute_mic">麦克风静音</string>
+    <string name="camera_cd_unmute_mic">取消麦克风静音</string>
+    <string name="camera_cd_disable_camera">关闭摄像头</string>
+    <string name="camera_cd_enable_camera">开启摄像头</string>
+    <string name="camera_cd_toggle_orientation">切换屏幕方向</string>
+
+    <string name="camera_connecting">正在连接&#8230;</string>
+    <string name="camera_cmd_live_view">实时画面</string>
+    <string name="camera_cmd_file_list">文件列表</string>
+    <string name="camera_cmd_events">事件</string>
+    <string name="camera_cmd_command">命令</string>
+    <string name="camera_cmd_send">发送</string>
+    <string name="camera_cmd_confirm">确认</string>
+    <string name="camera_cmd_send_a_command">发送命令</string>
+    <string name="camera_cmd_in_progress">命令执行中</string>
+    <string name="camera_cmd_failed">命令失败：%1$s</string>
+    <string name="camera_cmd_no_data">未收到 %1$s 的数据</string>
+    <string name="camera_cmd_unknown_listing">未知命令的数据列表</string>
+
+    <string name="camera_toast_permissions_required">需要摄像头和麦克风权限</string>
+    <string name="camera_toast_permissions_required_alt">需要摄像头和麦克风权限。</string>
+    <string name="camera_toast_fetching_credentials">正在获取凭据，请稍候&#8230;</string>
+    <string name="camera_toast_credentials_failed">获取凭据失败，请重试。</string>
+    <string name="camera_toast_stream_ended">直播已结束\n直播时长：%1$s</string>
+    <string name="camera_toast_command_in_progress">%1$s 进行中</string>
+    <string name="camera_toast_command_failed">%1$s 失败 - 错误：%2$s</string>
+    <string name="camera_toast_command_success">%1$s 成功</string>
+    <string name="camera_toast_webrtc_start_failed">启动 WebRTC 失败：%1$s</string>
+    <string name="camera_toast_start_failed">启动失败：%1$s</string>
+
 </resources>
