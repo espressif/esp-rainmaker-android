@@ -100,7 +100,6 @@ public class WebRtcActivity extends AppCompatActivity {
 
     // Feature toggles
     private static final boolean ENABLE_DATA_CHANNEL = false;
-    private static final boolean ENABLE_AUDIO = false;
 
     private static volatile SignalingServiceWebSocketClient client;
     private PeerConnectionFactory peerConnectionFactory;
@@ -118,6 +117,7 @@ public class WebRtcActivity extends AppCompatActivity {
     private SurfaceViewRenderer remoteView;
 
     private VideoTrack remoteVideoTrack = null; // Store for transfer to viewport
+    private AudioTrack remoteAudioTrack = null;
 
     private PeerConnection localPeer;
 
@@ -853,11 +853,16 @@ public class WebRtcActivity extends AppCompatActivity {
         for (final VideoCodecInfo videoCodecInfo : vef.getSupportedCodecs()) {
             Log.d(TAG, videoCodecInfo.name);
         }
+        android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
+                .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build();
         peerConnectionFactory =
                 PeerConnectionFactory.builder()
                         .setVideoDecoderFactory(vdf)
                         .setVideoEncoderFactory(vef)
                         .setAudioDeviceModule(JavaAudioDeviceModule.builder(getApplicationContext())
+                                .setAudioAttributes(audioAttributes)
                                 .createAudioDeviceModule())
                         .createPeerConnectionFactory();
 
@@ -1021,9 +1026,28 @@ public class WebRtcActivity extends AppCompatActivity {
 
                 super.onAddStream(mediaStream);
 
-                Log.d(TAG, "Adding remote video stream (and audio) to the view");
+                Log.d(TAG, "onAddStream: Adding remote stream to the view");
 
                 addRemoteStreamToVideoView(mediaStream);
+            }
+
+            @Override
+            public void onAddTrack(final org.webrtc.RtpReceiver receiver, final MediaStream[] streams) {
+                super.onAddTrack(receiver, streams);
+                org.webrtc.MediaStreamTrack track = receiver.track();
+                Log.d(TAG, "onAddTrack: kind=" + (track != null ? track.kind() : "null")
+                        + ", id=" + (track != null ? track.id() : "null"));
+                if (track instanceof AudioTrack) {
+                    Log.d(TAG, "onAddTrack: Remote audio track received");
+                    remoteAudioTrack = (AudioTrack) track;
+                    boolean shouldPlay = !WebRtcConstants.INCOMING_AUDIO_MUTED_BY_DEFAULT;
+                    remoteAudioTrack.setEnabled(shouldPlay);
+                    Log.d(TAG, "remoteAudioTrack via onAddTrack: playing=" + shouldPlay);
+                    if (shouldPlay) {
+                        audioManager.setMode(AudioManager.MODE_NORMAL);
+                        audioManager.setSpeakerphoneOn(true);
+                    }
+                }
             }
 
             @Override
@@ -1186,6 +1210,12 @@ public class WebRtcActivity extends AppCompatActivity {
 
                             Map<String, Object> objectMap = entry.getValue().getMembers();
 
+                            // Only process video inbound-rtp, skip audio
+                            Object kind = objectMap.get("kind");
+                            if (kind == null || !"video".equals(kind.toString())) {
+                                continue;
+                            }
+
                             // Extract all relevant stats
                             Object tmp = objectMap.get("framesPerSecond");
                             Object width = objectMap.get("frameWidth");
@@ -1336,10 +1366,13 @@ public class WebRtcActivity extends AppCompatActivity {
     }
 
     private void addStreamToLocalPeer() {
-        // Video/audio sending is managed by WebRtcViewportManager when the session is active.
-        // The phone primarily receives video from the ESP device.
-        // Users can enable sending video/audio via the toggle controls in the player overlay.
-        Log.i(TAG, "Local stream setup - video/audio sending controlled via toggle buttons");
+        if (WebRtcConstants.SEND_AUDIO_BY_DEFAULT && localPeer != null) {
+            org.webrtc.AudioSource audioSource = peerConnectionFactory.createAudioSource(new MediaConstraints());
+            localAudioTrack = peerConnectionFactory.createAudioTrack(AudioTrackID, audioSource);
+            localAudioTrack.setEnabled(true);
+            localPeer.addTrack(localAudioTrack, Collections.singletonList(LOCAL_MEDIA_STREAM_LABEL));
+            Log.i(TAG, "Local audio track added to peer connection (default send)");
+        }
     }
 
     private void addDataChannelToLocalPeer() {
@@ -1384,7 +1417,7 @@ public class WebRtcActivity extends AppCompatActivity {
         MediaConstraints sdpMediaConstraints = new MediaConstraints();
 
         sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"));
-        if (ENABLE_AUDIO) {
+        if (WebRtcConstants.OFFER_AUDIO) {
             sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
         }
 
@@ -1420,7 +1453,7 @@ public class WebRtcActivity extends AppCompatActivity {
         final MediaConstraints sdpMediaConstraints = new MediaConstraints();
 
         sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"));
-        if (ENABLE_AUDIO) {
+        if (WebRtcConstants.OFFER_AUDIO) {
             sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
         }
 
@@ -1500,17 +1533,23 @@ public class WebRtcActivity extends AppCompatActivity {
 
     private void addRemoteStreamToVideoView(MediaStream stream) {
 
-        remoteVideoTrack = stream.videoTracks != null && stream.videoTracks.size() > 0 ? stream.videoTracks.get(0) : null;
+        VideoTrack videoTrack = stream.videoTracks != null && stream.videoTracks.size() > 0 ? stream.videoTracks.get(0) : null;
+        AudioTrack audioTrack = stream.audioTracks != null && stream.audioTracks.size() > 0 ? stream.audioTracks.get(0) : null;
+        Log.d(TAG, "addRemoteStream: videoTracks=" + (stream.videoTracks != null ? stream.videoTracks.size() : 0)
+                + ", audioTracks=" + (stream.audioTracks != null ? stream.audioTracks.size() : 0));
 
-        AudioTrack remoteAudioTrack = stream.audioTracks != null && stream.audioTracks.size() > 0 ? stream.audioTracks.get(0) : null;
+        // Store references (don't overwrite existing with null)
+        if (videoTrack != null) remoteVideoTrack = videoTrack;
+        if (audioTrack != null) remoteAudioTrack = audioTrack;
 
-        if (ENABLE_AUDIO && remoteAudioTrack != null) {
-            remoteAudioTrack.setEnabled(true);
-            Log.d(TAG, "remoteAudioTrack received: State=" + remoteAudioTrack.state().name());
-            audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-            audioManager.setSpeakerphoneOn(true);
-        } else if (!ENABLE_AUDIO) {
-            Log.d(TAG, "Audio support disabled - skipping audio track setup");
+        if (audioTrack != null) {
+            boolean shouldPlay = !WebRtcConstants.INCOMING_AUDIO_MUTED_BY_DEFAULT;
+            audioTrack.setEnabled(shouldPlay);
+            Log.d(TAG, "remoteAudioTrack received: State=" + audioTrack.state().name() + ", playing=" + shouldPlay);
+            if (shouldPlay) {
+                audioManager.setMode(AudioManager.MODE_NORMAL);
+                audioManager.setSpeakerphoneOn(true);
+            }
         }
 
         if (remoteVideoTrack != null) {

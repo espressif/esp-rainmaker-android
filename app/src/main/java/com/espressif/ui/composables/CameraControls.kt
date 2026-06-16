@@ -40,6 +40,8 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
 import android.content.pm.ActivityInfo
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -228,11 +230,12 @@ fun WebRtcVideoPlayer(
     var showControls by remember { mutableStateOf(false) }
     var showStatsDialog by remember { mutableStateOf(false) }
     var stats by remember { mutableStateOf(WebRtcStats()) }
-    // Read manager's send flags directly — backed by mutableStateOf so this
+    // Read manager's toggle flags directly — all backed by mutableStateOf so this
     // composable recomposes when the manager flips state from any thread.
     // Shared source of truth across portrait + landscape; no local cache drift.
     val isVideoSendEnabled = webRtcManager?.isVideoSendEnabled ?: false
     val isAudioSendEnabled = webRtcManager?.isAudioSendEnabled ?: false
+    val isIncomingAudioMuted = webRtcManager?.isIncomingAudioMuted ?: WebRtcConstants.INCOMING_AUDIO_MUTED_BY_DEFAULT
 
     // Subscribe to stats updates from the manager
     DisposableEffect(webRtcManager) {
@@ -395,6 +398,29 @@ fun WebRtcVideoPlayer(
                     }
                 }
 
+                // Incoming audio mute/unmute button
+                if (webRtcManager != null && WebRtcConstants.OFFER_AUDIO) {
+                    IconButton(
+                        onClick = { webRtcManager.toggleIncomingAudio() },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 8.dp, end = 8.dp)
+                            .size(44.dp)
+                            .background(
+                                if (isIncomingAudioMuted) Color.Red.copy(alpha = 0.5f)
+                                else Color.White.copy(alpha = 0.3f),
+                                RoundedCornerShape(22.dp)
+                            )
+                    ) {
+                        Icon(
+                            imageVector = if (isIncomingAudioMuted) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp,
+                            contentDescription = if (isIncomingAudioMuted) stringResource(R.string.camera_cd_unmute_audio) else stringResource(R.string.camera_cd_mute_audio),
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
                 // Camera and Mic toggle buttons at the bottom
                 if (WebRtcConstants.ENABLE_MEDIA_TOGGLE_UI) {
                     Row(
@@ -532,9 +558,10 @@ fun LandscapeControlsOverlay(
     onStop: () -> Unit
 ) {
     var showControls by remember { mutableStateOf(false) }
-    // Read manager's send flags directly — same shared source of truth as portrait.
+    // Read manager's toggle flags directly — same shared source of truth as portrait.
     val isVideoSendEnabled = manager?.isVideoSendEnabled ?: false
     val isAudioSendEnabled = manager?.isAudioSendEnabled ?: false
+    val isIncomingAudioMuted = manager?.isIncomingAudioMuted ?: WebRtcConstants.INCOMING_AUDIO_MUTED_BY_DEFAULT
 
     // Auto-hide controls after 3 seconds
     LaunchedEffect(showControls) {
@@ -588,6 +615,29 @@ fun LandscapeControlsOverlay(
                                 contentDescription = stringResource(R.string.camera_cd_stop),
                                 modifier = Modifier.size(24.dp),
                                 tint = Color.Black
+                            )
+                        }
+                    }
+
+                    // Incoming audio mute/unmute button
+                    if (manager != null && WebRtcConstants.OFFER_AUDIO) {
+                        IconButton(
+                            onClick = { manager.toggleIncomingAudio() },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = 16.dp, end = 16.dp)
+                                .size(44.dp)
+                                .background(
+                                    if (isIncomingAudioMuted) Color.Red.copy(alpha = 0.5f)
+                                    else Color.White.copy(alpha = 0.3f),
+                                    RoundedCornerShape(22.dp)
+                                )
+                        ) {
+                            Icon(
+                                imageVector = if (isIncomingAudioMuted) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp,
+                                contentDescription = if (isIncomingAudioMuted) stringResource(R.string.camera_cd_unmute_audio) else stringResource(R.string.camera_cd_mute_audio),
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }
@@ -1966,6 +2016,7 @@ fun CameraControlsWithViewport(
             Arg(AppConstants.CAMERA_COMMAND_ARG_END_TIME, optional = true, type = ArgType.TimeArg))),
         Command(AppConstants.CAMERA_COMMAND_PUT_MEDIA_START),
         Command(AppConstants.CAMERA_COMMAND_PUT_MEDIA_STOP),
+        Command(AppConstants.CAMERA_COMMAND_SAVE_CLIP),
         Command(AppConstants.CAMERA_COMMAND_FORMAT_SD_CARD),
     )
     var skip by remember { mutableIntStateOf(0) }
@@ -2041,7 +2092,7 @@ fun CameraControlsWithViewport(
 
                     Button(
                         onClick = {
-                            onCommandSend(AppConstants.CAMERA_COMMAND_LIST_EVENTS, emptyList())
+                            onCommandSend(AppConstants.CAMERA_COMMAND_SAVE_CLIP, emptyList())
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(
@@ -2050,7 +2101,7 @@ fun CameraControlsWithViewport(
                         )
                     ) {
                         Text(
-                            stringResource(R.string.camera_cmd_events),
+                            stringResource(R.string.camera_cmd_save_clip),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }

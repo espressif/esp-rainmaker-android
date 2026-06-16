@@ -45,6 +45,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.RejectedExecutionException
 import java.util.Date
 
 /**
@@ -96,8 +97,13 @@ class WebRtcViewportManager(
         private set
     var isAudioSendEnabled by mutableStateOf(false)
         private set
+    // Compose-observable so portrait and landscape share the same source of truth
+    // and toggling from either side propagates immediately.
+    var isIncomingAudioMuted by mutableStateOf(WebRtcConstants.INCOMING_AUDIO_MUTED_BY_DEFAULT)
+        private set
 
     private var onMediaToggleChanged: ((videoEnabled: Boolean, audioEnabled: Boolean) -> Unit)? = null
+    private var onIncomingAudioMuteChanged: ((muted: Boolean) -> Unit)? = null
 
     private var client: SignalingServiceWebSocketClient? = null
     private var audioManager: AudioManager? = null
@@ -121,10 +127,25 @@ class WebRtcViewportManager(
     private var onConnectionStateChanged: ((Boolean) -> Unit)? = null
     private var onError: ((String) -> Unit)? = null
 
+    // Single-thread executor for media toggle operations (camera open/close is slow; off main thread).
+    private val mediaOpsExecutor = Executors.newSingleThreadExecutor()
+
+    // Submit a media-toggle op, tolerating a stopping/stopped session: mediaOpsExecutor
+    // is shut down in stop(), so a late toggle would otherwise throw on the UI thread.
+    private fun submitMediaOp(op: () -> Unit) {
+        if (mediaOpsExecutor.isShutdown) {
+            Log.w(TAG, "Media-toggle op ignored — session is stopping")
+            return
+        }
+        try {
+            mediaOpsExecutor.execute(op)
+        } catch (e: RejectedExecutionException) {
+            Log.w(TAG, "Media-toggle op rejected — session stopped")
+        }
+    }
     companion object {
         private const val ENABLE_INTEL_VP8_ENCODER = true
         private const val ENABLE_H264_HIGH_PROFILE = true
-        private const val ENABLE_AUDIO = false
 
         @Volatile
         private var peerConnectionFactoryInitialized = false
@@ -178,6 +199,28 @@ class WebRtcViewportManager(
         onMediaToggleChanged = listener
     }
 
+    fun setOnIncomingAudioMuteChanged(listener: ((muted: Boolean) -> Unit)?) {
+        onIncomingAudioMuteChanged = listener
+    }
+
+    /**
+     * Toggles mute/unmute of incoming (remote) audio playback.
+     * No renegotiation needed — just enables/disables the remote audio track.
+     */
+    fun toggleIncomingAudio(): Boolean {
+        isIncomingAudioMuted = !isIncomingAudioMuted
+        remoteAudioTrack?.setEnabled(!isIncomingAudioMuted)
+        if (isIncomingAudioMuted) {
+            Log.i(TAG, "Incoming audio muted")
+        } else {
+            Log.i(TAG, "Incoming audio unmuted")
+            audioManager?.mode = AudioManager.MODE_NORMAL
+            audioManager?.isSpeakerphoneOn = true
+        }
+        onIncomingAudioMuteChanged?.invoke(isIncomingAudioMuted)
+        return isIncomingAudioMuted
+    }
+
     // --- Local media sending (video/audio toggle while peer connection is active) ---
 
     /**
@@ -186,6 +229,10 @@ class WebRtcViewportManager(
      * If the connection is already established, triggers SDP renegotiation.
      */
     fun enableVideoSending() {
+        submitMediaOp { enableVideoSendingInternal() }
+    }
+
+    private fun enableVideoSendingInternal() {
         try {
             Log.i(TAG, "Enabling video sending...")
             val factory = peerConnectionFactory ?: run {
@@ -265,6 +312,10 @@ class WebRtcViewportManager(
      * The track stays in the peer connection so it can be re-enabled without renegotiation.
      */
     fun disableVideoSending() {
+        submitMediaOp { disableVideoSendingInternal() }
+    }
+
+    private fun disableVideoSendingInternal() {
         try {
             Log.i(TAG, "Disabling video sending...")
 
@@ -304,6 +355,10 @@ class WebRtcViewportManager(
      * Creates the audio pipeline if needed and adds the track to the peer connection.
      */
     fun enableAudioSending() {
+        submitMediaOp { enableAudioSendingInternal() }
+    }
+
+    private fun enableAudioSendingInternal() {
         try {
             Log.i(TAG, "Enabling audio sending...")
             val factory = peerConnectionFactory ?: run {
@@ -354,6 +409,10 @@ class WebRtcViewportManager(
      * so it can be re-enabled without renegotiation.
      */
     fun disableAudioSending() {
+        submitMediaOp { disableAudioSendingInternal() }
+    }
+
+    private fun disableAudioSendingInternal() {
         try {
             Log.i(TAG, "Disabling audio sending...")
 
@@ -379,6 +438,26 @@ class WebRtcViewportManager(
             enableAudioSending()
         }
         return isAudioSendEnabled
+    }
+
+    /**
+     * Adds a local audio track to the peer connection before the SDP offer,
+     * so the offer includes audio as sendrecv instead of recvonly.
+     */
+    private fun addLocalAudioTrack() {
+        val factory = peerConnectionFactory ?: return
+        val peer = localPeer ?: return
+
+        if (audioSource == null) {
+            audioSource = factory.createAudioSource(MediaConstraints())
+        }
+        if (localAudioTrack == null) {
+            localAudioTrack = factory.createAudioTrack(AUDIO_TRACK_ID, audioSource)
+        }
+        localAudioTrack?.setEnabled(true)
+        localAudioSender = peer.addTrack(localAudioTrack, listOf(LOCAL_MEDIA_STREAM_LABEL))
+        isAudioSendEnabled = true
+        Log.i(TAG, "Local audio track added to peer connection (default send)")
     }
 
     private fun createVideoCapturer(): VideoCapturer? {
@@ -504,13 +583,17 @@ class WebRtcViewportManager(
                 ENABLE_H264_HIGH_PROFILE
             )
 
+            val audioDeviceModule = JavaAudioDeviceModule.builder(context.applicationContext)
+                .setAudioAttributes(android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build())
+                .createAudioDeviceModule()
+
             peerConnectionFactory = PeerConnectionFactory.builder()
                 .setVideoDecoderFactory(vdf)
                 .setVideoEncoderFactory(vef)
-                .setAudioDeviceModule(
-                    JavaAudioDeviceModule.builder(context.applicationContext)
-                        .createAudioDeviceModule()
-                )
+                .setAudioDeviceModule(audioDeviceModule)
                 .createPeerConnectionFactory()
 
             // Enable WebRTC debug logs
@@ -531,6 +614,7 @@ class WebRtcViewportManager(
                 // ICE servers already available (e.g. stored session) — sequential flow
                 peerIceServers.addAll(iceServers)
                 createLocalPeerConnection()
+                if (WebRtcConstants.SEND_AUDIO_BY_DEFAULT) addLocalAudioTrack()
                 initWsConnection()
             } else if (dataEndpoint != null) {
                 // Fetch ICE servers in parallel with WebSocket signaling connect
@@ -561,6 +645,7 @@ class WebRtcViewportManager(
 
                         // Create peer connection (fast, needs ICE servers)
                         createLocalPeerConnection()
+                        if (WebRtcConstants.SEND_AUDIO_BY_DEFAULT) addLocalAudioTrack()
 
                         // Create and send SDP offer
                         if (localPeer != null && client?.isOpen == true) {
@@ -581,6 +666,7 @@ class WebRtcViewportManager(
                 // Fallback: no ICE servers and no dataEndpoint — just connect with STUN
                 Log.w(TAG, "No ICE servers or dataEndpoint provided, using STUN only")
                 createLocalPeerConnection()
+                if (WebRtcConstants.SEND_AUDIO_BY_DEFAULT) addLocalAudioTrack()
                 initWsConnection()
             }
         }.start()
@@ -613,8 +699,25 @@ class WebRtcViewportManager(
 
             override fun onAddStream(mediaStream: MediaStream) {
                 super.onAddStream(mediaStream)
-                Log.d(TAG, "Adding remote video stream to the view")
+                Log.d(TAG, "onAddStream: Adding remote stream to the view")
                 addRemoteStreamToVideoView(mediaStream)
+            }
+
+            override fun onAddTrack(receiver: org.webrtc.RtpReceiver, streams: Array<out MediaStream>) {
+                super.onAddTrack(receiver, streams)
+                val track = receiver.track()
+                Log.d(TAG, "onAddTrack: kind=${track?.kind()}, id=${track?.id()}, state=${track?.state()?.name}")
+                if (track is AudioTrack) {
+                    Log.d(TAG, "onAddTrack: Remote audio track received")
+                    remoteAudioTrack = track
+                    val shouldPlay = !isIncomingAudioMuted
+                    track.setEnabled(shouldPlay)
+                    Log.d(TAG, "remoteAudioTrack via onAddTrack: playing=$shouldPlay")
+                    if (shouldPlay) {
+                        audioManager?.mode = AudioManager.MODE_NORMAL
+                        audioManager?.isSpeakerphoneOn = true
+                    }
+                }
             }
 
             override fun onIceConnectionChange(iceConnectionState: PeerConnection.IceConnectionState) {
@@ -880,7 +983,7 @@ class WebRtcViewportManager(
 
         val constraints = MediaConstraints()
         constraints.mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
-        if (ENABLE_AUDIO) {
+        if (WebRtcConstants.OFFER_AUDIO) {
             constraints.mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
         }
 
@@ -932,16 +1035,20 @@ class WebRtcViewportManager(
     private fun addRemoteStreamToVideoView(stream: MediaStream) {
         val videoTrack = stream.videoTracks?.firstOrNull()
         val audioTrack = stream.audioTracks?.firstOrNull()
+        Log.d(TAG, "addRemoteStream: videoTracks=${stream.videoTracks?.size ?: 0}, audioTracks=${stream.audioTracks?.size ?: 0}")
 
-        // Store references to tracks
-        this.remoteVideoTrack = videoTrack
-        this.remoteAudioTrack = audioTrack
+        // Store references to tracks (don't overwrite existing with null)
+        if (videoTrack != null) this.remoteVideoTrack = videoTrack
+        if (audioTrack != null) this.remoteAudioTrack = audioTrack
 
-        if (ENABLE_AUDIO && audioTrack != null) {
-            audioTrack.setEnabled(true)
-            Log.d(TAG, "remoteAudioTrack received: State=${audioTrack.state().name}")
-            audioManager?.mode = AudioManager.MODE_IN_COMMUNICATION
-            audioManager?.isSpeakerphoneOn = true
+        if (audioTrack != null) {
+            val shouldPlay = !isIncomingAudioMuted
+            audioTrack.setEnabled(shouldPlay)
+            Log.d(TAG, "remoteAudioTrack received: State=${audioTrack.state().name}, playing=$shouldPlay")
+            if (shouldPlay) {
+                audioManager?.mode = AudioManager.MODE_NORMAL
+                audioManager?.isSpeakerphoneOn = true
+            }
         }
 
         if (videoTrack != null) {
@@ -1063,12 +1170,18 @@ class WebRtcViewportManager(
         stopStatsCollection()
         onStatsUpdated = null
         onMediaToggleChanged = null
+        onIncomingAudioMuteChanged = null
 
         isStreamActive = false
         // Clear the deferred-renegotiation flag so a reused instance does not fire a
         // stale renegotiation on the next session's first CONNECTED.
         pendingRenegotiation = false
 
+        // Shut down the media-toggle executor before disposing native objects, so a
+        // queued enable/disable task cannot run addTrack/removeTrack against an
+        // already-disposed peer/factory (use-after-free), and the worker thread does
+        // not leak across the per-session manager instances.
+        mediaOpsExecutor.shutdownNow()
         // Store callback references and clear them immediately to prevent callbacks during cleanup
         val connectionCallback = onConnectionStateChanged
         val errorCallback = onError
@@ -1313,6 +1426,8 @@ class WebRtcViewportManager(
                         val stat = entry.value
                         if (stat.type == "inbound-rtp") {
                             val m = stat.members
+                            // Only process video inbound-rtp, skip audio
+                            if (m["kind"]?.toString() != "video") continue
                             fps = (m["framesPerSecond"]?.toString()?.toFloatOrNull()) ?: 0f
                             width = (m["frameWidth"]?.toString()?.toIntOrNull()) ?: 0
                             height = (m["frameHeight"]?.toString()?.toIntOrNull()) ?: 0
