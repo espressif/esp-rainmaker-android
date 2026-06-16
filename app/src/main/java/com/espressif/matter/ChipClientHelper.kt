@@ -289,8 +289,19 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                                     AppConstants.ENDPOINT_1
                                 ).get()
 
+                            val cctKelvin: Int? = try {
+                                espClusterHelper.getCurrentCCTValueInKelvinAsync(
+                                    deviceId,
+                                    AppConstants.ENDPOINT_1
+                                ).get()
+                            } catch (e: Exception) {
+                                // Cluster present without ColorTemperature attribute (e.g. RGB-only bulb).
+                                null
+                            }
+
                             Log.d(TAG, "Color control cluster  hueValue : $hueValue")
                             Log.d(TAG, "Color control cluster saturationValue : $saturationValue")
+                            Log.d(TAG, "Color control cluster cct (Kelvin) : $cctKelvin")
 
                             for (param in params) {
                                 if (AppConstants.PARAM_TYPE_HUE.equals(param.paramType)) {
@@ -304,6 +315,10 @@ class ChipClientHelper constructor(private val espApp: EspApplication) {
                                         var temp = ((saturationValue * 100f) / 255f)
                                         saturationValue = temp.toInt()
                                         param.value = saturationValue.toDouble()
+                                    }
+                                } else if (AppConstants.PARAM_TYPE_CCT.equals(param.paramType)) {
+                                    if (cctKelvin != null) {
+                                        param.value = cctKelvin.toDouble()
                                     }
                                 }
                             }

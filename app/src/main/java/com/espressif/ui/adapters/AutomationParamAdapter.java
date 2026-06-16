@@ -42,6 +42,7 @@ import com.espressif.AppConstants;
 import com.espressif.EspApplication;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Device;
+import com.espressif.ui.Utils;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.widgets.EspDropDown;
 import com.espressif.ui.widgets.PaletteBar;
@@ -274,8 +275,7 @@ public class AutomationParamAdapter extends RecyclerView.Adapter<AutomationParam
             automationParamVH.intSlider.setVisibility(View.VISIBLE);
             automationParamVH.floatSlider.setVisibility(View.GONE);
 
-            automationParamVH.intSlider.setMax(max);
-            automationParamVH.intSlider.setMin(min);
+            Utils.setSliderBounds(automationParamVH.intSlider, min, max);
             automationParamVH.intSlider.setTickCount(2);
 
             if (sliderValue < min) {
@@ -309,8 +309,7 @@ public class AutomationParamAdapter extends RecyclerView.Adapter<AutomationParam
             automationParamVH.intSlider.setVisibility(View.GONE);
             automationParamVH.floatSlider.setVisibility(View.VISIBLE);
 
-            automationParamVH.floatSlider.setMax(max);
-            automationParamVH.floatSlider.setMin(min);
+            Utils.setSliderBounds(automationParamVH.floatSlider, min, max);
             automationParamVH.floatSlider.setTickCount(2);
 
             if (sliderValue < min) {

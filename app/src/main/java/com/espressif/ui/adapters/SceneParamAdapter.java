@@ -43,6 +43,7 @@ import com.espressif.EspApplication;
 import com.espressif.ble.BleLocalControlManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.models.Device;
+import com.espressif.ui.Utils;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.widgets.EspDropDown;
 import com.espressif.ui.widgets.PaletteBar;
@@ -279,8 +280,7 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
             sceneParamVH.intSlider.setVisibility(View.VISIBLE);
             sceneParamVH.floatSlider.setVisibility(View.GONE);
 
-            sceneParamVH.intSlider.setMax(max);
-            sceneParamVH.intSlider.setMin(min);
+            Utils.setSliderBounds(sceneParamVH.intSlider, min, max);
             sceneParamVH.intSlider.setTickCount(2);
 
             if (sliderValue < min) {
@@ -317,8 +317,7 @@ public class SceneParamAdapter extends RecyclerView.Adapter<SceneParamAdapter.Sc
             sceneParamVH.intSlider.setVisibility(View.GONE);
             sceneParamVH.floatSlider.setVisibility(View.VISIBLE);
 
-            sceneParamVH.floatSlider.setMax(max);
-            sceneParamVH.floatSlider.setMin(min);
+            Utils.setSliderBounds(sceneParamVH.floatSlider, min, max);
             sceneParamVH.floatSlider.setTickCount(2);
 
             if (sliderValue < min) {

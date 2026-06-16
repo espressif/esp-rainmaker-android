@@ -30,6 +30,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.espressif.AppConstants;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.EventSelectionListener;
+import com.espressif.ui.Utils;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
 import com.google.android.material.button.MaterialButton;
@@ -182,8 +183,7 @@ public class ParamSelectionAdapter extends RecyclerView.Adapter<ParamSelectionAd
         float max = param.getMaxBounds();
         float min = param.getMinBounds();
 
-        slider.setMax(max);
-        slider.setMin(min);
+        Utils.setSliderBounds(slider, min, max);
         slider.setTickCount(2);
 
         if (sliderValue < min) {

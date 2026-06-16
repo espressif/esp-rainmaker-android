@@ -69,30 +69,6 @@ class NodeUtils {
             return false
         }
 
-        /**
-         * Helper method to get attribute value from Matter device info.
-         */
-        private fun getAttributeValue(
-            matterDeviceInfo: List<com.espressif.matter.DeviceMatterInfo>?,
-            endpoint: Int,
-            clusterId: Long,
-            attributeId: Long,
-            isServerCluster: Boolean = true
-        ): Any? {
-            if (matterDeviceInfo == null) return null
-
-            for (info in matterDeviceInfo) {
-                if (info.endpoint == endpoint) {
-                    val clusters = if (isServerCluster) info.serverClusters else info.clientClusters
-                    val clusterAttributes = info.clusterAttributes[clusterId.toString()]
-                    if (clusterAttributes != null) {
-                        return clusterAttributes[attributeId.toInt()]
-                    }
-                }
-            }
-            return null
-        }
-
         fun getService(node: EspNode, serviceType: String): Service? {
 
             if (node?.services != null) {
@@ -847,12 +823,14 @@ class NodeUtils {
             if (params == null || params.size == 0) {
                 params = java.util.ArrayList()
             }
+            // Bind the (possibly newly created) list to the device up-front so that any
+            // additions below are visible to the rest of the app even if a later helper throws.
+            device.params = params
 
             val endpoint = 1 // Most color devices use endpoint 1
             val colorControlClusterId = ChipClusters.ColorControlCluster.CLUSTER_ID
 
-            Log.d("Test", "🔍 Checking Color Control attributes on endpoint $endpoint")
-            Log.e("Test", "processColorControlClusterAttributes : ${device.nodeId}")
+            Log.d(TAG, "Checking Color Control attributes on endpoint $endpoint")
 
             var hueParam = ParamUtils.getParamIfAvailableInList(
                 params,
@@ -872,7 +850,9 @@ class NodeUtils {
                 AppConstants.PARAM_CCT, AppConstants.UI_TYPE_HUE_SLIDER
             )
 
-            // Check for Color Temperature attribute (0x0007) - CCT support
+            // Current attribute values are fetched later via ChipClientHelper.getCurrentValues
+            // through real cluster reads - we only decide here which UI parameters to create.
+
             if (hasAttribute(
                     matterDeviceInfo,
                     endpoint,
@@ -881,10 +861,7 @@ class NodeUtils {
                 )
             ) {
                 if (cctParam == null) {
-                    Log.d(
-                        "Test",
-                        "✅ Creating CCT parameter - ColorTemperature attribute (0x7) found"
-                    )
+                    Log.d(TAG, "Creating CCT parameter - ColorTemperature attribute (0x7) found")
                     cctParam = Param()
                     cctParam.isDynamicParam = true
                     cctParam.dataType = "int"
@@ -894,39 +871,11 @@ class NodeUtils {
                     cctParam.properties = properties
                     cctParam.minBounds = 2700  // Warm white (2700K)
                     cctParam.maxBounds = 6500  // Cool white (6500K)
-                    Log.e("Test", "Adding cct param at position : ${params.size}")
+                    cctParam.value = 4000.0    // Neutral white until a real read updates it
                     params.add(cctParam)
-                } else {
-                    Log.d("Test", "ℹ️ CCT parameter already exists")
                 }
-
-                // Set initial value from attribute if available
-                val currentCCT = getAttributeValue(
-                    matterDeviceInfo,
-                    endpoint,
-                    colorControlClusterId,
-                    COLOR_CONTROL_COLOR_TEMPERATURE_ATTR
-                )
-                if (currentCCT is Number) {
-                    // Convert mireds to Kelvin for UI display
-                    val miredsValue = currentCCT.toInt()
-                    val kelvinValue = (1000000 / miredsValue).coerceIn(2700, 6500)
-                    cctParam.value = kelvinValue.toDouble()
-                    Log.d(
-                        "Test",
-                        "🎨 Set initial CCT value: ${miredsValue} mireds -> ${kelvinValue}K"
-                    )
-                } else {
-                    cctParam.value = 4000.0 // Default to neutral white
-                }
-            } else {
-                Log.d(
-                    "Test",
-                    "❌ ColorTemperature attribute (0x7) not found - skipping CCT parameter"
-                )
             }
 
-            // Check for Hue attribute (0x0000)
             if (hasAttribute(
                     matterDeviceInfo,
                     endpoint,
@@ -935,7 +884,7 @@ class NodeUtils {
                 )
             ) {
                 if (hueParam == null) {
-                    Log.d("Test", "✅ Creating Hue parameter - CurrentHue attribute (0x0) found")
+                    Log.d(TAG, "Creating Hue parameter - CurrentHue attribute (0x0) found")
                     hueParam = Param()
                     hueParam.isDynamicParam = true
                     hueParam.dataType = "int"
@@ -945,36 +894,10 @@ class NodeUtils {
                     hueParam.properties = properties
                     hueParam.minBounds = 0
                     hueParam.maxBounds = 360
-                    Log.e("Test", "Adding hue param at position : ${params.size}")
                     params.add(hueParam)
-                } else {
-                    Log.d("Test", "ℹ️ Hue parameter already exists")
-                }
-
-                // Set initial value from attribute if available
-                val currentHue = getAttributeValue(
-                    matterDeviceInfo,
-                    endpoint,
-                    colorControlClusterId,
-                    COLOR_CONTROL_CURRENT_HUE_ATTR
-                )
-                if (currentHue is Number) {
-                    // Convert from Matter scale (0-254) to degrees (0-360)
-                    val hueValue = (currentHue.toInt() * 360) / 254
-                    hueParam.value = hueValue.toDouble()
-                    Log.d(
-                        "Test",
-                        "🎨 Set initial hue value: $hueValue° (from Matter value: ${currentHue})"
-                    )
-                }
-            } else {
-                Log.d("Test", "❌ CurrentHue attribute (0x0) not found - skipping Hue parameter")
-                if (hueParam != null) {
-                    params.remove(hueParam)
                 }
             }
 
-            // Check for Saturation attribute (0x0001)
             if (hasAttribute(
                     matterDeviceInfo,
                     endpoint,
@@ -983,10 +906,7 @@ class NodeUtils {
                 )
             ) {
                 if (saturationParam == null) {
-                    Log.d(
-                        "Test",
-                        "✅ Creating Saturation parameter - CurrentSaturation attribute (0x1) found"
-                    )
+                    Log.d(TAG, "Creating Saturation parameter - CurrentSaturation attribute (0x1) found")
                     saturationParam = Param()
                     saturationParam.isDynamicParam = true
                     saturationParam.dataType = "int"
@@ -996,88 +916,9 @@ class NodeUtils {
                     saturationParam.properties = properties
                     saturationParam.minBounds = 0
                     saturationParam.maxBounds = 100
-                    Log.e("Test", "Adding saturation param at position : ${params.size}")
                     params.add(saturationParam)
-                } else {
-                    Log.d("Test", "ℹ️ Saturation parameter already exists")
-                }
-
-                // Set initial value from attribute if available
-                val currentSaturation = getAttributeValue(
-                    matterDeviceInfo,
-                    endpoint,
-                    colorControlClusterId,
-                    COLOR_CONTROL_CURRENT_SATURATION_ATTR
-                )
-                if (currentSaturation is Number) {
-                    // Convert from Matter scale (0-254) to percentage (0-100)
-                    val satValue = (currentSaturation.toInt() * 100) / 254
-                    saturationParam.value = satValue.toDouble()
-                    Log.d(
-                        "Test",
-                        "🎨 Set initial saturation value: $satValue% (from Matter value: ${currentSaturation})"
-                    )
-                }
-            } else {
-                Log.d(
-                    "Test",
-                    "❌ CurrentSaturation attribute (0x1) not found - skipping Saturation parameter"
-                )
-                if (saturationParam != null) {
-                    params.remove(saturationParam)
                 }
             }
-
-            // Check Color Capabilities to determine what color modes are supported
-            val colorCapabilities = getAttributeValue(
-                matterDeviceInfo,
-                endpoint,
-                colorControlClusterId,
-                COLOR_CONTROL_COLOR_CAPABILITIES_ATTR
-            )
-            if (colorCapabilities is Number) {
-                val capabilities = colorCapabilities.toInt()
-                Log.d(TAG, "🎯 Color Capabilities: 0x${capabilities.toString(16)}")
-
-                // Bit 0: Hue and Saturation
-                if ((capabilities and 0x01) != 0) {
-                    Log.d(TAG, "  ✅ Supports Hue/Saturation mode")
-                }
-
-                // Bit 1: Enhanced Hue
-                if ((capabilities and 0x02) != 0) {
-                    Log.d(TAG, "  ✅ Supports Enhanced Hue mode")
-                }
-
-                // Bit 2: Color Loop
-                if ((capabilities and 0x04) != 0) {
-                    Log.d(TAG, "  ✅ Supports Color Loop mode")
-                }
-
-                // Bit 3: XY
-                if ((capabilities and 0x08) != 0) {
-                    Log.d(TAG, "  ✅ Supports XY color mode")
-                }
-
-                // Bit 4: Color Temperature
-                if ((capabilities and 0x10) != 0) {
-                    Log.d(TAG, "  ✅ Supports Color Temperature mode")
-                }
-            }
-
-            // Log summary of created parameters
-            val colorParams = params.filter {
-                it.paramType == AppConstants.PARAM_TYPE_HUE ||
-                        it.paramType == AppConstants.PARAM_TYPE_SATURATION ||
-                        it.paramType == AppConstants.PARAM_TYPE_CCT
-            }
-
-            Log.d(TAG, "📊 Color Control Summary: Created ${colorParams.size} color parameters")
-            colorParams.forEach { param ->
-                Log.d(TAG, "  🎨 ${param.name} (${param.paramType}): ${param.value}")
-            }
-
-            device.params = params
         }
     }
 }

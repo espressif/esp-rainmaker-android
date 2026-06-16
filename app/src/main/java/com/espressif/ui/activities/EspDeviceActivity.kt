@@ -53,6 +53,7 @@ import com.espressif.ble.BleLocalControlManager
 import com.espressif.cloudapi.ApiManager
 import com.espressif.cloudapi.ApiResponseListener
 import com.espressif.cloudapi.CloudException
+import com.espressif.matter.ChipClientHelper
 import com.espressif.matter.ControllerClusterHelper
 import com.espressif.matter.ControllerLoginActivity
 import com.espressif.matter.DoorLockClusterHelper
@@ -77,7 +78,9 @@ import com.google.android.gms.threadnetwork.ThreadNetwork
 import com.google.android.gms.threadnetwork.ThreadNetworkCredentials
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.JsonObject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -356,6 +359,11 @@ class EspDeviceActivity : AppCompatActivity() {
         // Setup Matter subscriptions if device is MATTER_LOCAL
         if (nodeStatus == AppConstants.NODE_STATUS_MATTER_LOCAL) {
             setupMatterSubscriptions()
+            // Pull the latest attribute values from the device every time the screen is
+            // re-entered. The cached node.params can be stale (e.g. value was changed in
+            // a previous session, by another client, or while we were paused) and the
+            // subscription only delivers deltas after it is established.
+            refreshMatterDeviceValues()
         }
 
         if (bleLocalCtrlInfo != null && nodeId != null) {
@@ -662,6 +670,7 @@ class EspDeviceActivity : AppCompatActivity() {
                 val id = BigInteger(matterNodeId, 16)
                 val deviceId = id.toLong()
                 if (espApp.chipClientMap.containsKey(matterNodeId)) {
+                    setUpdateDeviceListLoading(true)
                     val espClusterHelper = ControllerClusterHelper(
                         espApp.chipClientMap[matterNodeId]!!,
                         espApp
@@ -670,7 +679,17 @@ class EspDeviceActivity : AppCompatActivity() {
                         deviceId,
                         AppConstants.ENDPOINT_0,
                         AppConstants.CONTROLLER_CLUSTER_ID_HEX
-                    )
+                    ).whenComplete { _, throwable ->
+                        runOnUiThread {
+                            setUpdateDeviceListLoading(false)
+                            if (throwable != null) {
+                                Log.e(TAG, "Update device list failed", throwable)
+                                showUpdateDeviceListResult(false)
+                            } else {
+                                showUpdateDeviceListResult(true)
+                            }
+                        }
+                    }
                 }
             } else {
                 val serviceParamJson = JsonObject()
@@ -698,15 +717,28 @@ class EspDeviceActivity : AppCompatActivity() {
                 val body = JsonObject()
                 body.add(serviceName, serviceParamJson)
 
+                setUpdateDeviceListLoading(true)
                 val networkApiManager = NetworkApiManager(espApp)
                 networkApiManager.updateParamValue(nodeId, body, object : ApiResponseListener {
                     override fun onSuccess(data: Bundle?) {
+                        runOnUiThread {
+                            setUpdateDeviceListLoading(false)
+                            showUpdateDeviceListResult(true)
+                        }
                     }
 
                     override fun onResponseFailure(exception: java.lang.Exception) {
+                        runOnUiThread {
+                            setUpdateDeviceListLoading(false)
+                            showUpdateDeviceListResult(false)
+                        }
                     }
 
                     override fun onNetworkFailure(exception: java.lang.Exception) {
+                        runOnUiThread {
+                            setUpdateDeviceListLoading(false)
+                            showUpdateDeviceListResult(false)
+                        }
                     }
                 })
             }
@@ -1448,6 +1480,8 @@ class EspDeviceActivity : AppCompatActivity() {
             binding.espDeviceLayout.rvStaticParamList.visibility = View.VISIBLE
         }
 
+        updateControllerActionButtonsState()
+
         supportActionBar!!.title = device!!.userVisibleName
 
         if (!isNetworkAvailable) {
@@ -1487,6 +1521,92 @@ class EspDeviceActivity : AppCompatActivity() {
         binding.espDeviceLayout.paramsParentLayout.setAlpha(1f)
         binding.rlProgress.visibility = View.GONE
         window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+    }
+
+    /**
+     * Read the current attribute values for a Matter-local device and refresh the UI.
+     *
+     * The cached values in node.devices[].params can be stale after the activity has
+     * been paused/destroyed (we only display copies of those Param objects), and
+     * Matter attribute subscriptions only deliver deltas once they are established.
+     * Doing a one-shot read here guarantees the sliders, switches, etc. show the
+     * actual on-device state every time the screen is opened.
+     */
+    private fun refreshMatterDeviceValues() {
+        val capturedNodeId = nodeId
+        val capturedMatterNodeId = matterNodeId
+        if (capturedNodeId.isNullOrEmpty()
+            || capturedMatterNodeId.isNullOrEmpty()
+            || !espApp.chipClientMap.containsKey(capturedMatterNodeId)
+            || !espApp.availableMatterDevices.contains(capturedMatterNodeId)
+        ) {
+            return
+        }
+        val node = espApp.nodeMap[capturedNodeId] ?: return
+
+        lifecycleScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    ChipClientHelper(espApp).getCurrentValues(
+                        capturedNodeId,
+                        capturedMatterNodeId,
+                        node
+                    )
+                }
+                // getCurrentValues updated node.devices[*].params in place;
+                // re-copy them into the adapter's working list so the UI reflects it.
+                updateUi()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to refresh Matter device values", e)
+            }
+        }
+    }
+
+    /**
+     * Toggle the "Update Device List" button between its normal state and a
+     * loading state. While loading, the button is hidden/disabled and a spinner
+     * is shown so the user gets clear feedback that the operation is in progress.
+     */
+    private fun setUpdateDeviceListLoading(isLoading: Boolean) {
+        binding.espDeviceLayout.btnUpdate.isEnabled = !isLoading
+        binding.espDeviceLayout.btnUpdate.visibility = if (isLoading) View.GONE else View.VISIBLE
+        binding.espDeviceLayout.progressUpdate.visibility = if (isLoading) View.VISIBLE else View.GONE
+    }
+
+    private fun showUpdateDeviceListResult(success: Boolean) {
+        val messageRes = if (success) {
+            R.string.update_device_list_success
+        } else {
+            R.string.update_device_list_failed
+        }
+        Toast.makeText(this, getString(messageRes), Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * Enable/disable the controller and Thread Border Router action buttons based on
+     * whether the node is reachable. When the device is offline these actions can't be
+     * performed, so they are disabled (and dimmed) just like the other device controls.
+     */
+    private fun updateControllerActionButtonsState() {
+        val online = isNodeOnline()
+
+        // The Matter controller "Update Device List" button additionally stays disabled
+        // for the unauthorised pure-matter controller case (handled in initViews()).
+        val isPureMatterUnauthorised =
+            isControllerClusterAvailable && AppConstants.NODE_TYPE_PURE_MATTER == nodeType
+        setActionButtonEnabled(
+            binding.espDeviceLayout.btnUpdate,
+            online && !isPureMatterUnauthorised
+        )
+
+        setActionButtonEnabled(binding.espDeviceLayout.btnUpdateRmaker, online)
+        setActionButtonEnabled(binding.espDeviceLayout.btnUpdateDataset, online)
+        setActionButtonEnabled(binding.espDeviceLayout.btnMergeDataset, online)
+    }
+
+    private fun setActionButtonEnabled(button: View, enabled: Boolean) {
+        button.isEnabled = enabled
+        button.alpha = if (enabled) 1f else 0.5f
     }
 
     // Matter Subscription Methods

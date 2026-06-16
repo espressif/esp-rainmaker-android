@@ -38,6 +38,7 @@ import com.espressif.ui.models.Schedule;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.gson.JsonObject;
+import com.warkiz.tickseekbar.TickSeekBar;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -548,6 +549,7 @@ public class Utils {
                     ivDevice.setImageResource(R.drawable.ic_device_security_panel);
                     break;
                 case AppConstants.ESP_DEVICE_MATTER_CONTROLLER:
+                case AppConstants.ESP_DEVICE_AGENT:
                     ivDevice.setImageResource(R.drawable.ic_device_matter_controller);
                     break;
                 case AppConstants.ESP_DEVICE_THREAD_BR:
@@ -609,5 +611,35 @@ public class Utils {
 
     public static int temperatureAppToDeviceConversion(int temp) {
         return temp * 100;
+    }
+
+    /**
+     * Apply min/max bounds to a {@link TickSeekBar} in a recycling-safe order.
+     * <p>
+     * The TickSeekBar library silently clamps each setter against the existing
+     * bound: setMin(x) does mMin = Math.min(mMax, x) and setMax(x) does
+     * mMax = Math.max(mMin, x). When a ViewHolder's slider is reused with very
+     * different bounds (e.g. switching from a 0-100 brightness slider to a
+     * 2700-6500 CCT slider, or vice versa), a naive setMin-then-setMax (or the
+     * reverse) leaves one bound at its previous value. We pick the order that
+     * lets both new bounds stick on the first try.
+     */
+    public static void setSliderBounds(TickSeekBar slider, float min, float max) {
+        if (slider == null || min > max) {
+            return;
+        }
+
+        /* Note : Calling the setMax() and setMin() in the wrong order leaves one bound stuck at its old value — exactly the 100 vs 2700 CCT bug.
+           When the new window sits entirely above the old one (min > current max), you must raise max first or setMin gets clamped; otherwise set min first.
+           So below if-else code (even though looks the same set of statements) is intentionally done.
+           There's no way to reconfigure an existing inflated slider in one shot.
+           */
+        if (min > slider.getMax()) {
+            slider.setMax(max);   // max first
+            slider.setMin(min);
+        } else {
+            slider.setMin(min);   // min first
+            slider.setMax(max);
+        }
     }
 }

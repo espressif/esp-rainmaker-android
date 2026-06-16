@@ -686,31 +686,8 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             paramViewHolder.intSlider.setVisibility(View.VISIBLE);
             paramViewHolder.floatSlider.setVisibility(View.GONE);
 
-            // Force slider configuration to prevent ViewHolder recycling issues
-            // Set configuration multiple times to ensure it sticks
-            paramViewHolder.intSlider.setMin(min);
-            paramViewHolder.intSlider.setMax(max);
+            Utils.setSliderBounds(paramViewHolder.intSlider, min, max);
             paramViewHolder.intSlider.setTickCount(2);
-
-            // Force a second configuration to overcome any caching issues
-            paramViewHolder.intSlider.post(new Runnable() {
-                @Override
-                public void run() {
-                    paramViewHolder.intSlider.setMin(min);
-                    paramViewHolder.intSlider.setMax(max);
-
-                    // Verify the values were set correctly
-                    float actualMin = paramViewHolder.intSlider.getMin();
-                    float actualMax = paramViewHolder.intSlider.getMax();
-                    Log.d(TAG, "Post-delayed Slider config for " + param.getName() + " - Expected min:" + min + " max:" + max +
-                            " | Actual min:" + actualMin + " max:" + actualMax);
-
-                    if (Math.abs(actualMin - min) > 0.1f || Math.abs(actualMax - max) > 0.1f) {
-                        Log.e(TAG, "SLIDER CONFIGURATION MISMATCH for " + param.getName() +
-                                " - This is the recycling bug!");
-                    }
-                }
-            });
 
             if (sliderValue < min) {
 
@@ -941,31 +918,8 @@ public class ParamAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             paramViewHolder.intSlider.setVisibility(View.GONE);
             paramViewHolder.floatSlider.setVisibility(View.VISIBLE);
 
-            // Force slider configuration to prevent ViewHolder recycling issues
-            // Set configuration multiple times to ensure it sticks
-            paramViewHolder.floatSlider.setMin(min);
-            paramViewHolder.floatSlider.setMax(max);
+            Utils.setSliderBounds(paramViewHolder.floatSlider, min, max);
             paramViewHolder.floatSlider.setTickCount(2);
-
-            // Force a second configuration to overcome any caching issues
-            paramViewHolder.floatSlider.post(new Runnable() {
-                @Override
-                public void run() {
-                    paramViewHolder.floatSlider.setMin(min);
-                    paramViewHolder.floatSlider.setMax(max);
-
-                    // Verify the values were set correctly
-                    float actualMin = paramViewHolder.floatSlider.getMin();
-                    float actualMax = paramViewHolder.floatSlider.getMax();
-                    Log.d(TAG, "Post-delayed Float Slider config for " + param.getName() + " - Expected min:" + min + " max:" + max +
-                            " | Actual min:" + actualMin + " max:" + actualMax);
-
-                    if (Math.abs(actualMin - min) > 0.1f || Math.abs(actualMax - max) > 0.1f) {
-                        Log.e(TAG, "FLOAT SLIDER CONFIGURATION MISMATCH for " + param.getName() +
-                                " - This is the recycling bug!");
-                    }
-                }
-            });
 
             if (sliderValue < min) {
 
