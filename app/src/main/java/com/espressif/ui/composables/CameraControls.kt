@@ -1052,11 +1052,13 @@ fun initCameraControls(view: View, nodeId: String, hasControlParam: Boolean = tr
                                     Log.d("CameraControls", "Stopping existing video before playing new one")
                                     onVideoStop()
 
-                                    // Simply wait for native WebRTC resources to be released
-                                    // The disconnect callback fires too early - native cleanup happens after
-                                    Log.d("CameraControls", "Waiting for native cleanup (1000ms)")
-                                    delay(1000)
-                                    Log.d("CameraControls", "Cleanup wait complete")
+                                    // Wait for cleanup to complete (signaled via onConnectionStateChanged callback)
+                                    val deferred = cleanupComplete
+                                    if (deferred != null) {
+                                        Log.d("CameraControls", "Waiting for cleanup signal...")
+                                        withTimeoutOrNull(2000) { deferred.await() }
+                                    }
+                                    Log.d("CameraControls", "Cleanup complete")
                                 }
                                 // Now start new video
                                 Log.d("CameraControls", "Starting new video")
@@ -1367,10 +1369,11 @@ fun initViewportControls(composeView: ComposeView, channelName: String, nodeId: 
                         Log.d("CameraControls", "Resuming with stored session info")
                         storedSessionInfo!!
                     } else {
-                        // Fetch new channel info
+                        // Fetch channel endpoints only; ICE servers will be fetched
+                        // in parallel with WebSocket connect inside start()
                         val region = EspApplication.region ?: "us-east-1"
                         Log.d("CameraControls", "initViewportControls: Using region: $region for WebRTC connection")
-                        val result = WebRtcChannelInfoHelper.fetchChannelInfo(region, channelName.trim(), ChannelRole.VIEWER)
+                        val result = WebRtcChannelInfoHelper.fetchChannelEndpoints(region, channelName.trim(), ChannelRole.VIEWER)
                         result.getOrNull() ?: run {
                             result.onFailure { e ->
                                 isLoading = false
@@ -1443,6 +1446,7 @@ fun initViewportControls(composeView: ComposeView, channelName: String, nodeId: 
                             webrtcEndpoint = channelInfo.webrtcEndpoint,
                             region = channelInfo.region,
                             iceServers = channelInfo.iceServers,
+                            dataEndpoint = channelInfo.dataEndpoint,
                             surfaceViewRenderer = surfaceViewRenderer!!,
                             isMaster = false,
                             clientId = storedClientId  // Reuse client ID if available
@@ -1828,7 +1832,7 @@ fun CameraControlsWithViewport(
             surfaceViewRenderer?.clearImage()
             val region = EspApplication.region ?: "us-east-1"
             Log.d("CameraControls", "Using region: $region for WebRTC connection")
-            val result = WebRtcChannelInfoHelper.fetchChannelInfo(region, channelName.trim(), ChannelRole.VIEWER)
+            val result = WebRtcChannelInfoHelper.fetchChannelEndpoints(region, channelName.trim(), ChannelRole.VIEWER)
             val channelInfo = result.getOrNull() ?: run {
                 result.onFailure { e ->
                     Toast.makeText(context, context.getString(R.string.camera_toast_webrtc_start_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
@@ -1883,6 +1887,7 @@ fun CameraControlsWithViewport(
                     webrtcEndpoint = channelInfo.webrtcEndpoint,
                     region = channelInfo.region,
                     iceServers = channelInfo.iceServers,
+                    dataEndpoint = channelInfo.dataEndpoint,
                     surfaceViewRenderer = surfaceViewRenderer!!,
                     isMaster = false,
                     clientId = storedClientId

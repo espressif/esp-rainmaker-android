@@ -294,6 +294,10 @@ public class EspApplication extends Application {
             }
         }
         setupNotificationChannels();
+
+        // Initialize WebRTC helpers
+        com.espressif.ui.webrtc.WebRtcChannelInfoHelper.init(this);
+        com.espressif.ui.webrtc.WebRtcViewportManager.preInitializePeerConnectionFactory(this);
     }
 
     public AppState getAppState() {
@@ -330,6 +334,7 @@ public class EspApplication extends Application {
                 break;
 
             case NO_USER_LOGIN:
+                com.espressif.ui.webrtc.WebRtcChannelInfoHelper.clearCache();
                 Intent loginActivity = new Intent(this, ConsentActivity.class);
                 loginActivity.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
                         | Intent.FLAG_ACTIVITY_CLEAR_TASK
