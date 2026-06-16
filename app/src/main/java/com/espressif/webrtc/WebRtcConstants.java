@@ -23,6 +23,9 @@ public class WebRtcConstants {
     public static final String KEY_ICE_SERVER_URI = "iceServerUri";
     public static final String KEY_CAMERA_FRONT_FACING = "cameraFrontFacing";
 
+    // Set to true to show mic/video ON/OFF toggle buttons in WebRTC camera view
+    public static final boolean ENABLE_MEDIA_TOGGLE_UI = false;
+
     public static final String KEY_CLIENT_ID = "clientId";
     public static final String KEY_CHANNEL_NAME = "channelName";
 

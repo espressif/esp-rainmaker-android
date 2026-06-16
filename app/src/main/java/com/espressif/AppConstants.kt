@@ -26,6 +26,7 @@ class AppConstants {
         const val UI_TYPE_SLIDER = "esp.ui.slider"
         const val UI_TYPE_HUE_SLIDER = "esp.ui.hue-slider"
         const val UI_TYPE_HUE_CIRCLE = "esp.ui.hue-circle"
+        const val UI_TYPE_CAMERA_CONTROLS = "esp.ui.camera-controls"
         const val UI_TYPE_DROP_DOWN = "esp.ui.dropdown"
         const val UI_TYPE_HIDDEN = "esp.ui.hidden"
         const val UI_TYPE_TRIGGER = "esp.ui.trigger"
@@ -88,6 +89,7 @@ class AppConstants {
 
         // Param Types
         const val PARAM_TYPE_NAME = "esp.param.name"
+        const val PARAM_TYPE_CAMERA = "esp.param.camera"
         const val PARAM_TYPE_CCT = "esp.param.cct"
         const val PARAM_TYPE_POWER = "esp.param.power"
         const val PARAM_TYPE_SATURATION = "esp.param.saturation"
@@ -645,6 +647,26 @@ class AppConstants {
         const val KEY_TIMEOUT = "timeout"
         const val KEY_DATA = "data"
         const val URL_USER_NODES_CMD = "/user/nodes/cmd"
+
+        const val CAMERA_COMMAND_LIST_FILES = "list-files"
+        const val CAMERA_COMMAND_FAST_LIST_FILES = "fast-list-files"
+        const val CAMERA_COMMAND_FORMAT_SD_CARD = "format-sd-card"
+        const val CAMERA_COMMAND_LIST_EVENTS = "list-events"
+        const val CAMERA_COMMAND_LIST_EVENT_FILES = "list-event-files"
+        const val CAMERA_COMMAND_PUT_MEDIA_START = "put-media-start"
+        const val CAMERA_COMMAND_PUT_MEDIA_STOP  = "put-media-stop"
+        const val CAMERA_COMMAND_LIVE_MODE = "live-mode"
+        const val CAMERA_COMMAND_VIEW_FILES = "view-files"
+        const val CAMERA_COMMAND_VIEW_EVENT_FILES = "view-event-files"
+        const val CAMERA_COMMAND_DELETE_FILE = "delete-file"
+
+        const val CAMERA_COMMAND_VIEW_FROM = "view-from"
+
+        const val CAMERA_COMMAND_ARG_SKIP = "Skip"
+        const val CAMERA_COMMAND_ARG_EVENT = "Event"
+        const val CAMERA_COMMAND_ARG_START_TIME = "Start time"
+        const val CAMERA_COMMAND_ARG_END_TIME = "End time"
+        const val CAMERA_COMMAND_ARG_LIMIT = "Limit"
 
         /* Keys used in API calls and responses */
         const val KEY_CHALLENGE_RESP = "challenge_response"

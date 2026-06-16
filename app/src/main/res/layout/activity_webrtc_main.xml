@@ -13,47 +13,9 @@
 
         <org.webrtc.SurfaceViewRenderer
             android:id="@+id/remote_view"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center" />
-
-        <LinearLayout
-            android:id="@+id/fps_overlay_container"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:orientation="vertical"
-            android:background="#99000000"
-            android:padding="8dp">
-
-            <TextView
-                android:id="@+id/tv_fps"
-                android:layout_width="80dp"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:shadowColor="@android:color/black"
-                android:shadowDx="2"
-                android:shadowDy="2"
-                android:shadowRadius="4"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_resolution"
-                android:layout_width="80dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center"
-                android:shadowColor="@android:color/black"
-                android:shadowDx="2"
-                android:shadowDy="2"
-                android:shadowRadius="4"
-                android:textColor="#FFFFFF"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-
-        </LinearLayout>
 
         <org.webrtc.SurfaceViewRenderer
             android:id="@+id/local_view"
@@ -61,6 +23,53 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
             android:visibility="invisible" />
+
+        <!-- Landscape controls overlay (tap to show: stop, mic, camera). Sits BELOW the
+             back button and FPS overlay so those remain tappable when the Compose layer
+             is consuming pointer input. -->
+        <androidx.compose.ui.platform.ComposeView
+            android:id="@+id/media_toggle_compose_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <ImageButton
+            android:id="@+id/btn_back_to_viewport"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="top|start"
+            android:layout_margin="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:backgroundTint="#80000000"
+            android:contentDescription="Back to viewport"
+            android:padding="12dp"
+            android:src="@android:drawable/ic_menu_revert"
+            android:tint="#FFFFFF" />
+
+        <LinearLayout
+            android:id="@+id/fps_overlay_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_margin="8dp"
+            android:orientation="vertical"
+            android:padding="6dp">
+
+            <TextView
+                android:id="@+id/tv_fps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tv_resolution"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp" />
+
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="wrap_content"

@@ -363,6 +363,19 @@
             android:layout_marginEnd="16dp"
             android:visibility="gone" />
 
+        <androidx.compose.ui.platform.ComposeView
+            android:id="@+id/viewport_compose_view"
+            android:layout_width="match_parent"
+            android:layout_height="240dp"
+            android:layout_below="@id/rl_btn_edit"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="0dp"
+            android:layout_marginEnd="0dp"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone" />
+
     </RelativeLayout>
 
     <RelativeLayout
