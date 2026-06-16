@@ -143,6 +143,11 @@ class WebRtcViewportManager(
             Log.w(TAG, "Media-toggle op rejected — session stopped")
         }
     }
+    // SDP offer retry state
+    @Volatile private var sdpAnswerReceived = false
+    private var offerAttempt = 0
+    private val offerRetryHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
     companion object {
         private const val ENABLE_INTEL_VP8_ENCODER = true
         private const val ENABLE_H264_HIGH_PROFILE = true
@@ -157,6 +162,9 @@ class WebRtcViewportManager(
         private const val VIDEO_WIDTH = 640
         private const val VIDEO_HEIGHT = 480
         private const val VIDEO_FPS = 20
+
+        private const val MAX_OFFER_RETRIES = 3
+        private const val OFFER_TIMEOUT_MS = 5000L
 
         /**
          * Pre-initialize the PeerConnectionFactory on a background thread.
@@ -193,6 +201,33 @@ class WebRtcViewportManager(
     ) {
         this.onConnectionStateChanged = onConnectionStateChanged
         this.onError = onError
+    }
+
+    /**
+     * Schedule a retry if no SDP answer arrives within [OFFER_TIMEOUT_MS].
+     * Called after each offer is sent. Cancels any previously pending retry first.
+     */
+    private fun scheduleOfferRetry() {
+        offerRetryHandler.removeCallbacksAndMessages(null)
+        offerAttempt++
+        Log.d(TAG, "Offer sent (attempt $offerAttempt/$MAX_OFFER_RETRIES), waiting ${OFFER_TIMEOUT_MS}ms for answer")
+
+        val isLastAttempt = offerAttempt >= MAX_OFFER_RETRIES
+        val timeout = if (isLastAttempt) OFFER_TIMEOUT_MS * 3 / 2 else OFFER_TIMEOUT_MS
+
+        offerRetryHandler.postDelayed({
+            if (sdpAnswerReceived) return@postDelayed
+
+            if (!isLastAttempt) {
+                Log.w(TAG, "No SDP answer after ${timeout}ms (attempt $offerAttempt/$MAX_OFFER_RETRIES), resending offer")
+                Toast.makeText(context, "No response from camera, retrying... ($offerAttempt/$MAX_OFFER_RETRIES)", Toast.LENGTH_SHORT).show()
+                createSdpOffer()
+            } else {
+                Log.e(TAG, "No SDP answer after $MAX_OFFER_RETRIES attempts (${timeout}ms final wait), giving up")
+                onError?.invoke("Camera not responding. Please try again.")
+                stop()
+            }
+        }, timeout)
     }
 
     fun setOnMediaToggleChanged(listener: ((videoEnabled: Boolean, audioEnabled: Boolean) -> Unit)?) {
@@ -813,9 +848,18 @@ class WebRtcViewportManager(
 
             override fun onSdpAnswer(answerEvent: Event) {
                 Log.d(TAG, "SDP answer received from signaling")
+                sdpAnswerReceived = true
+                offerRetryHandler.removeCallbacksAndMessages(null)
                 val sdp = Event.parseSdpEvent(answerEvent)
                 val sdpAnswer = SessionDescription(SessionDescription.Type.ANSWER, sdp)
-                localPeer?.setRemoteDescription(
+                // Snapshot localPeer once: stop() can null it on the main thread
+                // while this answer is processed on the signaling-worker thread.
+                val peer = localPeer
+                if (peer == null) {
+                    Log.w(TAG, "SDP answer arrived after localPeer was cleared; ignoring")
+                    return
+                }
+                peer.setRemoteDescription(
                     object : KinesisVideoSdpObserver() {
                         override fun onCreateFailure(error: String) {
                             super.onCreateFailure(error)
@@ -824,9 +868,14 @@ class WebRtcViewportManager(
                     },
                     sdpAnswer
                 )
-                Log.d(TAG, "Answer Client ID: ${answerEvent.senderClientId}")
-                peerConnectionFoundMap[answerEvent.senderClientId] = localPeer!!
-                handlePendingIceCandidates(answerEvent.senderClientId)
+                val senderClientId = answerEvent.senderClientId
+                Log.d(TAG, "Answer Client ID: $senderClientId")
+                if (senderClientId != null) {
+                    peerConnectionFoundMap[senderClientId] = peer
+                    handlePendingIceCandidates(senderClientId)
+                } else {
+                    Log.w(TAG, "SDP answer arrived without senderClientId; skipping peer/ICE bookkeeping")
+                }
             }
 
             override fun onIceCandidate(message: Event) {
@@ -891,6 +940,8 @@ class WebRtcViewportManager(
 
             override fun onSdpAnswer(answerEvent: Event) {
                 Log.d(TAG, "SDP answer received from signaling")
+                sdpAnswerReceived = true
+                offerRetryHandler.removeCallbacksAndMessages(null)
 
                 // Snapshot localPeer once. stop() may null it on the main thread between
                 // any two reads on this signaling-worker thread.
@@ -996,6 +1047,7 @@ class WebRtcViewportManager(
                 if (client?.isOpen == true) {
                     client?.sendSdpOffer(message)
                     Log.d(TAG, "SDP Offer created and sent")
+                    scheduleOfferRetry()
                 } else {
                     Log.e(TAG, "Cannot send SDP offer: WebSocket connection is not open")
                     onError?.invoke("WebSocket connection lost")
@@ -1182,6 +1234,11 @@ class WebRtcViewportManager(
         // already-disposed peer/factory (use-after-free), and the worker thread does
         // not leak across the per-session manager instances.
         mediaOpsExecutor.shutdownNow()
+        // Cancel any pending offer retry
+        offerRetryHandler.removeCallbacksAndMessages(null)
+        sdpAnswerReceived = false
+        offerAttempt = 0
+
         // Store callback references and clear them immediately to prevent callbacks during cleanup
         val connectionCallback = onConnectionStateChanged
         val errorCallback = onError
