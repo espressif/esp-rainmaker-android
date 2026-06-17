@@ -1026,7 +1026,7 @@ public class NotificationWorker extends Worker {
         EspDatabase.getInstance(espApp).getNotificationDao().insertOrUpdate(notificationEvent);
         Log.d(TAG, "OTA Notification inserted in database");
         if (isNotificationAllowed) {
-            sendOtaNotification(title, msgBuilder.toString(), AppConstants.CHANNEL_ADMIN);
+            sendOtaNotification(title, msgBuilder.toString(), nodeId);
         }
     }
 
