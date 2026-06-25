@@ -674,6 +674,9 @@
     <string name="camera_cd_disable_camera">关闭摄像头</string>
     <string name="camera_cd_enable_camera">开启摄像头</string>
     <string name="camera_cd_toggle_orientation">切换屏幕方向</string>
+    <string name="camera_cd_mute_audio">关闭声音</string>
+    <string name="camera_cd_unmute_audio">开启声音</string>
+    <string name="camera_cmd_save_clip">保存片段</string>
 
     <string name="camera_connecting">正在连接&#8230;</string>
     <string name="camera_cmd_live_view">实时画面</string>

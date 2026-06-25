@@ -660,6 +660,7 @@ class AppConstants {
         const val CAMERA_COMMAND_VIEW_FILES = "view-files"
         const val CAMERA_COMMAND_VIEW_EVENT_FILES = "view-event-files"
         const val CAMERA_COMMAND_DELETE_FILE = "delete-file"
+        const val CAMERA_COMMAND_SAVE_CLIP = "save-clip"
 
         const val CAMERA_COMMAND_VIEW_FROM = "view-from"
 

@@ -100,7 +100,6 @@ public class WebRtcActivity extends AppCompatActivity {
 
     // Feature toggles
     private static final boolean ENABLE_DATA_CHANNEL = false;
-    private static final boolean ENABLE_AUDIO = false;
 
     private static volatile SignalingServiceWebSocketClient client;
     private PeerConnectionFactory peerConnectionFactory;
@@ -118,6 +117,7 @@ public class WebRtcActivity extends AppCompatActivity {
     private SurfaceViewRenderer remoteView;
 
     private VideoTrack remoteVideoTrack = null; // Store for transfer to viewport
+    private AudioTrack remoteAudioTrack = null;
 
     private PeerConnection localPeer;
 
@@ -444,18 +444,18 @@ public class WebRtcActivity extends AppCompatActivity {
         // Clear viewport manager reference
         viewportManagerForReusedSession = null;
 
-        // If reusing session, transfer video back to viewport before destroying
-        // This ensures we're back in portrait mode before any cleanup is triggered
-        // The viewport will handle cleanup gracefully when connection state changes
+        // If reusing session, transfer video back to viewport and return early.
+        // Avoid blocking the main thread so the viewport renderer can display
+        // frames as soon as its surface is ready.
         if (reuseSession) {
             com.espressif.ui.webrtc.WebRtcViewportManager viewportManager = com.espressif.EspApplication.getViewportWebRtcManager();
             if (viewportManager != null) {
-                Log.d(TAG, "Transferring video back to viewport before destroying landscape - ensuring portrait mode before cleanup");
+                Log.d(TAG, "Transferring video back to viewport before destroying landscape");
                 try {
                     org.webrtc.SurfaceViewRenderer viewportRenderer = viewportManager.getViewportRenderer();
                     if (viewportRenderer != null) {
                         viewportManager.transferVideoTo(viewportRenderer);
-                        Log.d(TAG, "Video transferred back to viewport - cleanup will happen in portrait mode");
+                        Log.d(TAG, "Video transferred back to viewport");
                     } else {
                         Log.w(TAG, "Viewport renderer not available, video will stop");
                     }
@@ -463,9 +463,19 @@ public class WebRtcActivity extends AppCompatActivity {
                     Log.e(TAG, "Error transferring video back to viewport: " + e.getMessage(), e);
                 }
             }
-            // Don't clear viewport manager - it's still active in viewport
-            // Cleanup will be handled by viewport's onConnectionStateChanged callback
-        } else if (!userStoppedSession && remoteVideoTrack != null && rootEglBase != null && remoteView != null) {
+
+            // Release only the landscape renderer and stats executor
+            printStatsExecutor.shutdownNow();
+            if (remoteView != null) {
+                remoteView.release();
+                remoteView = null;
+            }
+            Log.d(TAG, "Reused session - keeping WebRTC resources alive for viewport");
+            super.onDestroy();
+            return;
+        }
+
+        if (!userStoppedSession && remoteVideoTrack != null && rootEglBase != null && remoteView != null) {
             // Started directly in landscape - store session info for viewport to pick up.
             // Skipped when the user explicitly tapped Stop: in that case we want the full
             // disposal path below, not a stash for a (possibly never-happening) viewport pickup.
@@ -576,6 +586,7 @@ public class WebRtcActivity extends AppCompatActivity {
                 peerConnectionFoundMap.clear();
                 pendingIceCandidatesMap.clear();
         }
+        }
 
         // Video/audio sending resources are managed by WebRtcViewportManager
         // and cleaned up when the manager is stopped.
@@ -584,18 +595,6 @@ public class WebRtcActivity extends AppCompatActivity {
             localView.release();
             localView = null;
         }
-        } else {
-            // Reusing session - don't release EglBase or dispose peer connection
-            // Just release the landscape renderer (it was initialized with viewport's EglBase)
-            if (remoteView != null) {
-                remoteView.release();
-                remoteView = null;
-        }
-            Log.d(TAG, "Reused session - keeping WebRTC resources alive for viewport");
-        }
-
-        finish();
-
         super.onDestroy();
     }
 
@@ -622,94 +621,77 @@ public class WebRtcActivity extends AppCompatActivity {
             }
 
             // Transfer video track from viewport to landscape renderer
-            // Post to ensure renderer is attached to window after orientation change
+            // Post to ensure renderer is attached to window
             remoteView.post(new Runnable() {
                 @Override
                 public void run() {
-                    if (remoteView == null) {
-                        Log.e(TAG, "RemoteView became null during transfer setup");
-                        finish();
-                        return;
-                    }
-
-                    // Small delay to ensure renderer is fully ready after orientation change
-                    remoteView.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                if (remoteView == null) {
-                                    Log.e(TAG, "RemoteView became null during delayed transfer");
-                                    finish();
-                                    return;
-                                }
-
-                                Log.d(TAG, "Transferring video to landscape renderer...");
-                                viewportManager.transferVideoTo(remoteView);
-                                Log.d(TAG, "Video transferred successfully - hiding loading indicators");
-
-                                // Get the peer connection from viewport manager for stats collection
-                                localPeer = viewportManager.getPeerConnection();
-                                remoteVideoTrack = viewportManager.getRemoteVideoTrack();
-                                rootEglBase = viewportManager.getEglBase();
-
-                                // Store viewport manager reference to check if PeerConnection is still valid
-                                // When viewport manager stops, it disposes the PeerConnection, so we need to check
-                                viewportManagerForReusedSession = viewportManager;
-
-                                // Start stats collection now that we have the peer connection
-                                if (localPeer != null) {
-                                    Log.d(TAG, "Starting stats collection for reused session");
-                                    // Initialize stats tracking for reused session
-                                    // The stream was already active in viewport, so mark it as active here too
-                                    if (!isStreamActive) {
-                                        isStreamActive = true;
-                                        // Don't reset streamStartTime - use current time for bitrate calculation
-                                        // The delta-based bitrate calculation will work regardless
-                                        streamStartTime = System.currentTimeMillis();
-                                    }
-                                    // Reset last stats tracking to start fresh delta calculations
-                                    lastStatsTime = 0;
-                                    lastBytesReceived = 0;
-                                    startStatsCollection();
-                                } else {
-                                    Log.w(TAG, "Cannot start stats collection - localPeer is null");
-                                }
-
-                                // Hide loading indicators - video is already playing
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        try {
-                                            if (progressLoader != null) {
-                                                progressLoader.setVisibility(View.GONE);
-                                            }
-                                            if (tvLoading != null) {
-                                                tvLoading.setVisibility(View.GONE);
-                                            }
-                                        } catch (Exception e) {
-                                            Log.e(TAG, "Error hiding loading indicators: " + e.getMessage(), e);
-                                        }
-                                    }
-                                });
-                            } catch (Exception e) {
-                                Log.e(TAG, "Error transferring video: " + e.getMessage(), e);
-                                e.printStackTrace();
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        try {
-                                            String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown error";
-                                            Toast.makeText(WebRtcActivity.this, "Failed to transfer video: " + errorMsg, Toast.LENGTH_LONG).show();
-                                            finish();
-                                        } catch (Exception ex) {
-                                            Log.e(TAG, "Error showing error toast: " + ex.getMessage(), ex);
-                                            finish();
-                                        }
-                                    }
-                                });
-                            }
+                    try {
+                        if (remoteView == null) {
+                            Log.e(TAG, "RemoteView became null during transfer");
+                            finish();
+                            return;
                         }
-                    }, 300); // Delay to ensure renderer is ready after orientation change
+
+                        Log.d(TAG, "Transferring video to landscape renderer...");
+                        viewportManager.transferVideoTo(remoteView);
+                        Log.d(TAG, "Video transferred successfully - hiding loading indicators");
+
+                        // Get the peer connection from viewport manager for stats collection
+                        localPeer = viewportManager.getPeerConnection();
+                        remoteVideoTrack = viewportManager.getRemoteVideoTrack();
+                        rootEglBase = viewportManager.getEglBase();
+
+                        // Store viewport manager reference to check if PeerConnection is still valid
+                        // When viewport manager stops, it disposes the PeerConnection, so we need to check
+                        viewportManagerForReusedSession = viewportManager;
+
+                        // Start stats collection now that we have the peer connection
+                        if (localPeer != null) {
+                            Log.d(TAG, "Starting stats collection for reused session");
+                            if (!isStreamActive) {
+                                isStreamActive = true;
+                                streamStartTime = System.currentTimeMillis();
+                            }
+                            lastStatsTime = 0;
+                            lastBytesReceived = 0;
+                            startStatsCollection();
+                        } else {
+                            Log.w(TAG, "Cannot start stats collection - localPeer is null");
+                        }
+
+                        // Hide loading indicators - video is already playing
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    if (progressLoader != null) {
+                                        progressLoader.setVisibility(View.GONE);
+                                    }
+                                    if (tvLoading != null) {
+                                        tvLoading.setVisibility(View.GONE);
+                                    }
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error hiding loading indicators: " + e.getMessage(), e);
+                                }
+                            }
+                        });
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error transferring video: " + e.getMessage(), e);
+                        e.printStackTrace();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown error";
+                                    Toast.makeText(WebRtcActivity.this, "Failed to transfer video: " + errorMsg, Toast.LENGTH_LONG).show();
+                                    finish();
+                                } catch (Exception ex) {
+                                    Log.e(TAG, "Error showing error toast: " + ex.getMessage(), ex);
+                                    finish();
+                                }
+                            }
+                        });
+                    }
                 }
             });
             return; // Don't create new connection
@@ -853,11 +835,16 @@ public class WebRtcActivity extends AppCompatActivity {
         for (final VideoCodecInfo videoCodecInfo : vef.getSupportedCodecs()) {
             Log.d(TAG, videoCodecInfo.name);
         }
+        android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
+                .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build();
         peerConnectionFactory =
                 PeerConnectionFactory.builder()
                         .setVideoDecoderFactory(vdf)
                         .setVideoEncoderFactory(vef)
                         .setAudioDeviceModule(JavaAudioDeviceModule.builder(getApplicationContext())
+                                .setAudioAttributes(audioAttributes)
                                 .createAudioDeviceModule())
                         .createPeerConnectionFactory();
 
@@ -874,6 +861,7 @@ public class WebRtcActivity extends AppCompatActivity {
 
         remoteView.init(rootEglBase.getEglBaseContext(), null);
         remoteView.setZOrderMediaOverlay(false);
+        remoteView.setMirror(false);
         } else {
             // Reuse session - transfer video from viewport
             Log.d(TAG, "Reusing session - initializing renderer with viewport's EglBase");
@@ -884,6 +872,7 @@ public class WebRtcActivity extends AppCompatActivity {
                     // Use viewport's EglBase so video track can be transferred
                     remoteView.init(viewportEglBase.getEglBaseContext(), null);
                     remoteView.setZOrderMediaOverlay(false);
+                    remoteView.setMirror(false);
                     Log.d(TAG, "Initialized landscape renderer with viewport's EglBase for video transfer");
                 } else {
                     Log.e(TAG, "Viewport EglBase is null - cannot reuse session");
@@ -1021,9 +1010,28 @@ public class WebRtcActivity extends AppCompatActivity {
 
                 super.onAddStream(mediaStream);
 
-                Log.d(TAG, "Adding remote video stream (and audio) to the view");
+                Log.d(TAG, "onAddStream: Adding remote stream to the view");
 
                 addRemoteStreamToVideoView(mediaStream);
+            }
+
+            @Override
+            public void onAddTrack(final org.webrtc.RtpReceiver receiver, final MediaStream[] streams) {
+                super.onAddTrack(receiver, streams);
+                org.webrtc.MediaStreamTrack track = receiver.track();
+                Log.d(TAG, "onAddTrack: kind=" + (track != null ? track.kind() : "null")
+                        + ", id=" + (track != null ? track.id() : "null"));
+                if (track instanceof AudioTrack) {
+                    Log.d(TAG, "onAddTrack: Remote audio track received");
+                    remoteAudioTrack = (AudioTrack) track;
+                    boolean shouldPlay = !WebRtcConstants.INCOMING_AUDIO_MUTED_BY_DEFAULT;
+                    remoteAudioTrack.setEnabled(shouldPlay);
+                    Log.d(TAG, "remoteAudioTrack via onAddTrack: playing=" + shouldPlay);
+                    if (shouldPlay) {
+                        audioManager.setMode(AudioManager.MODE_NORMAL);
+                        audioManager.setSpeakerphoneOn(true);
+                    }
+                }
             }
 
             @Override
@@ -1186,6 +1194,12 @@ public class WebRtcActivity extends AppCompatActivity {
 
                             Map<String, Object> objectMap = entry.getValue().getMembers();
 
+                            // Only process video inbound-rtp, skip audio
+                            Object kind = objectMap.get("kind");
+                            if (kind == null || !"video".equals(kind.toString())) {
+                                continue;
+                            }
+
                             // Extract all relevant stats
                             Object tmp = objectMap.get("framesPerSecond");
                             Object width = objectMap.get("frameWidth");
@@ -1336,10 +1350,13 @@ public class WebRtcActivity extends AppCompatActivity {
     }
 
     private void addStreamToLocalPeer() {
-        // Video/audio sending is managed by WebRtcViewportManager when the session is active.
-        // The phone primarily receives video from the ESP device.
-        // Users can enable sending video/audio via the toggle controls in the player overlay.
-        Log.i(TAG, "Local stream setup - video/audio sending controlled via toggle buttons");
+        if (WebRtcConstants.SEND_AUDIO_BY_DEFAULT && localPeer != null) {
+            org.webrtc.AudioSource audioSource = peerConnectionFactory.createAudioSource(new MediaConstraints());
+            localAudioTrack = peerConnectionFactory.createAudioTrack(AudioTrackID, audioSource);
+            localAudioTrack.setEnabled(true);
+            localPeer.addTrack(localAudioTrack, Collections.singletonList(LOCAL_MEDIA_STREAM_LABEL));
+            Log.i(TAG, "Local audio track added to peer connection (default send)");
+        }
     }
 
     private void addDataChannelToLocalPeer() {
@@ -1384,7 +1401,7 @@ public class WebRtcActivity extends AppCompatActivity {
         MediaConstraints sdpMediaConstraints = new MediaConstraints();
 
         sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"));
-        if (ENABLE_AUDIO) {
+        if (WebRtcConstants.OFFER_AUDIO) {
             sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
         }
 
@@ -1420,7 +1437,7 @@ public class WebRtcActivity extends AppCompatActivity {
         final MediaConstraints sdpMediaConstraints = new MediaConstraints();
 
         sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"));
-        if (ENABLE_AUDIO) {
+        if (WebRtcConstants.OFFER_AUDIO) {
             sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
         }
 
@@ -1500,17 +1517,23 @@ public class WebRtcActivity extends AppCompatActivity {
 
     private void addRemoteStreamToVideoView(MediaStream stream) {
 
-        remoteVideoTrack = stream.videoTracks != null && stream.videoTracks.size() > 0 ? stream.videoTracks.get(0) : null;
+        VideoTrack videoTrack = stream.videoTracks != null && stream.videoTracks.size() > 0 ? stream.videoTracks.get(0) : null;
+        AudioTrack audioTrack = stream.audioTracks != null && stream.audioTracks.size() > 0 ? stream.audioTracks.get(0) : null;
+        Log.d(TAG, "addRemoteStream: videoTracks=" + (stream.videoTracks != null ? stream.videoTracks.size() : 0)
+                + ", audioTracks=" + (stream.audioTracks != null ? stream.audioTracks.size() : 0));
 
-        AudioTrack remoteAudioTrack = stream.audioTracks != null && stream.audioTracks.size() > 0 ? stream.audioTracks.get(0) : null;
+        // Store references (don't overwrite existing with null)
+        if (videoTrack != null) remoteVideoTrack = videoTrack;
+        if (audioTrack != null) remoteAudioTrack = audioTrack;
 
-        if (ENABLE_AUDIO && remoteAudioTrack != null) {
-            remoteAudioTrack.setEnabled(true);
-            Log.d(TAG, "remoteAudioTrack received: State=" + remoteAudioTrack.state().name());
-            audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-            audioManager.setSpeakerphoneOn(true);
-        } else if (!ENABLE_AUDIO) {
-            Log.d(TAG, "Audio support disabled - skipping audio track setup");
+        if (audioTrack != null) {
+            boolean shouldPlay = !WebRtcConstants.INCOMING_AUDIO_MUTED_BY_DEFAULT;
+            audioTrack.setEnabled(shouldPlay);
+            Log.d(TAG, "remoteAudioTrack received: State=" + audioTrack.state().name() + ", playing=" + shouldPlay);
+            if (shouldPlay) {
+                audioManager.setMode(AudioManager.MODE_NORMAL);
+                audioManager.setSpeakerphoneOn(true);
+            }
         }
 
         if (remoteVideoTrack != null) {

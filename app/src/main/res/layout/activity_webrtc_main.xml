@@ -11,7 +11,7 @@
         android:layout_height="match_parent"
         android:layout_weight="9">
 
-        <org.webrtc.SurfaceViewRenderer
+        <com.espressif.ui.webrtc.FlippableSurfaceViewRenderer
             android:id="@+id/remote_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"

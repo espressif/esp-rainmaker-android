@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.LifecycleOwner
+import com.amazonaws.services.kinesisvideo.model.ChannelRole
 import com.espressif.webrtc.*
 import com.espressif.ui.webrtc.WebRtcChannelInfo
 import org.webrtc.AudioSource
@@ -35,6 +36,7 @@ import org.webrtc.VideoSource
 import org.webrtc.VideoTrack
 import org.webrtc.audio.JavaAudioDeviceModule
 import org.webrtc.DefaultVideoDecoderFactory
+import org.webrtc.LowLatencyDefaultVideoDecoderFactory
 import org.webrtc.DefaultVideoEncoderFactory
 import org.webrtc.RTCStats
 import java.net.URI
@@ -43,6 +45,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.RejectedExecutionException
 import java.util.Date
 
 /**
@@ -71,6 +74,7 @@ class WebRtcViewportManager(
     private val TAG = "WebRtcViewportManager"
 
     private var rootEglBase: EglBase? = null
+    @Volatile private var isStarting = false
     private var peerConnectionFactory: PeerConnectionFactory? = null
     @Volatile private var localPeer: PeerConnection? = null
     private var remoteView: SurfaceViewRenderer? = null
@@ -93,8 +97,13 @@ class WebRtcViewportManager(
         private set
     var isAudioSendEnabled by mutableStateOf(false)
         private set
+    // Compose-observable so portrait and landscape share the same source of truth
+    // and toggling from either side propagates immediately.
+    var isIncomingAudioMuted by mutableStateOf(WebRtcConstants.INCOMING_AUDIO_MUTED_BY_DEFAULT)
+        private set
 
     private var onMediaToggleChanged: ((videoEnabled: Boolean, audioEnabled: Boolean) -> Unit)? = null
+    private var onIncomingAudioMuteChanged: ((muted: Boolean) -> Unit)? = null
 
     private var client: SignalingServiceWebSocketClient? = null
     private var audioManager: AudioManager? = null
@@ -118,13 +127,34 @@ class WebRtcViewportManager(
     private var onConnectionStateChanged: ((Boolean) -> Unit)? = null
     private var onError: ((String) -> Unit)? = null
 
+    // Single-thread executor for media toggle operations (camera open/close is slow; off main thread).
+    private val mediaOpsExecutor = Executors.newSingleThreadExecutor()
+
+    // Submit a media-toggle op, tolerating a stopping/stopped session: mediaOpsExecutor
+    // is shut down in stop(), so a late toggle would otherwise throw on the UI thread.
+    private fun submitMediaOp(op: () -> Unit) {
+        if (mediaOpsExecutor.isShutdown) {
+            Log.w(TAG, "Media-toggle op ignored — session is stopping")
+            return
+        }
+        try {
+            mediaOpsExecutor.execute(op)
+        } catch (e: RejectedExecutionException) {
+            Log.w(TAG, "Media-toggle op rejected — session stopped")
+        }
+    }
+    // SDP offer retry state
+    @Volatile private var sdpAnswerReceived = false
+    private var offerAttempt = 0
+    private val offerRetryHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
     companion object {
         private const val ENABLE_INTEL_VP8_ENCODER = true
         private const val ENABLE_H264_HIGH_PROFILE = true
-        private const val ENABLE_AUDIO = false
 
         @Volatile
         private var peerConnectionFactoryInitialized = false
+        private val pcfInitLock = Any()
 
         private const val LOCAL_MEDIA_STREAM_LABEL = "KvsLocalMediaStream"
         private const val VIDEO_TRACK_ID = "KvsVideoTrack"
@@ -132,6 +162,37 @@ class WebRtcViewportManager(
         private const val VIDEO_WIDTH = 640
         private const val VIDEO_HEIGHT = 480
         private const val VIDEO_FPS = 20
+
+        private const val MAX_OFFER_RETRIES = 3
+        private const val OFFER_TIMEOUT_MS = 5000L
+
+        /**
+         * Pre-initialize the PeerConnectionFactory on a background thread.
+         * Call from Application.onCreate() to avoid blocking the UI thread
+         * when the first WebRTC session starts.
+         */
+        @JvmStatic
+        fun preInitializePeerConnectionFactory(context: Context) {
+            if (peerConnectionFactoryInitialized) return
+            Thread { ensureFactoryInitialized(context) }.start()
+        }
+
+        /** Thread-safe, idempotent PeerConnectionFactory.initialize() — a non-atomic
+         *  check-then-set let the startup pre-warm thread and start()'s thread both
+         *  call initialize() on a cold-start race, which throws on the second call. */
+        fun ensureFactoryInitialized(context: Context) {
+            if (peerConnectionFactoryInitialized) return
+            synchronized(pcfInitLock) {
+                if (!peerConnectionFactoryInitialized) {
+                    PeerConnectionFactory.initialize(
+                        PeerConnectionFactory.InitializationOptions.builder(context.applicationContext)
+                            .createInitializationOptions()
+                    )
+                    peerConnectionFactoryInitialized = true
+                    Log.d("WebRtcViewportManager", "PeerConnectionFactory initialized")
+                }
+            }
+        }
     }
 
     fun setCallbacks(
@@ -142,8 +203,57 @@ class WebRtcViewportManager(
         this.onError = onError
     }
 
+    /**
+     * Schedule a retry if no SDP answer arrives within [OFFER_TIMEOUT_MS].
+     * Called after each offer is sent. Cancels any previously pending retry first.
+     */
+    private fun scheduleOfferRetry() {
+        offerRetryHandler.removeCallbacksAndMessages(null)
+        offerAttempt++
+        Log.d(TAG, "Offer sent (attempt $offerAttempt/$MAX_OFFER_RETRIES), waiting ${OFFER_TIMEOUT_MS}ms for answer")
+
+        val isLastAttempt = offerAttempt >= MAX_OFFER_RETRIES
+        val timeout = if (isLastAttempt) OFFER_TIMEOUT_MS * 3 / 2 else OFFER_TIMEOUT_MS
+
+        offerRetryHandler.postDelayed({
+            if (sdpAnswerReceived) return@postDelayed
+
+            if (!isLastAttempt) {
+                Log.w(TAG, "No SDP answer after ${timeout}ms (attempt $offerAttempt/$MAX_OFFER_RETRIES), resending offer")
+                Toast.makeText(context, "No response from camera, retrying... ($offerAttempt/$MAX_OFFER_RETRIES)", Toast.LENGTH_SHORT).show()
+                createSdpOffer()
+            } else {
+                Log.e(TAG, "No SDP answer after $MAX_OFFER_RETRIES attempts (${timeout}ms final wait), giving up")
+                onError?.invoke("Camera not responding. Please try again.")
+                stop()
+            }
+        }, timeout)
+    }
+
     fun setOnMediaToggleChanged(listener: ((videoEnabled: Boolean, audioEnabled: Boolean) -> Unit)?) {
         onMediaToggleChanged = listener
+    }
+
+    fun setOnIncomingAudioMuteChanged(listener: ((muted: Boolean) -> Unit)?) {
+        onIncomingAudioMuteChanged = listener
+    }
+
+    /**
+     * Toggles mute/unmute of incoming (remote) audio playback.
+     * No renegotiation needed — just enables/disables the remote audio track.
+     */
+    fun toggleIncomingAudio(): Boolean {
+        isIncomingAudioMuted = !isIncomingAudioMuted
+        remoteAudioTrack?.setEnabled(!isIncomingAudioMuted)
+        if (isIncomingAudioMuted) {
+            Log.i(TAG, "Incoming audio muted")
+        } else {
+            Log.i(TAG, "Incoming audio unmuted")
+            audioManager?.mode = AudioManager.MODE_NORMAL
+            audioManager?.isSpeakerphoneOn = true
+        }
+        onIncomingAudioMuteChanged?.invoke(isIncomingAudioMuted)
+        return isIncomingAudioMuted
     }
 
     // --- Local media sending (video/audio toggle while peer connection is active) ---
@@ -154,6 +264,10 @@ class WebRtcViewportManager(
      * If the connection is already established, triggers SDP renegotiation.
      */
     fun enableVideoSending() {
+        submitMediaOp { enableVideoSendingInternal() }
+    }
+
+    private fun enableVideoSendingInternal() {
         try {
             Log.i(TAG, "Enabling video sending...")
             val factory = peerConnectionFactory ?: run {
@@ -233,6 +347,10 @@ class WebRtcViewportManager(
      * The track stays in the peer connection so it can be re-enabled without renegotiation.
      */
     fun disableVideoSending() {
+        submitMediaOp { disableVideoSendingInternal() }
+    }
+
+    private fun disableVideoSendingInternal() {
         try {
             Log.i(TAG, "Disabling video sending...")
 
@@ -272,6 +390,10 @@ class WebRtcViewportManager(
      * Creates the audio pipeline if needed and adds the track to the peer connection.
      */
     fun enableAudioSending() {
+        submitMediaOp { enableAudioSendingInternal() }
+    }
+
+    private fun enableAudioSendingInternal() {
         try {
             Log.i(TAG, "Enabling audio sending...")
             val factory = peerConnectionFactory ?: run {
@@ -322,6 +444,10 @@ class WebRtcViewportManager(
      * so it can be re-enabled without renegotiation.
      */
     fun disableAudioSending() {
+        submitMediaOp { disableAudioSendingInternal() }
+    }
+
+    private fun disableAudioSendingInternal() {
         try {
             Log.i(TAG, "Disabling audio sending...")
 
@@ -347,6 +473,26 @@ class WebRtcViewportManager(
             enableAudioSending()
         }
         return isAudioSendEnabled
+    }
+
+    /**
+     * Adds a local audio track to the peer connection before the SDP offer,
+     * so the offer includes audio as sendrecv instead of recvonly.
+     */
+    private fun addLocalAudioTrack() {
+        val factory = peerConnectionFactory ?: return
+        val peer = localPeer ?: return
+
+        if (audioSource == null) {
+            audioSource = factory.createAudioSource(MediaConstraints())
+        }
+        if (localAudioTrack == null) {
+            localAudioTrack = factory.createAudioTrack(AUDIO_TRACK_ID, audioSource)
+        }
+        localAudioTrack?.setEnabled(true)
+        localAudioSender = peer.addTrack(localAudioTrack, listOf(LOCAL_MEDIA_STREAM_LABEL))
+        isAudioSendEnabled = true
+        Log.i(TAG, "Local audio track added to peer connection (default send)")
     }
 
     private fun createVideoCapturer(): VideoCapturer? {
@@ -420,15 +566,20 @@ class WebRtcViewportManager(
         wssEndpoint: String,
         webrtcEndpoint: String?,
         region: String,
-        iceServers: List<IceServer>,
+        iceServers: List<IceServer> = emptyList(),
+        dataEndpoint: String? = null,
         surfaceViewRenderer: SurfaceViewRenderer,
         isMaster: Boolean = false,
         clientId: String? = null
     ) {
-        if (rootEglBase != null) {
+        if (rootEglBase != null || isStarting) {
             Log.w(TAG, "WebRTC already started")
             return
         }
+        // Latch synchronously on the calling thread: rootEglBase is only assigned
+        // later inside the background Thread, so without this a second start() would
+        // pass the guard and double-init (EglBase/factory/renderer.init twice).
+        isStarting = true
 
         this.mChannelArn = channelArn
         this.mStreamArn = streamArn
@@ -444,60 +595,116 @@ class WebRtcViewportManager(
             Log.d(TAG, "Reusing client ID: $clientId")
         }
 
-        // Initialize audio manager
+        // Initialize audio manager (lightweight, safe on main thread)
         audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-        rootEglBase = EglBase.create()
+        // Run heavy initialization on a background thread to avoid blocking the UI
+        Thread {
+            rootEglBase = EglBase.create()
 
-        // Add STUN server
-        val stun = IceServer.builder(
-            String.format("stun:stun.kinesisvideo.%s.amazonaws.com:443", region)
-        ).createIceServer()
-        peerIceServers.add(stun)
+            // Add STUN server
+            val stun = IceServer.builder(
+                String.format("stun:stun.kinesisvideo.%s.amazonaws.com:443", region)
+            ).createIceServer()
+            peerIceServers.add(stun)
 
-        // Add TURN servers
-        peerIceServers.addAll(iceServers)
+            // Initialize PeerConnectionFactory if not already pre-initialized
+            ensureFactoryInitialized(context)
 
-        // Initialize PeerConnectionFactory once per process
-        if (!peerConnectionFactoryInitialized) {
-            PeerConnectionFactory.initialize(
-                PeerConnectionFactory.InitializationOptions.builder(context)
-                    .createInitializationOptions()
+            val vdf = LowLatencyDefaultVideoDecoderFactory(rootEglBase!!.eglBaseContext)
+            val vef = DefaultVideoEncoderFactory(
+                rootEglBase!!.eglBaseContext,
+                ENABLE_INTEL_VP8_ENCODER,
+                ENABLE_H264_HIGH_PROFILE
             )
-            peerConnectionFactoryInitialized = true
-        }
 
-        val vdf = DefaultVideoDecoderFactory(rootEglBase!!.eglBaseContext)
-        val vef = DefaultVideoEncoderFactory(
-            rootEglBase!!.eglBaseContext,
-            ENABLE_INTEL_VP8_ENCODER,
-            ENABLE_H264_HIGH_PROFILE
-        )
+            val audioDeviceModule = JavaAudioDeviceModule.builder(context.applicationContext)
+                .setAudioAttributes(android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build())
+                .createAudioDeviceModule()
 
-        peerConnectionFactory = PeerConnectionFactory.builder()
-            .setVideoDecoderFactory(vdf)
-            .setVideoEncoderFactory(vef)
-            .setAudioDeviceModule(
-                JavaAudioDeviceModule.builder(context.applicationContext)
-                    .createAudioDeviceModule()
-            )
-            .createPeerConnectionFactory()
+            peerConnectionFactory = PeerConnectionFactory.builder()
+                .setVideoDecoderFactory(vdf)
+                .setVideoEncoderFactory(vef)
+                .setAudioDeviceModule(audioDeviceModule)
+                .createPeerConnectionFactory()
 
-        // Enable WebRTC debug logs
-        Logging.enableLogToDebugOutput(Logging.Severity.LS_INFO)
+            // Enable WebRTC debug logs
+            Logging.enableLogToDebugOutput(Logging.Severity.LS_INFO)
 
-        // Initialize SurfaceViewRenderer
-        remoteView?.init(rootEglBase!!.eglBaseContext, null)
-        // Set scaling to fit (scale instead of crop)
-        remoteView?.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
-        // Enable mirroring if needed (set to false for camera view)
-        remoteView?.setMirror(false)
+            // Initialize SurfaceViewRenderer on main thread (required for view operations)
+            val viewInitLatch = java.util.concurrent.CountDownLatch(1)
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                remoteView?.init(rootEglBase!!.eglBaseContext, null)
+                remoteView?.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
+                remoteView?.setMirror(false)
+                viewInitLatch.countDown()
+            }
+            viewInitLatch.await()
 
-        // Create peer connection
-        createLocalPeerConnection()
+            // Continue with connection setup (already on background thread)
+            if (iceServers.isNotEmpty()) {
+                // ICE servers already available (e.g. stored session) — sequential flow
+                peerIceServers.addAll(iceServers)
+                createLocalPeerConnection()
+                if (WebRtcConstants.SEND_AUDIO_BY_DEFAULT) addLocalAudioTrack()
+                initWsConnection()
+            } else if (dataEndpoint != null) {
+                // Fetch ICE servers in parallel with WebSocket signaling connect
+                val role = if (isMaster) ChannelRole.MASTER else ChannelRole.VIEWER
+                val executor = Executors.newFixedThreadPool(2)
 
-        // Initialize WebSocket connection
-        initWsConnection()
+                val iceFuture = executor.submit<List<IceServer>> {
+                    try {
+                        Log.d(TAG, "Fetching ICE servers in parallel with signaling connect")
+                        WebRtcChannelInfoHelper.fetchIceServersBlocking(region, channelArn, dataEndpoint, role)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to fetch ICE servers: ${e.message}")
+                        emptyList()
+                    }
+                }
+
+                executor.execute {
+                    try {
+                        // Connect signaling WebSocket (blocking ~500ms-2s)
+                        connectSignaling()
+
+                        // Get ICE servers (typically already done, hidden behind WS latency)
+                        val fetchedIceServers = iceFuture.get()
+                        if (fetchedIceServers.isEmpty()) {
+                            Log.w(TAG, "No TURN servers available, proceeding with STUN only")
+                        }
+                        peerIceServers.addAll(fetchedIceServers)
+
+                        // Create peer connection (fast, needs ICE servers)
+                        createLocalPeerConnection()
+                        if (WebRtcConstants.SEND_AUDIO_BY_DEFAULT) addLocalAudioTrack()
+
+                        // Create and send SDP offer
+                        if (localPeer != null && client?.isOpen == true) {
+                            createSdpOffer()
+                        } else {
+                            val msg = if (localPeer == null) "Peer connection not initialized"
+                                      else "Failed to connect to signaling service"
+                            onError?.invoke(msg)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error during parallel WebRTC setup: ${e.message}", e)
+                        onError?.invoke("WebRTC setup failed: ${e.message}")
+                    } finally {
+                        executor.shutdown()
+                    }
+                }
+            } else {
+                // Fallback: no ICE servers and no dataEndpoint — just connect with STUN
+                Log.w(TAG, "No ICE servers or dataEndpoint provided, using STUN only")
+                createLocalPeerConnection()
+                if (WebRtcConstants.SEND_AUDIO_BY_DEFAULT) addLocalAudioTrack()
+                initWsConnection()
+            }
+        }.start()
     }
 
     private fun createLocalPeerConnection() {
@@ -527,8 +734,25 @@ class WebRtcViewportManager(
 
             override fun onAddStream(mediaStream: MediaStream) {
                 super.onAddStream(mediaStream)
-                Log.d(TAG, "Adding remote video stream to the view")
+                Log.d(TAG, "onAddStream: Adding remote stream to the view")
                 addRemoteStreamToVideoView(mediaStream)
+            }
+
+            override fun onAddTrack(receiver: org.webrtc.RtpReceiver, streams: Array<out MediaStream>) {
+                super.onAddTrack(receiver, streams)
+                val track = receiver.track()
+                Log.d(TAG, "onAddTrack: kind=${track?.kind()}, id=${track?.id()}, state=${track?.state()?.name}")
+                if (track is AudioTrack) {
+                    Log.d(TAG, "onAddTrack: Remote audio track received")
+                    remoteAudioTrack = track
+                    val shouldPlay = !isIncomingAudioMuted
+                    track.setEnabled(shouldPlay)
+                    Log.d(TAG, "remoteAudioTrack via onAddTrack: playing=$shouldPlay")
+                    if (shouldPlay) {
+                        audioManager?.mode = AudioManager.MODE_NORMAL
+                        audioManager?.isSpeakerphoneOn = true
+                    }
+                }
             }
 
             override fun onIceConnectionChange(iceConnectionState: PeerConnection.IceConnectionState) {
@@ -590,6 +814,100 @@ class WebRtcViewportManager(
         })
     }
 
+    /**
+     * Connect the signaling WebSocket only (no SDP offer creation).
+     * Used in the parallel flow where PeerConnection is created after ICE servers arrive.
+     */
+    private fun connectSignaling() {
+        val masterEndpoint = "$mWssEndpoint?${Constants.CHANNEL_ARN_QUERY_PARAM}=$mChannelArn"
+        val viewerEndpoint = "$mWssEndpoint?${Constants.CHANNEL_ARN_QUERY_PARAM}=$mChannelArn&${Constants.CLIENT_ID_QUERY_PARAM}=$mClientId"
+
+        val credentials = WebRtcConstants.getCredentialsProvider().credentials
+        val endpoint = if (master) masterEndpoint else viewerEndpoint
+        val signedUri = getSignedUri(endpoint, credentials, mRegion ?: "")
+
+        if (signedUri == null) {
+            onError?.invoke("Failed to get signed URI")
+            return
+        }
+
+        val wsHost = signedUri.toString()
+
+        val signalingListener = object : SignalingListener() {
+            override fun onSdpOffer(offerEvent: Event) {
+                Log.d(TAG, "Received SDP Offer: Setting Remote Description")
+                val sdp = Event.parseOfferEvent(offerEvent)
+                localPeer?.setRemoteDescription(
+                    object : KinesisVideoSdpObserver() {},
+                    SessionDescription(SessionDescription.Type.OFFER, sdp)
+                )
+                this@WebRtcViewportManager.recipientClientId = offerEvent.senderClientId
+                Log.d(TAG, "Received SDP offer for client ID: ${this@WebRtcViewportManager.recipientClientId}. Creating answer")
+                createSdpAnswer()
+            }
+
+            override fun onSdpAnswer(answerEvent: Event) {
+                Log.d(TAG, "SDP answer received from signaling")
+                sdpAnswerReceived = true
+                offerRetryHandler.removeCallbacksAndMessages(null)
+                val sdp = Event.parseSdpEvent(answerEvent)
+                val sdpAnswer = SessionDescription(SessionDescription.Type.ANSWER, sdp)
+                // Snapshot localPeer once: stop() can null it on the main thread
+                // while this answer is processed on the signaling-worker thread.
+                val peer = localPeer
+                if (peer == null) {
+                    Log.w(TAG, "SDP answer arrived after localPeer was cleared; ignoring")
+                    return
+                }
+                peer.setRemoteDescription(
+                    object : KinesisVideoSdpObserver() {
+                        override fun onCreateFailure(error: String) {
+                            super.onCreateFailure(error)
+                            Log.e(TAG, "Failed to set remote description: $error")
+                        }
+                    },
+                    sdpAnswer
+                )
+                val senderClientId = answerEvent.senderClientId
+                Log.d(TAG, "Answer Client ID: $senderClientId")
+                if (senderClientId != null) {
+                    peerConnectionFoundMap[senderClientId] = peer
+                    handlePendingIceCandidates(senderClientId)
+                } else {
+                    Log.w(TAG, "SDP answer arrived without senderClientId; skipping peer/ICE bookkeeping")
+                }
+            }
+
+            override fun onIceCandidate(message: Event) {
+                Log.d(TAG, "Received ICE candidate from remote")
+                val iceCandidate = Event.parseIceCandidate(message)
+                if (iceCandidate != null) {
+                    checkAndAddIceCandidate(message, iceCandidate)
+                } else {
+                    Log.e(TAG, "Invalid ICE candidate: $message")
+                }
+            }
+
+            override fun onError(errorMessage: Event) {
+                Log.e(TAG, "Received error message: $errorMessage")
+                onError?.invoke("WebRTC error: $errorMessage")
+            }
+
+            override fun onException(e: Exception) {
+                Log.e(TAG, "Signaling client returned exception: ${e.message}")
+                onError?.invoke("WebRTC exception: ${e.message}")
+            }
+        }
+
+        try {
+            client = SignalingServiceWebSocketClient(wsHost, signalingListener, Executors.newFixedThreadPool(10))
+            Log.d(TAG, "Signaling connection ${if (client?.isOpen == true) "Successful" else "Failed"}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception with websocket client: $e")
+            onError?.invoke("WebSocket exception: ${e.message}")
+        }
+    }
+
     private fun initWsConnection() {
         val masterEndpoint = "$mWssEndpoint?${Constants.CHANNEL_ARN_QUERY_PARAM}=$mChannelArn"
         val viewerEndpoint = "$mWssEndpoint?${Constants.CHANNEL_ARN_QUERY_PARAM}=$mChannelArn&${Constants.CLIENT_ID_QUERY_PARAM}=$mClientId"
@@ -622,6 +940,8 @@ class WebRtcViewportManager(
 
             override fun onSdpAnswer(answerEvent: Event) {
                 Log.d(TAG, "SDP answer received from signaling")
+                sdpAnswerReceived = true
+                offerRetryHandler.removeCallbacksAndMessages(null)
 
                 // Snapshot localPeer once. stop() may null it on the main thread between
                 // any two reads on this signaling-worker thread.
@@ -714,7 +1034,7 @@ class WebRtcViewportManager(
 
         val constraints = MediaConstraints()
         constraints.mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
-        if (ENABLE_AUDIO) {
+        if (WebRtcConstants.OFFER_AUDIO) {
             constraints.mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
         }
 
@@ -727,6 +1047,7 @@ class WebRtcViewportManager(
                 if (client?.isOpen == true) {
                     client?.sendSdpOffer(message)
                     Log.d(TAG, "SDP Offer created and sent")
+                    scheduleOfferRetry()
                 } else {
                     Log.e(TAG, "Cannot send SDP offer: WebSocket connection is not open")
                     onError?.invoke("WebSocket connection lost")
@@ -766,16 +1087,20 @@ class WebRtcViewportManager(
     private fun addRemoteStreamToVideoView(stream: MediaStream) {
         val videoTrack = stream.videoTracks?.firstOrNull()
         val audioTrack = stream.audioTracks?.firstOrNull()
+        Log.d(TAG, "addRemoteStream: videoTracks=${stream.videoTracks?.size ?: 0}, audioTracks=${stream.audioTracks?.size ?: 0}")
 
-        // Store references to tracks
-        this.remoteVideoTrack = videoTrack
-        this.remoteAudioTrack = audioTrack
+        // Store references to tracks (don't overwrite existing with null)
+        if (videoTrack != null) this.remoteVideoTrack = videoTrack
+        if (audioTrack != null) this.remoteAudioTrack = audioTrack
 
-        if (ENABLE_AUDIO && audioTrack != null) {
-            audioTrack.setEnabled(true)
-            Log.d(TAG, "remoteAudioTrack received: State=${audioTrack.state().name}")
-            audioManager?.mode = AudioManager.MODE_IN_COMMUNICATION
-            audioManager?.isSpeakerphoneOn = true
+        if (audioTrack != null) {
+            val shouldPlay = !isIncomingAudioMuted
+            audioTrack.setEnabled(shouldPlay)
+            Log.d(TAG, "remoteAudioTrack received: State=${audioTrack.state().name}, playing=$shouldPlay")
+            if (shouldPlay) {
+                audioManager?.mode = AudioManager.MODE_NORMAL
+                audioManager?.isSpeakerphoneOn = true
+            }
         }
 
         if (videoTrack != null) {
@@ -897,11 +1222,22 @@ class WebRtcViewportManager(
         stopStatsCollection()
         onStatsUpdated = null
         onMediaToggleChanged = null
+        onIncomingAudioMuteChanged = null
 
         isStreamActive = false
         // Clear the deferred-renegotiation flag so a reused instance does not fire a
         // stale renegotiation on the next session's first CONNECTED.
         pendingRenegotiation = false
+
+        // Shut down the media-toggle executor before disposing native objects, so a
+        // queued enable/disable task cannot run addTrack/removeTrack against an
+        // already-disposed peer/factory (use-after-free), and the worker thread does
+        // not leak across the per-session manager instances.
+        mediaOpsExecutor.shutdownNow()
+        // Cancel any pending offer retry
+        offerRetryHandler.removeCallbacksAndMessages(null)
+        sdpAnswerReceived = false
+        offerAttempt = 0
 
         // Store callback references and clear them immediately to prevent callbacks during cleanup
         val connectionCallback = onConnectionStateChanged
@@ -1046,6 +1382,7 @@ class WebRtcViewportManager(
             Log.e(TAG, "Error posting connection state callback: ${e.message}", e)
         }
 
+        isStarting = false
         isStopping = false
         Log.d(TAG, "WebRTC connection stopped")
     }
@@ -1146,6 +1483,8 @@ class WebRtcViewportManager(
                         val stat = entry.value
                         if (stat.type == "inbound-rtp") {
                             val m = stat.members
+                            // Only process video inbound-rtp, skip audio
+                            if (m["kind"]?.toString() != "video") continue
                             fps = (m["framesPerSecond"]?.toString()?.toFloatOrNull()) ?: 0f
                             width = (m["frameWidth"]?.toString()?.toIntOrNull()) ?: 0
                             height = (m["frameHeight"]?.toString()?.toIntOrNull()) ?: 0
@@ -1296,63 +1635,60 @@ class WebRtcViewportManager(
                 Log.d(TAG, "Stored viewport renderer reference for transfer back (fallback)")
             }
 
-            // Remove video track from old renderer (viewport) - MUST happen first
-            oldView?.let { view ->
-                try {
-                    Log.d(TAG, "Removing video sink from viewport renderer (oldView=${view.hashCode()})...")
-                    videoTrack.removeSink(view)
-                    Log.d(TAG, "Video sink removed from viewport - video should stop in viewport")
-                } catch (e: Exception) {
-                    Log.w(TAG, "Note removing sink from viewport: ${e.message} - may already be removed")
-                    // Don't throw - continue with transfer
-                }
+            // Verify rootEglBase is available
+            if (rootEglBase == null) {
+                Log.e(TAG, "Root EglBase is null - cannot transfer video")
+                throw IllegalStateException("Root EglBase is null")
             }
 
-            // Also remove from current remoteView if it's different from oldView
-            remoteView?.let { currentView ->
-                if (currentView != oldView && currentView != newRenderer) {
+            // Don't transfer if it's already the current renderer
+            if (remoteView == newRenderer) {
+                Log.w(TAG, "New renderer is already the current remoteView - skipping transfer")
+                return
+            }
+
+            // Configure renderer for display
+            try {
+                newRenderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
+                newRenderer.setMirror(false)
+            } catch (e: Exception) {
+                Log.w(TAG, "Error setting renderer properties: ${e.message} - continuing anyway")
+            }
+
+            // Add new sink BEFORE removing old ones to avoid a sinkless gap.
+            // WebRTC VideoTrack supports multiple simultaneous sinks, so this is safe.
+            // Without this, the sender gets back-pressured during the gap which causes
+            // slow data send on the ESP device and a black screen on the app.
+            try {
+                Log.d(TAG, "Adding video sink to new renderer (newRenderer=${newRenderer.hashCode()})...")
+                val previousRemoteView = remoteView
+                videoTrack.addSink(newRenderer)
+                Log.d(TAG, "Video sink added to new renderer")
+
+                // Now remove old sinks (new sink is already receiving frames)
+                // Skip if oldView is the same as newRenderer (e.g. landscape→portrait return)
+                if (oldView != null && oldView != newRenderer) {
                     try {
-                        Log.d(TAG, "Removing video sink from current remoteView (currentView=${currentView.hashCode()})...")
-                        videoTrack.removeSink(currentView)
-                        Log.d(TAG, "Video sink removed from current remoteView")
+                        videoTrack.removeSink(oldView)
+                        Log.d(TAG, "Removed old sink (oldView=${oldView.hashCode()})")
                     } catch (e: Exception) {
-                        Log.w(TAG, "Note removing sink from current remoteView: ${e.message}")
-                        // Don't throw - continue with transfer
+                        Log.w(TAG, "Note removing sink from old view: ${e.message}")
                     }
                 }
-            }
 
-            // Immediately add to new renderer (landscape) - same video stream, different display
-            try {
-                Log.d(TAG, "Adding video sink to landscape renderer (newRenderer=${newRenderer.hashCode()})...")
-
-                // Verify rootEglBase is available
-                if (rootEglBase == null) {
-                    Log.e(TAG, "Root EglBase is null - cannot transfer video")
-                    throw IllegalStateException("Root EglBase is null")
+                if (previousRemoteView != null && previousRemoteView != oldView && previousRemoteView != newRenderer) {
+                    try {
+                        videoTrack.removeSink(previousRemoteView)
+                        Log.d(TAG, "Removed sink from previous remoteView (${previousRemoteView.hashCode()})")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Note removing sink from previous remoteView: ${e.message}")
+                    }
                 }
 
-                // Don't add sink if it's already the current renderer
-                if (remoteView == newRenderer) {
-                    Log.w(TAG, "New renderer is already the current remoteView - skipping transfer")
-                    return
-                }
-
-                // Configure renderer for landscape display
-                try {
-                    newRenderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
-                    newRenderer.setMirror(false)
-                } catch (e: Exception) {
-                    Log.w(TAG, "Error setting renderer properties: ${e.message} - continuing anyway")
-                }
-
-                // Add video track - this is the same stream, just displayed in landscape
-                // Note: Both renderers must share the same EglBase context (verified in WebRtcActivity.onCreate)
-                videoTrack.addSink(newRenderer)
                 remoteView = newRenderer
-                Log.d(TAG, "Video now displaying in landscape - same stream, different orientation")
+                Log.d(TAG, "Video transfer complete - no sinkless gap")
             } catch (e: Exception) {
-                Log.e(TAG, "Error adding video to landscape renderer: ${e.message}", e)
+                Log.e(TAG, "Error adding video sink to new renderer: ${e.message}", e)
                 e.printStackTrace()
                 onError?.invoke("Error transferring video: ${e.message}")
                 throw e

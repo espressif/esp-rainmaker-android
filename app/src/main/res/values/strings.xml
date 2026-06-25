@@ -684,6 +684,9 @@
     <string name="camera_cd_disable_camera">Disable Camera</string>
     <string name="camera_cd_enable_camera">Enable Camera</string>
     <string name="camera_cd_toggle_orientation">Toggle Orientation</string>
+    <string name="camera_cd_mute_audio">Mute Audio</string>
+    <string name="camera_cd_unmute_audio">Unmute Audio</string>
+    <string name="camera_cmd_save_clip">Save Clip</string>
 
     <string name="camera_connecting">Connecting&#8230;</string>
     <string name="camera_cmd_live_view">Live View</string>

@@ -26,6 +26,17 @@ public class WebRtcConstants {
     // Set to true to show mic/video ON/OFF toggle buttons in WebRTC camera view
     public static final boolean ENABLE_MEDIA_TOGGLE_UI = false;
 
+    // Set to true to request audio receive in the SDP offer
+    public static final boolean OFFER_AUDIO = true;
+
+    // Set to true to send audio (microphone) by default when a session starts
+    public static final boolean SEND_AUDIO_BY_DEFAULT = false;
+
+    // Set to true to mute incoming (remote) audio by default
+    public static final boolean INCOMING_AUDIO_MUTED_BY_DEFAULT = false;
+    // Set to true to flip the video vertically (display only, does not affect the stream)
+    public static final boolean FLIP_VIDEO_VERTICAL = false;
+
     public static final String KEY_CLIENT_ID = "clientId";
     public static final String KEY_CHANNEL_NAME = "channelName";
 
