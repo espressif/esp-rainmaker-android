@@ -896,15 +896,19 @@ public class WebRtcActivity extends AppCompatActivity {
 
         if (mUrisList != null) {
             for (int i = 0; i < mUrisList.size(); i++) {
-                final String turnServer = mUrisList.get(i).toString();
-                if (turnServer != null) {
-                    final IceServer iceServer = IceServer.builder(turnServer.replace("[", "").replace("]", ""))
-                            .setUsername(mUserNames.get(i))
-                            .setPassword(mPasswords.get(i))
-                            .createIceServer();
-
-                    Log.d(TAG, "IceServer details (TURN) = " + iceServer.toString());
-                    peerIceServers.add(iceServer);
+                // Each server entry is a List<String> of URIs (turn:udp / turn:tcp /
+                // turns:tcp). Add ONE IceServer per URI. Collapsing them with
+                // List.toString() yielded a comma-joined malformed URL that libwebrtc
+                // dropped -> viewer left STUN-only -> no relay -> no video on cellular.
+                for (String uri : mUrisList.get(i)) {
+                    if (uri != null && !uri.isEmpty()) {
+                        final IceServer iceServer = IceServer.builder(uri)
+                                .setUsername(mUserNames.get(i))
+                                .setPassword(mPasswords.get(i))
+                                .createIceServer();
+                        Log.i(TAG, "IceServer added (TURN) uri=" + uri);
+                        peerIceServers.add(iceServer);
+                    }
                 }
             }
         }

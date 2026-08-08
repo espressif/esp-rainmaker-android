@@ -287,7 +287,15 @@ class WebRtcViewportManager(
     private var audioManager: AudioManager? = null
     private val peerIceServers = mutableListOf<IceServer>()
     private val peerConnectionFoundMap = mutableMapOf<String, PeerConnection>()
-    private val pendingIceCandidatesMap = mutableMapOf<String, MutableList<IceCandidate>>()
+
+    // Trickle-ICE ordering lives here now: queue remote candidates until the SDP
+    // answer is applied, then flush. Sinks route to the real PeerConnection objects
+    // held in peerConnectionFoundMap / localPeer. See PendingIceCandidateQueue.
+    private val pendingIceCandidateQueue = PendingIceCandidateQueue<IceCandidate>(
+        fallbackClientId = { recipientClientId },
+        addToPeer = { clientId, candidate -> peerConnectionFoundMap[clientId]?.addIceCandidate(candidate) },
+        addToLocalPeer = { candidate -> localPeer?.addIceCandidate(candidate) ?: false },
+    )
 
     private var mChannelArn: String? = null
     private var mStreamArn: String? = null
@@ -330,6 +338,9 @@ class WebRtcViewportManager(
 
     // SDP offer retry state
     @Volatile private var sdpAnswerReceived = false
+    // The remote-description-applied flag and the trickled-candidate queue both live
+    // in pendingIceCandidateQueue now (see its kdoc): libwebrtc drops addIceCandidate()
+    // while remoteDescription is null, so candidates queue until onSetSuccess flushes.
     private var offerAttempt = 0
     private val offerRetryHandler = Handler(Looper.getMainLooper())
 
@@ -1011,8 +1022,9 @@ class WebRtcViewportManager(
                         },
                         sdpAnswer
                     )
-                    // Handle any pending ICE candidates
-                    handlePendingIceCandidates(mClientId!!)
+                    // Local signaling adds remote candidates straight to localPeer (see
+                    // onIceCandidate below) and never queues them, so there is nothing to
+                    // flush here.
                 },
                 onIceCandidate = { candidateJson ->
                     Log.d(TAG, "Local signaling: ICE candidate received")
@@ -1249,8 +1261,29 @@ class WebRtcViewportManager(
                     Log.w(TAG, "SDP answer arrived after localPeer was cleared; ignoring")
                     return
                 }
+                val senderClientId = answerEvent.senderClientId
+                Log.d(TAG, "Answer Client ID: $senderClientId")
+                // The camera MASTER answers with a null senderClientId. Normalize it so the
+                // peer is always registered and queued remote candidates are flushed.
+                val peerKey = peerKey(senderClientId)
+                // setRemoteDescription is async: register the peer and flush queued
+                // candidates only from onSetSuccess(), otherwise addIceCandidate() runs
+                // while remoteDescription is still null and libwebrtc drops the candidate.
                 peer.setRemoteDescription(
                     object : KinesisVideoSdpObserver() {
+                        override fun onSetSuccess() {
+                            super.onSetSuccess()
+                            // Register the peer first, then flip the applied-flag and flush
+                            // any trickled candidates queued before the answer was applied.
+                            peerConnectionFoundMap[peerKey] = peer
+                            pendingIceCandidateQueue.onRemoteDescriptionApplied(peerKey)
+                        }
+
+                        override fun onSetFailure(error: String) {
+                            super.onSetFailure(error)
+                            Log.e(TAG, "Failed to set remote description: $error")
+                        }
+
                         override fun onCreateFailure(error: String) {
                             super.onCreateFailure(error)
                             Log.e(TAG, "Failed to set remote description: $error")
@@ -1258,14 +1291,6 @@ class WebRtcViewportManager(
                     },
                     sdpAnswer
                 )
-                val senderClientId = answerEvent.senderClientId
-                Log.d(TAG, "Answer Client ID: $senderClientId")
-                if (senderClientId != null) {
-                    peerConnectionFoundMap[senderClientId] = peer
-                    handlePendingIceCandidates(senderClientId)
-                } else {
-                    Log.w(TAG, "SDP answer arrived without senderClientId; skipping peer/ICE bookkeeping")
-                }
             }
 
             override fun onIceCandidate(message: Event) {
@@ -1344,8 +1369,33 @@ class WebRtcViewportManager(
                 val sdp = Event.parseSdpEvent(answerEvent)
                 val sdpAnswer = SessionDescription(SessionDescription.Type.ANSWER, sdp)
 
+                Log.d(TAG, "Answer Client ID: ${answerEvent.senderClientId}")
+                // AWS Kinesis Video Signaling can deliver an SDP answer with a null
+                // senderClientId (observed when the master is the camera/MASTER role and
+                // doesn't fill it). Normalize it to the same key used when queueing
+                // remote candidates, so the peer is registered and the pending
+                // (trickled) candidates are actually added to the PeerConnection.
+                val peerKey = peerKey(answerEvent.senderClientId)
+
+                // setRemoteDescription is async: register the peer and flush queued
+                // candidates only from onSetSuccess(), otherwise addIceCandidate() runs
+                // while remoteDescription is still null and libwebrtc drops the candidate
+                // (fatal for relay-only, where the single TURN candidate is trickled).
                 peer.setRemoteDescription(
                     object : KinesisVideoSdpObserver() {
+                        override fun onSetSuccess() {
+                            super.onSetSuccess()
+                            // Register the peer first, then flip the applied-flag and flush
+                            // any trickled candidates queued before the answer was applied.
+                            peerConnectionFoundMap[peerKey] = peer
+                            pendingIceCandidateQueue.onRemoteDescriptionApplied(peerKey)
+                        }
+
+                        override fun onSetFailure(error: String) {
+                            super.onSetFailure(error)
+                            Log.e(TAG, "Failed to set remote description: $error")
+                        }
+
                         override fun onCreateFailure(error: String) {
                             super.onCreateFailure(error)
                             Log.e(TAG, "Failed to set remote description: $error")
@@ -1353,20 +1403,6 @@ class WebRtcViewportManager(
                     },
                     sdpAnswer
                 )
-
-                Log.d(TAG, "Answer Client ID: ${answerEvent.senderClientId}")
-                // AWS Kinesis Video Signaling can deliver an SDP answer with a null
-                // senderClientId (observed when the master is the camera/MASTER role and
-                // doesn't fill it). Skip the per-client bookkeeping — the remote
-                // description is already applied above, so the session can still
-                // progress through ICE.
-                val senderClientId = answerEvent.senderClientId
-                if (senderClientId != null) {
-                    peerConnectionFoundMap[senderClientId] = peer
-                    handlePendingIceCandidates(senderClientId)
-                } else {
-                    Log.w(TAG, "onSdpAnswer: senderClientId is null; skipping peer-map registration")
-                }
             }
 
             override fun onIceCandidate(message: Event) {
@@ -1553,29 +1589,21 @@ class WebRtcViewportManager(
         }
     }
 
-    private fun checkAndAddIceCandidate(message: Event, iceCandidate: IceCandidate) {
-        val peer = peerConnectionFoundMap[message.senderClientId]
-        if (peer == null) {
-            val pendingCandidates = pendingIceCandidatesMap.getOrPut(message.senderClientId) { mutableListOf() }
-            pendingCandidates.add(iceCandidate)
-            Log.d(TAG, "Peer connection not found, adding ICE candidate to pending list")
-        } else {
-            val addIce = peer.addIceCandidate(iceCandidate)
-            Log.d(TAG, "Added ice candidate $iceCandidate ${if (addIce) "Successfully" else "Failed"}")
-        }
-    }
+    /**
+     * The remote camera (MASTER) can send its SDP answer and its trickled ICE candidates
+     * with a null/empty senderClientId. The peer/pending maps are keyed by a non-null
+     * String, so normalize a missing id to one stable key. This normalization MUST be
+     * used everywhere the maps are keyed, otherwise queued candidates are never flushed.
+     * This is a single-session viewer (one master), so collapsing to one key is fine.
+     */
+    private fun peerKey(senderClientId: String?): String =
+        pendingIceCandidateQueue.peerKey(senderClientId)
 
-    private fun handlePendingIceCandidates(clientId: String) {
-        val pendingCandidates = pendingIceCandidatesMap.remove(clientId)
-        if (pendingCandidates != null) {
-            val peer = peerConnectionFoundMap[clientId]
-            if (peer != null) {
-                for (candidate in pendingCandidates) {
-                    peer.addIceCandidate(candidate)
-                }
-                Log.d(TAG, "Added ${pendingCandidates.size} pending ICE candidates")
-            }
-        }
+    private fun checkAndAddIceCandidate(message: Event, iceCandidate: IceCandidate) {
+        // Delegates the "add now vs. queue until the answer is applied" decision to
+        // pendingIceCandidateQueue; the localPeer safety net stays gated on the
+        // remote-description-applied flag inside the queue.
+        pendingIceCandidateQueue.offer(message.senderClientId, iceCandidate)
     }
 
     private fun createIceCandidateMessage(iceCandidate: IceCandidate): Message {
@@ -1752,6 +1780,7 @@ class WebRtcViewportManager(
         // Cancel any pending offer retry
         offerRetryHandler.removeCallbacksAndMessages(null)
         sdpAnswerReceived = false
+        pendingIceCandidateQueue.reset()
         offerAttempt = 0
 
         // Clean up local signaling client
@@ -1908,7 +1937,6 @@ class WebRtcViewportManager(
 
         // Clear maps
         peerConnectionFoundMap.clear()
-        pendingIceCandidatesMap.clear()
         peerIceServers.clear()
 
         // Invoke callback on main thread if available (callbacks already cleared above, use stored reference)
