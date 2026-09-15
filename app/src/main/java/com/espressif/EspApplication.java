@@ -14,6 +14,7 @@
 
 package com.espressif;
 
+import android.app.Activity;
 import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -64,6 +65,7 @@ import com.espressif.ui.models.Service;
 import com.espressif.ui.models.UpdateEvent;
 import com.espressif.ui.user_module.GoogleSignInManager;
 import com.espressif.ui.webrtc.WebRtcViewportManager;
+import com.espressif.utils.InsetsUtils;
 import com.espressif.utils.NodeUtils;
 import com.espressif.utils.ParamUtils;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -265,6 +267,52 @@ public class EspApplication extends Application {
         REFRESH_DATA
     }
 
+    /**
+     * Keeps every screen's content clear of the navigation bar.
+     *
+     * The app targets SDK 35, so from Android 15 onwards its windows are laid out edge to edge and
+     * are drawn behind the status and navigation bars, with no permanent way to opt out. Applying
+     * the insets from here means a new Activity is covered automatically instead of each screen
+     * having to remember, and avoids 40 near identical calls in onCreate.
+     *
+     * onActivityStarted rather than onActivityCreated, because the Activity has not called
+     * setContentView yet when onActivityCreated runs. Applying insets is idempotent, so running
+     * again on each restart is harmless.
+     */
+    private void registerInsetsHandling() {
+        registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
+
+            @Override
+            public void onActivityStarted(@NonNull Activity activity) {
+                InsetsUtils.applyToActivityContent(activity);
+            }
+
+            @Override
+            public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {
+            }
+
+            @Override
+            public void onActivityResumed(@NonNull Activity activity) {
+            }
+
+            @Override
+            public void onActivityPaused(@NonNull Activity activity) {
+            }
+
+            @Override
+            public void onActivityStopped(@NonNull Activity activity) {
+            }
+
+            @Override
+            public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {
+            }
+
+            @Override
+            public void onActivityDestroyed(@NonNull Activity activity) {
+            }
+        });
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -274,6 +322,7 @@ public class EspApplication extends Application {
         EspNetworkMonitor.init(this);
 
         initializeTheme();
+        registerInsetsHandling();
 
         nodeMap = new HashMap<>();
         scheduleMap = new HashMap<>();

@@ -49,6 +49,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.view.ViewCompat;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager.widget.ViewPager;
 
@@ -76,6 +77,7 @@ import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
 import com.espressif.ui.models.UpdateEvent;
 import com.espressif.utils.AppUpdateHelper;
+import com.espressif.utils.InsetsUtils;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.snackbar.Snackbar;
@@ -416,6 +418,10 @@ public class EspMainActivity extends AppCompatActivity implements BleLocalContro
         setSupportActionBar(appbar);
 
         bottomNavigationView = findViewById(R.id.bottom_navigation_view);
+        // The root CoordinatorLayout already lays this bar out above the navigation bar, but
+        // Material's BottomNavigationView adds the navigation bar's height as bottom padding
+        // regardless, leaving an empty strip under the tabs. Drop that inset handling.
+        ViewCompat.setOnApplyWindowInsetsListener(bottomNavigationView, null);
         Menu menu = bottomNavigationView.getMenu();
         if (!BuildConfig.isScheduleSupported) {
             menu.removeItem(R.id.action_schedules);
@@ -737,6 +743,7 @@ public class EspMainActivity extends AppCompatActivity implements BleLocalContro
                 });
             }
         });
+        InsetsUtils.keepDialogAboveKeyboard(alertDialog);
         alertDialog.show();
     }
 
@@ -782,6 +789,7 @@ public class EspMainActivity extends AppCompatActivity implements BleLocalContro
                 });
             }
         });
+        InsetsUtils.keepDialogAboveKeyboard(alertDialog);
         alertDialog.show();
     }
 
@@ -828,6 +836,7 @@ public class EspMainActivity extends AppCompatActivity implements BleLocalContro
                 });
             }
         });
+        InsetsUtils.keepDialogAboveKeyboard(alertDialog);
         alertDialog.show();
 
         etAutomationName.addTextChangedListener(new TextWatcher() {

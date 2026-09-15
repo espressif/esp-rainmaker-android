@@ -54,6 +54,7 @@ import com.espressif.ui.adapters.GroupNodeAdapter;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Group;
+import com.espressif.utils.InsetsUtils;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.JsonArray;
@@ -378,6 +379,7 @@ public class GroupDetailActivity extends AppCompatActivity {
 
         AlertDialog alertDialog = builder.create();
         alertDialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        InsetsUtils.keepDialogAboveKeyboard(alertDialog);
         alertDialog.show();
     }
 

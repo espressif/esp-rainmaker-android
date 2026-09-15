@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home background in light mode: the interior photo, with a dark band only behind the header. The
+     white title and group tabs sit at a fixed height in dp, and on the pale photo alone they read at
+     2-3:1. The band keeps them readable and fades out just below the tabs, so the rest of the
+     screen keeps the light photo. Dark mode uses drawable-night/bg_home_screen.xml instead. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/bg_home_screen_photo" />
+    <item
+        android:gravity="top"
+        android:height="300dp">
+        <shape android:shape="rectangle">
+            <!-- centerY puts the middle stop at the bottom of the tabs (~206dp of 300dp) -->
+            <gradient
+                android:angle="270"
+                android:centerColor="@color/home_header_scrim_tabs"
+                android:centerY="0.69"
+                android:endColor="@android:color/transparent"
+                android:startColor="@color/home_header_scrim_top" />
+        </shape>
+    </item>
+</layer-list>
