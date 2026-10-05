@@ -1,20 +1,87 @@
 stages:
+    - test
     - build
 
-build_apk:
-    stage: build
-    image: gitlab.espressif.cn:5050/esp_rainmaker/cloud_backend/cloudbackend:22May26py313
-    tags:
-        - rmng
-
-    variables:
-      deployment: "production"  
-
+# Pipeline-level rules: run only for merge requests, and never for drafts.
+# $CI_MERGE_REQUEST_DRAFT also covers drafts toggled from the UI and the
+# "[Draft]" bracket form that a title regex would miss.
+workflow:
     rules:
-        - if: '$CI_MERGE_REQUEST_TITLE =~ /^\s*(WIP|Draft)/'
+        - if: '$CI_MERGE_REQUEST_DRAFT == "true"'
           when: never
         - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-          when: always
+
+# Shared job settings: single edit site so the jobs cannot drift apart.
+# interruptible lets GitLab auto-cancel a stale pipeline when the MR gets a new push.
+default:
+    image: $RM_CI_IMAGE
+    tags:
+        - rmng
+    interruptible: true
+
+variables:
+    RM_CI_IMAGE: "gitlab.espressif.cn:5050/esp_rainmaker/cloud_backend/cloudbackend:22May26py313"
+
+# Standalone JVM unit tests (JUnit4) — gate merges on the pending-ICE-candidate
+# ordering regression tests. Uses the same cloudbackend image as build_apk;
+# installs a JDK + Android SDK only if the image does not already provide them
+# (cached across runs).
+unit_test:
+    stage: test
+
+    variables:
+        GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+
+    cache:
+        key: android-unit-test-toolchain
+        paths:
+            - .android-sdk/
+            - .gradle/caches/
+            # Gradle wrapper distributions live here, not under caches/: without
+            # this every run re-downloads gradle-<ver>-bin.zip from services.gradle.org.
+            - .gradle/wrapper/
+
+    script:
+        - |
+          set -e
+          # JDK 17 (to run Gradle/AGP) — install only if the image lacks one.
+          if ! command -v javac >/dev/null 2>&1; then
+            apt-get update -qq && apt-get install -y -qq openjdk-17-jdk-headless wget unzip
+          fi
+          export JAVA_HOME="${JAVA_HOME:-$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")}"
+          java -version
+          # Android SDK (compileSdk 35) — reuse the image SDK if usable, else install a cached local one.
+          SDK=""
+          for c in "$ANDROID_HOME" "$ANDROID_SDK_ROOT" "$CI_PROJECT_DIR/.android-sdk"; do
+            if [ -n "$c" ] && [ -d "$c/platforms/android-35" ]; then SDK="$c"; break; fi
+          done
+          if [ -z "$SDK" ]; then
+            SDK="$CI_PROJECT_DIR/.android-sdk"
+            mkdir -p "$SDK/cmdline-tools"
+            wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdtools.zip
+            unzip -q -o /tmp/cmdtools.zip -d "$SDK/cmdline-tools"
+            [ -d "$SDK/cmdline-tools/cmdline-tools" ] && mv "$SDK/cmdline-tools/cmdline-tools" "$SDK/cmdline-tools/latest"
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --licenses >/dev/null 2>&1 || true
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" "platform-tools" "platforms;android-35" "build-tools;35.0.0" >/dev/null
+          fi
+          echo "sdk.dir=$SDK" > local.properties
+          ./gradlew --no-daemon :app:testDebugUnitTest
+
+    artifacts:
+        when: always
+        reports:
+            junit: app/build/test-results/testDebugUnitTest/**/TEST-*.xml
+        paths:
+            - app/build/reports/tests/
+        expire_in: 1 month
+
+# Runs only after unit_test succeeds (default `when: on_success`); a red
+# unit_test must not produce an APK.
+build_apk:
+    stage: build
+
+    variables:
+        deployment: "production"
 
     script:
         - git clone --single-branch --depth 1 https://$CI_GITLAB_USERNAME_APP_FRAMEWORKS:$CI_GITLAB_PASSWORD_APP_FRAMEWORKS@gitlab.espressif.cn:6688/app-frameworks/eagle.git
