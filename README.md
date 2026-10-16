@@ -200,12 +200,13 @@ Add `isOtaSupported=true` in `local.properties` file to enable this feature.
 This account linking flow enables users to link their Alexa user identity with their RainMaker identity by starting from Rainmaker app. When they start the account linking flow from the app, users can:
 - Discover their Alexa skill through the app.
 - Initiate skill enablement and account linking from within the app.
-- Link their account without entering Alexa account credentials if already logged into Alexa app. They will have to login to Rainmaker once, when trying to link accounts.
+- Link their account without entering Alexa account credentials if already logged into Alexa app. They will have to log in to RainMaker once when linking accounts, unless `alexaRMClientSecret` is set.
 - Link their account from your RainMaker using [Login with Amazon (LWA)](https://developer.amazon.com/docs/login-with-amazon/documentation-overview.html), when the Alexa app isn't installed on their device.
 
 To configure Alexa app linking, add the following properties in `local.properties`:
 - `alexaRedirectHost`: Host value for the deep link intent filter in AndroidManifest.xml. Default value is "**your_host_value**".
 - Additional Alexa configuration properties: `alexaClientId`, `alexaClientSecret`, `alexaRedirectUrl`, `alexaRMClientId`, `skillId`, `skillStage`, `alexaAccessTokenUrl`.
+- `alexaRMClientSecret` (optional): Client secret of the same app client as `alexaRMClientId`. If it is set, the app gets the RainMaker authorization code from the backend, so users don't log in to RainMaker in the browser. If it is not set, the app uses the browser-based login flow.
 
 ### Command Response
 

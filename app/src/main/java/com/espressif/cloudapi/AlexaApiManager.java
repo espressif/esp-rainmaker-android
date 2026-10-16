@@ -16,10 +16,13 @@ package com.espressif.cloudapi;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.Uri;
+import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.espressif.AppConstants;
+import com.espressif.EspApplication;
 import com.espressif.rainmaker.BuildConfig;
 import com.google.gson.JsonObject;
 
@@ -29,7 +32,11 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -60,6 +67,80 @@ public class AlexaApiManager {
         sharedPreferences = context.getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE);
         accessToken = sharedPreferences.getString(AppConstants.KEY_ALEXA_ACCESS_TOKEN, "");
         refreshToken = sharedPreferences.getString(AppConstants.KEY_ALEXA_REFRESH_TOKEN, "");
+    }
+
+    public void getAlexaAuthCode(String redirectUri, ApiResponseListener listener) {
+
+        String authorizeUrl = EspApplication.BASE_URL + AppConstants.URL_APP_LINK;
+        String rmAccessToken = sharedPreferences.getString(AppConstants.KEY_ACCESS_TOKEN, "");
+
+        HttpUrl baseUrl = HttpUrl.parse(authorizeUrl);
+        if (baseUrl == null) {
+            listener.onResponseFailure(new RuntimeException("Invalid authorize URL"));
+            return;
+        }
+
+        HttpUrl url = baseUrl.newBuilder()
+                .addQueryParameter(AppConstants.KEY_CLIENT_ID, BuildConfig.ALEXA_RM_CLIENT_ID)
+                .addQueryParameter(AppConstants.KEY_REDIRECT_URI, redirectUri)
+                .addQueryParameter(AppConstants.KEY_RESPONSE_TYPE, "code")
+                .addQueryParameter(AppConstants.KEY_STATE, AppConstants.STATE)
+                .addQueryParameter(AppConstants.KEY_CLIENT_SECRET, BuildConfig.ALEXA_RM_CLIENT_SECRET)
+                .build();
+
+        OkHttpClient client = new OkHttpClient.Builder()
+                .followRedirects(false)
+                .followSslRedirects(false)
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(15, TimeUnit.SECONDS)
+                .build();
+
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Authorization", rmAccessToken)
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new okhttp3.Callback() {
+
+            @Override
+            public void onFailure(okhttp3.Call call, IOException e) {
+                Log.e(TAG, "getAlexaAuthCode network failure", e);
+                listener.onNetworkFailure(new RuntimeException(e));
+            }
+
+            @Override
+            public void onResponse(okhttp3.Call call, okhttp3.Response response) throws IOException {
+                try {
+                    Log.d(TAG, "getAlexaAuthCode, Response code: " + response.code());
+
+                    if (response.code() == 302) {
+                        String location = response.header("location");
+
+                        if (location != null) {
+                            Uri locationUri = Uri.parse(location);
+                            String code = locationUri.getQueryParameter("code");
+
+                            if (code != null && !code.isEmpty()) {
+                                Bundle data = new Bundle();
+                                data.putString(AppConstants.KEY_AUTH_CODE, code);
+                                listener.onSuccess(data);
+                            } else {
+                                listener.onResponseFailure(new RuntimeException("Auth code not found in redirect URL"));
+                            }
+                        } else {
+                            listener.onResponseFailure(new RuntimeException("No location header in 302 response"));
+                        }
+                    } else {
+                        String errBody = response.body() != null ? response.body().string() : "";
+                        Log.e(TAG, "getAlexaAuthCode failed. Code: " + response.code() + ", Body: " + errBody);
+                        listener.onResponseFailure(new AlexaAuthCodeException(response.code(), "Expected 302 but got " + response.code()));
+                    }
+                } finally {
+                    response.close();
+                }
+            }
+        });
     }
 
     public void getAlexaAccessToken(String redirectUri, String code, ApiResponseListener listener) {
@@ -226,10 +307,15 @@ public class AlexaApiManager {
         return isLinked;
     }
 
-    public boolean enableAlexaSkill(String authCode) {
+    /**
+     * Enables the skill and links the accounts using the given auth code.
+     *
+     * @return HTTP status code of the last enablement response, or -1 if no response was received.
+     */
+    public int enableAlexaSkill(String authCode) {
 
         String header = "Bearer " + accessToken;
-        boolean success = false;
+        int statusCode = -1;
 
         JsonObject body = new JsonObject();
         body.addProperty(AppConstants.KEY_STAGE, BuildConfig.SKILL_STAGE);
@@ -247,13 +333,13 @@ public class AlexaApiManager {
 
             try {
                 Response<ResponseBody> response = apiInterface.enableAlexaSkill(url, header, body).execute();
-                Log.e(TAG, "enableAlexaSkill, response code : " + response.code());
+                statusCode = response.code();
+                Log.d(TAG, "enableAlexaSkill, response code : " + statusCode);
 
                 if (response.isSuccessful()) {
 
                     String jsonResponse = response.body().string();
                     Log.d(TAG, "enableAlexaSkill, Response : " + jsonResponse);
-                    success = true;
                     break;
                 } else {
                     String jsonErrResponse = response.errorBody().string();
@@ -264,7 +350,7 @@ public class AlexaApiManager {
             }
         }
 
-        return success;
+        return statusCode;
     }
 
     public boolean disableAlexaSkill() {
