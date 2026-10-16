@@ -4,7 +4,8 @@
     android:layout_height="match_parent"
     android:layout_gravity="center"
     android:orientation="vertical"
-    android:background="#1A1A1A">
+    android:background="#1A1A1A"
+    android:fitsSystemWindows="true">
 
     <FrameLayout
         android:layout_width="match_parent"

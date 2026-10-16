@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Tag slot used by InsetsUtils to remember a view's XML declared padding, so that repeated
+         window inset dispatches are always computed from that baseline instead of accumulating. -->
+    <item name="insets_baseline_padding" type="id" />
+
+</resources>

@@ -53,6 +53,7 @@ import com.espressif.ui.models.Action;
 import com.espressif.ui.models.Automation;
 import com.espressif.ui.models.Device;
 import com.espressif.ui.models.Param;
+import com.espressif.utils.InsetsUtils;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -294,6 +295,7 @@ public class AutomationDetailActivity extends AppCompatActivity {
                 });
             }
         });
+        InsetsUtils.keepDialogAboveKeyboard(alertDialog);
         alertDialog.show();
 
         etAutomationName.addTextChangedListener(new TextWatcher() {

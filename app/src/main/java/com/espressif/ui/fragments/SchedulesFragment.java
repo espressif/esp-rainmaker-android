@@ -45,6 +45,7 @@ import com.espressif.ui.adapters.ScheduleAdapter;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Schedule;
 import com.espressif.ui.models.Service;
+import com.espressif.utils.InsetsUtils;
 import com.espressif.utils.NodeUtils;
 import com.google.android.material.card.MaterialCardView;
 
@@ -299,6 +300,7 @@ public class SchedulesFragment extends Fragment {
                 });
             }
         });
+        InsetsUtils.keepDialogAboveKeyboard(alertDialog);
         alertDialog.show();
     }
 

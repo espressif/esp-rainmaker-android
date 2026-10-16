@@ -45,6 +45,7 @@ import com.espressif.ui.adapters.SceneAdapter;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Service;
+import com.espressif.utils.InsetsUtils;
 import com.espressif.utils.NodeUtils;
 import com.google.android.material.card.MaterialCardView;
 
@@ -290,6 +291,7 @@ public class ScenesFragment extends Fragment {
                 });
             }
         });
+        InsetsUtils.keepDialogAboveKeyboard(alertDialog);
         alertDialog.show();
     }
 

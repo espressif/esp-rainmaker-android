@@ -70,6 +70,7 @@ import com.espressif.ui.models.EspNode
 import com.espressif.ui.models.Param
 import com.espressif.ui.models.Service
 import com.espressif.ui.models.UpdateEvent
+import com.espressif.utils.InsetsUtils
 import com.espressif.utils.NodeUtils.Companion.getService
 import com.espressif.utils.ParamTransport
 import com.espressif.utils.ParamTransportResolver
@@ -563,6 +564,7 @@ class EspDeviceActivity : AppCompatActivity() {
                 }
             }
         }
+        InsetsUtils.keepDialogAboveKeyboard(alertDialog)
         alertDialog.show()
     }
 

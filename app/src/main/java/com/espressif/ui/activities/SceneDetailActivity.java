@@ -56,6 +56,7 @@ import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Scene;
 import com.espressif.ui.models.Service;
 import com.espressif.utils.InAppReviewManager;
+import com.espressif.utils.InsetsUtils;
 import com.espressif.utils.NodeUtils;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
@@ -418,6 +419,7 @@ public class SceneDetailActivity extends AppCompatActivity {
                 });
             }
         });
+        InsetsUtils.keepDialogAboveKeyboard(alertDialog);
         alertDialog.show();
     }
 

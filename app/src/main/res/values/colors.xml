@@ -35,4 +35,9 @@
     <color name="device_online_background">#FFFFFF</color> <!-- White background for light theme -->
     <color name="device_offline_background">#FFFFFF</color> <!-- White background for light theme -->
 
+    <!-- Dark band behind the light-mode home header: 40% at the top, 32% at the bottom of the
+         group tabs, so the white title and tab labels on the photo stay readable -->
+    <color name="home_header_scrim_top">#66000000</color>
+    <color name="home_header_scrim_tabs">#52000000</color>
+
 </resources>
