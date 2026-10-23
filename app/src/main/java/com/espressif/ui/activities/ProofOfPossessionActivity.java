@@ -36,6 +36,7 @@ import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
+import com.espressif.utils.BackNavigation;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 
@@ -65,6 +66,12 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pop);
+
+        BackNavigation.runBeforeDefaultBack(this, () -> {
+            if (provisionManager.getEspDevice() != null) {
+                provisionManager.getEspDevice().disconnectDevice();
+            }
+        });
 
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
@@ -115,14 +122,6 @@ public class ProofOfPossessionActivity extends AppCompatActivity {
     protected void onDestroy() {
         EventBus.getDefault().unregister(this);
         super.onDestroy();
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (provisionManager.getEspDevice() != null) {
-            provisionManager.getEspDevice().disconnectDevice();
-        }
-        super.onBackPressed();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

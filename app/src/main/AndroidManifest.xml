@@ -77,6 +77,14 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
 
+        <!-- Android 16 ignores android:screenOrientation on large screens (sw600dp and up) for apps
+             targeting API 36. Every screen here is laid out for portrait, so keep the previous
+             behaviour until the layouts are adaptive. This opt-out is no longer honoured once the
+             app targets API 37. -->
+        <property
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+            android:value="true" />
+
         <!-- Aroura Configuration Services-->
 
         <meta-data
@@ -163,15 +171,21 @@
             android:name="cn.jpush.android.service.SchedulerReceiver"
             android:exported="false" />
 
+        <!-- These JPush activities still override onBackPressed(), which Android 16 no longer
+             calls for apps targeting API 36, so keep the legacy back dispatch for them. -->
         <activity
             android:name="cn.jpush.android.ui.PushActivity"
+            android:enableOnBackInvokedCallback="false"
             android:exported="false"
-            tools:replace="android:exported"/>
+            tools:replace="android:exported"
+            tools:targetApi="tiramisu"/>
 
         <activity
             android:name="cn.jpush.android.ui.PopWinActivity"
+            android:enableOnBackInvokedCallback="false"
             android:exported="true"
-            tools:replace="android:exported"/>
+            tools:replace="android:exported"
+            tools:targetApi="tiramisu"/>
 
         <activity
             android:name="cn.jpush.android.service.JNotifyActivity"

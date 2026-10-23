@@ -50,10 +50,10 @@ unit_test:
           fi
           export JAVA_HOME="${JAVA_HOME:-$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")}"
           java -version
-          # Android SDK (compileSdk 35) — reuse the image SDK if usable, else install a cached local one.
+          # Android SDK (compileSdk 36) — reuse the image SDK if usable, else install a cached local one.
           SDK=""
           for c in "$ANDROID_HOME" "$ANDROID_SDK_ROOT" "$CI_PROJECT_DIR/.android-sdk"; do
-            if [ -n "$c" ] && [ -d "$c/platforms/android-35" ]; then SDK="$c"; break; fi
+            if [ -n "$c" ] && [ -d "$c/platforms/android-36" ]; then SDK="$c"; break; fi
           done
           if [ -z "$SDK" ]; then
             SDK="$CI_PROJECT_DIR/.android-sdk"
@@ -62,7 +62,7 @@ unit_test:
             unzip -q -o /tmp/cmdtools.zip -d "$SDK/cmdline-tools"
             [ -d "$SDK/cmdline-tools/cmdline-tools" ] && mv "$SDK/cmdline-tools/cmdline-tools" "$SDK/cmdline-tools/latest"
             yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --licenses >/dev/null 2>&1 || true
-            "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" "platform-tools" "platforms;android-35" "build-tools;35.0.0" >/dev/null
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" "platform-tools" "platforms;android-36" "build-tools;35.0.0" >/dev/null
           fi
           echo "sdk.dir=$SDK" > local.properties
           ./gradlew --no-daemon :app:testDebugUnitTest

@@ -45,6 +45,7 @@ import com.espressif.ui.Utils;
 import com.espressif.ui.models.EspNode;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Service;
+import com.espressif.utils.BackNavigation;
 import com.espressif.utils.NodeUtils;
 import com.google.android.gms.threadnetwork.ThreadNetwork;
 import com.google.android.gms.threadnetwork.ThreadNetworkCredentials;
@@ -80,6 +81,12 @@ public class ThreadConfigActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_thread_config);
 
+        BackNavigation.runBeforeDefaultBack(this, () -> {
+            if (provisionManager.getEspDevice() != null) {
+                provisionManager.getEspDevice().disconnectDevice();
+            }
+        });
+
         handler = new Handler();
         threadNetworkList = new ArrayList<>();
         espApp = (EspApplication) getApplicationContext();
@@ -96,12 +103,6 @@ public class ThreadConfigActivity extends AppCompatActivity {
     protected void onDestroy() {
         EventBus.getDefault().unregister(this);
         super.onDestroy();
-    }
-
-    @Override
-    public void onBackPressed() {
-        provisionManager.getEspDevice().disconnectDevice();
-        super.onBackPressed();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

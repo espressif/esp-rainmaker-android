@@ -55,7 +55,7 @@ class DeleteUserActivity : AppCompatActivity() {
         binding.toolbarDeleteUser.toolbar.setNavigationOnClickListener {
             val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
             if (currentFragment is DeleteUserConfirmFragment) {
-                onBackPressed()
+                onBackPressedDispatcher.onBackPressed()
             } else {
                 finish()
             }

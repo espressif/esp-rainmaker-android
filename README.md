@@ -286,6 +286,7 @@ Description of each key can be found below.
 ## Supports
 
 - Supports Android 8.1 (API level 27) and above.  
+- Targets Android 16 (API level 36).  
 
 ## License
 

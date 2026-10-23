@@ -15,6 +15,7 @@
 package com.espressif.ui.user_module
 
 import android.os.Bundle
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.fragment.app.Fragment
@@ -35,26 +36,27 @@ class ForgotPasswordActivity : AppCompatActivity() {
 
     private var email: String? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivityForgotPasswordBinding.inflate(layoutInflater)
-        val view = binding.root
-        setContentView(view)
-        setToolbar()
-        loadForgotPasswordFragment(ForgotPasswordFragment())
-    }
-
-    override fun onBackPressed() {
-        val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
-        if (currentFragment is ResetPasswordFragment) {
+    // Back from the reset-code screen returns to the e-mail screen. The callback is enabled only
+    // while the reset-code screen is shown, so on the e-mail screen the system handles back itself
+    // and Android 16 can play its predictive back animation.
+    private val resetCodeBackCallback = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
             val forgotPasswordFragment: Fragment = ForgotPasswordFragment()
             val data = Bundle()
             data.putString(AppConstants.KEY_USER_NAME, email)
             forgotPasswordFragment.arguments = data
             loadForgotPasswordFragment(forgotPasswordFragment)
-        } else {
-            super.onBackPressed()
         }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityForgotPasswordBinding.inflate(layoutInflater)
+        val view = binding.root
+        setContentView(view)
+        onBackPressedDispatcher.addCallback(this, resetCodeBackCallback)
+        setToolbar()
+        loadForgotPasswordFragment(ForgotPasswordFragment())
     }
 
     private fun setToolbar() {
@@ -68,7 +70,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
         binding.toolbarForgotPassword.toolbar.setNavigationOnClickListener {
             val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
             if (currentFragment is ResetPasswordFragment) {
-                onBackPressed()
+                onBackPressedDispatcher.onBackPressed()
             } else {
                 finish()
             }
@@ -76,6 +78,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
     }
 
     private fun loadForgotPasswordFragment(forgotPasswordFragment: Fragment) {
+        resetCodeBackCallback.isEnabled = false
         binding.toolbarForgotPassword.toolbar.title =
             getString(R.string.title_activity_forgot_password)
         supportFragmentManager.beginTransaction().apply {
@@ -85,6 +88,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
     }
 
     private fun loadResetPasswordFragment(resetPasswordFragment: Fragment) {
+        resetCodeBackCallback.isEnabled = true
         binding.toolbarForgotPassword.toolbar.title =
             getString(R.string.title_activity_reset_password)
         supportFragmentManager.beginTransaction().apply {

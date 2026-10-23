@@ -46,6 +46,7 @@ import com.espressif.rainmaker.BuildConfig
 import com.espressif.rainmaker.R
 import com.espressif.rainmaker.databinding.ActivityAddDeviceBinding
 import com.espressif.ui.Utils
+import com.espressif.utils.BackNavigation
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -76,6 +77,9 @@ class AddDeviceActivity : AppCompatActivity() {
         binding = ActivityAddDeviceBinding.inflate(layoutInflater)
         setContentView(binding.root)
         provisionManager = ESPProvisionManager.getInstance(applicationContext)
+        BackNavigation.runBeforeDefaultBack(this) {
+            provisionManager.espDevice?.disconnectDevice()
+        }
         initViews()
         EventBus.getDefault().register(this)
         connectedNetwork = wifiSsid
@@ -97,11 +101,6 @@ class AddDeviceActivity : AppCompatActivity() {
         hideLoading()
         EventBus.getDefault().unregister(this)
         super.onDestroy()
-    }
-
-    override fun onBackPressed() {
-        provisionManager.espDevice?.disconnectDevice()
-        super.onBackPressed()
     }
 
     private fun areAllPermissionsGranted(): Boolean {

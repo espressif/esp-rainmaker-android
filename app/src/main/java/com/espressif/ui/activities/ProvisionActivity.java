@@ -50,6 +50,7 @@ import com.espressif.ui.models.OnNetworkDevice;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Service;
 import com.espressif.ui.models.UpdateEvent;
+import com.espressif.utils.BackNavigation;
 import com.espressif.utils.InAppReviewManager;
 import com.espressif.utils.NodeUtils;
 import com.espressif.utils.ParamUtils;
@@ -135,6 +136,13 @@ public class ProvisionActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_provision);
+
+        BackNavigation.runBeforeDefaultBack(this, () -> {
+            if (provisionManager != null && provisionManager.getEspDevice() != null) {
+                provisionManager.getEspDevice().disconnectDevice();
+            }
+        });
+
         espApp = (EspApplication) getApplicationContext();
 
         Intent intent = getIntent();
@@ -183,14 +191,6 @@ public class ProvisionActivity extends AppCompatActivity {
         EventBus.getDefault().register(this);
         showLoading();
         doStep1();
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (provisionManager != null && provisionManager.getEspDevice() != null) {
-            provisionManager.getEspDevice().disconnectDevice();
-        }
-        super.onBackPressed();
     }
 
     @Override
