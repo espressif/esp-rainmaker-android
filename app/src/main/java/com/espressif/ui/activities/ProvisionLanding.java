@@ -37,6 +37,7 @@ import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
+import com.espressif.utils.BackNavigation;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 
@@ -69,6 +70,13 @@ public class ProvisionLanding extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_provision_landing);
+
+        BackNavigation.runBeforeDefaultBack(this, () -> {
+            if (provisionManager.getEspDevice() != null) {
+                provisionManager.getEspDevice().disconnectDevice();
+            }
+        });
+
         deviceName = getIntent().getStringExtra(AppConstants.KEY_DEVICE_NAME);
         pop = getIntent().getStringExtra(AppConstants.KEY_PROOF_OF_POSSESSION);
         securityType = getIntent().getIntExtra(AppConstants.KEY_SECURITY_TYPE, AppConstants.SEC_TYPE_DEFAULT);
@@ -81,13 +89,6 @@ public class ProvisionLanding extends AppCompatActivity {
     protected void onDestroy() {
         EventBus.getDefault().unregister(this);
         super.onDestroy();
-    }
-
-    public void onBackPressed() {
-        if (provisionManager.getEspDevice() != null) {
-            provisionManager.getEspDevice().disconnectDevice();
-        }
-        super.onBackPressed();
     }
 
     @Override

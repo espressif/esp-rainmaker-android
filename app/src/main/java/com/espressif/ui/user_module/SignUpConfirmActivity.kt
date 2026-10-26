@@ -69,11 +69,6 @@ class SignUpConfirmActivity : AppCompatActivity() {
         }
     }
 
-    override fun onBackPressed() {
-        setResult(RESULT_CANCELED, intent)
-        super.onBackPressed()
-    }
-
     private fun setToolbar() {
         setSupportActionBar(binding.toolbarSignupConfirm.toolbar)
         supportActionBar!!.setDisplayHomeAsUpEnabled(true)

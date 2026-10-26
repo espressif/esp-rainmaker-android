@@ -40,6 +40,7 @@ import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.provisioning.listeners.ResponseListener;
 import com.espressif.rainmaker.R;
 import com.espressif.rainmaker.databinding.ActivityClaimingBinding;
+import com.espressif.utils.BackNavigation;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -83,6 +84,12 @@ public class ClaimingActivity extends AppCompatActivity {
         View view = binding.getRoot();
         setContentView(view);
 
+        BackNavigation.runBeforeDefaultBack(this, () -> {
+            if (provisionManager.getEspDevice() != null) {
+                provisionManager.getEspDevice().disconnectDevice();
+            }
+        });
+
         hasTriedAgain = false;
         isCameraClaim = getIntent().getBooleanExtra(AppConstants.KEY_IS_CAMERA_CLAIM, false);
         handler = new Handler();
@@ -99,14 +106,6 @@ public class ClaimingActivity extends AppCompatActivity {
     protected void onDestroy() {
         EventBus.getDefault().unregister(this);
         super.onDestroy();
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (provisionManager.getEspDevice() != null) {
-            provisionManager.getEspDevice().disconnectDevice();
-        }
-        super.onBackPressed();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

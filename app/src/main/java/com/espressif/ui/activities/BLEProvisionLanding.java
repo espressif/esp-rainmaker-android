@@ -56,6 +56,7 @@ import com.espressif.rainmaker.R;
 import com.espressif.ui.Utils;
 import com.espressif.ui.adapters.BleDeviceListAdapter;
 import com.espressif.ui.models.BleDevice;
+import com.espressif.utils.BackNavigation;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 
@@ -109,6 +110,15 @@ public class BLEProvisionLanding extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bleprovision_landing);
+
+        BackNavigation.runBeforeDefaultBack(this, () -> {
+            if (isScanning) {
+                stopScan();
+            }
+            if (provisionManager.getEspDevice() != null) {
+                provisionManager.getEspDevice().disconnectDevice();
+            }
+        });
 
         // Use this check to determine whether BLE is supported on the device.  Then you can
         // selectively disable BLE-related features.
@@ -165,19 +175,6 @@ public class BLEProvisionLanding extends AppCompatActivity {
                 startScan();
             }
         }
-    }
-
-    @Override
-    public void onBackPressed() {
-
-        if (isScanning) {
-            stopScan();
-        }
-        if (provisionManager.getEspDevice() != null) {
-            provisionManager.getEspDevice().disconnectDevice();
-        }
-
-        super.onBackPressed();
     }
 
     @Override

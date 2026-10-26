@@ -59,6 +59,7 @@ import com.espressif.rainmaker.BuildConfig;
 import com.espressif.rainmaker.R;
 import com.espressif.rainmaker.databinding.ActivityWifiScanListBinding;
 import com.espressif.ui.adapters.WiFiListAdapter;
+import com.espressif.utils.BackNavigation;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 
@@ -98,6 +99,12 @@ public class WiFiScanActivity extends AppCompatActivity {
         View view = binding.getRoot();
         setContentView(view);
 
+        BackNavigation.runBeforeDefaultBack(this, () -> {
+            if (provisionManager.getEspDevice() != null) {
+                provisionManager.getEspDevice().disconnectDevice();
+            }
+        });
+
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         shouldSavePassword = getSharedPreferences(AppConstants.ESP_PREFERENCES, Context.MODE_PRIVATE)
                 .getBoolean(AppConstants.KEY_SHOULD_SAVE_PWD, true);
@@ -121,14 +128,6 @@ public class WiFiScanActivity extends AppCompatActivity {
     protected void onDestroy() {
         EventBus.getDefault().unregister(this);
         super.onDestroy();
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (provisionManager.getEspDevice() != null) {
-            provisionManager.getEspDevice().disconnectDevice();
-        }
-        super.onBackPressed();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

@@ -33,6 +33,7 @@ import com.espressif.provisioning.DeviceConnectionEvent;
 import com.espressif.provisioning.ESPConstants;
 import com.espressif.provisioning.ESPProvisionManager;
 import com.espressif.rainmaker.R;
+import com.espressif.utils.BackNavigation;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 
@@ -55,6 +56,12 @@ public class WiFiConfigActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_wifi_config);
 
+        BackNavigation.runBeforeDefaultBack(this, () -> {
+            if (provisionManager.getEspDevice() != null) {
+                provisionManager.getEspDevice().disconnectDevice();
+            }
+        });
+
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
         initViews();
         EventBus.getDefault().register(this);
@@ -64,12 +71,6 @@ public class WiFiConfigActivity extends AppCompatActivity {
     protected void onDestroy() {
         EventBus.getDefault().unregister(this);
         super.onDestroy();
-    }
-
-    @Override
-    public void onBackPressed() {
-        provisionManager.getEspDevice().disconnectDevice();
-        super.onBackPressed();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

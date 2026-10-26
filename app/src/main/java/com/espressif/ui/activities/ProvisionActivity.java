@@ -50,6 +50,7 @@ import com.espressif.ui.models.OnNetworkDevice;
 import com.espressif.ui.models.Param;
 import com.espressif.ui.models.Service;
 import com.espressif.ui.models.UpdateEvent;
+import com.espressif.utils.BackNavigation;
 import com.espressif.utils.InAppReviewManager;
 import com.espressif.utils.NodeUtils;
 import com.espressif.utils.ParamUtils;
@@ -135,6 +136,13 @@ public class ProvisionActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_provision);
+
+        BackNavigation.runBeforeDefaultBack(this, () -> {
+            if (provisionManager != null && provisionManager.getEspDevice() != null) {
+                provisionManager.getEspDevice().disconnectDevice();
+            }
+        });
+
         espApp = (EspApplication) getApplicationContext();
 
         Intent intent = getIntent();
@@ -163,7 +171,7 @@ public class ProvisionActivity extends AppCompatActivity {
         bleLocalCtrlDeviceName = intent.getStringExtra(AppConstants.KEY_DEVICE_NAME);
         bleLocalCtrlPop = intent.getStringExtra(AppConstants.KEY_PROOF_OF_POSSESSION);
         Log.d(TAG, "BLE Local Ctrl Flow: " + isBleLocalCtrlFlow);
-        Log.d(TAG, "From Intent - deviceName: " + bleLocalCtrlDeviceName + ", pop: " + bleLocalCtrlPop);
+        Log.d(TAG, "From Intent - deviceName: " + bleLocalCtrlDeviceName + ", BLE local control POP: " + bleLocalCtrlPop);
 
         provisionManager = ESPProvisionManager.getInstance(getApplicationContext());
 
@@ -183,14 +191,6 @@ public class ProvisionActivity extends AppCompatActivity {
         EventBus.getDefault().register(this);
         showLoading();
         doStep1();
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (provisionManager != null && provisionManager.getEspDevice() != null) {
-            provisionManager.getEspDevice().disconnectDevice();
-        }
-        super.onBackPressed();
     }
 
     @Override
@@ -351,7 +351,7 @@ public class ProvisionActivity extends AppCompatActivity {
     private void checkDeviceCapabilities() {
 
         ESPDevice espDevice = provisionManager.getEspDevice();
-        if (espDevice != null && espDevice.getTransportType().equals(ESPConstants.TransportType.TRANSPORT_BLE)) {
+//        if (espDevice != null && espDevice.getTransportType().equals(ESPConstants.TransportType.TRANSPORT_BLE)) {
             String versionInfo = espDevice.getVersionInfo();
             ArrayList<String> rmakerExtraCaps = new ArrayList<>();
 
@@ -375,7 +375,7 @@ public class ProvisionActivity extends AppCompatActivity {
                 Log.e(TAG, "Version Info JSON not available.");
                 finish();
             }
-        }
+//        }
     }
 
     private void doStep1() {
