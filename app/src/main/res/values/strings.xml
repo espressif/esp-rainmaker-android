@@ -229,6 +229,17 @@
     <string name="btn_apple">Sign in using Apple</string>
     <string name="btn_we_chat">Sign in using WeChat</string>
     <string name="btn_ok">OK</string>
+    <string name="schedule_at_sunrise">At sunrise</string>
+    <string name="schedule_at_sunset">At sunset</string>
+    <string name="schedule_after_sunrise">%d min after sunrise</string>
+    <string name="schedule_before_sunrise">%d min before sunrise</string>
+    <string name="schedule_after_sunset">%d min after sunset</string>
+    <string name="schedule_before_sunset">%d min before sunset</string>
+    <string name="schedule_daylight_not_editable_note">This trigger cannot be edited in this version of the app.</string>
+    <string name="schedule_sunrise">Sunrise</string>
+    <string name="schedule_sunset">Sunset</string>
+    <string name="dialog_title_daylight_schedule">Sunrise/sunset schedule</string>
+    <string name="error_daylight_schedule_not_editable">This schedule is triggered by sunrise or sunset. This version of the app cannot edit that trigger, and saving would replace it with a fixed time. Please edit this schedule from a client that supports daylight triggers.</string>
     <string name="btn_back">Back</string>
     <string name="btn_cancel">Cancel</string>
     <string name="btn_join">Provision</string>
@@ -493,6 +504,10 @@
     <string name="devices">devices</string>
     <string name="device">device</string>
     <string name="node">node</string>
+    <plurals name="device_count">
+        <item quantity="one">%d device</item>
+        <item quantity="other">%d devices</item>
+    </plurals>
     <string name="expires_in">Expires in</string>
     <string name="expire_days">days</string>
     <string name="expires_today">Expires today</string>

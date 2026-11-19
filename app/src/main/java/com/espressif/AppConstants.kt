@@ -370,6 +370,13 @@ class AppConstants {
         const val KEY_CHECK = "check"
         const val KEY_DAYS = "d"
         const val KEY_MINUTES = "m"
+        const val KEY_SUNRISE = "sr"
+        const val KEY_SUNSET = "ss"
+
+        // Which daylight event a schedule follows, if any.
+        const val DAYLIGHT_TRIGGER_NONE = 0
+        const val DAYLIGHT_TRIGGER_SUNRISE = 1
+        const val DAYLIGHT_TRIGGER_SUNSET = 2
         const val KEY_ENABLED = "enabled"
         const val KEY_ID = "id"
         const val KEY_ROLE = "role"

@@ -80,6 +80,7 @@ public class ScheduleDetailActivity extends AppCompatActivity {
     private RelativeLayout rlScheduleName, rlActions, rlRepeat;
     private TextView tvScheduleName, tvActionDevices;
     private TimePicker timePicker;
+    private TextView tvDaylightTrigger, tvDaylightTriggerNote;
     private MaterialCardView btnRemoveSchedule;
     private TextView txtRemoveScheduleBtn;
     private ImageView removeScheduleImage;
@@ -294,6 +295,8 @@ public class ScheduleDetailActivity extends AppCompatActivity {
 
         tvScheduleName = findViewById(R.id.tv_schedule_name);
         timePicker = findViewById(R.id.time_picker);
+        tvDaylightTrigger = findViewById(R.id.tv_daylight_trigger);
+        tvDaylightTriggerNote = findViewById(R.id.tv_daylight_trigger_note);
         tvActionDevices = findViewById(R.id.tv_action_device_list);
 
         day1 = findViewById(R.id.tv_day_1);
@@ -330,11 +333,24 @@ public class ScheduleDetailActivity extends AppCompatActivity {
                 }
             }
 
-            int mins = triggers.get(AppConstants.KEY_MINUTES);
-            int h = mins / 60;
-            int m = mins % 60;
-            timePicker.setHour(h);
-            timePicker.setMinute(m);
+            if (schedule.isDaylightTrigger()) {
+
+                // The schedule follows sunrise or sunset, so it carries no fixed time. The picker
+                // would sit at a meaningless midnight and invite an edit that the save path has to
+                // refuse, so describe the real trigger instead of showing it.
+                timePicker.setVisibility(View.GONE);
+                tvDaylightTrigger.setText(getDaylightTriggerText());
+                tvDaylightTrigger.setVisibility(View.VISIBLE);
+                tvDaylightTriggerNote.setVisibility(View.VISIBLE);
+
+            } else {
+
+                int mins = triggers.get(AppConstants.KEY_MINUTES);
+                int h = mins / 60;
+                int m = mins % 60;
+                timePicker.setHour(h);
+                timePicker.setMinute(m);
+            }
 
             btnRemoveSchedule.setVisibility(View.VISIBLE);
 
@@ -830,7 +846,42 @@ public class ScheduleDetailActivity extends AppCompatActivity {
         prepareScheduleJsonAndUpdate();
     }
 
+    /**
+     * @return a description of the daylight trigger, e.g. "30 min after sunrise". The offset is
+     * signed: positive is after the event, negative before it, zero exactly at it.
+     */
+    private String getDaylightTriggerText() {
+
+        boolean isSunset = schedule.getDaylightType() == AppConstants.DAYLIGHT_TRIGGER_SUNSET;
+        int offset = schedule.getDaylightOffset();
+
+        if (offset == 0) {
+            return getString(isSunset ? R.string.schedule_at_sunset : R.string.schedule_at_sunrise);
+        }
+
+        int resId;
+        if (offset > 0) {
+            resId = isSunset ? R.string.schedule_after_sunset : R.string.schedule_after_sunrise;
+        } else {
+            resId = isSunset ? R.string.schedule_before_sunset : R.string.schedule_before_sunrise;
+        }
+        return getString(resId, Math.abs(offset));
+    }
+
     private void prepareScheduleJsonAndUpdate() {
+
+        // A sunrise/sunset trigger carries fields this app does not model (sr/ss, lat, lon,
+        // loc). The update below replaces the whole trigger array with a fixed time taken
+        // from the time picker, which would silently destroy the daylight trigger on the
+        // node, so refuse the update instead of corrupting the schedule.
+        if (schedule != null && schedule.isDaylightTrigger()) {
+            new AlertDialog.Builder(ScheduleDetailActivity.this)
+                    .setTitle(R.string.dialog_title_daylight_schedule)
+                    .setMessage(R.string.error_daylight_schedule_not_editable)
+                    .setPositiveButton(R.string.btn_ok, null)
+                    .show();
+            return;
+        }
 
         JsonObject scheduleJson = new JsonObject();
         scheduleJson.addProperty(AppConstants.KEY_OPERATION, operation);

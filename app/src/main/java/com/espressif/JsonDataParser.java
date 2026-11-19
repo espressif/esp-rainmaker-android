@@ -518,10 +518,19 @@ public class JsonDataParser {
                     String name = schJson.optString(AppConstants.KEY_NAME);
                     key = key + "_" + name + "_" + schJson.optBoolean(AppConstants.KEY_ENABLED);
 
+                    int daylightType = AppConstants.DAYLIGHT_TRIGGER_NONE;
+                    int daylightOffset = 0;
                     HashMap<String, Integer> triggers = new HashMap<>();
                     JSONArray triggerArray = schJson.optJSONArray(AppConstants.KEY_TRIGGERS);
                     for (int t = 0; t < triggerArray.length(); t++) {
                         JSONObject triggerJson = triggerArray.optJSONObject(t);
+                        if (triggerJson.has(AppConstants.KEY_SUNRISE)) {
+                            daylightType = AppConstants.DAYLIGHT_TRIGGER_SUNRISE;
+                            daylightOffset = triggerJson.optInt(AppConstants.KEY_SUNRISE);
+                        } else if (triggerJson.has(AppConstants.KEY_SUNSET)) {
+                            daylightType = AppConstants.DAYLIGHT_TRIGGER_SUNSET;
+                            daylightOffset = triggerJson.optInt(AppConstants.KEY_SUNSET);
+                        }
                         int days = triggerJson.optInt(AppConstants.KEY_DAYS);
                         int mins = triggerJson.optInt(AppConstants.KEY_MINUTES);
                         triggers.put(AppConstants.KEY_DAYS, days);
@@ -539,6 +548,12 @@ public class JsonDataParser {
                     schedule.setName(schJson.optString(AppConstants.KEY_NAME));
                     schedule.setEnabled(schJson.optBoolean(AppConstants.KEY_ENABLED));
                     schedule.setTriggers(triggers);
+                    // Keep this sticky across nodes: if any copy of this schedule reports a daylight
+                    // trigger, the whole schedule keeps it and stays protected from a fixed-time save.
+                    if (daylightType != AppConstants.DAYLIGHT_TRIGGER_NONE) {
+                        schedule.setDaylightType(daylightType);
+                        schedule.setDaylightOffset(daylightOffset);
+                    }
                     Log.d(TAG, "=============== Schedule : " + schedule.getName() + " ===============");
 
                     // Actions
