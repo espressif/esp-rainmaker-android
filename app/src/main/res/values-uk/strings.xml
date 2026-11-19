@@ -462,9 +462,9 @@ Thread...</string>
     <string name="forgot_password">Забули пароль?</string>
     <string name="resend_code">Надіслати код повторно</string>
     <string name="connect_your_device">Підключитися до пристрою</string>
-    <string name="documentation">Документація</string>
-    <string name="privacy_policy">Політика конфіденційності</string>
-    <string name="terms_of_use">Умови використання</string>
+    <string name="documentation">Довідка</string>
+    <string name="privacy_policy">Конфіденційність</string>
+    <string name="terms_of_use">Умови</string>
     <string name="voice_services">Голосові сервіси</string>
     <string name="looking_for_qr_code">Пошук QR-коду</string>
     <string name="position_camera_for_qr_code">Наведіть камеру на QR-код.</string>
