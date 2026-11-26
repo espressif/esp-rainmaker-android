@@ -1071,10 +1071,11 @@ public class ApiManager {
         nodeIds.clear();
         scheduleIds.clear();
         sceneIds.clear();
-        getNodesFromCloud("", listener);
+        getNodesFromCloud("", new HashMap<String, Schedule>(), new HashMap<String, Scene>(), listener);
     }
 
-    private void getNodesFromCloud(final String startId, final ApiResponseListener listener) {
+    private void getNodesFromCloud(final String startId, final HashMap<String, Schedule> scheduleMap,
+                                   final HashMap<String, Scene> sceneMap, final ApiResponseListener listener) {
 
         Log.d(TAG, "Get Nodes from cloud with start id : " + startId);
         String url = getBaseUrl() + AppConstants.URL_USER_NODES_DETAILS;
@@ -1095,8 +1096,6 @@ public class ApiManager {
                             String jsonResponse = response.body().string();
                             JSONObject jsonObject = new JSONObject(jsonResponse);
                             JSONArray nodeJsonArray = jsonObject.optJSONArray(AppConstants.KEY_NODE_DETAILS);
-                            HashMap<String, Schedule> scheduleMap = new HashMap<>();
-                            HashMap<String, Scene> sceneMap = new HashMap<>();
 
                             if (nodeJsonArray != null) {
 
@@ -1376,10 +1375,19 @@ public class ApiManager {
                                                         String name = schJson.optString(AppConstants.KEY_NAME);
                                                         key = key + "_" + name + "_" + schJson.optBoolean(AppConstants.KEY_ENABLED);
 
+                                                        int daylightType = AppConstants.DAYLIGHT_TRIGGER_NONE;
+                                                        int daylightOffset = 0;
                                                         HashMap<String, Integer> triggers = new HashMap<>();
                                                         JSONArray triggerArray = schJson.optJSONArray(AppConstants.KEY_TRIGGERS);
                                                         for (int t = 0; t < triggerArray.length(); t++) {
                                                             JSONObject triggerJson = triggerArray.optJSONObject(t);
+                                                            if (triggerJson.has(AppConstants.KEY_SUNRISE)) {
+                                                                daylightType = AppConstants.DAYLIGHT_TRIGGER_SUNRISE;
+                                                                daylightOffset = triggerJson.optInt(AppConstants.KEY_SUNRISE);
+                                                            } else if (triggerJson.has(AppConstants.KEY_SUNSET)) {
+                                                                daylightType = AppConstants.DAYLIGHT_TRIGGER_SUNSET;
+                                                                daylightOffset = triggerJson.optInt(AppConstants.KEY_SUNSET);
+                                                            }
                                                             int days = triggerJson.optInt(AppConstants.KEY_DAYS);
                                                             int mins = triggerJson.optInt(AppConstants.KEY_MINUTES);
                                                             triggers.put(AppConstants.KEY_DAYS, days);
@@ -1398,6 +1406,12 @@ public class ApiManager {
 
                                                         scheduleIds.add(key);
                                                         schedule.setTriggers(triggers);
+                                                        // Keep this sticky across nodes: if any copy of this schedule reports a daylight
+                                                        // trigger, the whole schedule keeps it and stays protected from a fixed-time save.
+                                                        if (daylightType != AppConstants.DAYLIGHT_TRIGGER_NONE) {
+                                                            schedule.setDaylightType(daylightType);
+                                                            schedule.setDaylightOffset(daylightOffset);
+                                                        }
                                                         Log.d(TAG, "=============== Schedule : " + schedule.getName() + " ===============");
 
                                                         // Actions
@@ -1840,7 +1854,7 @@ public class ApiManager {
                             Log.d(TAG, "Start next id : " + nextId);
 
                             if (!TextUtils.isEmpty(nextId)) {
-                                getNodesFromCloud(nextId, listener);
+                                getNodesFromCloud(nextId, scheduleMap, sceneMap, listener);
                             } else {
                                 Iterator<Map.Entry<String, EspNode>> itr = espApp.nodeMap.entrySet().iterator();
 
@@ -2586,10 +2600,19 @@ public class ApiManager {
                                                 String name = schJson.optString(AppConstants.KEY_NAME);
                                                 key = key + "_" + name + "_" + schJson.optBoolean(AppConstants.KEY_ENABLED);
 
+                                                int daylightType = AppConstants.DAYLIGHT_TRIGGER_NONE;
+                                                int daylightOffset = 0;
                                                 HashMap<String, Integer> triggers = new HashMap<>();
                                                 JSONArray triggerArray = schJson.optJSONArray(AppConstants.KEY_TRIGGERS);
                                                 for (int t = 0; t < triggerArray.length(); t++) {
                                                     JSONObject triggerJson = triggerArray.optJSONObject(t);
+                                                    if (triggerJson.has(AppConstants.KEY_SUNRISE)) {
+                                                        daylightType = AppConstants.DAYLIGHT_TRIGGER_SUNRISE;
+                                                        daylightOffset = triggerJson.optInt(AppConstants.KEY_SUNRISE);
+                                                    } else if (triggerJson.has(AppConstants.KEY_SUNSET)) {
+                                                        daylightType = AppConstants.DAYLIGHT_TRIGGER_SUNSET;
+                                                        daylightOffset = triggerJson.optInt(AppConstants.KEY_SUNSET);
+                                                    }
                                                     int days = triggerJson.optInt(AppConstants.KEY_DAYS);
                                                     int mins = triggerJson.optInt(AppConstants.KEY_MINUTES);
                                                     triggers.put(AppConstants.KEY_DAYS, days);
@@ -2606,6 +2629,12 @@ public class ApiManager {
                                                 schedule.setName(schJson.optString(AppConstants.KEY_NAME));
                                                 schedule.setEnabled(schJson.optBoolean(AppConstants.KEY_ENABLED));
                                                 schedule.setTriggers(triggers);
+                                                // Keep this sticky across nodes: if any copy of this schedule reports a daylight
+                                                // trigger, the whole schedule keeps it and stays protected from a fixed-time save.
+                                                if (daylightType != AppConstants.DAYLIGHT_TRIGGER_NONE) {
+                                                    schedule.setDaylightType(daylightType);
+                                                    schedule.setDaylightOffset(daylightOffset);
+                                                }
 
                                                 // Actions
                                                 JSONObject actionsSchJson = schJson.optJSONObject(AppConstants.KEY_ACTION);

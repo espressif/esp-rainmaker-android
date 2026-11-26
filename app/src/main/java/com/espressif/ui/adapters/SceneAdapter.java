@@ -89,21 +89,11 @@ public class SceneAdapter extends RecyclerView.Adapter<SceneAdapter.SceneViewHol
         String sceneInfo = scene.getInfo();
 
         if (TextUtils.isEmpty(sceneInfo)) {
-            // Display action devices
-            StringBuilder deviceNames = new StringBuilder();
+            // Display the number of devices the scene acts on. Listing every device name
+            // makes the row unreadable for scenes that span a large number of devices.
             ArrayList<Action> actions = scene.getActions();
-
-            if (actions != null && actions.size() > 0) {
-                for (int i = 0; i < actions.size(); i++) {
-
-                    String deviceName = actions.get(i).getDevice().getUserVisibleName();
-                    if (deviceNames.length() != 0) {
-                        deviceNames.append(", ");
-                    }
-                    deviceNames.append(deviceName);
-                }
-            }
-            sceneInfo = deviceNames.toString();
+            int deviceCount = (actions != null) ? actions.size() : 0;
+            sceneInfo = context.getResources().getQuantityString(R.plurals.device_count, deviceCount, deviceCount);
         }
         sceneViewHolder.tvActionDevices.setText(sceneInfo);
 

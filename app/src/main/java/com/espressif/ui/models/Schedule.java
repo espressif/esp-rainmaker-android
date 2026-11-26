@@ -17,6 +17,8 @@ package com.espressif.ui.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.espressif.AppConstants;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -27,6 +29,8 @@ public class Schedule implements Parcelable {
     private boolean isEnabled;
     private ArrayList<Action> actions;
     private HashMap<String, Integer> triggers;
+    private int daylightType;
+    private int daylightOffset;
 
     public Schedule() {
     }
@@ -37,6 +41,8 @@ public class Schedule implements Parcelable {
         isEnabled = in.readByte() != 0;
         actions = in.createTypedArrayList(Action.CREATOR);
         triggers = (HashMap<String, Integer>) in.readSerializable();
+        daylightType = in.readInt();
+        daylightOffset = in.readInt();
     }
 
     public String getId() {
@@ -79,6 +85,39 @@ public class Schedule implements Parcelable {
         this.triggers = triggers;
     }
 
+    /**
+     * @return true when the schedule fires relative to sunrise or sunset rather than at a
+     * fixed time. Such a trigger carries fields (sr/ss, lat, lon, loc) that this app does
+     * not fully model, so it must not be rewritten from the time picker.
+     */
+    public boolean isDaylightTrigger() {
+        return daylightType != AppConstants.DAYLIGHT_TRIGGER_NONE;
+    }
+
+    /**
+     * @return one of AppConstants.DAYLIGHT_TRIGGER_SUNRISE, DAYLIGHT_TRIGGER_SUNSET or
+     * DAYLIGHT_TRIGGER_NONE.
+     */
+    public int getDaylightType() {
+        return daylightType;
+    }
+
+    public void setDaylightType(int daylightType) {
+        this.daylightType = daylightType;
+    }
+
+    /**
+     * @return minutes offset from the daylight event. Positive is after the event, negative
+     * before it, zero exactly at it.
+     */
+    public int getDaylightOffset() {
+        return daylightOffset;
+    }
+
+    public void setDaylightOffset(int daylightOffset) {
+        this.daylightOffset = daylightOffset;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -91,6 +130,8 @@ public class Schedule implements Parcelable {
         dest.writeByte((byte) (isEnabled ? 1 : 0));
         dest.writeTypedList(actions);
         dest.writeSerializable(triggers);
+        dest.writeInt(daylightType);
+        dest.writeInt(daylightOffset);
     }
 
     public static final Creator<Schedule> CREATOR = new Creator<Schedule>() {

@@ -71,6 +71,33 @@
                 android:soundEffectsEnabled="true"
                 android:timePickerMode="spinner" />
 
+            <TextView
+                android:id="@+id/tv_daylight_trigger"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:padding="@dimen/margin_16"
+                android:textColor="@color/colorPrimaryDark"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="30 min after sunrise"
+                tools:visibility="visible" />
+
+            <TextView
+                android:id="@+id/tv_daylight_trigger_note"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:paddingStart="@dimen/margin_16"
+                android:paddingEnd="@dimen/margin_16"
+                android:paddingBottom="@dimen/margin_16"
+                android:text="@string/schedule_daylight_not_editable_note"
+                android:textColor="@color/color_text_secondary"
+                android:textSize="14sp"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
             <RelativeLayout
                 android:id="@+id/rl_repeat"
                 android:layout_width="match_parent"

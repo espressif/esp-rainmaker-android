@@ -91,21 +91,12 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.Schedu
         scheduleViewHolder.progressBar.setVisibility(View.GONE);
         scheduleViewHolder.switchSchedule.setVisibility(View.VISIBLE);
 
-        // Display action devices
-        StringBuilder deviceNames = new StringBuilder();
+        // Display the number of devices the schedule acts on. Listing every device name
+        // makes the row unreadable for schedules that span a large number of devices.
         ArrayList<Action> actions = schedule.getActions();
-
-        if (actions != null && actions.size() > 0) {
-            for (int i = 0; i < actions.size(); i++) {
-
-                String deviceName = actions.get(i).getDevice().getUserVisibleName();
-                if (deviceNames.length() != 0) {
-                    deviceNames.append(", ");
-                }
-                deviceNames.append(deviceName);
-            }
-        }
-        scheduleViewHolder.tvActionDevices.setText(deviceNames);
+        int deviceCount = (actions != null) ? actions.size() : 0;
+        scheduleViewHolder.tvActionDevices.setText(
+                context.getResources().getQuantityString(R.plurals.device_count, deviceCount, deviceCount));
 
         // Display days and time of schedule
         StringBuilder scheduleTimeText = new StringBuilder();
@@ -143,7 +134,15 @@ public class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.Schedu
             }
         }
 
-        scheduleViewHolder.tvScheduleTime.setText(scheduleTimeText);
+        if (schedule.isDaylightTrigger()) {
+            // A daylight trigger carries no "m" field, so the time computed above is a
+            // meaningless midnight. Show which event the schedule follows instead.
+            scheduleViewHolder.tvScheduleTime.setText(
+                    schedule.getDaylightType() == AppConstants.DAYLIGHT_TRIGGER_SUNSET
+                            ? R.string.schedule_sunset : R.string.schedule_sunrise);
+        } else {
+            scheduleViewHolder.tvScheduleTime.setText(scheduleTimeText);
+        }
         String days = getDaysText(daysValue);
         scheduleViewHolder.tvScheduleDays.setText(days);
 

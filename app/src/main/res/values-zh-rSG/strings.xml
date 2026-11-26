@@ -222,6 +222,17 @@
     <string name="btn_apple">使用 Apple 登录</string>
     <string name="btn_we_chat">使用微信登录</string>
     <string name="btn_ok">确定</string>
+    <string name="schedule_at_sunrise">日出时</string>
+    <string name="schedule_at_sunset">日落时</string>
+    <string name="schedule_after_sunrise">日出后 %d 分钟</string>
+    <string name="schedule_before_sunrise">日出前 %d 分钟</string>
+    <string name="schedule_after_sunset">日落后 %d 分钟</string>
+    <string name="schedule_before_sunset">日落前 %d 分钟</string>
+    <string name="schedule_daylight_not_editable_note">当前版本的应用无法编辑该触发条件。</string>
+    <string name="schedule_sunrise">日出</string>
+    <string name="schedule_sunset">日落</string>
+    <string name="dialog_title_daylight_schedule">日出/日落定时</string>
+    <string name="error_daylight_schedule_not_editable">此定时由日出或日落触发。当前版本的应用无法编辑该触发条件，保存会将其替换为固定时间。请使用支持日出/日落触发的客户端进行编辑。</string>
     <string name="btn_back">返回</string>
     <string name="btn_cancel">取消</string>
     <string name="btn_join">配置</string>
@@ -474,6 +485,9 @@
     <string name="with_you">与你</string>
     <string name="and">和</string>
     <string name="devices">设备</string>
+    <plurals name="device_count">
+        <item quantity="other">%d 个设备</item>
+    </plurals>
     <string name="device">设备</string>
     <string name="node">节点</string>
     <string name="expires_in">有效期为</string>
